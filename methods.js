@@ -1,10 +1,15 @@
 console.log(`methods.js called at ${Date()}`)
 
+const name='Jonas'
 
 function hello(){
-    console.log(`hello mSig at ${Date()}`)
+    let x = 1234
+    console.log(`hello ${name} mSig at ${Date()}`)
 }
 
+
+
 export {
-    hello
+    hello,
+    name
 }
