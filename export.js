@@ -7,11 +7,7 @@ function hello(){
     console.log(`hello ${name} mSig at ${Date()}`)
 }
 
-
-
 export {
-<<<<<<< HEAD:methods.js
     hello,
     name
 }
->>>>>>> d363a68f430dac793411fdcc2afde7700408120a:export.js
