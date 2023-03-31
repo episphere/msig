@@ -1,0 +1,89 @@
+.dropzone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  border-radius: 2px;
+  border: 2px dashed #007ea7;
+  background-color: #fafafa;
+  color: #646c7f;
+  outline: none;
+  transition: border 0.24s ease-in-out;
+  cursor: pointer;
+}
+
+.dropzone:disabled {
+  cursor: default;
+}
+
+.faButton {
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+#removeFile:hover {
+  background: #cfd8dc;
+}
+
+.popover-body {
+  overflow-y: auto;
+  max-height: 200px;
+  white-space: pre-wrap;
+}
+
+a.font-14,
+Button.font-14 {
+  font-size: 14px !important;
+}
+
+ul {
+  columns: 3;
+  column-width: auto;
+}
+
+a.disabled,
+input:disabled,
+select:disabled,
+button:disabled,
+div[disabled] {
+  cursor: not-allowed;
+  pointer-events: all !important;
+}
+
+.active-secondary-navlinks {
+  box-shadow: none !important;
+  color: 'black';
+}
+
+.active-secondary-navlinks:after {
+  content: '';
+  display: block;
+  padding-top: 2px;
+  width: 100%;
+  //border-bottom: 3px solid #bb0e3d !important;
+  margin-bottom: -5px;
+}
+
+.nav-link.active > strong {
+  content: '';
+  display: block;
+  padding-top: 2px;
+  width: 100%;
+  //border-bottom: 2px solid #bb0e3d !important;
+  margin-bottom: -4px;
+}
+
+// kataegis table
+div.react-bootstrap-table-pagination-list {
+  display: flex;
+}
+
+ul.pagination.react-bootstrap-table-page-btns-ul {
+  margin-left: auto;
+}
+
+th {
+  white-space: nowrap;
+}

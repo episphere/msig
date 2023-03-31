@@ -1,8 +1,136 @@
-<hr><h1>mSig <sup style="font-size:large;font-weight:normal">[<a href="https://github.com/episphere/msig" target="_blank">code</a>] [<a href="https://observablehq.com/@episphere/msig" target="_blank">notebook</a>] [<a href="https://github.com/episphere/msig/issues" target="_blank">issues</a>]</sup></h1><hr>
-<div>
-    JavaScript SDK to operate REST API of DCEG's Mutation Signature resource.
-</div>
+<!DOCTYPE html>
+<html lang="en">
 
-<script src="mSig.js"></script>
-<link href="https://episphere.github.io/gps/gps.css" rel="stylesheet">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+    <meta charset="utf-8">
+    <title>mSigSDK</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./styles/style.css">
+
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+
+
+    <script>
+        mSigSDK = import("../main.js").then((mSigSDK) => {
+            // set mSigSDK as a global variable
+            window.mSigSDK = mSigSDK.mSigSDK;
+        });
+
+    </script>
+</head>
+
+<body>
+    <div class="page-title">
+        <input id="toggle-nav" type="image" src="./Icons/icons8-menu-rounded-30.png" style="display: inline-block;" />
+
+        <h1 style="display: inline-block;">mSigSDK Home </h1>
+    </div>
+
+
+
+    <section class="container py-5">
+        <h1 class="display-3 mb-5">mSigSDK Visualizations</h1>
+        <iframe width="100%" height="500" frameborder="0"
+            src="https://observablehq.com/embed/@aaronge-2020/msigportal-integration-msigsdk-visualizations?cell=*"></iframe>
+    </section>
+    <section class="container py-5">
+        <h1 class="display-3 mb-5">mSigSDK APIs</h1>
+        <iframe width="100%" height="500" frameborder="0"
+            src="https://observablehq.com/embed/@aaronge-2020/msigportal-integration-msigsdk-data-apis?cell=*"></iframe>
+    </section>
+
+    <section class="container py-5">
+        <h1 class="display-3 mb-5">mSigSDK Signature Extraction</h1>
+        <iframe width="100%" height="500" frameborder="0"
+            src="https://observablehq.com/embed/@aaronge-2020/miscellaneous-features-msigsdk?cell=*"></iframe>
+    </section>
+
+    <section class="container py-5">
+        <h1 class="display-3 mb-5">mSigSDK ICGC</h1>
+        <iframe width="100%" height="500" frameborder="0"
+            src="https://observablehq.com/embed/@aaronge-2020/icgc-msigsdk?cell=*"></iframe>
+    </section>
+
+
+    <section class="container py-5">
+                <h1 class=" display-3 mb-5" style="width:100%">Test an API</h1>
+
+
+                <form class="d-block float-left"  id="api-form-signatures"  style="width:75%; margin:auto;" >
+                    <div class="form-group">
+                        <label for="endpoint-select">Endpoint:</label>
+                        <select class="form-control" id="endpoint-select">
+                            <option value="">-- Select an API --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="response-output">Response:</label>
+                        <pre id="response-output" class="bg-light">
+
+            <table id = "responseTable" class="tablesorter table table-bordered table-striped ">
+              <thead id="tableHead">
+              </thead>
+              <tbody id="tableBody">
+              </tbody>
+            </table>
+          </div>
+        </pre>
+
+                        <div class="form-group">
+                            <label for="number-of-results-input">Number of Results:</label>
+                            <input type="text" class="form-control" id="number-of-results-input"
+                                placeholder="Enter the number of results you would like to obtain">
+                        </div>
+                        <div class="form-group" id="params-section">
+                            <!-- This section will be updated with the description of the parameters for each API -->
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">Submit</button>
+                        </div>
+                </form>
+
+    </section>
+
+
+
+    <nav id="my-nav">
+
+        <h2 style="display: inline-block;"><a href="index.html">Home</a></h2>
+
+        <h3>Namespaces</h3>
+        <ul>
+            <li><a href="ICGC.html">ICGC</a></li>
+            <li><a href="mSigPortalData.html">mSigPortalData</a></li>
+            <li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li>
+        </ul>
+        <h3>Global</h3>
+        <ul>
+            <li><a href="global.html#fitMutationalSpectraToSignatures">fitMutationalSpectra</a></li>
+            <li><a href="global.html#plotPatientMutationalSignaturesExposure">plotExposures</a>
+            </li>
+        </ul>
+    </nav>
+
+    <br class="clear">
+
+    <footer>
+        Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Mon Mar 20 2023 11:40:18
+        GMT-0400 (Eastern Daylight Time)
+    </footer>
+
+    <script> prettyPrint(); </script>
+    <script src="scripts/linenumber.js"> </script>
+    <script src="APITesting.js"> </script>
+
+</body>
+
+</html>
