@@ -6328,7 +6328,7 @@ async function nnls(A, b, maxiter = 3 * A[0].length) {
   return { x, rnorm };
 }
 
-async function fetchURLAndCache$1(cacheName, url, ICGC = null) {
+async function fetchURLAndCache(cacheName, url, ICGC = null) {
   const isCacheSupported = "caches" in window;
   let matchedURL;
 
@@ -6682,7 +6682,7 @@ console.log(mutationalSignatures);
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_options?
     source=Reference_signatures&strategy=${genomeDataType}&profile=${mutationType}&offset=0`;
     const cacheName = "getMutationalSignaturesOptions";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   /**
@@ -6708,7 +6708,7 @@ Retrieves mutational signatures data from the specified endpoint and returns it 
     source=Reference_signatures&strategy=${genomeDataType}&profile=${mutationType}&matrix=96&signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
     const cacheName = "getMutationalSignaturesData";
     const unformattedData = await (
-      await fetchURLAndCache$1(cacheName, url)
+      await fetchURLAndCache(cacheName, url)
     ).json();
     extractMutationalSpectra(
       unformattedData,
@@ -6738,7 +6738,7 @@ console.log(summary);
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_summary?signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
     const cacheName = "getMutationalSignaturesSummary";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
   //#endregion
 
@@ -6765,7 +6765,7 @@ Retrieves mutational spectrum options from the mutational signatures API.
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_options?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&offset=0&limit=${numberOfResults}`;
     const cacheName = "getMutationalSpectrumOptions";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   /**
@@ -6799,7 +6799,7 @@ Retrieves mutational spectrum options from the mutational signatures API.
       let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
 
       let unformattedData = await (
-        await fetchURLAndCache$1(cacheName, url)
+        await fetchURLAndCache(cacheName, url)
       ).json();
 
       return unformattedData;
@@ -6809,7 +6809,7 @@ Retrieves mutational spectrum options from the mutational signatures API.
       let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
 
       let unformattedData = await (
-        await fetchURLAndCache$1(cacheName, url)
+        await fetchURLAndCache(cacheName, url)
       ).json();
       extractMutationalSpectra(unformattedData, "sample");
       return unformattedData;
@@ -6822,7 +6822,7 @@ Retrieves mutational spectrum options from the mutational signatures API.
     }
 
     urls.forEach((url) => {
-      promises.push(fetchURLAndCache$1(cacheName, url));
+      promises.push(fetchURLAndCache(cacheName, url));
     });
 
     const results = await Promise.all(promises);
@@ -6860,7 +6860,7 @@ Fetches the mutational spectrum summary from the mutational signatures API based
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_summary?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSpectrumSummary";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   //#endregion
@@ -6887,7 +6887,7 @@ Fetches the mutational signature association options from the API endpoint
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureAssociationOptions";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   /**
@@ -6911,7 +6911,7 @@ Retrieves mutational signature association data from a specified cancer study us
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association?study=${study}&strategy=${genomeDataType}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureAssociationData";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   //#endregion
@@ -6936,7 +6936,7 @@ Retrieves a list of mutational signature activity options from the mutational si
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureActivityOptions";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
   /**
 
@@ -6961,7 +6961,7 @@ Retrieves mutational signature landscape data from the mutational-signatures API
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&cancer=${cancerType}&offset=0`;
     const cacheName = "getMutationalSignatureActivityData";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   /**
@@ -6985,7 +6985,7 @@ Retrieves mutational signature landscape data from an API endpoint.
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureLandscapeData";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   //#endregion
@@ -7021,7 +7021,7 @@ cancer_type: The cancer type.
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology_options?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureEtiologyOptions";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   /**
@@ -7046,7 +7046,7 @@ Retrieves mutational signature etiology data from the Cancer Genomics Research L
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureEtiologyData";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   //#endregion
