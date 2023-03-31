@@ -628,6 +628,62 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
   //#endregion
 
   //#region Plot a patient's mutational spectra
+
+
+// This function plots the mutational spectrum for the given parameters.
+async function plotPatientMutationalSpectrumICGC(
+  mutationalSpectra,
+  matrixSize = 96,
+  divID = "mutationalSpectrumMatrix"
+) {
+  const numberOfPatients = Object.keys(mutationalSpectra).length;
+  if (numberOfPatients == 0) {
+    $(`#${divID}`).html(
+      `<p style="color:red">Error: no data available for the selected parameters.</p>`
+    );
+  } else if (numberOfPatients > 1) {
+    const layout = {
+      title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
+        ", "
+      )}`,
+      xaxis: { title: "Mutation Type" },
+      yaxis: { title: "Count" },
+      barmode: "group",
+    };
+
+    const traces = Object.keys(mutationalSpectra).map((patient) => ({
+      x: Object.keys(mutationalSpectra[patient]),
+      y: Object.values(mutationalSpectra[patient]),
+      name: `${patient}`,
+      type: "bar",
+    }));
+
+    Plotly.default.newPlot(divID, traces, layout);
+  } else {
+    let traces = [];
+
+    const layout = {
+      title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
+        ", "
+      )}`,
+      xaxis: { title: "Mutation Type" },
+      yaxis: { title: "Count" },
+      barmode: "group",
+    };
+
+    for (let i = 0; i < Object.keys(mutationalSpectra).length; i++) {
+      let plotlyData = formatMutationalSpectraData(
+        mutationalSpectra[Object.keys(mutationalSpectra)[i]],
+        Object.keys(mutationalSpectra)[i]
+      );
+
+      traces = traces.concat(plotlyData);
+    }
+
+    Plotly.default.newPlot(divID, traces, layout);
+  }
+}
+
   /**
 
 Renders a plot of the mutational spectra for one or more patients in a given div element ID using Plotly.
@@ -1409,6 +1465,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     obtainICGCDataMAF,
     convertMatrix,
     convertWGStoPanel,
+    plotPatientMutationalSpectrumICGC
   };
 
   const tools = {
