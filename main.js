@@ -21,15 +21,11 @@ import { default as plotMutationalProfileID83 } from "./mSigPortalScripts/client
 import { default as plotMutationalProfileID415 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id415.js";
 import { default as plotMutationalProfileRS32 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/rs32.js";
 
-import {default as plotMutationalProfileSBS96Comparison} from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/sbs96.js";
-import {default as plotMutationalProfileSBS192Comparison} from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/sbs192.js";
-import {default as plotMutationalProfileDBS78Comparison} from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/dbs78.js";
-import {default as plotMutationalProfileID83Comparison} from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/id83.js";
-import {default as plotMutationalProfileRS32Comparison} from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/rs32.js";
-
-
-
-
+import { default as plotMutationalProfileSBS96Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/sbs96.js";
+import { default as plotMutationalProfileSBS192Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/sbs192.js";
+import { default as plotMutationalProfileDBS78Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/dbs78.js";
+import { default as plotMutationalProfileID83Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/id83.js";
+import { default as plotMutationalProfileRS32Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/rs32.js";
 
 import {
   obtainICGCDataMAF,
@@ -629,60 +625,59 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
 
   //#region Plot a patient's mutational spectra
 
-
-// This function plots the mutational spectrum for the given parameters.
-async function plotPatientMutationalSpectrumICGC(
-  mutationalSpectra,
-  matrixSize = 96,
-  divID = "mutationalSpectrumMatrix"
-) {
-  const numberOfPatients = Object.keys(mutationalSpectra).length;
-  if (numberOfPatients == 0) {
-    $(`#${divID}`).html(
-      `<p style="color:red">Error: no data available for the selected parameters.</p>`
-    );
-  } else if (numberOfPatients > 1) {
-    const layout = {
-      title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
-        ", "
-      )}`,
-      xaxis: { title: "Mutation Type" },
-      yaxis: { title: "Count" },
-      barmode: "group",
-    };
-
-    const traces = Object.keys(mutationalSpectra).map((patient) => ({
-      x: Object.keys(mutationalSpectra[patient]),
-      y: Object.values(mutationalSpectra[patient]),
-      name: `${patient}`,
-      type: "bar",
-    }));
-
-    Plotly.default.newPlot(divID, traces, layout);
-  } else {
-    let traces = [];
-
-    const layout = {
-      title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
-        ", "
-      )}`,
-      xaxis: { title: "Mutation Type" },
-      yaxis: { title: "Count" },
-      barmode: "group",
-    };
-
-    for (let i = 0; i < Object.keys(mutationalSpectra).length; i++) {
-      let plotlyData = formatMutationalSpectraData(
-        mutationalSpectra[Object.keys(mutationalSpectra)[i]],
-        Object.keys(mutationalSpectra)[i]
+  // This function plots the mutational spectrum for the given parameters.
+  async function plotPatientMutationalSpectrumICGC(
+    mutationalSpectra,
+    matrixSize = 96,
+    divID = "mutationalSpectrumMatrix"
+  ) {
+    const numberOfPatients = Object.keys(mutationalSpectra).length;
+    if (numberOfPatients == 0) {
+      $(`#${divID}`).html(
+        `<p style="color:red">Error: no data available for the selected parameters.</p>`
       );
+    } else if (numberOfPatients > 1) {
+      const layout = {
+        title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
+          ", "
+        )}`,
+        xaxis: { title: "Mutation Type" },
+        yaxis: { title: "Count" },
+        barmode: "group",
+      };
 
-      traces = traces.concat(plotlyData);
+      const traces = Object.keys(mutationalSpectra).map((patient) => ({
+        x: Object.keys(mutationalSpectra[patient]),
+        y: Object.values(mutationalSpectra[patient]),
+        name: `${patient}`,
+        type: "bar",
+      }));
+
+      Plotly.default.newPlot(divID, traces, layout);
+    } else {
+      let traces = [];
+
+      const layout = {
+        title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
+          ", "
+        )}`,
+        xaxis: { title: "Mutation Type" },
+        yaxis: { title: "Count" },
+        barmode: "group",
+      };
+
+      for (let i = 0; i < Object.keys(mutationalSpectra).length; i++) {
+        let plotlyData = formatMutationalSpectraData(
+          mutationalSpectra[Object.keys(mutationalSpectra)[i]],
+          Object.keys(mutationalSpectra)[i]
+        );
+
+        traces = traces.concat(plotlyData);
+      }
+
+      Plotly.default.newPlot(divID, traces, layout);
     }
-
-    Plotly.default.newPlot(divID, traces, layout);
   }
-}
 
   /**
 
@@ -739,7 +734,10 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       matrixSize == 96 &&
       mutationType == "SBS"
     ) {
-      let traces = plotMutationalProfileSBS96Comparison(mutationalSpectra[0], mutationalSpectra[1]);
+      let traces = plotMutationalProfileSBS96Comparison(
+        mutationalSpectra[0],
+        mutationalSpectra[1]
+      );
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
     } else if (
@@ -763,10 +761,13 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       matrixSize == 192 &&
       mutationType == "SBS"
     ) {
-      let traces = plotMutationalProfileSBS192Comparison(mutationalSpectra[0], mutationalSpectra[1]);
+      let traces = plotMutationalProfileSBS192Comparison(
+        mutationalSpectra[0],
+        mutationalSpectra[1]
+      );
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
-    }else if (
+    } else if (
       numberOfPatients == 1 &&
       matrixSize == 288 &&
       mutationType == "SBS"
@@ -803,7 +804,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       matrixSize == 78 &&
       mutationType == "DBS"
     ) {
-      let traces = plotMutationalProfileDBS78Comparison(mutationalSpectra[0], mutationalSpectra[1], 'pc');
+      let traces = plotMutationalProfileDBS78Comparison(
+        mutationalSpectra[0],
+        mutationalSpectra[1],
+        "pc"
+      );
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
     } else if (
@@ -838,12 +843,16 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       let traces = plotMutationalProfileID83(mutationalSpectra[0]);
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
-    }else if (
+    } else if (
       numberOfPatients == 2 &&
       matrixSize == 83 &&
       mutationType == "ID"
     ) {
-      let traces = plotMutationalProfileID83Comparison(mutationalSpectra[0], mutationalSpectra[1], 'pc');
+      let traces = plotMutationalProfileID83Comparison(
+        mutationalSpectra[0],
+        mutationalSpectra[1],
+        "pc"
+      );
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
     } else if (
@@ -862,12 +871,15 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       let traces = plotMutationalProfileRS32(mutationalSpectra[0]);
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
-    }else if (
+    } else if (
       numberOfPatients == 2 &&
       matrixSize == 32 &&
       mutationType == "RS"
     ) {
-      let traces = plotMutationalProfileRS32Comparison(mutationalSpectra[0], mutationalSpectra[1]);
+      let traces = plotMutationalProfileRS32Comparison(
+        mutationalSpectra[0],
+        mutationalSpectra[1]
+      );
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
     } else {
@@ -1465,7 +1477,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     obtainICGCDataMAF,
     convertMatrix,
     convertWGStoPanel,
-    plotPatientMutationalSpectrumICGC
+    plotPatientMutationalSpectrumICGC,
   };
 
   const tools = {
