@@ -1,4 +1,4 @@
-mSigSDK = await (await import("../main.js")).mSigSDK;
+mSigSDK = await (await import("./main.js")).mSigSDK;
 mutationalSpectrumData = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
     "PCAWG",
     ["SP99181", "SP98955"],
