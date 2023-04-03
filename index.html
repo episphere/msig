@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>mSigSDK</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
@@ -89,7 +88,7 @@
             <div class="col-md-4">
 
                 <div class="row">
-                    <img class="img-fluid" alt="Mutational Signatures illustration"
+                    <img class="img-fluid" alt="Mutational Signatures illustration" width="400" height="360"
                         src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Identification_Mutational_Signatures_v2.jpg/500px-Identification_Mutational_Signatures_v2.jpg" />
                 </div>
 
@@ -141,9 +140,9 @@ mSigSDK.mSigPortal.mSigPortalPlots.plotPatientMutationalSpectrum(mutationalSpect
 
 
         <div style="margin: auto;">
-            <button type="submit" class="btn btn-success" onclick="evaluateSampleCode()">Execute</button>
+            <button aria-label="Run" type="submit" class="btn btn-success" onclick="evaluateSampleCode()">Run</button>
 
-            <button type="submit" class="btn btn-danger" onclick="clearVisualization()">Reset</button>
+            <button aria-label="Reset" type="submit" class="btn btn-danger" onclick="clearVisualization()">Reset</button>
         </div>
     </section>
     <section id="developer-tools" class="container my-5">
@@ -177,7 +176,7 @@ mSigSDK.mSigPortal.mSigPortalPlots.plotPatientMutationalSpectrum(mutationalSpect
                 <label for="email">Email Address:</label>
                 <input type="email" class="form-control" id="email" name="email" required>
             </div>
-            <button type="submit" class="btn btn-primary">Submit</button>
+            <button aria-label="Submit"  type="submit" class="btn btn-primary">Submit</button>
 
         </form>
     </section>
