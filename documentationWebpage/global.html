@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <title>JSDoc: Global</title>
@@ -15,837 +16,880 @@
 
 <body>
 
-<div id="main">
+    <div id="main">
 
-    <h1 class="page-title">Global</h1>
-
-    
+        <h1 class="page-title">Global</h1>
 
 
 
 
-<section>
-
-<header>
-    
-        <h2></h2>
-        
-    
-</header>
-
-<article>
-    <div class="container-overview">
-    
-        
-
-        
 
 
-<dl class="details">
+        <section>
 
-    
+            <header>
 
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
+                <h2></h2>
 
 
-        
-    
+            </header>
+
+            <article>
+                <div class="container-overview">
+
+
+
+
+
+
+                    <dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    </dl>
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <h3 class="subsection-title">Methods</h3>
+
+
+
+
+
+
+
+                <h4 class="name" id="fitMutationalSpectraToSignatures"><span class="type-signature">(async)
+                    </span>fitMutationalSpectraToSignatures<span class="signature">(mutationalSignatures,
+                        mutationalSpectra)</span><span class="type-signature"> &rarr; {Promise.&lt;Object>}</span></h4>
+
+
+
+
+
+
+                <div class="description">
+                    Fits mutational spectra to mutational signatures using non-negative least squares (NNLS) regression.
+                </div>
+
+
+
+
+
+
+
+
+
+                <h5>Parameters:</h5>
+
+
+                <table class="params">
+                    <thead>
+                        <tr>
+
+                            <th>Name</th>
+
+
+                            <th>Type</th>
+
+
+
+
+
+                            <th class="last">Description</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+
+                        <tr>
+
+                            <td class="name"><code>mutationalSignatures</code></td>
+
+
+                            <td class="type">
+
+
+                                <span class="param-type">Object</span>
+
+
+
+                            </td>
+
+
+
+
+
+                            <td class="description last">An object containing mutational signature data with signature
+                                names as keys and nested objects containing signature values as values.</td>
+                        </tr>
+
+
+
+                        <tr>
+
+                            <td class="name"><code>mutationalSpectra</code></td>
+
+
+                            <td class="type">
+
+
+                                <span class="param-type">Object</span>
+
+
+
+                            </td>
+
+
+
+
+
+                            <td class="description last">An object containing mutational spectra data with sample names
+                                as keys and nested objects containing spectra values as values.</td>
+                        </tr>
+
+
+                    </tbody>
+                </table>
+
+
+
+
+
+
+                <dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    <dt class="tag-source">Source:</dt>
+                    <dd class="tag-source">
+                        <ul class="dummy">
+                            <li>
+                                <a href="main.js.html">main.js</a>, <a href="main.js.html#line1935">line 1935</a>
+                            </li>
+                        </ul>
+                    </dd>
+
+
+
+
+
+
+
+                </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <h5>Returns:</h5>
+
+
+                <div class="param-desc">
+                    - A Promise that resolves to an object with sample names as keys and nested objects containing
+                    signature exposure values as values.
+                </div>
+
+
+
+                <dl>
+                    <dt>
+                        Type
+                    </dt>
+                    <dd>
+
+                        <span class="param-type">Promise.&lt;Object></span>
+
+
+                    </dd>
+                </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <h4 class="name" id="getMutationalSignatureLandscapeData"><span class="type-signature">(async)
+                    </span>getMutationalSignatureLandscapeData<span class="signature">(study<span
+                            class="signature-attributes">opt</span>, genomeDataType<span
+                            class="signature-attributes">opt</span>, cancerType<span
+                            class="signature-attributes">opt</span>, signatureSetName<span
+                            class="signature-attributes">opt</span>, numberOfResults<span
+                            class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr;
+                        {Promise.&lt;object>}</span></h4>
+
+
+
+
+
+
+                <div class="description">
+                    Retrieves mutational signature landscape data from an API endpoint.
+                </div>
+
+
+
+
+
+
+
+
+
+                <h5>Parameters:</h5>
+
+
+                <table class="params">
+                    <thead>
+                        <tr>
+
+                            <th>Name</th>
+
+
+                            <th>Type</th>
+
+
+                            <th>Attributes</th>
+
+
+
+                            <th>Default</th>
+
+
+                            <th class="last">Description</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+
+                        <tr>
+
+                            <td class="name"><code>study</code></td>
+
+
+                            <td class="type">
+
+
+                                <span class="param-type">string</span>
+
+
+
+                            </td>
+
+
+                            <td class="attributes">
+
+                                &lt;optional><br>
+
+
+
+
+
+                            </td>
+
+
+
+                            <td class="default">
+
+                                "PCAWG"
+
+                            </td>
+
+
+                            <td class="description last">The study to retrieve data from.</td>
+                        </tr>
+
+
+
+                        <tr>
+
+                            <td class="name"><code>genomeDataType</code></td>
+
+
+                            <td class="type">
+
+
+                                <span class="param-type">string</span>
+
+
+
+                            </td>
+
+
+                            <td class="attributes">
+
+                                &lt;optional><br>
+
+
+
+
+
+                            </td>
+
+
+
+                            <td class="default">
+
+                                "WGS"
+
+                            </td>
+
+
+                            <td class="description last">The type of genomic data used in the study.</td>
+                        </tr>
+
+
+
+                        <tr>
+
+                            <td class="name"><code>cancerType</code></td>
+
+
+                            <td class="type">
+
+
+                                <span class="param-type">string</span>
+
+
+
+                            </td>
+
+
+                            <td class="attributes">
+
+                                &lt;optional><br>
+
+
+
+
+
+                            </td>
+
+
+
+                            <td class="default">
+
+                                ""
+
+                            </td>
+
+
+                            <td class="description last">The type of cancer to retrieve data for.</td>
+                        </tr>
+
+
+
+                        <tr>
+
+                            <td class="name"><code>signatureSetName</code></td>
+
+
+                            <td class="type">
+
+
+                                <span class="param-type">string</span>
+
+
+
+                            </td>
+
+
+                            <td class="attributes">
+
+                                &lt;optional><br>
+
+
+
+
+
+                            </td>
+
+
+
+                            <td class="default">
+
+                                "COSMIC_v3_Signatures_GRCh37_SBS96"
+
+                            </td>
+
+
+                            <td class="description last">The name of the mutational signature set to retrieve.</td>
+                        </tr>
+
+
+
+                        <tr>
+
+                            <td class="name"><code>numberOfResults</code></td>
+
+
+                            <td class="type">
+
+
+                                <span class="param-type">number</span>
+
+
+
+                            </td>
+
+
+                            <td class="attributes">
+
+                                &lt;optional><br>
+
+
+
+
+
+                            </td>
+
+
+
+                            <td class="default">
+
+                                10
+
+                            </td>
+
+
+                            <td class="description last">The number of results to retrieve.</td>
+                        </tr>
+
+
+                    </tbody>
+                </table>
+
+
+
+
+
+
+                <dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    <dt class="tag-source">Source:</dt>
+                    <dd class="tag-source">
+                        <ul class="dummy">
+                            <li>
+                                <a href="main.js.html">main.js</a>, <a href="main.js.html#line687">line 687</a>
+                            </li>
+                        </ul>
+                    </dd>
+
+
+
+
+
+
+
+                </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <h5>Returns:</h5>
+
+
+                <div class="param-desc">
+                    - A promise that resolves to an object containing the mutational signature landscape data.
+                </div>
+
+
+
+                <dl>
+                    <dt>
+                        Type
+                    </dt>
+                    <dd>
+
+                        <span class="param-type">Promise.&lt;object></span>
+
+
+                    </dd>
+                </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <h4 class="name" id="plotPatientMutationalSignaturesExposure"><span class="type-signature">(async)
+                    </span>plotPatientMutationalSignaturesExposure<span class="signature">(exposureData, divID,
+                        sample)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+
+
+
+
+
+
+                <div class="description">
+                    Plots mutational signature exposure data as a pie chart.
+                </div>
+
+
+
+
+
+
+
+
+
+                <h5>Parameters:</h5>
+
+
+                <table class="params">
+                    <thead>
+                        <tr>
+
+                            <th>Name</th>
+
+
+                            <th>Type</th>
+
+
+
+
+
+                            <th class="last">Description</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+
+                        <tr>
+
+                            <td class="name"><code>exposureData</code></td>
+
+
+                            <td class="type">
+
+
+                                <span class="param-type">Object</span>
+
+
+
+                            </td>
+
+
+
+
+
+                            <td class="description last">An object containing mutational signature exposure data.</td>
+                        </tr>
+
+
+
+                        <tr>
+
+                            <td class="name"><code>divID</code></td>
+
+
+                            <td class="type">
+
+
+                                <span class="param-type">string</span>
+
+
+
+                            </td>
+
+
+
+
+
+                            <td class="description last">The ID of the HTML div element in which to display the plot.
+                            </td>
+                        </tr>
+
+
+
+                        <tr>
+
+                            <td class="name"><code>sample</code></td>
+
+
+                            <td class="type">
+
+
+                                <span class="param-type">string</span>
+
+
+
+                            </td>
+
+
+
+
+
+                            <td class="description last">The name of the sample being plotted.</td>
+                        </tr>
+
+
+                    </tbody>
+                </table>
+
+
+
+
+
+
+                <dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    <dt class="tag-source">Source:</dt>
+                    <dd class="tag-source">
+                        <ul class="dummy">
+                            <li>
+                                <a href="main.js.html">main.js</a>, <a href="main.js.html#line1978">line 1978</a>
+                            </li>
+                        </ul>
+                    </dd>
+
+
+
+
+
+
+
+                </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <h5>Returns:</h5>
+
+
+                <div class="param-desc">
+                    - The data used to create the plot.
+                </div>
+
+
+
+                <dl>
+                    <dt>
+                        Type
+                    </dt>
+                    <dd>
+
+                        <span class="param-type">Object</span>
+
+
+                    </dd>
+                </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </article>
+
+        </section>
+
+
+
+
     </div>
 
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-        <h3 class="subsection-title">Methods</h3>
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="fitMutationalSpectraToSignatures"><span class="type-signature">(async) </span>fitMutationalSpectraToSignatures<span class="signature">(mutationalSignatures, mutationalSpectra)</span><span class="type-signature"> &rarr; {Promise.&lt;Object>}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    Fits mutational spectra to mutational signatures using non-negative least squares (NNLS) regression.
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>mutationalSignatures</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Object</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">An object containing mutational signature data with signature names as keys and nested objects containing signature values as values.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>mutationalSpectra</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Object</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">An object containing mutational spectra data with sample names as keys and nested objects containing spectra values as values.</td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1935">line 1935</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    - A Promise that resolves to an object with sample names as keys and nested objects containing signature exposure values as values.
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Promise.&lt;Object></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="getMutationalSignatureLandscapeData"><span class="type-signature">(async) </span>getMutationalSignatureLandscapeData<span class="signature">(study<span class="signature-attributes">opt</span>, genomeDataType<span class="signature-attributes">opt</span>, cancerType<span class="signature-attributes">opt</span>, signatureSetName<span class="signature-attributes">opt</span>, numberOfResults<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;object>}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    Retrieves mutational signature landscape data from an API endpoint.
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>study</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    "PCAWG"
-                
-                </td>
-            
-
-            <td class="description last">The study to retrieve data from.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>genomeDataType</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    "WGS"
-                
-                </td>
-            
-
-            <td class="description last">The type of genomic data used in the study.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>cancerType</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    ""
-                
-                </td>
-            
-
-            <td class="description last">The type of cancer to retrieve data for.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>signatureSetName</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    "COSMIC_v3_Signatures_GRCh37_SBS96"
-                
-                </td>
-            
-
-            <td class="description last">The name of the mutational signature set to retrieve.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>numberOfResults</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    10
-                
-                </td>
-            
-
-            <td class="description last">The number of results to retrieve.</td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line687">line 687</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    - A promise that resolves to an object containing the mutational signature landscape data.
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Promise.&lt;object></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="plotPatientMutationalSignaturesExposure"><span class="type-signature">(async) </span>plotPatientMutationalSignaturesExposure<span class="signature">(exposureData, divID, sample)</span><span class="type-signature"> &rarr; {Object}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    Plots mutational signature exposure data as a pie chart.
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>exposureData</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Object</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">An object containing mutational signature exposure data.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>divID</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">The ID of the HTML div element in which to display the plot.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>sample</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">The name of the sample being plotted.</td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1978">line 1978</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    - The data used to create the plot.
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Object</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-
-        
-    
-
-    
-
-    
-</article>
-
-</section>
-
-
-
-
-</div>
-
-<nav>
-    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="ICGC.html">ICGC</a></li><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li></ul><h3>Global</h3><ul><li><a href="global.html#fitMutationalSpectraToSignatures">fitMutationalSpectraToSignatures</a></li><li><a href="global.html#getMutationalSignatureLandscapeData">getMutationalSignatureLandscapeData</a></li><li><a href="global.html#plotPatientMutationalSignaturesExposure">plotPatientMutationalSignaturesExposure</a></li></ul>
-</nav>
-
-<br class="clear">
-
-<footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Mon Mar 20 2023 11:40:18 GMT-0400 (Eastern Daylight Time)
-</footer>
-
-<script> prettyPrint(); </script>
-<script src="../scripts/linenumber.js"> </script>
+    <nav>
+        <h2><a href="../index.html">Home</a></h2>
+        <h3>Namespaces</h3>
+        <ul>
+            <li><a href="ICGC.html">ICGC</a></li>
+            <li><a href="mSigPortalData.html">mSigPortalData</a></li>
+            <li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li>
+        </ul>
+        <h3>Global</h3>
+        <ul>
+            <li><a href="global.html#fitMutationalSpectraToSignatures">fitMutationalSpectraToSignatures</a></li>
+            <li><a href="global.html#getMutationalSignatureLandscapeData">getMutationalSignatureLandscapeData</a></li>
+            <li><a
+                    href="global.html#plotPatientMutationalSignaturesExposure">plotPatientMutationalSignaturesExposure</a>
+            </li>
+        </ul>
+    </nav>
+
+    <br class="clear">
+
+    <footer>
+        Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Mon Mar 20 2023 11:40:18
+        GMT-0400 (Eastern Daylight Time)
+    </footer>
+
+    <script> prettyPrint(); </script>
+    <script src="../scripts/linenumber.js"> </script>
 </body>
+
 </html>
