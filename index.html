@@ -47,27 +47,56 @@
 
     <section id="introduction" class="container mt-5 pt-5">
         <h2>About the SDK</h2>
-        <p>
-            The mSigSDK is a Software Development Kit developed by NCI researchers to facilitate the analysis of
-            mutation signature data without the need for downloads or installations. This SDK is designed to be used in
-            conjunction with the mutation signature portal called mSigPortal, which is a web-based platform developed by
-            the National Cancer Institute to analyze mutational signatures in DNA sequences. The mSigSDK is developed
-            using modern web computing standards and is entirely performed by secure delegation to the computational
-            resources of the user's own machine (in-browser), without any downloads or installations. The SDK allows for
-            distributed data processing workflows and graphic visualization of mutational signature analysis results.
-            The mSigSDK is available on Github and is provided in the public domain with the MIT license. The goal of
-            this project is to create a software engineering model for interoperability that could be applied to other
-            mutation signature portals and relevant data sources. The researchers hope to integrate other data sources
-            such as the International Cancer Genome Consortium (ICGC) and Genome Data Commons (GDC, The Cancer Genome
-            Atlas, TCGA) as well as analytical platforms such as Signal into mSigSDK, making it a genuine data commons
-            for mutational signature research.
-        </p>
 
-        <p>
-            To get started, you can follow our tutorials on the <a
-                href="https://www.youtube.com/playlist?list=your_playlist_id">YouTube playlist</a>, or consult the <a
-                href="./documentationWebpage/ICGC.html">documentation</a> for more information on using the SDK.
-        </p>
+
+        <div class="row">
+            <div class="col-md-8">
+                <p>
+                    The mSigSDK is a Software Development Kit developed by NCI researchers to facilitate the analysis of
+                    mutation signature data without the need for downloads or installations. This SDK is designed to be
+                    used in
+                    conjunction with the mutation signature portal called mSigPortal, which is a web-based platform
+                    developed by
+                    the National Cancer Institute to analyze mutational signatures in DNA sequences. The mSigSDK is
+                    developed
+                    using modern web computing standards and is entirely performed by secure delegation to the
+                    computational
+                    resources of the user's own machine (in-browser), without any downloads or installations. The SDK
+                    allows for
+                    distributed data processing workflows and graphic visualization of mutational signature analysis
+                    results.
+                    The mSigSDK is available on Github and is provided in the public domain with the MIT license. The
+                    goal of
+                    this project is to create a software engineering model for interoperability that could be applied to
+                    other
+                    mutation signature portals and relevant data sources. The researchers hope to integrate other data
+                    sources
+                    such as the International Cancer Genome Consortium (ICGC) and Genome Data Commons (GDC, The Cancer
+                    Genome
+                    Atlas, TCGA) as well as analytical platforms such as Signal into mSigSDK, making it a genuine data
+                    commons
+                    for mutational signature research.
+                </p>
+
+                <p>
+                    To get started, you can follow our tutorials on the <a
+                        href="https://www.youtube.com/playlist?list=your_playlist_id">YouTube playlist</a>, or consult
+                    the <a href="./documentationWebpage/ICGC.html">documentation</a> for more information on using the
+                    SDK.
+                </p>
+
+            </div>
+            <div class="col-md-4">
+
+                <div class="row">
+                    <img class="img-fluid" alt="Mutational Signatures illustration"
+                        src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Identification_Mutational_Signatures_v2.jpg/500px-Identification_Mutational_Signatures_v2.jpg" />
+                </div>
+
+            </div>
+
+        </div>
+
 
     </section>
     <section class="container my-5">
@@ -109,7 +138,7 @@ mSigSDK.mSigPortal.mSigPortalPlots.plotPatientMutationalSpectrum(mutationalSpect
 
         <div id="plotDemonstration"></div>
 
-       
+
 
         <div style="margin: auto;">
             <button type="submit" class="btn btn-success" onclick="evaluateSampleCode()">Execute</button>
