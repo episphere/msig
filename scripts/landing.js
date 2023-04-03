@@ -27,6 +27,12 @@ document
   });
 
 async function evaluateSampleCode() {
+
+    let plotResults = document.getElementById("plotDemonstration");
+    if (plotResults.innerHTML != ""){
+        return;
+    };
+
     let mSigSDK = await (await import("https://episphere.github.io/msig/bundle.js")).mSigSDK;
     let mutationalSpectrumData = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
         "PCAWG",
@@ -44,4 +50,8 @@ async function evaluateSampleCode() {
     addDivToDOM("mutationalSpectrumMatrix");
     
     mSigSDK.mSigPortal.mSigPortalPlots.plotPatientMutationalSpectrum(mutationalSpectrumData, "mutationalSpectrumMatrix");
+}
+function clearVisualization(){
+    let plotResults = document.getElementById("plotDemonstration");
+    plotResults.innerHTML = "";
 }

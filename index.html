@@ -32,8 +32,8 @@
                 <li class="nav-item">
                     <a class="nav-link" href="https://observablehq.com/@aaronge-2020/signature-extraction">Notebook</a>
                 </li>
-                
-                
+
+
                 <li class="nav-item">
                     <a class="nav-link" href="./documentationWebpage/ICGC.html">Documentation</a>
                 </li>
@@ -62,11 +62,6 @@
             Atlas, TCGA) as well as analytical platforms such as Signal into mSigSDK, making it a genuine data commons
             for mutational signature research.
         </p>
-        
-    </section>
-
-    <section id="developer-tools" class="container my-5">
-        <h2>Try the SDK</h2>
 
         <p>
             To get started, you can follow our tutorials on the <a
@@ -74,34 +69,50 @@
                 href="./documentationWebpage/ICGC.html">documentation</a> for more information on using the SDK.
         </p>
 
-        <p>
-            Try out the following code below to inject a visualization into the webpage:
-        </p>
-        <div id="plotDemonstration"> </div>
+    </section>
+    <section class="container my-5">
+        <h2>Inject a visualization</h2>
 
         <pre>
-        <code>
-    import("https://episphere.github.io/msig/bundle.js").then(m => mSigSDK = m);
-    mSigSDK = mSigSDK.mSigSDK;
-    mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-        "PCAWG",
-        ["SP99181", "SP98955"],
-        "WGS",
-        "Liver-HCC",
-        "ID",
-        83,
-    ).then(data => mutationalSpectrumData = data);
-    addDivToDOM = function addDivToDOM(id) {
-        const newDiv = document.createElement('div');
-        newDiv.setAttribute('id', id);
-        document.querySelector('#plotDemonstration').appendChild(newDiv);
-        }
-    addDivToDOM("mutationalSpectrumMatrix");
+            <code>
+        import("https://episphere.github.io/msig/bundle.js").then(m => mSigSDK = m);
+        mSigSDK = mSigSDK.mSigSDK;
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+            "PCAWG",
+            ["SP99181", "SP98955"],
+            "WGS",
+            "Liver-HCC",
+            "ID",
+            83,
+        ).then(data => mutationalSpectrumData = data);
+        addDivToDOM = function addDivToDOM(id) {
+            const newDiv = document.createElement('div');
+            newDiv.setAttribute('id', id);
+            document.querySelector('#plotDemonstration').appendChild(newDiv);
+            }
+        addDivToDOM("mutationalSpectrumMatrix");
+        
+        mSigSDK.mSigPortal.mSigPortalPlots.plotPatientMutationalSpectrum(mutationalSpectrumData, "mutationalSpectrumMatrix");
     
-    mSigSDK.mSigPortal.mSigPortalPlots.plotPatientMutationalSpectrum(mutationalSpectrumData, "mutationalSpectrumMatrix");
+            </code></pre>
 
-        </code></pre>
-        <button type="submit" class="btn btn-secondary" onclick="evaluateSampleCode()">Execute</button>
+        <div id="plotDemonstration"></div>
+        <p>
+            Try out the above code to inject a visualization into the webpage:
+        </p>
+
+        <div style="margin: auto;">
+            <button type="submit" class="btn btn-success" onclick="evaluateSampleCode()">Execute</button>
+
+            <button type="submit" class="btn btn-danger" onclick="clearVisualization()">Reset</button>
+        </div>
+    </section>
+    <section id="developer-tools" class="container my-5">
+        <h2>Try the SDK</h2>
+        <p>First import the SDK using the code below. Copy and paste the below command into the console and hit enter.
+        </p>
+        <pre><code>import("https://episphere.github.io/msig/bundle.js").then(m => mSigSDK = m.mSigSDK);</code></pre>
+
         <p>Test the SDK's functionality with the interactive console below. Type <b>"clear()"</b> to empty the console
             results. Type your JavaScript code and press Enter to
             execute:</p>
@@ -109,7 +120,6 @@
             <div id="console-output" class="console-output"></div>
             <input id="console-input" class="console-input" type="text" placeholder="Type your JavaScript code...">
         </div>
-
     </section>
 
     <section id="contact-form" class="container my-5">
@@ -129,6 +139,7 @@
                 <input type="email" class="form-control" id="email" name="email" required>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
+
         </form>
     </section>
 
