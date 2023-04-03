@@ -5,27 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>mSigSDK</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/cerulean/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
     <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     <script>hljs.highlightAll();</script>
-    <link rel="stylesheet" href="styles/landing.css">
-    <style>
-        .navbar {
-            background-color: #007bff;
-        }
-
-        .navbar-dark .navbar-nav .nav-link {
-            color: #fff;
-        }
-    </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-sm navbar-dark fixed-top">
+    <nav class="navbar navbar-expand-sm bg-dark navbar-dark fixed-top">
         <a class="navbar-brand" href="#">mSigSDK</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
             <span class="navbar-toggler-icon"></span>
@@ -38,9 +28,12 @@
                 <li class="nav-item">
                     <a class="nav-link" href="https://github.com/episphere/msig/issues">Issues</a>
                 </li>
+
                 <li class="nav-item">
                     <a class="nav-link" href="https://observablehq.com/@aaronge-2020/signature-extraction">Notebook</a>
                 </li>
+                
+                
                 <li class="nav-item">
                     <a class="nav-link" href="./documentationWebpage/ICGC.html">Documentation</a>
                 </li>
@@ -69,7 +62,9 @@
             Atlas, TCGA) as well as analytical platforms such as Signal into mSigSDK, making it a genuine data commons
             for mutational signature research.
         </p>
+        
     </section>
+
     <section id="developer-tools" class="container my-5">
         <h2>Try the SDK</h2>
 
@@ -85,27 +80,27 @@
         <div id="plotDemonstration"> </div>
 
         <pre>
-            <code>
-        import("https://episphere.github.io/msig/bundle.js").then(m => mSigSDK = m);
-        mSigSDK = mSigSDK.mSigSDK;
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-            "PCAWG",
-            ["SP99181", "SP98955"],
-            "WGS",
-            "Liver-HCC",
-            "ID",
-            83,
-        ).then(data => mutationalSpectrumData = data);
-        addDivToDOM = function addDivToDOM(id) {
-            const newDiv = document.createElement('div');
-            newDiv.setAttribute('id', id);
-            document.querySelector('#plotDemonstration').appendChild(newDiv);
-            }
-        addDivToDOM("mutationalSpectrumMatrix");
-        
-        mSigSDK.mSigPortal.mSigPortalPlots.plotPatientMutationalSpectrum(mutationalSpectrumData, "mutationalSpectrumMatrix");
-        
-            </code></pre>
+        <code>
+    import("https://episphere.github.io/msig/bundle.js").then(m => mSigSDK = m);
+    mSigSDK = mSigSDK.mSigSDK;
+    mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+        "PCAWG",
+        ["SP99181", "SP98955"],
+        "WGS",
+        "Liver-HCC",
+        "ID",
+        83,
+    ).then(data => mutationalSpectrumData = data);
+    addDivToDOM = function addDivToDOM(id) {
+        const newDiv = document.createElement('div');
+        newDiv.setAttribute('id', id);
+        document.querySelector('#plotDemonstration').appendChild(newDiv);
+        }
+    addDivToDOM("mutationalSpectrumMatrix");
+    
+    mSigSDK.mSigPortal.mSigPortalPlots.plotPatientMutationalSpectrum(mutationalSpectrumData, "mutationalSpectrumMatrix");
+
+        </code></pre>
         <button type="submit" class="btn btn-secondary" onclick="evaluateSampleCode()">Execute</button>
         <p>Test the SDK's functionality with the interactive console below. Type <b>"clear()"</b> to empty the console
             results. Type your JavaScript code and press Enter to
@@ -136,11 +131,12 @@
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
     </section>
+
     <footer class="bg-dark text-white text-center py-3">
         <p>&copy; 2023 NCI DCEG. All rights reserved.</p>
     </footer>
     <script src="scripts/landing.js"></script>
-
+    <link rel="stylesheet" href="styles/landing.css">
 </body>
 
 </html>
