@@ -75,28 +75,38 @@
 
         <pre>
             <code>
-        import("https://episphere.github.io/msig/bundle.js").then(m => mSigSDK = m);
-        mSigSDK = mSigSDK.mSigSDK;
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-            "PCAWG",
-            ["SP99181", "SP98955"],
-            "WGS",
-            "Liver-HCC",
-            "ID",
-            83,
-        ).then(data => mutationalSpectrumData = data);
-        addDivToDOM = function addDivToDOM(id) {
-            const newDiv = document.createElement('div');
-            newDiv.setAttribute('id', id);
-            document.querySelector('#plotDemonstration').appendChild(newDiv);
-            }
-        addDivToDOM("mutationalSpectrumMatrix");
-        
-        mSigSDK.mSigPortal.mSigPortalPlots.plotPatientMutationalSpectrum(mutationalSpectrumData, "mutationalSpectrumMatrix");
-    
+// Load the mSigSDK bundle from the specified URL and assign it to a variable mSigSDK.
+import("https://episphere.github.io/msig/bundle.js").then(m => mSigSDK = m);
+
+// Assign the mSigSDK object contained in the imported bundle to the variable mSigSDK.
+mSigSDK = mSigSDK.mSigSDK;
+
+// Use the mSigPortalData object from the mSigSDK to retrieve mutational spectrum data for a specific set of samples, and assign the resulting data to the variable mutationalSpectrumData.
+mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+"PCAWG", // dataset identifier
+["SP99181", "SP98955"], // sample identifiers
+"WGS", // data type
+"Liver-HCC", // cancer type
+"ID", // identifier type
+83, // identifier version
+).then(data => mutationalSpectrumData = data);
+
+// Define a function addDivToDOM that creates a new div element with the given ID and appends it to the DOM element with ID 'plotDemonstration'.
+addDivToDOM = function addDivToDOM(id) {
+const newDiv = document.createElement('div');
+newDiv.setAttribute('id', id);
+document.querySelector('#plotDemonstration').appendChild(newDiv);
+}
+
+// Call the addDivToDOM function with the ID 'mutationalSpectrumMatrix' to add a new div element to the DOM element with ID 'plotDemonstration'.
+addDivToDOM("mutationalSpectrumMatrix");
+
+// Use the mSigPortalPlots object from the mSigSDK to create a patient mutational spectrum plot using the mutational spectrum data assigned to the variable mutationalSpectrumData, and add it to the new div element created earlier with ID 'mutationalSpectrumMatrix'.
+mSigSDK.mSigPortal.mSigPortalPlots.plotPatientMutationalSpectrum(mutationalSpectrumData, "mutationalSpectrumMatrix");
             </code></pre>
 
         <div id="plotDemonstration"></div>
+
         <p>
             Try out the above code to inject a visualization into the webpage:
         </p>
