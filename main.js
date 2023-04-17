@@ -1068,6 +1068,46 @@ This function creates a heatmap using the cosine similarity matrix for the given
     return cosSimilarityMatrix;
   }
 
+/**
+ * Plots the cumulative exposure values for each "signatureName" across all the different "sample".
+ *
+ * @param {string} jsonData - The JSON data structure containing the exposure values for each signatureName and sample.
+ * @param {string} divID - The string containing the ID of the div where the plot should be displayed.
+
+* @returns {void}
+ *
+ * @example
+ * const jsonData = '[{...}, {...}, {...}]';
+ * plotCumulativeExposure(divID, jsonData);
+ */
+
+  function plotCumulativeExposure(divID, data) {
+      // Group the data by signatureName using the groupBy function
+  const signatureData = groupBy(data, 'signatureName');
+
+  // Create an array of box trace objects for each signatureName
+  const signatureTraces = Object.keys(signatureData).map((signatureName) => {
+    const exposures = signatureData[signatureName].map((d) => Math.log10(d.exposure));
+    const samples = signatureData[signatureName].map((d) => d.sample);
+    return {
+      y: exposures,
+      x: new Array(exposures.length).fill(signatureName),
+      type: 'box',
+      name: signatureName,
+      boxpoints: 'outliers',
+      jitter: 0.3,
+      hovertext: samples,
+    };
+  });
+
+  // Plot the box traces using Plotly and display the plot in the specified divID
+  Plotly.default.newPlot(divID, signatureTraces, {
+    title: 'Cumulative Exposure for Signature Names',
+    yaxis: { title: 'Log(Exposure)' },
+    xaxis: { title: 'Signature Name' },
+  });
+  }
+  
   /**
 
 Plots a force directed tree of the patients in the study based on their mutational spectra.
@@ -1466,6 +1506,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     plotCosineSimilarityHeatMap,
     plotUMAPVisualization,
     plotProjectMutationalBurdenByCancerType,
+    plotCumulativeExposure,
   };
 
   const mSigPortal = {

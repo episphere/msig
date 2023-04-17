@@ -3716,24 +3716,19 @@ function compareProfiles(
   const sample1 = data1[0].sample || data1[0].signatureName;
   const sample2 =
     data2[0].scalarSignature || data2[0].sample || data2[0].signatureName;
-  // console.log(sample1);
-  // console.log(sample2);
+
   const mutationGroupSort = (a, b) => {
     const order = Object.keys(colors);
     return order.indexOf(a.mutation) - order.indexOf(b.mutation);
   };
 
-  // console.log(data1);
-  // console.log(data2);
   // get total mutations per sample
   const totalMutations1 = getTotalMutations(data1);
   const totalMutations2 = getTotalMutations(data2);
-  // console.log(totalMutations1);
-  // console.log(totalMutations2);
 
   // get max mutations per sample
   const maxMutation1 = getMaxMutations(data1) / totalMutations1;
-  const maxMutation2 = getMaxMutations(data2) / totalMutations2;
+  const maxMutation2 = getMaxMutations(data2) / totalMutations2 || 0;
   const maxMutations = Math.max(maxMutation1, maxMutation2);
 
   // normalize mutations per sample
@@ -3755,7 +3750,6 @@ function compareProfiles(
       contribution: e.contribution / totalMutations2,
     }),
   }));
-  // console.log(normalizedSample1);
   const groupSamples1 = groupDataByMutation(
     normalizedSample1,
     mutationRegex,
@@ -3767,9 +3761,6 @@ function compareProfiles(
     mutationRegex,
     mutationGroupSort
   );
-
-  // console.log(groupSamples1);
-  // console.log(groupSamples2);
 
   const sampleTrace1 = groupSamples1.map((group, groupIndex, array) => ({
     name: group.mutation,
@@ -3787,7 +3778,7 @@ function compareProfiles(
     showlegend: false,
     yaxis: 'y3',
   }));
-  // console.log(sampleTrace1);
+
   const sampleTrace2 = groupSamples2.map((group, groupIndex, array) => ({
     name: group.mutation,
     type: 'bar',
@@ -6328,7 +6319,7 @@ async function nnls(A, b, maxiter = 3 * A[0].length) {
   return { x, rnorm };
 }
 
-async function fetchURLAndCache(cacheName, url, ICGC = null) {
+async function fetchURLAndCache$1(cacheName, url, ICGC = null) {
   const isCacheSupported = "caches" in window;
   let matchedURL;
 
@@ -6682,7 +6673,7 @@ console.log(mutationalSignatures);
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_options?
     source=Reference_signatures&strategy=${genomeDataType}&profile=${mutationType}&offset=0`;
     const cacheName = "getMutationalSignaturesOptions";
-    return await (await fetchURLAndCache(cacheName, url)).json();
+    return await (await fetchURLAndCache$1(cacheName, url)).json();
   }
 
   /**
@@ -6708,7 +6699,7 @@ Retrieves mutational signatures data from the specified endpoint and returns it 
     source=Reference_signatures&strategy=${genomeDataType}&profile=${mutationType}&matrix=96&signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
     const cacheName = "getMutationalSignaturesData";
     const unformattedData = await (
-      await fetchURLAndCache(cacheName, url)
+      await fetchURLAndCache$1(cacheName, url)
     ).json();
     extractMutationalSpectra(
       unformattedData,
@@ -6738,7 +6729,7 @@ console.log(summary);
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_summary?signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
     const cacheName = "getMutationalSignaturesSummary";
-    return await (await fetchURLAndCache(cacheName, url)).json();
+    return await (await fetchURLAndCache$1(cacheName, url)).json();
   }
   //#endregion
 
@@ -6765,7 +6756,7 @@ Retrieves mutational spectrum options from the mutational signatures API.
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_options?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&offset=0&limit=${numberOfResults}`;
     const cacheName = "getMutationalSpectrumOptions";
-    return await (await fetchURLAndCache(cacheName, url)).json();
+    return await (await fetchURLAndCache$1(cacheName, url)).json();
   }
 
   /**
@@ -6799,7 +6790,7 @@ Retrieves mutational spectrum options from the mutational signatures API.
       let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
 
       let unformattedData = await (
-        await fetchURLAndCache(cacheName, url)
+        await fetchURLAndCache$1(cacheName, url)
       ).json();
 
       return unformattedData;
@@ -6809,7 +6800,7 @@ Retrieves mutational spectrum options from the mutational signatures API.
       let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
 
       let unformattedData = await (
-        await fetchURLAndCache(cacheName, url)
+        await fetchURLAndCache$1(cacheName, url)
       ).json();
       extractMutationalSpectra(unformattedData, "sample");
       return unformattedData;
@@ -6822,7 +6813,7 @@ Retrieves mutational spectrum options from the mutational signatures API.
     }
 
     urls.forEach((url) => {
-      promises.push(fetchURLAndCache(cacheName, url));
+      promises.push(fetchURLAndCache$1(cacheName, url));
     });
 
     const results = await Promise.all(promises);
@@ -6860,7 +6851,7 @@ Fetches the mutational spectrum summary from the mutational signatures API based
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_summary?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSpectrumSummary";
-    return await (await fetchURLAndCache(cacheName, url)).json();
+    return await (await fetchURLAndCache$1(cacheName, url)).json();
   }
 
   //#endregion
@@ -6887,7 +6878,7 @@ Fetches the mutational signature association options from the API endpoint
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureAssociationOptions";
-    return await (await fetchURLAndCache(cacheName, url)).json();
+    return await (await fetchURLAndCache$1(cacheName, url)).json();
   }
 
   /**
@@ -6911,7 +6902,7 @@ Retrieves mutational signature association data from a specified cancer study us
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association?study=${study}&strategy=${genomeDataType}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureAssociationData";
-    return await (await fetchURLAndCache(cacheName, url)).json();
+    return await (await fetchURLAndCache$1(cacheName, url)).json();
   }
 
   //#endregion
@@ -6936,7 +6927,7 @@ Retrieves a list of mutational signature activity options from the mutational si
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureActivityOptions";
-    return await (await fetchURLAndCache(cacheName, url)).json();
+    return await (await fetchURLAndCache$1(cacheName, url)).json();
   }
   /**
 
@@ -6961,7 +6952,7 @@ Retrieves mutational signature landscape data from the mutational-signatures API
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&cancer=${cancerType}&offset=0`;
     const cacheName = "getMutationalSignatureActivityData";
-    return await (await fetchURLAndCache(cacheName, url)).json();
+    return await (await fetchURLAndCache$1(cacheName, url)).json();
   }
 
   /**
@@ -6985,7 +6976,7 @@ Retrieves mutational signature landscape data from an API endpoint.
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureLandscapeData";
-    return await (await fetchURLAndCache(cacheName, url)).json();
+    return await (await fetchURLAndCache$1(cacheName, url)).json();
   }
 
   //#endregion
@@ -7021,7 +7012,7 @@ cancer_type: The cancer type.
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology_options?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureEtiologyOptions";
-    return await (await fetchURLAndCache(cacheName, url)).json();
+    return await (await fetchURLAndCache$1(cacheName, url)).json();
   }
 
   /**
@@ -7046,7 +7037,7 @@ Retrieves mutational signature etiology data from the Cancer Genomics Research L
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureEtiologyData";
-    return await (await fetchURLAndCache(cacheName, url)).json();
+    return await (await fetchURLAndCache$1(cacheName, url)).json();
   }
 
   //#endregion
@@ -7221,6 +7212,61 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
   //#endregion
 
   //#region Plot a patient's mutational spectra
+
+  // This function plots the mutational spectrum for the given parameters.
+  async function plotPatientMutationalSpectrumICGC(
+    mutationalSpectra,
+    matrixSize = 96,
+    divID = "mutationalSpectrumMatrix"
+  ) {
+    const numberOfPatients = Object.keys(mutationalSpectra).length;
+    if (numberOfPatients == 0) {
+      $(`#${divID}`).html(
+        `<p style="color:red">Error: no data available for the selected parameters.</p>`
+      );
+    } else if (numberOfPatients > 1) {
+      const layout = {
+        title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
+          ", "
+        )}`,
+        xaxis: { title: "Mutation Type" },
+        yaxis: { title: "Count" },
+        barmode: "group",
+      };
+
+      const traces = Object.keys(mutationalSpectra).map((patient) => ({
+        x: Object.keys(mutationalSpectra[patient]),
+        y: Object.values(mutationalSpectra[patient]),
+        name: `${patient}`,
+        type: "bar",
+      }));
+
+      Plotly.default.newPlot(divID, traces, layout);
+    } else {
+      let traces = [];
+
+      const layout = {
+        title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
+          ", "
+        )}`,
+        xaxis: { title: "Mutation Type" },
+        yaxis: { title: "Count" },
+        barmode: "group",
+      };
+
+      for (let i = 0; i < Object.keys(mutationalSpectra).length; i++) {
+        let plotlyData = formatMutationalSpectraData(
+          mutationalSpectra[Object.keys(mutationalSpectra)[i]],
+          Object.keys(mutationalSpectra)[i]
+        );
+
+        traces = traces.concat(plotlyData);
+      }
+
+      Plotly.default.newPlot(divID, traces, layout);
+    }
+  }
+
   /**
 
 Renders a plot of the mutational spectra for one or more patients in a given div element ID using Plotly.
@@ -7242,7 +7288,8 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     let matrixSize = mutationalSpectra[0].length;
     let mutationType = mutationalSpectra[0][0].profile;
     const numberOfPatients = Object.keys(mutationalSpectra).length;
-    
+    console.log(numberOfPatients, mutationType, matrixSize);
+
     if (numberOfPatients == 0) {
       $(`#${divID}`).html(
         `<p style="color:red">Error: no data available for the selected parameters.</p>`
@@ -7275,7 +7322,10 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       matrixSize == 96 &&
       mutationType == "SBS"
     ) {
-      let traces = sbs96(mutationalSpectra[0], mutationalSpectra[1]);
+      let traces = sbs96(
+        mutationalSpectra[0],
+        mutationalSpectra[1]
+      );
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
     } else if (
@@ -7299,10 +7349,13 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       matrixSize == 192 &&
       mutationType == "SBS"
     ) {
-      let traces = sbs192(mutationalSpectra[0], mutationalSpectra[1]);
+      let traces = sbs192(
+        mutationalSpectra[0],
+        mutationalSpectra[1]
+      );
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
-    }else if (
+    } else if (
       numberOfPatients == 1 &&
       matrixSize == 288 &&
       mutationType == "SBS"
@@ -7339,7 +7392,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       matrixSize == 78 &&
       mutationType == "DBS"
     ) {
-      let traces = dbs78(mutationalSpectra[0], mutationalSpectra[1], 'pc');
+      let traces = dbs78(
+        mutationalSpectra[0],
+        mutationalSpectra[1],
+        "pc"
+      );
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
     } else if (
@@ -7374,12 +7431,16 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       let traces = ID83(mutationalSpectra[0]);
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
-    }else if (
+    } else if (
       numberOfPatients == 2 &&
       matrixSize == 83 &&
       mutationType == "ID"
     ) {
-      let traces = id83(mutationalSpectra[0], mutationalSpectra[1], 'pc');
+      let traces = id83(
+        mutationalSpectra[0],
+        mutationalSpectra[1],
+        "pc"
+      );
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
     } else if (
@@ -7398,12 +7459,15 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       let traces = RS32(mutationalSpectra[0]);
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
-    }else if (
+    } else if (
       numberOfPatients == 2 &&
       matrixSize == 32 &&
       mutationType == "RS"
     ) {
-      let traces = rs32(mutationalSpectra[0], mutationalSpectra[1]);
+      let traces = rs32(
+        mutationalSpectra[0],
+        mutationalSpectra[1]
+      );
       Plotly.default.newPlot(divID, traces.traces, traces.layout);
       return traces;
     } else {
@@ -7514,60 +7578,6 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     return groupedData;
   }
 
-// This function plots the mutational spectrum for the given parameters.
-async function plotPatientMutationalSpectrumICGC(
-  mutationalSpectra,
-  matrixSize = 96,
-  divID = "mutationalSpectrumMatrix"
-) {
-  const numberOfPatients = Object.keys(mutationalSpectra).length;
-  if (numberOfPatients == 0) {
-    $(`#${divID}`).html(
-      `<p style="color:red">Error: no data available for the selected parameters.</p>`
-    );
-  } else if (numberOfPatients > 1) {
-    const layout = {
-      title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
-        ", "
-      )}`,
-      xaxis: { title: "Mutation Type" },
-      yaxis: { title: "Count" },
-      barmode: "group",
-    };
-
-    const traces = Object.keys(mutationalSpectra).map((patient) => ({
-      x: Object.keys(mutationalSpectra[patient]),
-      y: Object.values(mutationalSpectra[patient]),
-      name: `${patient}`,
-      type: "bar",
-    }));
-
-    Plotly.default.newPlot(divID, traces, layout);
-  } else {
-    let traces = [];
-
-    const layout = {
-      title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
-        ", "
-      )}`,
-      xaxis: { title: "Mutation Type" },
-      yaxis: { title: "Count" },
-      barmode: "group",
-    };
-
-    for (let i = 0; i < Object.keys(mutationalSpectra).length; i++) {
-      let plotlyData = formatMutationalSpectraData(
-        mutationalSpectra[Object.keys(mutationalSpectra)[i]],
-        Object.keys(mutationalSpectra)[i]
-      );
-
-      traces = traces.concat(plotlyData);
-    }
-
-    Plotly.default.newPlot(divID, traces, layout);
-  }
-}
-
   /**
 
 This function creates a heatmap using the cosine similarity matrix for the given grouped data.
@@ -7646,6 +7656,46 @@ This function creates a heatmap using the cosine similarity matrix for the given
     return cosSimilarityMatrix;
   }
 
+/**
+ * Plots the cumulative exposure values for each "signatureName" across all the different "sample".
+ *
+ * @param {string} jsonData - The JSON data structure containing the exposure values for each signatureName and sample.
+ * @param {string} divID - The string containing the ID of the div where the plot should be displayed.
+
+* @returns {void}
+ *
+ * @example
+ * const jsonData = '[{...}, {...}, {...}]';
+ * plotCumulativeExposure(divID, jsonData);
+ */
+
+  function plotCumulativeExposure(divID, data) {
+      // Group the data by signatureName using the groupBy function
+  const signatureData = groupBy(data, 'signatureName');
+
+  // Create an array of box trace objects for each signatureName
+  const signatureTraces = Object.keys(signatureData).map((signatureName) => {
+    const exposures = signatureData[signatureName].map((d) => Math.log10(d.exposure));
+    const samples = signatureData[signatureName].map((d) => d.sample);
+    return {
+      y: exposures,
+      x: new Array(exposures.length).fill(signatureName),
+      type: 'box',
+      name: signatureName,
+      boxpoints: 'outliers',
+      jitter: 0.3,
+      hovertext: samples,
+    };
+  });
+
+  // Plot the box traces using Plotly and display the plot in the specified divID
+  Plotly.default.newPlot(divID, signatureTraces, {
+    title: 'Cumulative Exposure for Signature Names',
+    yaxis: { title: 'Log(Exposure)' },
+    xaxis: { title: 'Signature Name' },
+  });
+  }
+  
   /**
 
 Plots a force directed tree of the patients in the study based on their mutational spectra.
@@ -8044,6 +8094,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     plotCosineSimilarityHeatMap,
     plotUMAPVisualization,
     plotProjectMutationalBurdenByCancerType,
+    plotCumulativeExposure,
   };
 
   const mSigPortal = {
@@ -8055,7 +8106,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     obtainICGCDataMAF,
     convertMatrix,
     convertWGStoPanel,
-    plotPatientMutationalSpectrumICGC    
+    plotPatientMutationalSpectrumICGC,
   };
 
   const tools = {
