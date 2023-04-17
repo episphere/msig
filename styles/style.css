@@ -1,140 +1,136 @@
-/* Global Styles */
-
-html,
-body {
-height: 100%;
+:root {
+  --dl-color-gray-500: #595959;
+  --dl-color-gray-700: #999999;
+  --dl-color-gray-900: #D9D9D9;
+  --dl-color-danger-300: #A22020;
+  --dl-color-danger-500: #BF2626;
+  --dl-color-danger-700: #E14747;
+  --dl-color-gray-black: #000000;
+  --dl-color-gray-white: #FFFFFF;
+  --dl-space-space-unit: 8px;
+  --dl-color-primary-100: #003EB3;
+  --dl-color-primary-300: #0074F0;
+  --dl-color-primary-500: #14A9FF;
+  --dl-color-primary-700: #85DCFF;
+  --dl-color-success-300: #199033;
+  --dl-color-success-500: #32A94C;
+  --dl-color-success-700: #4CC366;
+  --dl-radius-radius-round: 50%;
+  --dl-size-size-maxcontent: 1414px;
+  --dl-space-space-halfunit: 4px;
+  --dl-space-space-tenunits: 80px;
+  --dl-radius-radius-radius2: 2px;
+  --dl-radius-radius-radius4: 4px;
+  --dl-radius-radius-radius8: 8px;
+  --dl-space-space-fiveunits: 40px;
+  --dl-space-space-fourunits: 32px;
+  --dl-radius-radius-radius24: 24px;
+  --dl-space-space-doubleunit: 16px;
+  --dl-space-space-tripleunit: 24px;
 }
-
-body {
-font-family: "Roboto", sans-serif;
-font-size: 1rem;
-font-weight: 400;
-line-height: 1.5;
-color: #212529;
-background-color: #f8f9fa;
+.teleport-show {
+  display: flex !important;
+  transform: none !important;
 }
-
-a {
-color: #0d6efd;
-text-decoration: none;
+.list {
+  width: 100%;
+  margin: 1em 0px 1em 0px;
+  display: block;
+  padding: 0px 0px 0px 1.5rem;
+  list-style-type: none;
+  list-style-position: outside;
 }
-
-a:hover {
-text-decoration: underline;
+.list-item {
+  display: list-item;
 }
-
-/* Header Styles */
-
-.navbar {
-background-color: #fff;
-border-bottom: 1px solid #dee2e6;
+.button {
+  color: var(--dl-color-gray-black);
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  font-family: Raleway;
+  border-color: var(--dl-color-gray-black);
+  border-width: 1px;
+  border-radius: 4px;
+  background-color: var(--dl-color-gray-white);
 }
-
-.navbar-brand {
-font-size: 2rem;
-font-weight: 700;
+.textarea {
+  color: var(--dl-color-gray-black);
+  cursor: auto;
+  padding: 0.5rem;
+  font-family: Raleway;
+  border-color: var(--dl-color-gray-black);
+  border-width: 1px;
+  border-radius: 4px;
+  background-color: var(--dl-color-gray-white);
 }
-
-/* Main Content Styles */
-
-section {
-background-color: #fff;
-border-radius: 0.5rem;
-box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
-padding: 2rem;
-margin-bottom: 2rem;
+.input {
+  color: var(--dl-color-gray-black);
+  cursor: auto;
+  padding: 0.5rem 1rem;
+  font-family: Raleway;
+  border-color: var(--dl-color-gray-black);
+  border-width: 1px;
+  border-radius: 4px;
+  background-color: var(--dl-color-gray-white);
 }
-
-h1.display-3 {
-font-size: 3.5rem;
-font-weight: 500;
-margin-bottom: 2rem;
+.Section-Text {
+  font-size: 18px;
+  font-family: Raleway;
+  font-weight: 400;
+  line-height: 1.55;
+  text-transform: none;
+  text-decoration: none;
 }
-
-table {
-width: 100%;
+.SmallCard-Heading {
+  font-size: 18px;
+  font-style: normal;
+  font-family: Raleway;
+  font-weight: 700;
+  line-height: 1.55;
+  text-transform: none;
+  text-decoration: none;
 }
-
-th {
-font-weight: 700;
+.Card-Text {
+  font-size: 16px;
+  font-style: normal;
+  font-family: Raleway;
+  font-weight: 400;
+  line-height: 1.55;
+  text-transform: none;
+  text-decoration: none;
 }
-
-/* Footer Styles */
-
-footer {
-background-color: #fff;
-border-top: 1px solid #dee2e6;
-font-size: 0.875rem;
-font-weight: 400;
-line-height: 1.5;
-text-align: center;
-color: #6c757d;
-margin-top: 2rem;
-padding: 1rem 0;
+.BigCard-Heading {
+  font-size: 36px;
+  font-style: normal;
+  font-family: Montserrat;
+  font-weight: 700;
+  line-height: 1.55;
+  text-transform: none;
+  text-decoration: none;
 }
-
-@media (min-width: 992px) {
-.container {
-max-width: 970px;
+.Card-Heading {
+  font-size: 24px;
+  font-style: normal;
+  font-family: Raleway;
+  font-weight: 700;
+  line-height: 1.55;
+  text-transform: none;
+  text-decoration: none;
 }
+.Anchor {
+  font-size: 18px;
+  font-style: normal;
+  font-family: Raleway;
+  font-weight: 700;
+  line-height: 1.55;
+  text-transform: capitalize;
+  text-decoration: none;
 }
-
-@media (min-width: 1200px) {
-.container {
-max-width: 1170px;
+.Section-Heading {
+  font-size: 48px;
+  font-family: Montserrat;
+  font-weight: 700;
+  line-height: 1.22;
+  text-transform: none;
+  text-decoration: none;
 }
-}
-#response-output {
-    margin-top: 0;
-    max-height: 300px;
-    overflow-y: auto;
-    overflow-x: auto;
-
-}
-#toggle-nav{
-
-
-}
-  body {
-    margin: 0;
-    padding: 0;
-  }
-  
-  .container {
-    display: flex;
-    flex-wrap: wrap;
-  }
-  
-
-  .main-element {
-    flex-grow: 1;
-    padding: 20px;
-    border: 1px solid black;
-  }
-  
-  nav {
-    width: 200px;
-    height: 100vh;
-    margin-top: 50px;
-    background-color: #eee;
-    position: fixed;
-    top: 0;
-    left: -200px;
-    transition: all 0.5s ease;
-  }
-  
-  nav.show {
-    left: 0;
-  }
-  
-  footer {
-    background-color: #ccc;
-    padding: 20px;
-  }
-  
-  .page-title {
-    position: fixed;
-    background-color:#f8f9fa;
-    height: 50px;
-    width: 100%;
-  }
