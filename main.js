@@ -6,6 +6,8 @@ import * as am5hierarchy from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/
 
 import * as am5themes_Animated from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5@5.3.7/themes/Animated.js/+esm";
 
+import {default as plotMSPrevalence} from "./mSigPortalScripts/client/src/components/controls/plotly/msPrevalence/msPrevalence.js";
+import {default as plotSignatureAssociation} from "./mSigPortalScripts/client/src/components/controls/plotly/msAssociation/msAssociation.js";
 import { default as plotMutationalProfileSBS96 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs96.js";
 import { default as plotMutationalProfileSBS192 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs192.js";
 import { default as plotMutationalProfileSBS288 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs288.js";
@@ -1069,44 +1071,48 @@ This function creates a heatmap using the cosine similarity matrix for the given
   }
 
 /**
- * Plots the cumulative exposure values for each "signatureName" across all the different "sample".
+ * Plots the cumulative exposure values for each "group" across all the different "sample".
  *
  * @param {string} jsonData - The JSON data structure containing the exposure values for each signatureName and sample.
  * @param {string} divID - The string containing the ID of the div where the plot should be displayed.
+ * @param {string} group - The string containing the name of the grouping variable. Default value is "signatureName".
 
 * @returns {void}
  *
  * @example
  * const jsonData = '[{...}, {...}, {...}]';
- * plotCumulativeExposure(divID, jsonData);
+ * plotSignatureActivityDataBy(divID, jsonData, group = "signatureName");
  */
+function plotSignatureActivityDataBy(divID, data, group = "signatureName") {
+  // Group the data by the specified group using the groupBy function
+  const groupedData = groupBy(data, group);
 
-  function plotCumulativeExposure(divID, data) {
-      // Group the data by signatureName using the groupBy function
-  const signatureData = groupBy(data, 'signatureName');
-
-  // Create an array of box trace objects for each signatureName
-  const signatureTraces = Object.keys(signatureData).map((signatureName) => {
-    const exposures = signatureData[signatureName].map((d) => Math.log10(d.exposure));
-    const samples = signatureData[signatureName].map((d) => d.sample);
+  // Create an array of box trace objects for each group
+  const groupTraces = Object.keys(groupedData).map((groupName) => {
+    const exposures = groupedData[groupName].map((d) => Math.log10(d.exposure));
+    const samples = groupedData[groupName].map((d) => d.sample);
+    const numNonZero = exposures.filter((exposure) => exposure !== -Infinity).length;
     return {
       y: exposures,
-      x: new Array(exposures.length).fill(signatureName),
+      x: new Array(exposures.length).fill(groupName),
       type: 'box',
-      name: signatureName,
-      boxpoints: 'outliers',
+      name: groupName,
+      boxpoints: 'all',
       jitter: 0.3,
       hovertext: samples,
+      hovertemplate: `<b>${groupName}</b><br>Log(Exposure): %{y:.2f}<br>` +
+        `Fraction of samples with non-zero exposure: ${numNonZero} / ${exposures.length}`,
     };
   });
 
   // Plot the box traces using Plotly and display the plot in the specified divID
-  Plotly.default.newPlot(divID, signatureTraces, {
-    title: 'Cumulative Exposure for Signature Names',
+  Plotly.default.newPlot(divID, groupTraces, {
+    title: `Cumulative Exposure for ${group}`,
     yaxis: { title: 'Log(Exposure)' },
-    xaxis: { title: 'Signature Name' },
+    xaxis: { title: group},
   });
-  }
+}
+
   
   /**
 
@@ -1480,6 +1486,18 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     return data;
   }
 
+  function plotSignatureAssociations(divID, data, signature1, signature2) {
+    let dat = plotSignatureAssociation(data, signature1, signature2);
+    Plotly.default.newPlot(divID, dat.traces, dat.layout);
+
+  }
+  
+  function plotMSPrevalenceData(divID, data) {
+    let dat = plotMSPrevalence(data);
+    Plotly.default.newPlot(divID, dat.traces, dat.layout);
+
+  }
+
   //#endregion
 
   //#region Define the public members of the mSigSDK
@@ -1506,7 +1524,9 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     plotCosineSimilarityHeatMap,
     plotUMAPVisualization,
     plotProjectMutationalBurdenByCancerType,
-    plotCumulativeExposure,
+    plotSignatureActivityDataBy,
+    plotSignatureAssociations,
+    plotMSPrevalenceData
   };
 
   const mSigPortal = {

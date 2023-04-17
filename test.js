@@ -1,17 +1,3 @@
 mSigSDK = await (await import("./main.js")).mSigSDK;
-mutationalSpectrumData = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-    "PCAWG",
-    ["SP99181", "SP98955"],
-    "WGS",
-    "Liver-HCC",
-    "ID",
-    83,
-);
-function addDivToDOM(id) {
-    const newDiv = document.createElement('div');
-    newDiv.setAttribute('id', id);
-    document.body.appendChild(newDiv);
-  }
-addDivToDOM("mutationalSpectrumMatrix");
-
-mSigSDK.mSigPortal.mSigPortalPlots.plotPatientMutationalSpectrum(mutationalSpectrumData, "mutationalSpectrumMatrix");
+data = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSignatureActivityData('PCAWG','WGS','COSMIC_v3_Signatures_GRCh37_SBS96','',100000000)
+mSigSDK.mSigPortal.mSigPortalPlots.plotSignatureAssociations("associations", data, 'SBS3', 'SBS6')

@@ -1,5 +1,16 @@
-import { groupBy } from 'lodash';
-import { colorPallet } from '../../utils/colors';
+import { colorPallet } from '../../utils/colors.js';
+
+function groupBy(array, key) {
+  return array.reduce(function(result, currentValue) {
+    var group = currentValue[key];
+    if (!result[group]) {
+      result[group] = [];
+    }
+    result[group].push(currentValue);
+    return result;
+  }, {});
+}
+
 
 export default function MSPrevalence(data, minimum) {
   // calculate median burden across cancer types

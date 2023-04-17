@@ -4,17 +4,30 @@ import {
   calculatePearson,
   calculateSpearman,
 } from '../../utils/utils.js';
-import pcorrtest from '@stdlib/stats-pcorrtest';
 
-export default function MsAssociation(data, arg) {
-  const [signatureName1, signatureName2] = arg.signatureName.split(';');
-  const checked = arg.both;
+function groupBy(array, key) {
+  return array.reduce(function(result, currentValue) {
+    var group = currentValue[key];
+    if (!result[group]) {
+      result[group] = [];
+    }
+    result[group].push(currentValue);
+    return result;
+  }, {});
+}
 
+
+export default function MsAssociation(
+  data,
+  signatureName1,
+  signatureName2,
+  both = false
+) {
   let groupBySample;
   let xValues = [];
   let yValues = [];
 
-  if (checked) {
+  if (both) {
     const dataFilter = groupBy(
       data.filter((o) => o['exposure'] > 0),
       'sample'
@@ -209,4 +222,95 @@ export default function MsAssociation(data, arg) {
     },
   };
   return { traces: traces, layout: layout };
+}
+function pcorrtest(x, y) {
+  const n = x.length;
+  const sumX = x.reduce((a, b) => a + b, 0);
+  const sumY = y.reduce((a, b) => a + b, 0);
+  const sumX2 = x.reduce((a, b) => a + b * b, 0);
+  const sumY2 = y.reduce((a, b) => a + b * b, 0);
+  const sumXY = x.reduce((a, b, i) => a + b * y[i], 0);
+
+  const r = (n * sumXY - sumX * sumY) / Math.sqrt((n * sumX2 - sumX ** 2) * (n * sumY2 - sumY ** 2));
+  const t = r * Math.sqrt((n - 2) / (1 - r ** 2));
+  const df = n - 2;
+  const pValue = (1 - tDist(df).cdf(Math.abs(t))) * 2;
+
+  const z = 0.5 * Math.log((1 + r) / (1 - r));
+  const zLower = z - 1.96 * Math.sqrt(1 / (n - 3));
+  const zUpper = z + 1.96 * Math.sqrt(1 / (n - 3));
+  const ciLower = (Math.exp(2 * zLower) - 1) / (Math.exp(2 * zLower) + 1);
+  const ciUpper = (Math.exp(2 * zUpper) - 1) / (Math.exp(2 * zUpper) + 1);
+
+  return {
+    pcorr: r,
+    statistic: t,
+    pValue: pValue,
+    ci: [ciLower, ciUpper],
+  };
+}
+
+function tDist(degreesOfFreedom) {
+  return {
+    cdf: function (x) {
+      const t = x;
+      const dof = degreesOfFreedom;
+      const A = gamma((dof + 1) / 2) / (Math.sqrt(dof * Math.PI) * gamma(dof / 2));
+      const B = Math.pow(1 + (t ** 2) / dof, -(dof + 1) / 2);
+      const P = A * B;
+
+      return 0.5 + (x > 0 ? 0.5 * betainc(P, 0.5, dof / 2) : -0.5 * betainc(P, 0.5, dof / 2));
+    },
+  };
+}
+function gamma(z) {
+  const g = 7;
+  const p = [
+    0.99999999999980993,
+    676.5203681218851,
+    -1259.1392167224028,
+    771.32342877765313,
+    -176.61502916214059,
+    12.507343278686905,
+    -0.13857109526572012,
+    9.9843695780195716e-6,
+    1.5056327351493116e-7,
+  ];
+
+  if (z < 0.5) {
+    return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
+  }
+
+  z -= 1;
+  let x = p[0];
+  for (let i = 1; i < g + 2; i++) {
+    x += p[i] / (z + i);
+  }
+
+  const t = z + g + 0.5;
+  return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+}
+
+function betainc(x, a, b) {
+  const lbeta_ab = Math.log(gamma(a)) + Math.log(gamma(b)) - Math.log(gamma(a + b));
+  const bt = Math.exp(lbeta_ab) * Math.pow(x, a) * Math.pow(1 - x, b) / a;
+
+  let ai = 1;
+  let bi = 1;
+  let f = 0;
+  let m = 0;
+  let m2 = 0;
+  let term = 1;
+  let sum = term;
+
+  while (Math.abs(term) > 1e-10) {
+    ai *= x;
+    bi *= 1 - x;
+    m += 1;
+    m2 += 2;
+    term = ai * bi / (a + m2);
+    sum += term;
+  }
+
+  return bt * sum;
 }

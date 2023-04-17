@@ -1,6 +1,17 @@
-import { groupBy } from 'lodash';
-import { isNumber, mapOrder } from '../../utils/utils';
-import { colorPallet, colorPallet0 } from '../../utils/colors';
+import { isNumber, mapOrder } from '../../utils/utils.js';
+import { colorPallet, colorPallet0 } from '../../utils/colors.js';
+
+function groupBy(array, key) {
+  return array.reduce(function(result, currentValue) {
+    var group = currentValue[key];
+    if (!result[group]) {
+      result[group] = [];
+    }
+    result[group].push(currentValue);
+    return result;
+  }, {});
+}
+
 
 export default function MsLandscape(
   cosineData,

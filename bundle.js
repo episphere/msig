@@ -3,108 +3,10 @@ import * as Plotly from 'https://cdn.jsdelivr.net/npm/plotly.js-dist/+esm';
 import * as am5 from 'https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/+esm';
 import * as am5hierarchy from 'https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/hierarchy/+esm';
 import * as am5themes_Animated from 'https://cdn.jsdelivr.net/npm/@amcharts/amcharts5@5.3.7/themes/Animated.js/+esm';
-import 'https://cdn.jsdelivr.net/npm/jstat/+esm';
+import jStat from 'https://cdn.jsdelivr.net/npm/jstat/+esm';
 import * as localforage from 'https://cdn.jsdelivr.net/npm/localforage/+esm';
 import * as pako from 'https://cdn.jsdelivr.net/npm/pako/+esm';
 import * as Papa from 'https://cdn.jsdelivr.net/npm/papaparse/+esm';
-
-function groupDataByMutation$1(
-  apiData,
-  groupRegex,
-  mutationGroupSort = false,
-  mutationTypeSort = false
-) {
-  const groupByMutation = apiData.reduce((acc, e) => {
-    const mutation = e.mutationType.match(groupRegex)[1];
-    acc[mutation] = acc[mutation] ? [...acc[mutation], e] : [e];
-    return acc;
-  }, {});
-
-  const groupedData = Object.entries(groupByMutation).map(
-    ([mutation, data]) => ({
-      mutation,
-      data: mutationTypeSort ? data.sort(mutationTypeSort) : data,
-    })
-  );
-
-  return mutationGroupSort ? groupedData.sort(mutationGroupSort) : groupedData;
-}
-
-function getTotalMutations$1(apiData) {
-  return apiData.reduce(
-    (total, e) => total + e.mutations || e.contribution || 0,
-    0
-  );
-}
-
-function getMaxMutations$1(apiData) {
-  return Math.max(...apiData.map((e) => e.mutations || e.contribution || 0));
-}
-
-function createSampleAnnotation(apiData, text = '', yPos = 0.88) {
-  const totalMutations = getTotalMutations$1(apiData);
-  return {
-    xref: 'paper',
-    yref: 'paper',
-    xanchor: 'bottom',
-    yanchor: 'bottom',
-    x: 0.01,
-    y: yPos,
-    text:
-      apiData[0].sample && parseFloat(totalMutations).toFixed(2) > 1
-        ? `<b>${apiData[0].sample}: ${totalMutations.toLocaleString()} ${
-            text || apiData[0].profile == 'ID' ? 'Indels' : 'Substitutions'
-          }</b>`
-        : apiData[0].sample && totalMutations <= 1.1
-        ? `<b>${apiData[0].sample}</b>`
-        : `<b>${apiData[0].signatureName}</b>`,
-    showarrow: false,
-    font: {
-      size: 24,
-      family: 'Arial',
-    },
-    align: 'center',
-  };
-}
-
-function createMutationShapes(data, colors) {
-  return data.map((group, groupIndex, array) => ({
-    type: 'rect',
-    xref: 'x',
-    yref: 'paper',
-    x0: array
-      .slice(0, groupIndex)
-      .reduce((lastIndex, e) => lastIndex + e.data.length, -0.35),
-    x1: array
-      .slice(0, groupIndex + 1)
-      .reduce((lastIndex, e) => lastIndex + e.data.length, -0.65),
-    y0: 1.05,
-    y1: 1.01,
-    fillcolor: colors[group.mutation],
-    line: {
-      width: 0,
-    },
-  }));
-}
-
-function createMutationAnnotations(data, appendedText = '') {
-  return data.map((group, groupIndex, array) => ({
-    xref: 'x',
-    yref: 'paper',
-    xanchor: 'bottom',
-    yanchor: 'bottom',
-    x:
-      array
-        .slice(0, groupIndex)
-        .reduce((lastIndex, b) => lastIndex + b.data.length, 0) +
-      (group.data.length - 1) * 0.5,
-    y: 1.05,
-    text: `<b>${group.mutation + appendedText}</b>`,
-    showarrow: false,
-    font: { size: 18 },
-    align: 'center',
-  }));
-}
 
 const colorPallet1 = [
   '#1F77B4',
@@ -270,6 +172,783 @@ const dbs78Color = {
   TG: '#CB98FD',
   TT: '#4C0299',
 };
+
+function groupBy$3(array, key) {
+  return array.reduce(function(result, currentValue) {
+    var group = currentValue[key];
+    if (!result[group]) {
+      result[group] = [];
+    }
+    result[group].push(currentValue);
+    return result;
+  }, {});
+}
+
+
+function MSPrevalence(data, minimum) {
+  // calculate median burden across cancer types
+  const groupBySignature = groupBy$3(data, 'signatureName');
+
+  const dataResult = Object.entries(groupBySignature)
+    .map(([signatureName, data]) => {
+      const samples = data
+        .filter((e) => e.exposure)
+        .sort((a, b) => a.burden - b.burden);
+
+      const burdens = samples.filter((e) => e.burden).map((e) => e.burden);
+
+      const medianBurden =
+        burdens.length % 2 == 0
+          ? (burdens[burdens.length / 2] + burdens[burdens.length / 2 - 1]) / 2
+          : burdens[Math.floor(burdens.length / 2)];
+
+      return {
+        signatureName,
+        samples,
+        medianBurden,
+        totalSamples: data.length,
+      };
+    })
+    .filter((e) => e.medianBurden)
+    .sort((a, b) => a.medianBurden - b.medianBurden);
+  // groupBySignature.sort(
+  //   (a, b) =>
+  //     a.samples.reduce((a, b) => a + b.exposure, 0) -
+  //     b.samples.reduce((a, b) => a + b.exposure, 0)
+  // );
+  let minumumNumber = 100;
+  minimum === null || minimum === undefined
+    ? (minumumNumber = 100)
+    : (minumumNumber = parseInt(minimum));
+
+  dataResult.sort(
+    (a, b) =>
+      b.samples.filter((e) => e.exposure >= minumumNumber).length /
+        b.totalSamples -
+      a.samples.filter((e) => e.exposure >= minumumNumber).length /
+        a.totalSamples
+  );
+  const defaultNames = ['SBS', 'DBS', 'ID'];
+  const names = dataResult.map((group) => group.signatureName);
+  const longest = names.reduce((a, e) => (a > e.length ? a : e.length), 0);
+  const extraMargin = longest < 10 ? 60 : longest * 7;
+
+  const contains = defaultNames.some((element) => {
+    if (names[0].includes(element)) {
+      return true;
+    }
+
+    return false;
+  });
+
+  let colors = {};
+
+  if (!contains) {
+    var randomColors = [];
+    while (randomColors.length < names.length) {
+      do {
+        var color = Math.floor(Math.random() * 10000000000 + 1);
+      } while (randomColors.indexOf(color) >= 0);
+      randomColors.push('#' + ('000000' + color.toString(16)).slice(-6));
+    }
+    names.forEach((element, index) => {
+      colors[element] = randomColors[index];
+    });
+  } else {
+    colors = colorPallet;
+  }
+
+  const tracesPie = {
+    type: 'pie',
+    labels: dataResult.map((group) => group.signatureName),
+    values: dataResult.map((group) =>
+      group.samples.reduce((a, b) => a + b.exposure, 0)
+    ),
+    marker: {
+      colors: dataResult.map((group) =>
+        contains
+          ? colors[group.signatureName.replace(/^\D*/, '').replace(')', '')]
+          : colors[group.signatureName]
+      ),
+    },
+    textposition: 'inside',
+    texttemplate: '%{percent:.1%}',
+    showlegend: false,
+    // marker: {
+    //   colors: dataResult.map((group) =>
+    //     contains
+    //       ? colors[group.signatureName.replace(/^\D*/, '').replace(')', '')]
+    //       : colors[group.signatureName]
+    //   ),
+    // },
+    test: dataResult.map((group) =>
+      group.signatureName.replace(/^\D*/, '').replace(')', '')
+    ),
+    direction: 'clockwise',
+    sort: true,
+    domain: { x: [0, 0.2] },
+    customdata: dataResult.map((e) => ({
+      label: e.signatureName,
+      value: e.samples.reduce((a, b) => a + b.exposure, 0),
+    })),
+    hovertemplate:
+      '<b>Signature Name:</b>%{label}<br><b>Total sample: </b>%{value}<br>%{percent}<extra></extra>',
+  };
+  const tracesBar = dataResult.map((group, groupIndex, array) => ({
+    name: group.signatureName,
+    type: 'bar',
+    marker: {
+      color: contains
+        ? colors[group.signatureName.replace(/^\D*/, '').replace(')', '')]
+        : colors[group.signatureName],
+    },
+    x: [group.signatureName],
+    y: [
+      group.samples.filter((e) => e.exposure >= minumumNumber).length /
+        group.totalSamples,
+    ],
+    text: [
+      Math.round(
+        (group.samples.filter((e) => e.exposure >= minumumNumber).length /
+          group.totalSamples) *
+          100 *
+          10
+      ) /
+        10 +
+        '%',
+    ],
+    customdata: [
+      {
+        signatureName: group.signatureName,
+      },
+    ],
+    textposition: 'outside',
+    xaxis: 'x2',
+    yaxis: 'y2',
+    //hoverinfo: 'x2+y2',
+    hovertemplate:
+      '<b> signatureName: ' +
+      '</b>' +
+      '%{customdata.signatureName}<br>' +
+      '<b>Frequency: </b>' +
+      '%{y:.1%}',
+    showlegend: false,
+    domain: {
+      row: 0,
+      column: 1,
+    },
+  }));
+
+  const titleAnnotation = [
+    {
+      xref: 'paper',
+      yref: 'paper',
+      showarrow: false,
+      x: 0.0225,
+      y: 1.15,
+      xanchor: 'top',
+      text: '<b>Prevalence by mutations</b>',
+      font: {
+        size: 18,
+        family: 'Arial',
+      },
+    },
+    {
+      xref: 'x2 domain',
+      yref: 'paper',
+      showarrow: false,
+      x: 0.5,
+      y: 1.15,
+      xanchor: 'top',
+      text: '<b>Prevalence by samples</b>',
+      font: {
+        size: 18,
+        family: 'Arial',
+      },
+    },
+  ];
+  const barAnnotation = {
+    xref: 'x2 domain',
+    yref: 'paper',
+    showarrow: false,
+    x: 0.5,
+    y: 0.5,
+    xanchor: 'top',
+    text: '<b>No signature with prevalence greater than 1%</b>',
+    font: {
+      size: 18,
+      family: 'Arial',
+    },
+  };
+  let titleAnnotations = [];
+
+  const yMax = Math.max(...tracesBar.map((o) => o.y));
+  let traces = [];
+  if (yMax < 0.01) {
+    traces = [tracesPie];
+    titleAnnotations = [...titleAnnotation, barAnnotation];
+  } else {
+    traces = [tracesPie, ...tracesBar];
+    titleAnnotations = [...titleAnnotation];
+  }
+
+  const layout = {
+    grid: { rows: 1, columns: 2 },
+    hoverlabel: { bgcolor: '#FFF' },
+    height: 450,
+    autosize: true,
+    xaxis2: {
+      showline: true,
+      tickangle: -90,
+      tickfont: {
+        family: 'Arial, monospace',
+      },
+      tickmode: 'array',
+      //tickvals: names.map((_, i) => i),
+      //ticktext: names.map((e) => e.signatureName),
+      linecolor: 'black',
+      linewidth: 1,
+      type: 'category',
+      categoryorder: 'total descending',
+      domain: [0.25, 1],
+    },
+    yaxis2: {
+      title: {
+        text: '<b>Frequency (%)</b>',
+        font: {
+          family: 'Times New Roman',
+        },
+      },
+
+      range: [0, 1.1],
+      ticks: 'inside',
+      tickcolor: '#D3D3D3',
+      linecolor: 'black',
+      linewidth: 1,
+
+      tickformat: ',.0%',
+      showgrid: true,
+      gridcolor: '#F5F5F5',
+    },
+    margin: {
+      b: extraMargin,
+    },
+    annotations: titleAnnotations,
+  };
+
+  return { traces: traces, layout: layout };
+}
+
+function linearRegression(x, y) {
+  var lr = {};
+  var n = y.length;
+  var sum_x = 0;
+  var sum_y = 0;
+  var sum_xy = 0;
+  var sum_xx = 0;
+  var sum_yy = 0;
+
+  for (var i = 0; i < y.length; i++) {
+    sum_x += x[i];
+    sum_y += y[i];
+    sum_xy += x[i] * y[i];
+    sum_xx += x[i] * x[i];
+    sum_yy += y[i] * y[i];
+  }
+
+  lr['sl'] = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
+  lr['off'] = (sum_y - lr.sl * sum_x) / n;
+  lr['r2'] = Math.pow(
+    (n * sum_xy - sum_x * sum_y) /
+      Math.sqrt((n * sum_xx - sum_x * sum_x) * (n * sum_yy - sum_y * sum_y)),
+    2
+  );
+
+  return lr;
+}
+
+function round(num, decimalPlaces = 0) {
+  num = Math.round(num + 'e' + decimalPlaces);
+  return Number(num + 'e' + -decimalPlaces);
+}
+
+function calculateSpearman(x, y) {
+  const n = x.length;
+  const ranksX = jStat.rank(x);
+  const ranksY = jStat.rank(y);
+  let numerator = 0;
+  for (let i = 0; i < n; i++) {
+    numerator += (ranksX[i] - ranksY[i]) ** 2;
+  }
+  const rho = 1 - (6 * numerator) / (n * (n ** 2 - 1));
+  const t = rho * Math.sqrt((n - 2) / (1 - rho ** 2));
+  const pValue = jStat.ttest(t, n - 2);
+  const CILower = rho - 1.96 * Math.sqrt((1 - rho ** 2) / (n - 2));
+  const CIUpper = rho + 1.96 * Math.sqrt((1 - rho ** 2) / (n - 2));
+  const stats = {
+    n: n,
+    rho: rho,
+    t: t,
+    pValue: pValue,
+    CILower: CILower,
+    CIUpper: CIUpper,
+  };
+  return stats;
+}
+
+function calculatePearson(x, y) {
+  const n = x.length;
+  const xMean = jStat.mean(x);
+  const yMean = jStat.mean(y);
+  let numerator = 0;
+  let xDenominator = 0;
+  let yDenominator = 0;
+  for (let i = 0; i < n; i++) {
+    numerator += (x[i] - xMean) * (y[i] - yMean);
+    xDenominator += (x[i] - xMean) ** 2;
+    yDenominator += (y[i] - yMean) ** 2;
+  }
+  const r = numerator / Math.sqrt(xDenominator * yDenominator);
+  const t = r * Math.sqrt((n - 2) / (1 - r ** 2));
+  const pValue = jStat.ttest(t, n - 2);
+  const CILower = r - 1.96 * Math.sqrt((1 - r ** 2) / (n - 2));
+  const CIUpper = r + 1.96 * Math.sqrt((1 - r ** 2) / (n - 2));
+  const stats = {
+    n: n,
+    pcorr: r,
+    statistic: t,
+    pValue: pValue,
+    CILower: CILower,
+    CIUpper: CIUpper,
+    ci: [CILower, CIUpper],
+  };
+  return stats;
+}
+
+function arrayContainsTerms(arr, searchTerms) {
+  for (let i = 0; i < searchTerms.length; i++) {
+    if (arr.some((item) => item.includes(searchTerms[i]))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function groupBy$2(array, key) {
+  return array.reduce((result, currentItem) => {
+    const group = currentItem[key];
+    if (!result[group]) {
+      result[group] = [];
+    }
+    result[group].push(currentItem);
+    return result;
+  }, {});
+}
+
+function groupBy$1(array, key) {
+  return array.reduce(function(result, currentValue) {
+    var group = currentValue[key];
+    if (!result[group]) {
+      result[group] = [];
+    }
+    result[group].push(currentValue);
+    return result;
+  }, {});
+}
+
+
+function MsAssociation(
+  data,
+  signatureName1,
+  signatureName2,
+  both = false
+) {
+  let groupBySample;
+  let xValues = [];
+  let yValues = [];
+
+  if (both) {
+    const dataFilter = groupBy$1(
+      data.filter((o) => o['exposure'] > 0),
+      'sample'
+    );
+    if (signatureName1 === signatureName2) {
+      groupBySample = { ...dataFilter };
+    } else {
+      groupBySample = Object.values(dataFilter).filter((e) => e.length > 1);
+    }
+  } else {
+    groupBySample = groupBy$1(data, 'sample');
+  }
+
+  const dataArraySample = Object.values(groupBySample);
+
+  for (var i = 0; i < dataArraySample.length; i++) {
+    for (var j = 0; j < dataArraySample[i].length; j++) {
+      if (dataArraySample[i][j].signatureName === signatureName1) {
+        xValues.push(dataArraySample[i][j]);
+      }
+      if (dataArraySample[i][j].signatureName === signatureName2) {
+        yValues.push(dataArraySample[i][j]);
+      }
+    }
+  }
+
+  const minX = Math.min(...xValues.map((e) => Math.log10(e['exposure'] + 1)));
+
+  const maxX = Math.max(...xValues.map((e) => Math.log10(e['exposure'] + 1)));
+
+  const traceSig1 = {
+    //x: signatureName1data.map((e) => Math.log10(e['exposure'] + 1)),
+    x: xValues.map((e) => Math.log10(e['exposure'] + 1)),
+    name: signatureName1,
+    type: 'histogram',
+    histnorm: 'density',
+    // nbinsx: round(data.length / 1.75),
+    nbinsx: 35,
+    yaxis: 'y2',
+    marker: { color: '#019E72', line: { color: 'black', width: 1 } },
+    hovertemplate:
+      '<b>' +
+      signatureName1 +
+      '</b><br><b>x-Range of ' +
+      signatureName1 +
+      ' (log10)</b>: %{x}<br><b>Value (log10): </b> %{y}<extra></extra>',
+  };
+
+  const traceSig2 = {
+    //y: signatureName2data.map((e) => Math.log10(e['exposure'] + 1)),
+    y: yValues.map((e) => Math.log10(e['exposure'] + 1)),
+    name: signatureName2,
+    type: 'histogram',
+    histnorm: 'density',
+    // nbinsy: round(data.length / 1.75),
+    nbinsy: 35,
+    xaxis: 'x2',
+    marker: { color: '#D55E00', line: { color: 'black', width: 1 } },
+    hovertemplate:
+      '<b>' +
+      signatureName2 +
+      '</b> <br> <b>x-range of ' +
+      signatureName2 +
+      ' (log10)</b> %{y}<br><b>Value (log10): </b> %{x}<extra></extra>',
+  };
+
+  const traceMain = {
+    x: xValues.map((e) => Math.log10(e['exposure'] + 1)),
+    y: yValues.map((e) => Math.log10(e['exposure'] + 1)),
+    mode: 'markers',
+    type: 'scatter',
+    marker: {
+      color: '#A3A3A3',
+      size: 10,
+    },
+    opacity: 0.9,
+    showlegend: false,
+    hovertemplate:
+      '<b>Number of mutation in ' +
+      signatureName1 +
+      ' (log10)</b>: %{x}<br><b>Number of mutation in ' +
+      signatureName2 +
+      ': (log10)</b> %{y}<extra></extra>',
+  };
+
+  const lr = linearRegression(traceMain.x, traceMain.y);
+
+  let pearsonV;
+  if (traceMain.x.length > 3) {
+    pearsonV = pcorrtest(traceMain.x, traceMain.y);
+  } else {
+    pearsonV = calculatePearson(traceMain.x, traceMain.y);
+  }
+  const spearman = calculateSpearman(traceMain.x, traceMain.y);
+  const traceLine = {
+    x: [minX, maxX],
+    y: [minX * lr.sl + lr.off, maxX * lr.sl + lr.off],
+    name: 'y=' + lr.sl + ' * x + ' + lr.off,
+    mode: 'lines',
+    marker: {
+      color: 'blue',
+    },
+    hovertemplate:
+      '<b>x: </b> %{x}<br><b>y: </b>%{y}<br>' +
+      'y=' +
+      round(lr.sl, 2) +
+      'x + ' +
+      round(lr.off, 2) +
+      '<extra></extra>',
+    showlegend: false,
+  };
+  const traces = [traceMain, traceLine, traceSig1, traceSig2];
+
+  const detailAnnotation = {
+    xref: 'paper',
+    yref: 'paper',
+    x: 0,
+    xanchor: 'bottom',
+    y: 1.01,
+    yanchor: 'bottom',
+    text:
+      'Pearson:\tt<sub>Student</sub> = ' +
+      round(pearsonV.statistic, 2) +
+      ', p = ' +
+      round(pearsonV.pValue, 3) +
+      ', r<sub>Pearson</sub> = ' +
+      round(pearsonV.pcorr, 2) +
+      ', CI<sub>95%</sub>[' +
+      round(pearsonV.ci[0], 2) +
+      ', ' +
+      round(pearsonV.ci[1], 2) +
+      '], n<sub>pairs</sub> = ' +
+      dataArraySample.length +
+      '<br>Spearman:\tt<sub>Student</sub> =' +
+      round(spearman.t, 2) +
+      ', p = ' +
+      round(spearman.pValue, 3) +
+      ', r<sub>Spearman</sub> = ' +
+      round(spearman.rho, 2) +
+      ', CI<sub>95%</sub>[' +
+      round(spearman.CILower, 2) +
+      ', ' +
+      round(spearman.CIUpper, 2) +
+      '], n<sub>pairs</sub> = ' +
+      spearman.n,
+    showarrow: false,
+    font: {
+      size: 16,
+      family: 'Times New Roman',
+    },
+    align: 'left',
+  };
+
+  const layout = {
+    showlegend: true,
+    hoverlabel: { bgcolor: '#FFF' },
+    height: 700,
+    bargap: 0,
+    autosize: true,
+    title: {
+      text: '<b>Mutational Signature Association</b>',
+      font: {
+        family: 'Arial',
+        size: 18,
+      },
+    },
+    legend: {
+      title: { text: '\t Signature Names:' },
+    },
+    xaxis: {
+      domain: [0.0, 0.83],
+
+      showgrid: true,
+      title: {
+        text: '<b>Number of mutations in ' + signatureName1 + ' (log10)</b>',
+      },
+    },
+    yaxis: {
+      domain: [0.0, 0.83],
+      title: {
+        text: '<b>Number of mutations in ' + signatureName2 + ' (log10)</b>',
+      },
+      showgrid: true,
+    },
+
+    xaxis2: { anchor: 'y', domain: [0.85, 1], zerolinecolor: '#EBEBEB' },
+    yaxis2: { anchor: 'x', domain: [0.85, 1], zerolinecolor: '#EBEBEB' },
+
+    annotations: [detailAnnotation],
+    margin: {
+      t: 150,
+    },
+  };
+  return { traces: traces, layout: layout };
+}
+function pcorrtest(x, y) {
+  const n = x.length;
+  const sumX = x.reduce((a, b) => a + b, 0);
+  const sumY = y.reduce((a, b) => a + b, 0);
+  const sumX2 = x.reduce((a, b) => a + b * b, 0);
+  const sumY2 = y.reduce((a, b) => a + b * b, 0);
+  const sumXY = x.reduce((a, b, i) => a + b * y[i], 0);
+
+  const r = (n * sumXY - sumX * sumY) / Math.sqrt((n * sumX2 - sumX ** 2) * (n * sumY2 - sumY ** 2));
+  const t = r * Math.sqrt((n - 2) / (1 - r ** 2));
+  const df = n - 2;
+  const pValue = (1 - tDist(df).cdf(Math.abs(t))) * 2;
+
+  const z = 0.5 * Math.log((1 + r) / (1 - r));
+  const zLower = z - 1.96 * Math.sqrt(1 / (n - 3));
+  const zUpper = z + 1.96 * Math.sqrt(1 / (n - 3));
+  const ciLower = (Math.exp(2 * zLower) - 1) / (Math.exp(2 * zLower) + 1);
+  const ciUpper = (Math.exp(2 * zUpper) - 1) / (Math.exp(2 * zUpper) + 1);
+
+  return {
+    pcorr: r,
+    statistic: t,
+    pValue: pValue,
+    ci: [ciLower, ciUpper],
+  };
+}
+
+function tDist(degreesOfFreedom) {
+  return {
+    cdf: function (x) {
+      const t = x;
+      const dof = degreesOfFreedom;
+      const A = gamma((dof + 1) / 2) / (Math.sqrt(dof * Math.PI) * gamma(dof / 2));
+      const B = Math.pow(1 + (t ** 2) / dof, -(dof + 1) / 2);
+      const P = A * B;
+
+      return 0.5 + (x > 0 ? 0.5 * betainc(P, 0.5, dof / 2) : -0.5 * betainc(P, 0.5, dof / 2));
+    },
+  };
+}
+function gamma(z) {
+  const g = 7;
+  const p = [
+    0.99999999999980993,
+    676.5203681218851,
+    -1259.1392167224028,
+    771.32342877765313,
+    -176.61502916214059,
+    12.507343278686905,
+    -0.13857109526572012,
+    9.9843695780195716e-6,
+    1.5056327351493116e-7,
+  ];
+
+  if (z < 0.5) {
+    return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
+  }
+
+  z -= 1;
+  let x = p[0];
+  for (let i = 1; i < g + 2; i++) {
+    x += p[i] / (z + i);
+  }
+
+  const t = z + g + 0.5;
+  return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+}
+
+function betainc(x, a, b) {
+  const lbeta_ab = Math.log(gamma(a)) + Math.log(gamma(b)) - Math.log(gamma(a + b));
+  const bt = Math.exp(lbeta_ab) * Math.pow(x, a) * Math.pow(1 - x, b) / a;
+
+  let ai = 1;
+  let bi = 1;
+  let m2 = 0;
+  let term = 1;
+  let sum = term;
+
+  while (Math.abs(term) > 1e-10) {
+    ai *= x;
+    bi *= 1 - x;
+    m2 += 2;
+    term = ai * bi / (a + m2);
+    sum += term;
+  }
+
+  return bt * sum;
+}
+
+function groupDataByMutation$1(
+  apiData,
+  groupRegex,
+  mutationGroupSort = false,
+  mutationTypeSort = false
+) {
+  const groupByMutation = apiData.reduce((acc, e) => {
+    const mutation = e.mutationType.match(groupRegex)[1];
+    acc[mutation] = acc[mutation] ? [...acc[mutation], e] : [e];
+    return acc;
+  }, {});
+
+  const groupedData = Object.entries(groupByMutation).map(
+    ([mutation, data]) => ({
+      mutation,
+      data: mutationTypeSort ? data.sort(mutationTypeSort) : data,
+    })
+  );
+
+  return mutationGroupSort ? groupedData.sort(mutationGroupSort) : groupedData;
+}
+
+function getTotalMutations$1(apiData) {
+  return apiData.reduce(
+    (total, e) => total + e.mutations || e.contribution || 0,
+    0
+  );
+}
+
+function getMaxMutations$1(apiData) {
+  return Math.max(...apiData.map((e) => e.mutations || e.contribution || 0));
+}
+
+function createSampleAnnotation(apiData, text = '', yPos = 0.88) {
+  const totalMutations = getTotalMutations$1(apiData);
+  return {
+    xref: 'paper',
+    yref: 'paper',
+    xanchor: 'bottom',
+    yanchor: 'bottom',
+    x: 0.01,
+    y: yPos,
+    text:
+      apiData[0].sample && parseFloat(totalMutations).toFixed(2) > 1
+        ? `<b>${apiData[0].sample}: ${totalMutations.toLocaleString()} ${
+            text || apiData[0].profile == 'ID' ? 'Indels' : 'Substitutions'
+          }</b>`
+        : apiData[0].sample && totalMutations <= 1.1
+        ? `<b>${apiData[0].sample}</b>`
+        : `<b>${apiData[0].signatureName}</b>`,
+    showarrow: false,
+    font: {
+      size: 24,
+      family: 'Arial',
+    },
+    align: 'center',
+  };
+}
+
+function createMutationShapes(data, colors) {
+  return data.map((group, groupIndex, array) => ({
+    type: 'rect',
+    xref: 'x',
+    yref: 'paper',
+    x0: array
+      .slice(0, groupIndex)
+      .reduce((lastIndex, e) => lastIndex + e.data.length, -0.35),
+    x1: array
+      .slice(0, groupIndex + 1)
+      .reduce((lastIndex, e) => lastIndex + e.data.length, -0.65),
+    y0: 1.05,
+    y1: 1.01,
+    fillcolor: colors[group.mutation],
+    line: {
+      width: 0,
+    },
+  }));
+}
+
+function createMutationAnnotations(data, appendedText = '') {
+  return data.map((group, groupIndex, array) => ({
+    xref: 'x',
+    yref: 'paper',
+    xanchor: 'bottom',
+    yanchor: 'bottom',
+    x:
+      array
+        .slice(0, groupIndex)
+        .reduce((lastIndex, b) => lastIndex + b.data.length, 0) +
+      (group.data.length - 1) * 0.5,
+    y: 1.05,
+    text: `<b>${group.mutation + appendedText}</b>`,
+    showarrow: false,
+    font: { size: 18 },
+    align: 'center',
+  }));
+}
 
 function SBS96(apiData, title = '') {
   const colors = sbsColor;
@@ -4041,26 +4720,6 @@ function compareProfiles(
   return { traces, layout };
 }
 
-function arrayContainsTerms(arr, searchTerms) {
-  for (let i = 0; i < searchTerms.length; i++) {
-    if (arr.some((item) => item.includes(searchTerms[i]))) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function groupBy$1(array, key) {
-  return array.reduce((result, currentItem) => {
-    const group = currentItem[key];
-    if (!result[group]) {
-      result[group] = [];
-    }
-    result[group].push(currentItem);
-    return result;
-  }, {});
-}
-
 function MsIndividualComparison(
   data,
   arg,
@@ -4074,7 +4733,7 @@ function MsIndividualComparison(
   const signatureData = data[1].data;
   const segmatrixData = data[2].data;
 
-  const exposure_groupBySignature = groupBy$1(
+  const exposure_groupBySignature = groupBy$2(
     exposureData.filter((o) => o['exposure'] > 0.01),
     'signatureName'
   );
@@ -4113,7 +4772,7 @@ function MsIndividualComparison(
     )
     .join('');
 
-  const signature_groupBySignature = groupBy$1(
+  const signature_groupBySignature = groupBy$2(
     signatureData.filter((e) => signatureNames.includes(e.signatureName)),
     'signatureName'
   );
@@ -4138,12 +4797,12 @@ function MsIndividualComparison(
   const divide2 = plotYrange2 / signatureNames.length;
   const divide1 = plotYrange1 / 3;
 
-  const signatureDataFiltergroupBymutationTypes = groupBy$1(
+  const signatureDataFiltergroupBymutationTypes = groupBy$2(
     Object.values(signature_groupBySignature).flat(),
     'mutationType'
   );
 
-  const seqmatrix_groupByMutationType = groupBy$1(
+  const seqmatrix_groupByMutationType = groupBy$2(
     segmatrixData.filter((e) =>
       Object.keys(signatureDataFiltergroupBymutationTypes)
         .map((m) => m)
@@ -7657,44 +8316,48 @@ This function creates a heatmap using the cosine similarity matrix for the given
   }
 
 /**
- * Plots the cumulative exposure values for each "signatureName" across all the different "sample".
+ * Plots the cumulative exposure values for each "group" across all the different "sample".
  *
  * @param {string} jsonData - The JSON data structure containing the exposure values for each signatureName and sample.
  * @param {string} divID - The string containing the ID of the div where the plot should be displayed.
+ * @param {string} group - The string containing the name of the grouping variable. Default value is "signatureName".
 
 * @returns {void}
  *
  * @example
  * const jsonData = '[{...}, {...}, {...}]';
- * plotCumulativeExposure(divID, jsonData);
+ * plotSignatureActivityDataBy(divID, jsonData, group = "signatureName");
  */
+function plotSignatureActivityDataBy(divID, data, group = "signatureName") {
+  // Group the data by the specified group using the groupBy function
+  const groupedData = groupBy(data, group);
 
-  function plotCumulativeExposure(divID, data) {
-      // Group the data by signatureName using the groupBy function
-  const signatureData = groupBy(data, 'signatureName');
-
-  // Create an array of box trace objects for each signatureName
-  const signatureTraces = Object.keys(signatureData).map((signatureName) => {
-    const exposures = signatureData[signatureName].map((d) => Math.log10(d.exposure));
-    const samples = signatureData[signatureName].map((d) => d.sample);
+  // Create an array of box trace objects for each group
+  const groupTraces = Object.keys(groupedData).map((groupName) => {
+    const exposures = groupedData[groupName].map((d) => Math.log10(d.exposure));
+    const samples = groupedData[groupName].map((d) => d.sample);
+    const numNonZero = exposures.filter((exposure) => exposure !== -Infinity).length;
     return {
       y: exposures,
-      x: new Array(exposures.length).fill(signatureName),
+      x: new Array(exposures.length).fill(groupName),
       type: 'box',
-      name: signatureName,
-      boxpoints: 'outliers',
+      name: groupName,
+      boxpoints: 'all',
       jitter: 0.3,
       hovertext: samples,
+      hovertemplate: `<b>${groupName}</b><br>Log(Exposure): %{y:.2f}<br>` +
+        `Fraction of samples with non-zero exposure: ${numNonZero} / ${exposures.length}`,
     };
   });
 
   // Plot the box traces using Plotly and display the plot in the specified divID
-  Plotly.default.newPlot(divID, signatureTraces, {
-    title: 'Cumulative Exposure for Signature Names',
+  Plotly.default.newPlot(divID, groupTraces, {
+    title: `Cumulative Exposure for ${group}`,
     yaxis: { title: 'Log(Exposure)' },
-    xaxis: { title: 'Signature Name' },
+    xaxis: { title: group},
   });
-  }
+}
+
   
   /**
 
@@ -8068,6 +8731,18 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     return data;
   }
 
+  function plotSignatureAssociations(divID, data, signature1, signature2) {
+    let dat = MsAssociation(data, signature1, signature2);
+    Plotly.default.newPlot(divID, dat.traces, dat.layout);
+
+  }
+  
+  function plotMSPrevalenceData(divID, data) {
+    let dat = MSPrevalence(data);
+    Plotly.default.newPlot(divID, dat.traces, dat.layout);
+
+  }
+
   //#endregion
 
   //#region Define the public members of the mSigSDK
@@ -8094,7 +8769,9 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     plotCosineSimilarityHeatMap,
     plotUMAPVisualization,
     plotProjectMutationalBurdenByCancerType,
-    plotCumulativeExposure,
+    plotSignatureActivityDataBy,
+    plotSignatureAssociations,
+    plotMSPrevalenceData
   };
 
   const mSigPortal = {
