@@ -49,6 +49,12 @@ import {
   cosineSimilarity,
 } from "./mSigSDKScripts/utils.js";
 
+
+import {
+  getProjectsByGene, getTpmCountsByGenesOnProjects, getTpmCountsByGenesFromFiles, getMafInformationFromProjects, getVariantInformationFromMafFiles
+} from "./mSigSDKScripts/tcga.js";
+
+
 // import * as mSigPortalPlotting from "./index.js";
 
 const mSigSDK = (function () {
