@@ -2,6 +2,7 @@
 import * as localforage from "https://cdn.jsdelivr.net/npm/localforage/+esm";
 import * as pako from "https://cdn.jsdelivr.net/npm/pako/+esm";
 import * as Papa from "https://cdn.jsdelivr.net/npm/papaparse/+esm";
+import {fetchURLAndCache} from "./utils.js"
 import {  
   init_sbs_mutational_spectra,
   convertMatrix,
@@ -54,6 +55,7 @@ async function retrieveData(download_id, project, dataset, analysis_type) {
   // Create the URL that we will use to fetch the data
   const url = `https://dcc.icgc.org/api/v1/download/${download_id}`;
 
+  console.log(url);
   // Create a cache name that we will use for the data
   const cacheName = "ICGC";
 
