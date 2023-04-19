@@ -397,6 +397,42 @@ async function convertWGStoPanel(WgMAFs, panelDf) {
   }
   return panelMAFs;
 }
+
+
+function convertICGCMutationalSpectraIntoJSON(MAFfiles, mutSpec, dataType ="WGS"){
+  
+  // check if the length of the mutspec dictionary is the same as the length of the MAFfiles array
+
+  if (MAFfiles.length != Object.keys(mutSpec).length){
+    throw new Error("The number of MAF files and the number of mutational spectra do not match");
+  }
+
+  // loop through each mutational spectrum in the mutSpec dictionary and create a JSON object for each one
+
+  const mergedPatientJSONs = [];
+  
+  let i = 0;
+  for (let patient in mutSpec){
+    const patientJSON = [];
+
+    for (let mutationType in mutSpec[patient]){
+      let mutSpecObj = {
+        "sample": MAFfiles[i][0]["project_code"],
+        "strategy": dataType,
+        "profile": "SBS",
+        "matrix": 96,
+        "mutationType": mutationType,
+        "mutations": mutSpec[patient][mutationType],
+      };
+      patientJSON.push(mutSpecObj);
+    }
+    mergedPatientJSONs.push(patientJSON);
+    i++;
+  }
+  return mergedPatientJSONs;
+
+}
+
 //#endregion
 
 export {
@@ -404,4 +440,5 @@ export {
   convertMatrix,
   convertWGStoPanel,
   init_sbs_mutational_spectra,
+  convertICGCMutationalSpectraIntoJSON,
 };

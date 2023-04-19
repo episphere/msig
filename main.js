@@ -34,6 +34,7 @@ import {
   convertMatrix,
   convertWGStoPanel,
   init_sbs_mutational_spectra,
+  convertICGCMutationalSpectraIntoJSON
 } from "./mSigSDKScripts/ICGC.js";
 import {
   linspace,
@@ -1545,6 +1546,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     convertMatrix,
     convertWGStoPanel,
     plotPatientMutationalSpectrumICGC,
+    convertICGCMutationalSpectraIntoJSON
   };
 
   const tools = {
