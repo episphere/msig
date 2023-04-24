@@ -7675,8 +7675,6 @@ Retrieves mutational spectrum options from the mutational signatures API.
       })
     );
 
-    extractMutationalSpectra(data.flat(), "sample");
-
     return data;
   }
 

@@ -248,8 +248,6 @@ Retrieves mutational spectrum options from the mutational signatures API.
       })
     );
 
-    let formattedData = extractMutationalSpectra(data.flat(), "sample");
-
     return data;
   }
 
