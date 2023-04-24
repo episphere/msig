@@ -1,9 +1,13 @@
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-let tcga = { mutspec: undefined };
 
 import { fetchURLAndCache } from "./utils.js";
+
+import { convertMatrix } from "./mutationalSpectrum.js";
+import * as pako from "https://cdn.jsdelivr.net/npm/pako/+esm";
+
+
 
 /**
  * Obtain projects by gene
@@ -421,7 +425,7 @@ async function getVariantInformationFromMafFiles(res) {
               if (dat.indexOf("\\x") != -1) {
                 dat = await fetch(url);
                 var raw = await dat.arrayBuffer();
-                data = pako.inflate(raw, { to: "string" });
+                data = pako.default.inflate(raw, { to: "string" });
               }
 
               data = data
@@ -461,7 +465,7 @@ async function getVariantInformationFromMafFiles(res) {
               gr.push(i);
               if (files.length == gr.length) {
                 result[p]["mutational_spectra"] =
-                  await tcga.mutspec.convertMatrix(info, "file_id", 100);
+                  await convertMatrix(info, "file_id", 100);
               }
             } catch (e) {
               console.log("error in ", url);
@@ -506,18 +510,6 @@ async function loadScript(url) {
   }
   // satisfy dependencies
   await asyncScript(url);
-}
-
-if (typeof pako == "undefined") {
-  loadScript("https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.11/pako.min.js");
-}
-
-if (typeof mutspec == "undefined") {
-  var server = "./mutationalSpectrum.js";
-
-  import(server).then((module) => {
-    tcga.mutspec = module;
-  });
 }
 
 export {
