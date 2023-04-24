@@ -2,7 +2,7 @@
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 
-import { fetchURLAndCache } from "./utils.js";
+import { fetchURLAndCache, groupBy } from "./utils.js";
 
 import { convertMatrix } from "./mutationalSpectrum.js";
 import * as pako from "https://cdn.jsdelivr.net/npm/pako/+esm";
@@ -446,7 +446,7 @@ async function getVariantInformationFromMafFiles(res) {
                     ? "hg38"
                     : "";
                 if (build != "") {
-                  var obj = { project_code: p, file_id: f, build: build };
+                  var obj = { project_code: p, sample: f, build: build };
                   obj["chromosome"] = e[4].toLowerCase().replace("chr", "");
                   obj["reference_genome_allele"] = e[10];
                   obj["mutated_to_allele"] = e[12];
@@ -465,7 +465,7 @@ async function getVariantInformationFromMafFiles(res) {
               gr.push(i);
               if (files.length == gr.length) {
                 result[p]["mutational_spectra"] =
-                  await convertMatrix(info, "file_id", 100);
+                  await convertMatrix(info, "sample", 100);
               }
             } catch (e) {
               console.log("error in ", url);
@@ -512,11 +512,43 @@ async function loadScript(url) {
   await asyncScript(url);
 }
 
+
+function convertTCGAProjectIntoJSON(MAFfiles, mutSpec, dataType ="WGS"){
+  
+
+  
+  // loop through each mutational spectrum in the mutSpec dictionary and create a JSON object for each one
+
+  const mergedPatientJSONs = [];
+  
+  let i = 0;
+  for (let patient in mutSpec){
+    const patientJSON = [];
+
+    for (let mutationType in mutSpec[patient]){
+      let mutSpecObj = {
+        "sample": patient,
+        "strategy": dataType,
+        "profile": "SBS",
+        "matrix": 96,
+        "mutationType": mutationType,
+        "mutations": mutSpec[patient][mutationType],
+      };
+      patientJSON.push(mutSpecObj);
+    }
+    mergedPatientJSONs.push(patientJSON);
+    i++;
+  }
+  return mergedPatientJSONs;
+
+}
+
 export {
   getProjectsByGene,
   getTpmCountsByGenesOnProjects,
   getTpmCountsByGenesFromFiles,
   getMafInformationFromProjects,
   getVariantInformationFromMafFiles,
+  convertTCGAProjectIntoJSON,
   loadScript,
 };

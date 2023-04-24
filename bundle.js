@@ -7900,7 +7900,7 @@ async function getVariantInformationFromMafFiles(res) {
                     ? "hg38"
                     : "";
                 if (build != "") {
-                  var obj = { project_code: p, file_id: f, build: build };
+                  var obj = { project_code: p, sample: f, build: build };
                   obj["chromosome"] = e[4].toLowerCase().replace("chr", "");
                   obj["reference_genome_allele"] = e[10];
                   obj["mutated_to_allele"] = e[12];
@@ -7919,7 +7919,7 @@ async function getVariantInformationFromMafFiles(res) {
               gr.push(i);
               if (files.length == gr.length) {
                 result[p]["mutational_spectra"] =
-                  await convertMatrix(info, "file_id", 100);
+                  await convertMatrix(info, "sample", 100);
               }
             } catch (e) {
               console.log("error in ", url);
@@ -7938,6 +7938,34 @@ async function getVariantInformationFromMafFiles(res) {
   }
 
   return result;
+}
+
+
+function convertTCGAProjectIntoJSON(MAFfiles, mutSpec, dataType ="WGS"){
+  
+
+  
+  // loop through each mutational spectrum in the mutSpec dictionary and create a JSON object for each one
+
+  const mergedPatientJSONs = [];
+  for (let patient in mutSpec){
+    const patientJSON = [];
+
+    for (let mutationType in mutSpec[patient]){
+      let mutSpecObj = {
+        "sample": patient,
+        "strategy": dataType,
+        "profile": "SBS",
+        "matrix": 96,
+        "mutationType": mutationType,
+        "mutations": mutSpec[patient][mutationType],
+      };
+      patientJSON.push(mutSpecObj);
+    }
+    mergedPatientJSONs.push(patientJSON);
+  }
+  return mergedPatientJSONs;
+
 }
 
 // import * as mSigPortalPlotting from "./index.js";
@@ -9439,6 +9467,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     getTpmCountsByGenesFromFiles,
     getMafInformationFromProjects,
     getVariantInformationFromMafFiles,
+    convertTCGAProjectIntoJSON
   };
   const tools = {
     groupBy,

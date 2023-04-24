@@ -61,6 +61,7 @@ import {
   getTpmCountsByGenesFromFiles,
   getMafInformationFromProjects,
   getVariantInformationFromMafFiles,
+  convertTCGAProjectIntoJSON
 } from "./mSigSDKScripts/tcga.js";
 
 // import * as mSigPortalPlotting from "./index.js";
@@ -1562,6 +1563,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     getTpmCountsByGenesFromFiles,
     getMafInformationFromProjects,
     getVariantInformationFromMafFiles,
+    convertTCGAProjectIntoJSON
   };
   const tools = {
     groupBy,
