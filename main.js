@@ -29,6 +29,9 @@ import { default as plotMutationalProfileDBS78Comparison } from "./mSigPortalScr
 import { default as plotMutationalProfileID83Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/id83.js";
 import { default as plotMutationalProfileRS32Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/rs32.js";
 
+import { preprocessData, kFoldStratifiedCV } from "./mSigSDKScripts/machineLearning.js";
+
+
 import {
   obtainICGCDataMAF,
   convertMatrix,
@@ -1551,7 +1554,14 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
 
   const tools = {
     groupBy,
+    plotPatientMutationalSignaturesExposure,
+    plotDatasetMutationalSignaturesExposure,
   };
+  const machineLearning = {
+    preprocessData,
+    kFoldStratifiedCV,
+    fitMutationalSpectraToSignatures
+  }
 
   //#endregion
 
@@ -1560,9 +1570,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     mSigPortal,
     ICGC,
     tools,
-    fitMutationalSpectraToSignatures,
-    plotPatientMutationalSignaturesExposure,
-    plotDatasetMutationalSignaturesExposure,
+    machineLearning,
   };
 })();
 
