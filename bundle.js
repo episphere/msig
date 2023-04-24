@@ -6398,7 +6398,7 @@ async function nnls(A, b, maxiter = 3 * A[0].length) {
   return { x, rnorm };
 }
 
-async function fetchURLAndCache(cacheName, url, header=null, ICGC = null) {
+async function fetchURLAndCache(cacheName, url, header = null, ICGC = null) {
   const isCacheSupported = "caches" in window;
   let matchedURL;
 
@@ -6423,23 +6423,44 @@ async function fetchURLAndCache(cacheName, url, header=null, ICGC = null) {
         } else {
           // Fetch the data from the server
           // console.log("Data not found in cache, fetching from server...");
-          return fetch(url, header)
-            .then(function (response) {
-              // Use the fetched data
 
-              const responseClone = response.clone();
-              caches.open(cacheName).then(function (cache) {
-                // Add the response to the cache
-                cache.put(matchedURL, responseClone);
+          if (header != null) {
+            return fetch(url, header)
+              .then(function (response) {
+                // Use the fetched data
+
+                const responseClone = response.clone();
+                caches.open(cacheName).then(function (cache) {
+                  // Add the response to the cache
+                  cache.put(matchedURL, responseClone);
+                });
+
+                // console.log("Data fetched from server:", response);
+
+                return response;
+              })
+              .catch(function (error) {
+                throw new Error("Error fetching data:", error);
               });
+          } else {
+            return fetch(url)
+              .then(function (response) {
+                // Use the fetched data
 
-              // console.log("Data fetched from server:", response);
+                const responseClone = response.clone();
+                caches.open(cacheName).then(function (cache) {
+                  // Add the response to the cache
+                  cache.put(matchedURL, responseClone);
+                });
 
-              return response;
-            })
-            .catch(function (error) {
-              throw new Error("Error fetching data:", error);
-            });
+                // console.log("Data fetched from server:", response);
+
+                return response;
+              })
+              .catch(function (error) {
+                throw new Error("Error fetching data:", error);
+              });
+          }
         }
       });
     });
@@ -6558,9 +6579,11 @@ function createDistanceMatrix(matrix, metric, similarity) {
 }
 
 function hierarchicalClustering(distanceMatrix, sampleNames) {
+  let order = flatten(upgma(distanceMatrix).slice(-1)).slice(
+    0,
+    upgma(distanceMatrix).length + 1
+  );
 
-  let order = flatten(upgma(distanceMatrix).slice(-1)).slice(0, upgma(distanceMatrix).length+1);
-  
   // Return the final clustering result as a tree
   return buildTree(order, distanceMatrix, sampleNames);
 }
@@ -6601,7 +6624,7 @@ function buildTree(cluster, distanceMatrix, sampleNames) {
 }
 
 function flatten(array) {
-  return array.reduce(function(memo, el) {
+  return array.reduce(function (memo, el) {
     var items = Array.isArray(el) ? flatten(el) : [el];
     return memo.concat(items);
   }, []);
