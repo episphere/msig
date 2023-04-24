@@ -4,11 +4,15 @@ import * as CV from "https://cdn.jsdelivr.net/npm/ml-cross-validation/+esm";
 
 import { groupBy } from "./utils.js";
 
-// This function is called by the mSigSDK to preprocess the mutational spectrum data and mutational exposure data
-// into Xs and Ys, so that they can be used to train machine learning models
-// The function takes in the mutational spectrum data and mutational exposure data as parameters
-// The function returns an array of objects with the following structure:
-// { X: [ [...], [...], [...] ] , Y: [ [...], [...], [...] ] }
+/**
+ * Preprocesses mutational and exposure data for a given data source.
+ * Currently only supports data from MSigDB portal.
+ * @param {Array} mutationalData - Array of mutational data.
+ * @param {Array} exposureData - Array of exposure data.
+ * @param {string} dataSource - Data source identifier.
+ * @returns {Object} - Object containing input (Xs) and output (Ys) arrays for regression.
+ * @throws {Error} - If an unknown data source is provided.
+ */
 
 export function preprocessData(mutationalData, exposureData, dataSource) {
   switch (dataSource.toUpperCase()) {
@@ -58,8 +62,15 @@ function preprocessMSIGPORTALExposureData(mutationalData, exposureData) {
     return { Xs, Ys };  
 }
 
-
-
+/**
+ * Performs k-fold stratified cross-validation for multivariate linear or MLP regression models.
+ * @param {Array} Xs - Array of input data.
+ * @param {Array} Ys - Array of output data.
+ * @param {number} [k=10] - Number of folds for cross-validation.
+ * @param {string} [modelType="MLR"] - Regression model type ("MLR" for multivariate linear regression or "MLP" for multilayer perceptron).
+ * @returns {Object} - Object containing an array of trained regression models, an array of mean squared errors for each fold, and the average mean squared error across all folds.
+ * @throws {Error} - If an unknown model type is provided.
+ */
 export function kFoldStratifiedCV(Xs, Ys, k = 10, modelType = "MLR") {
   
     // Prepare the dataset for stratified k-fold cross-validation
