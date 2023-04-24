@@ -31,7 +31,7 @@ import { default as plotMutationalProfileRS32Comparison } from "./mSigPortalScri
 
 import {
   preprocessData,
-  kFoldStratifiedCV,
+  kFoldCV,
 } from "./mSigSDKScripts/machineLearning.js";
 
 import {
@@ -1567,13 +1567,18 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
   };
   const tools = {
     groupBy,
+
+  };
+
+  const signatureFitting ={
+    fitMutationalSpectraToSignatures,
     plotPatientMutationalSignaturesExposure,
     plotDatasetMutationalSignaturesExposure,
-  };
+  }
+
   const machineLearning = {
     preprocessData,
-    kFoldStratifiedCV,
-    fitMutationalSpectraToSignatures,
+    kFoldCV,
   };
 
   //#endregion
@@ -1584,6 +1589,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     ICGC,
     tools,
     machineLearning,
+    signatureFitting,
     TCGA,
   };
 })();

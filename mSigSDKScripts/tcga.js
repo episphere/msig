@@ -1,13 +1,9 @@
-
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
 
 import { fetchURLAndCache, groupBy } from "./utils.js";
 
 import { convertMatrix } from "./mutationalSpectrum.js";
 import * as pako from "https://cdn.jsdelivr.net/npm/pako/+esm";
-
-
 
 /**
  * Obtain projects by gene
@@ -81,7 +77,6 @@ async function getProjectsByGene(genes) {
  * @returns {Object} Object containing the list of count file ids and file descriptions organized by projects
  *
  * @example
- * let tcga = await import('https://raw.githubusercontent.com/YasCoMa/msig/main/mSigSDKScripts/tcga.js')
  * let genes = ['ENSG00000155657']
  * let projects = ['TCGA-LUSC', 'TCGA-OV']
  * var result = await tcga.getTpmCountsByGenesOnProjects(genes, projects)
@@ -132,11 +127,15 @@ async function getTpmCountsByGenesOnProjects(genes, projects) {
               "file_id,file_name,cases.submitter_id,cases.case_id,data_category,data_type,cases.samples.tumor_descriptor,cases.samples.tissue_type,cases.samples.sample_type,cases.samples.submitter_id,cases.samples.sample_id,analysis.workflow_type,cases.project.project_id,cases.samples.portions.analytes.aliquots.submitter_id",
             size: "1000",
           };
-          var data = await fetchURLAndCache("TCGA", "https://api.gdc.cancer.gov/files", {
-            method: "POST",
-            body: JSON.stringify(query),
-            headers: { "Content-Type": "application/json" },
-          });
+          var data = await fetchURLAndCache(
+            "TCGA",
+            "https://api.gdc.cancer.gov/files",
+            {
+              method: "POST",
+              body: JSON.stringify(query),
+              headers: { "Content-Type": "application/json" },
+            }
+          );
           data = await data.text();
           var table = data
             .replaceAll("\r", "")
@@ -214,7 +213,10 @@ async function getTpmCountsByGenesFromFiles(genes, files) {
     info = info.concat(
       await Promise.all(
         temp.map(async (f) => {
-          var data = await fetchURLAndCache("TCGA", `https://api.gdc.cancer.gov/data/${f}`);
+          var data = await fetchURLAndCache(
+            "TCGA",
+            `https://api.gdc.cancer.gov/data/${f}`
+          );
           data = await data.text();
           data = data
             .split("\n")
@@ -334,11 +336,15 @@ async function getMafInformationFromProjects(projects) {
               "file_id,cases.project.project_id,cases.submitter_id,cases.case_id,cases.samples.tumor_descriptor,cases.samples.tissue_type,cases.demographic.ethnicity,cases.demographic.gender,cases.demographic.race,cases.demographic.year_of_birth,cases.diagnoses.age_at_diagnosis,cases.diagnoses.classification_of_tumor,cases.diagnoses.days_to_recurrence,cases.diagnoses.tumor_stage",
             size: "1000",
           };
-          var data = await fetchURLAndCache("TCGA", "https://api.gdc.cancer.gov/files", {
-            method: "POST",
-            body: JSON.stringify(query),
-            headers: { "Content-Type": "application/json" },
-          });
+          var data = await fetchURLAndCache(
+            "TCGA",
+            "https://api.gdc.cancer.gov/files",
+            {
+              method: "POST",
+              body: JSON.stringify(query),
+              headers: { "Content-Type": "application/json" },
+            }
+          );
           data = await data.text();
           var table = data
             .replaceAll("\r", "")
@@ -428,7 +434,7 @@ async function getVariantInformationFromMafFiles(res) {
                 data = pako.default.inflate(raw, { to: "string" });
               }
 
-              data = data
+              data = await data
                 .split("\n")
                 .filter((e) => e.indexOf("#") != 0)
                 .map((e) => {
@@ -464,11 +470,14 @@ async function getVariantInformationFromMafFiles(res) {
               info.push(patients);
               gr.push(i);
               if (files.length == gr.length) {
-                result[p]["mutational_spectra"] =
-                  await convertMatrix(info, "sample", 100);
+                result[p]["mutational_spectra"] = await convertMatrix(
+                  info,
+                  "sample",
+                  100
+                );
               }
             } catch (e) {
-              console.log("error in ", url);
+              console.log(e);
             }
 
             return url;
@@ -512,27 +521,23 @@ async function loadScript(url) {
   await asyncScript(url);
 }
 
-
-function convertTCGAProjectIntoJSON(MAFfiles, mutSpec, dataType ="WGS"){
-  
-
-  
+function convertTCGAProjectIntoJSON(MAFfiles, mutSpec, dataType = "WGS") {
   // loop through each mutational spectrum in the mutSpec dictionary and create a JSON object for each one
 
   const mergedPatientJSONs = [];
-  
+
   let i = 0;
-  for (let patient in mutSpec){
+  for (let patient in mutSpec) {
     const patientJSON = [];
 
-    for (let mutationType in mutSpec[patient]){
+    for (let mutationType in mutSpec[patient]) {
       let mutSpecObj = {
-        "sample": patient,
-        "strategy": dataType,
-        "profile": "SBS",
-        "matrix": 96,
-        "mutationType": mutationType,
-        "mutations": mutSpec[patient][mutationType],
+        sample: patient,
+        strategy: dataType,
+        profile: "SBS",
+        matrix: 96,
+        mutationType: mutationType,
+        mutations: mutSpec[patient][mutationType],
       };
       patientJSON.push(mutSpecObj);
     }
@@ -540,7 +545,6 @@ function convertTCGAProjectIntoJSON(MAFfiles, mutSpec, dataType ="WGS"){
     i++;
   }
   return mergedPatientJSONs;
-
 }
 
 export {
@@ -550,5 +554,4 @@ export {
   getMafInformationFromProjects,
   getVariantInformationFromMafFiles,
   convertTCGAProjectIntoJSON,
-  loadScript,
 };

@@ -71,7 +71,7 @@ function preprocessMSIGPORTALExposureData(mutationalData, exposureData) {
  * @returns {Object} - Object containing an array of trained regression models, an array of mean squared errors for each fold, and the average mean squared error across all folds.
  * @throws {Error} - If an unknown model type is provided.
  */
-export function kFoldStratifiedCV(Xs, Ys, k = 10, modelType = "MLR") {
+export function kFoldCV(Xs, Ys, k = 10, modelType = "MLR") {
   
     // Prepare the dataset for stratified k-fold cross-validation
     const dataset = [];
