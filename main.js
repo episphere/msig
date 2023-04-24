@@ -6,8 +6,8 @@ import * as am5hierarchy from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/
 
 import * as am5themes_Animated from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5@5.3.7/themes/Animated.js/+esm";
 
-import {default as plotMSPrevalence} from "./mSigPortalScripts/client/src/components/controls/plotly/msPrevalence/msPrevalence.js";
-import {default as plotSignatureAssociation} from "./mSigPortalScripts/client/src/components/controls/plotly/msAssociation/msAssociation.js";
+import { default as plotMSPrevalence } from "./mSigPortalScripts/client/src/components/controls/plotly/msPrevalence/msPrevalence.js";
+import { default as plotSignatureAssociation } from "./mSigPortalScripts/client/src/components/controls/plotly/msAssociation/msAssociation.js";
 import { default as plotMutationalProfileSBS96 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs96.js";
 import { default as plotMutationalProfileSBS192 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs192.js";
 import { default as plotMutationalProfileSBS288 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs288.js";
@@ -29,15 +29,17 @@ import { default as plotMutationalProfileDBS78Comparison } from "./mSigPortalScr
 import { default as plotMutationalProfileID83Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/id83.js";
 import { default as plotMutationalProfileRS32Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/rs32.js";
 
-import { preprocessData, kFoldStratifiedCV } from "./mSigSDKScripts/machineLearning.js";
-
+import {
+  preprocessData,
+  kFoldStratifiedCV,
+} from "./mSigSDKScripts/machineLearning.js";
 
 import {
   obtainICGCDataMAF,
   convertMatrix,
   convertWGStoPanel,
   init_sbs_mutational_spectra,
-  convertICGCMutationalSpectraIntoJSON
+  convertICGCMutationalSpectraIntoJSON,
 } from "./mSigSDKScripts/ICGC.js";
 import {
   linspace,
@@ -53,11 +55,13 @@ import {
   cosineSimilarity,
 } from "./mSigSDKScripts/utils.js";
 
-
 import {
-  getProjectsByGene, getTpmCountsByGenesOnProjects, getTpmCountsByGenesFromFiles, getMafInformationFromProjects, getVariantInformationFromMafFiles
+  getProjectsByGene,
+  getTpmCountsByGenesOnProjects,
+  getTpmCountsByGenesFromFiles,
+  getMafInformationFromProjects,
+  getVariantInformationFromMafFiles,
 } from "./mSigSDKScripts/tcga.js";
-
 
 // import * as mSigPortalPlotting from "./index.js";
 
@@ -1078,7 +1082,7 @@ This function creates a heatmap using the cosine similarity matrix for the given
     return cosSimilarityMatrix;
   }
 
-/**
+  /**
  * Plots the cumulative exposure values for each "group" across all the different "sample".
  *
  * @param {string} jsonData - The JSON data structure containing the exposure values for each signatureName and sample.
@@ -1091,37 +1095,41 @@ This function creates a heatmap using the cosine similarity matrix for the given
  * const jsonData = '[{...}, {...}, {...}]';
  * plotSignatureActivityDataBy(divID, jsonData, group = "signatureName");
  */
-function plotSignatureActivityDataBy(divID, data, group = "signatureName") {
-  // Group the data by the specified group using the groupBy function
-  const groupedData = groupBy(data, group);
+  function plotSignatureActivityDataBy(divID, data, group = "signatureName") {
+    // Group the data by the specified group using the groupBy function
+    const groupedData = groupBy(data, group);
 
-  // Create an array of box trace objects for each group
-  const groupTraces = Object.keys(groupedData).map((groupName) => {
-    const exposures = groupedData[groupName].map((d) => Math.log10(d.exposure));
-    const samples = groupedData[groupName].map((d) => d.sample);
-    const numNonZero = exposures.filter((exposure) => exposure !== -Infinity).length;
-    return {
-      y: exposures,
-      x: new Array(exposures.length).fill(groupName),
-      type: 'box',
-      name: groupName,
-      boxpoints: 'all',
-      jitter: 0.3,
-      hovertext: samples,
-      hovertemplate: `<b>${groupName}</b><br>Log(Exposure): %{y:.2f}<br>` +
-        `Fraction of samples with non-zero exposure: ${numNonZero} / ${exposures.length}`,
-    };
-  });
+    // Create an array of box trace objects for each group
+    const groupTraces = Object.keys(groupedData).map((groupName) => {
+      const exposures = groupedData[groupName].map((d) =>
+        Math.log10(d.exposure)
+      );
+      const samples = groupedData[groupName].map((d) => d.sample);
+      const numNonZero = exposures.filter(
+        (exposure) => exposure !== -Infinity
+      ).length;
+      return {
+        y: exposures,
+        x: new Array(exposures.length).fill(groupName),
+        type: "box",
+        name: groupName,
+        boxpoints: "all",
+        jitter: 0.3,
+        hovertext: samples,
+        hovertemplate:
+          `<b>${groupName}</b><br>Log(Exposure): %{y:.2f}<br>` +
+          `Fraction of samples with non-zero exposure: ${numNonZero} / ${exposures.length}`,
+      };
+    });
 
-  // Plot the box traces using Plotly and display the plot in the specified divID
-  Plotly.default.newPlot(divID, groupTraces, {
-    title: `Cumulative Exposure for ${group}`,
-    yaxis: { title: 'Log(Exposure)' },
-    xaxis: { title: group},
-  });
-}
+    // Plot the box traces using Plotly and display the plot in the specified divID
+    Plotly.default.newPlot(divID, groupTraces, {
+      title: `Cumulative Exposure for ${group}`,
+      yaxis: { title: "Log(Exposure)" },
+      xaxis: { title: group },
+    });
+  }
 
-  
   /**
 
 Plots a force directed tree of the patients in the study based on their mutational spectra.
@@ -1497,13 +1505,11 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
   function plotSignatureAssociations(divID, data, signature1, signature2) {
     let dat = plotSignatureAssociation(data, signature1, signature2);
     Plotly.default.newPlot(divID, dat.traces, dat.layout);
-
   }
-  
+
   function plotMSPrevalenceData(divID, data) {
     let dat = plotMSPrevalence(data);
     Plotly.default.newPlot(divID, dat.traces, dat.layout);
-
   }
 
   //#endregion
@@ -1534,7 +1540,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     plotProjectMutationalBurdenByCancerType,
     plotSignatureActivityDataBy,
     plotSignatureAssociations,
-    plotMSPrevalenceData
+    plotMSPrevalenceData,
   };
 
   const mSigPortal = {
@@ -1547,9 +1553,16 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     convertMatrix,
     convertWGStoPanel,
     plotPatientMutationalSpectrumICGC,
-    convertICGCMutationalSpectraIntoJSON
+    convertICGCMutationalSpectraIntoJSON,
   };
 
+  const TCGA = {
+    getProjectsByGene,
+    getTpmCountsByGenesOnProjects,
+    getTpmCountsByGenesFromFiles,
+    getMafInformationFromProjects,
+    getVariantInformationFromMafFiles,
+  };
   const tools = {
     groupBy,
     plotPatientMutationalSignaturesExposure,
@@ -1558,8 +1571,8 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
   const machineLearning = {
     preprocessData,
     kFoldStratifiedCV,
-    fitMutationalSpectraToSignatures
-  }
+    fitMutationalSpectraToSignatures,
+  };
 
   //#endregion
 
@@ -1569,6 +1582,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     ICGC,
     tools,
     machineLearning,
+    TCGA,
   };
 })();
 

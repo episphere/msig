@@ -3,6 +3,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 let tcga = { mutspec: undefined };
 
+import { fetchURLAndCache } from "./utils.js";
+
 /**
  * Obtain projects by gene
  *
@@ -33,7 +35,7 @@ async function getProjectsByGene(genes) {
       await Promise.all(
         temp.map(async (g) => {
           var url = `https://api.gdc.cancer.gov/analysis/top_cases_counts_by_genes?gene_ids=${g}`;
-          var data = await fetch(url);
+          var data = await fetchURLAndCache("TCGA", url);
           data = await data.json();
           var temp = [];
           for (var p of data["aggregations"]["projects"]["buckets"]) {
@@ -126,7 +128,7 @@ async function getTpmCountsByGenesOnProjects(genes, projects) {
               "file_id,file_name,cases.submitter_id,cases.case_id,data_category,data_type,cases.samples.tumor_descriptor,cases.samples.tissue_type,cases.samples.sample_type,cases.samples.submitter_id,cases.samples.sample_id,analysis.workflow_type,cases.project.project_id,cases.samples.portions.analytes.aliquots.submitter_id",
             size: "1000",
           };
-          var data = await fetch("https://api.gdc.cancer.gov/files", {
+          var data = await fetchURLAndCache("TCGA", "https://api.gdc.cancer.gov/files", {
             method: "POST",
             body: JSON.stringify(query),
             headers: { "Content-Type": "application/json" },
@@ -208,7 +210,7 @@ async function getTpmCountsByGenesFromFiles(genes, files) {
     info = info.concat(
       await Promise.all(
         temp.map(async (f) => {
-          var data = await fetch(`https://api.gdc.cancer.gov/data/${f}`);
+          var data = await fetchURLAndCache("TCGA", `https://api.gdc.cancer.gov/data/${f}`);
           data = await data.text();
           data = data
             .split("\n")
@@ -328,7 +330,7 @@ async function getMafInformationFromProjects(projects) {
               "file_id,cases.project.project_id,cases.submitter_id,cases.case_id,cases.samples.tumor_descriptor,cases.samples.tissue_type,cases.demographic.ethnicity,cases.demographic.gender,cases.demographic.race,cases.demographic.year_of_birth,cases.diagnoses.age_at_diagnosis,cases.diagnoses.classification_of_tumor,cases.diagnoses.days_to_recurrence,cases.diagnoses.tumor_stage",
             size: "1000",
           };
-          var data = await fetch("https://api.gdc.cancer.gov/files", {
+          var data = await fetchURLAndCache("TCGA", "https://api.gdc.cancer.gov/files", {
             method: "POST",
             body: JSON.stringify(query),
             headers: { "Content-Type": "application/json" },
@@ -414,10 +416,10 @@ async function getVariantInformationFromMafFiles(res) {
             var url = `https://api.gdc.cancer.gov/data/${f}`;
 
             try {
-              var data = await fetch(url);
+              var data = await fetchURLAndCache("TCGA", url);
               var dat = await data.text();
               if (dat.indexOf("\\x") != -1) {
-                dat = await fetch(url);
+                dat = await fetchURLAndCache("TCGA", url);
                 var raw = await dat.arrayBuffer();
                 data = pako.inflate(raw, { to: "string" });
               }

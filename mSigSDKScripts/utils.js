@@ -101,7 +101,7 @@ async function nnls(A, b, maxiter = 3 * A[0].length) {
   return { x, rnorm };
 }
 
-async function fetchURLAndCache(cacheName, url, ICGC = null) {
+async function fetchURLAndCache(cacheName, url, header=null, ICGC = null) {
   const isCacheSupported = "caches" in window;
   let matchedURL;
 
@@ -126,7 +126,7 @@ async function fetchURLAndCache(cacheName, url, ICGC = null) {
         } else {
           // Fetch the data from the server
           console.log("Data not found in cache, fetching from server...");
-          return fetch(url)
+          return fetch(url, header)
             .then(function (response) {
               // Use the fetched data
 
