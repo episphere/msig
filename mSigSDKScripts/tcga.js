@@ -416,10 +416,10 @@ async function getVariantInformationFromMafFiles(res) {
             var url = `https://api.gdc.cancer.gov/data/${f}`;
 
             try {
-              var data = await fetchURLAndCache("TCGA", url);
+              var data = await fetch(url);
               var dat = await data.text();
               if (dat.indexOf("\\x") != -1) {
-                dat = await fetchURLAndCache("TCGA", url);
+                dat = await fetch(url);
                 var raw = await dat.arrayBuffer();
                 data = pako.inflate(raw, { to: "string" });
               }

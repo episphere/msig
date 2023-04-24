@@ -121,11 +121,11 @@ async function fetchURLAndCache(cacheName, url, header=null, ICGC = null) {
         // Check if the data was found in the cache
         if (response) {
           // Use the cached data
-          console.log("Data found in cache:", response);
+          // console.log("Data found in cache:", response);
           return response;
         } else {
           // Fetch the data from the server
-          console.log("Data not found in cache, fetching from server...");
+          // console.log("Data not found in cache, fetching from server...");
           return fetch(url, header)
             .then(function (response) {
               // Use the fetched data
@@ -136,7 +136,7 @@ async function fetchURLAndCache(cacheName, url, header=null, ICGC = null) {
                 cache.put(matchedURL, responseClone);
               });
 
-              console.log("Data fetched from server:", response);
+              // console.log("Data fetched from server:", response);
 
               return response;
             })

@@ -1,3 +1,5 @@
+import { fetchURLAndCache } from "./utils.js";
+
 function get_sbs_trinucleotide_contexts() {
   const nucleotide_bases = ["A", "C", "G", "T"];
   const substitution_types = ["C>A", "C>G", "C>T", "T>A", "T>C", "T>G"];
@@ -102,7 +104,7 @@ Converts patient mutation data into mutational spectra.
 @throws {Error} - If there is an error in processing the mutation data.
 */
 
-async function convertMatrix(data, group_by="project_code", batch_size = 100) {
+async function convertMatrix(data, group_by="project_code",  batch_size = 100, genome = "hg19",) {
   const mutationalSpectra = {};
 
   for (let patient of data) {
@@ -111,13 +113,23 @@ async function convertMatrix(data, group_by="project_code", batch_size = 100) {
     var promises = [];
 
     for (let i = 0; i < patient.length; i++) {
+      
+      // if patient[i]['build'] exists, then use it to determine the genome
+      // if patient[i]['build'] does not exist, then use the genome parameter
+      // if genome parameter is not provided, then use hg19
+      if (patient[i]['build']) {
+        genome = patient[i]['build'];
+      } else if (!genome) {
+        genome = "hg19";
+      }
+
       var chromosomeNumber = patient[i]["chromosome"];
       var referenceAllele = patient[i]["reference_genome_allele"];
       var mutatedTo = patient[i]["mutated_to_allele"];
       var position = patient[i]["chromosome_start"];
       var variantType = patient[i]["mutation_type"];
 
-      var promise = getMutationalContext(chromosomeNumber, parseInt(position))
+      var promise = getMutationalContext(chromosomeNumber, genome, parseInt(position))
         .then((sequence) => {
           sequence = standardize_trinucleotide(sequence);
           let fivePrime = sequence[0];
@@ -156,14 +168,14 @@ async function convertMatrix(data, group_by="project_code", batch_size = 100) {
   return mutationalSpectra;
 }
 
-async function getMutationalContext(chromosomeNumber, startPosition) {
+async function getMutationalContext(chromosomeNumber, genome, startPosition) {
   const chrName = String(chromosomeNumber);
   const startByte = startPosition - 2;
   const endByte = startPosition;
 
   const alternative = await (
-    await fetch(
-      `https://api.genome.ucsc.edu/getData/sequence?genome=hg19;chrom=chr${chrName};start=${startByte};end=${
+    await fetchURLAndCache("HG19",
+      `https://api.genome.ucsc.edu/getData/sequence?genome=${genome};chrom=chr${chrName};start=${startByte};end=${
         endByte + 1
       }`
     )

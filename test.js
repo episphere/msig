@@ -12,3 +12,6 @@ data = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSignatureActivityDat
 mutSpecData = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData('PCAWG',null, 'WGS','','SBS', 96)
 processedData = mSigSDK.machineLearning.preprocessData(mutSpecData, data, "mSigPortal")
 results = mSigSDK.machineLearning.kFoldStratifiedCV(processedData.Xs,processedData.Ys)
+
+
+await fetch("https://api.gdc.cancer.gov/data/0b3d2db3-8ae3-4d39-bd9b-9d1e7a133b65")
