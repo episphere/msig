@@ -7,7 +7,7 @@ import jStat from 'https://cdn.jsdelivr.net/npm/jstat/+esm';
 import * as MLR from 'https://cdn.jsdelivr.net/npm/ml-regression-multivariate-linear/+esm';
 import * as CV from 'https://cdn.jsdelivr.net/npm/ml-cross-validation/+esm';
 import * as localforage from 'https://cdn.jsdelivr.net/npm/localforage/+esm';
-import * as pako$1 from 'https://cdn.jsdelivr.net/npm/pako/+esm';
+import * as pako from 'https://cdn.jsdelivr.net/npm/pako/+esm';
 import * as Papa from 'https://cdn.jsdelivr.net/npm/papaparse/+esm';
 
 const colorPallet1 = [
@@ -7120,14 +7120,14 @@ async function retrieveData(download_id, project, dataset, analysis_type) {
         const block = uArr.slice(headerLocs[i], headerLocs[i + 1]);
 
         // Inflate the block using the pako library
-        chunks.push(pako$1.default.inflate(block));
+        chunks.push(pako.default.inflate(block));
       }
 
       // Create a block of data from the last header to the end of the data
       const block = uArr.slice(headerLocs[headerLocs.length - 1], uArr.length);
 
       // Inflate the block using the pako library
-      chunks.push(pako$1.default.inflate(block));
+      chunks.push(pako.default.inflate(block));
 
       // Create a new TextDecoder
       const decoder = new TextDecoder();
@@ -7461,7 +7461,7 @@ function convertICGCMutationalSpectraIntoJSON(MAFfiles, mutSpec, dataType ="WGS"
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-let tcga = { mutspec: undefined };
+
 
 /**
  * Obtain projects by gene
@@ -7879,7 +7879,7 @@ async function getVariantInformationFromMafFiles(res) {
               if (dat.indexOf("\\x") != -1) {
                 dat = await fetch(url);
                 var raw = await dat.arrayBuffer();
-                data = pako.inflate(raw, { to: "string" });
+                data = pako.default.inflate(raw, { to: "string" });
               }
 
               data = data
@@ -7919,7 +7919,7 @@ async function getVariantInformationFromMafFiles(res) {
               gr.push(i);
               if (files.length == gr.length) {
                 result[p]["mutational_spectra"] =
-                  await tcga.mutspec.convertMatrix(info, "file_id", 100);
+                  await convertMatrix(info, "file_id", 100);
               }
             } catch (e) {
               console.log("error in ", url);
@@ -7938,44 +7938,6 @@ async function getVariantInformationFromMafFiles(res) {
   }
 
   return result;
-}
-
-/**
- * Load a certain dependency library from link
- *
- *
- * @param {string} url Library URL.
- *
- * @example
- * let tcga = await import('https://raw.githubusercontent.com/YasCoMa/msig/main/mSigSDKScripts/tcga.js')
- * await tcga.loadScript('https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.11/pako.min.js')
- *
- */
-async function loadScript(url) {
-  console.log(`${url} loaded`);
-  async function asyncScript(url) {
-    let load = new Promise((resolve, regect) => {
-      let s = document.createElement("script");
-      s.src = url;
-      s.onload = resolve;
-      document.head.appendChild(s);
-    });
-    await load;
-  }
-  // satisfy dependencies
-  await asyncScript(url);
-}
-
-if (typeof pako == "undefined") {
-  loadScript("https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.11/pako.min.js");
-}
-
-if (typeof mutspec == "undefined") {
-  var server = "./mutationalSpectrum.js";
-
-  import(server).then((module) => {
-    tcga.mutspec = module;
-  });
 }
 
 // import * as mSigPortalPlotting from "./index.js";
