@@ -4,8 +4,10 @@ import * as am5 from 'https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/+esm';
 import * as am5hierarchy from 'https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/hierarchy/+esm';
 import * as am5themes_Animated from 'https://cdn.jsdelivr.net/npm/@amcharts/amcharts5@5.3.7/themes/Animated.js/+esm';
 import jStat from 'https://cdn.jsdelivr.net/npm/jstat/+esm';
+import * as MLR from 'https://cdn.jsdelivr.net/npm/ml-regression-multivariate-linear/+esm';
+import * as CV from 'https://cdn.jsdelivr.net/npm/ml-cross-validation/+esm';
 import * as localforage from 'https://cdn.jsdelivr.net/npm/localforage/+esm';
-import * as pako from 'https://cdn.jsdelivr.net/npm/pako/+esm';
+import * as pako$1 from 'https://cdn.jsdelivr.net/npm/pako/+esm';
 import * as Papa from 'https://cdn.jsdelivr.net/npm/papaparse/+esm';
 
 const colorPallet1 = [
@@ -6297,588 +6299,6 @@ function rs32(data1, data2, tab) {
   }
 }
 
-//#region Retrieving SSM Files from ICGC Data Portal and Converting to MAF File
-
-  
-  async function getDownloadId(
-    pqlQuery,
-    dataType = "ssm",
-    outputFormat = "TSV"
-  ) {
-    const info = `[{"key":"${dataType}", "value":"${outputFormat}"}]`;
-    const url = `https://dcc.icgc.org/api/v1/download/submitPQL?pql=${pqlQuery}&info=${info}`;
-
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`GET ${url} resulted in status code ${response.status}`);
-    }
-
-    const json = await response.json();
-    if (!json.downloadId) {
-      throw new Error(`GET ${url} did not return a download ID`);
-    }
-    return await json.downloadId;
-  }
-  function findInArr(arr, seg) {
-    const matches = []; // initialize array
-    let i = 0; // initialize i
-    while (i < arr.length - seg.length) {
-      const s = arr.slice(i, i + seg.length); // create segment
-      if (s.every((d, i) => s[i] == seg[i])) {
-        // if matches, push to matches
-        matches.push(i);
-      }
-      i++; // increment i
-    }
-    return matches;
-  }
-
-  // This function parses the TSV data into rows
-  // and returns an array of cells
-
-  function tsvParseRows(tsvData) {
-    // Split the TSV data into rows
-    const rows = tsvData.trim().split("\n");
-
-    // Map each row to an array of cells
-    const cells = rows.map((row) => row.split("\t"));
-
-    // Return the cells
-    return cells;
-  }
-
-  async function retrieveData(download_id, project, dataset, analysis_type) {
-    // Create the URL that we will use to fetch the data
-    const url = `https://dcc.icgc.org/api/v1/download/${download_id}`;
-
-    // Create a cache name that we will use for the data
-    const cacheName = "ICGC";
-
-    // Fetch the data, caching the result
-    return await fetchURLAndCache(
-      cacheName,
-      url,
-      project + "_" + dataset + "_" + analysis_type
-    )
-      // Convert the response to an ArrayBuffer
-      .then((response) => response.arrayBuffer())
-
-      // Convert the ArrayBuffer to an array of bytes
-      .then((arrayBuffer) => {
-        const uArr = new Uint8Array(arrayBuffer);
-
-        // Find the locations of the GZIP headers in the data
-        let headerLocs = findInArr(uArr, [31, 139, 8, 0, 0]);
-
-        // Create an array to hold the chunks of the data
-        const chunks = [];
-
-        // Loop through the locations of the headers
-        for (let i = 0; i < headerLocs.length - 1; i++) {
-          // Create a block of data from the header to the next header
-          const block = uArr.slice(headerLocs[i], headerLocs[i + 1]);
-
-          // Inflate the block using the pako library
-          chunks.push(pako.default.inflate(block));
-        }
-
-        // Create a block of data from the last header to the end of the data
-        const block = uArr.slice(
-          headerLocs[headerLocs.length - 1],
-          uArr.length
-        );
-
-        // Inflate the block using the pako library
-        chunks.push(pako.default.inflate(block));
-
-        // Create a new TextDecoder
-        const decoder = new TextDecoder();
-
-        // Decode the chunks into strings
-        let decodedChunks = chunks.map((d) => decoder.decode(d));
-
-        // Create an array to hold the parsed chunks
-        const parsedChunks = [];
-
-        // Loop through the chunks
-        for (let chunk of decodedChunks) {
-          // Parse the TSV rows and push them to the parsed chunks array using Papa Parse
-          parsedChunks.push(tsvParseRows(chunk));
-        }
-
-        // Return the parsed chunks
-        return [].concat(...parsedChunks);
-      })
-
-      // Return the parsed rows
-      .then((data) => {
-        return data;
-      })
-
-      // Catch any errors and return a rejected promise
-      .catch((err) => {
-        console.error(err);
-        return Promise.reject(err);
-      });
-  }
-
-  async function retrieveICGCDatasets(
-    projects = ["BRCA-US"],
-    datatype = "ssm",
-    analysis_type = "WGS",
-    output_format = "TSV"
-  ) {
-    const supportedFormats = ["TSV", "json"];
-
-    if (!supportedFormats.includes(output_format)) {
-      throw new Error(
-        `Output format ${output_format} isn't supported. Supported formats: ${supportedFormats}.`
-      );
-    }
-    let files = [];
-    for (let project of projects) {
-      const pql_query = `select(*),in(donor.projectId,'${project}'),in(donor.availableDataTypes,'${datatype}'),in(donor.analysisTypes,'${analysis_type}')`;
-      const download_id = await getDownloadId(
-        pql_query,
-        datatype,
-        output_format
-      );
-
-      files.push(
-        await retrieveData(download_id, project, datatype, analysis_type)
-      );
-    }
-
-    return [].concat(...(await files));
-  }
-
-  // Create a function that will find the positions of a set of values in an array and output the indices of the values within the array that match the values in the set
-  function findIndicesOfValuesInArray(array, values) {
-    let indices = [];
-    for (let i = 0; i < array.length; i++) {
-      if (values.includes(array[i])) {
-        indices.push(i);
-      }
-    }
-    return indices;
-  }
-
-  // Create a function that will take in the nested array and return a nested array with only the columns we want to keep
-
-  function returnDesiredColumns(nestedArray, selectColumns) {
-    let output = [];
-    for (let row of nestedArray.slice(1)) {
-      let newRow = [];
-      for (let column of selectColumns) {
-        newRow.push(row[column]);
-      }
-      output.push(newRow);
-    }
-    return output;
-  }
-
-  function groupAndSortData(data) {
-    // Create an object to hold the grouped data
-    const groupedData = {};
-
-    // Loop through the input data and group it by donor ID
-    data.forEach((row) => {
-      const donorID = row[1];
-      const chromosome = row[3];
-      const position = row[4];
-
-      // If this donor ID hasn't been seen yet, create an empty array for it
-      if (!groupedData[donorID]) {
-        groupedData[donorID] = [];
-      }
-
-      // Check to see if the array already contains a row with the same chromosome and position as the current row and if not, add it
-      if (
-        !groupedData[donorID].some(
-          (r) => r[3] === chromosome && r[4] === position
-        )
-      ) {
-        groupedData[donorID].push(row);
-      }
-    });
-
-    // Loop through the grouped data and sort each array by chromosome and position
-    Object.values(groupedData).forEach((rows) => {
-      rows.sort((a, b) => {
-        const chrA = a[1];
-        const chrB = b[1];
-        const posA = a[2];
-        const posB = b[2];
-
-        if (chrA !== chrB) {
-          // Sort by chromosome first
-          return chrA.localeCompare(chrB);
-        } else {
-          // If chromosomes are the same, sort by position
-          return posA - posB;
-        }
-      });
-    });
-
-    // Return the grouped and sorted data
-    return groupedData;
-  }
-
-  function combineKeysAndValues(keys, values) {
-    const dictionary = {};
-    for (let i = 0; i < keys.length; i++) {
-      dictionary[keys[i]] = values[i];
-    }
-    return dictionary;
-  }
-  /**
-
-@function obtainICGCDataMAF
-@async
-@memberof ICGC
-@description A function that retrieves ICGC (International Cancer Genome Consortium) mutation data in MAF (Mutation Annotation Format) format from local cache or external source.
-@param {string[]} [projects=["BRCA-US"]] An array of project codes to retrieve data from. Defaults to ["BRCA-US"].
-@param {string} [datatype="ssm"] The type of mutation data to retrieve. Defaults to "ssm".
-@param {string} [analysis_type="WGS"] The type of analysis to retrieve data from. Defaults to "WGS".
-@param {string} [output_format="TSV"] The format of the output file. Defaults to "TSV".
-@returns {Promise<Array<Object>>} A promise that resolves to an array of objects containing mutation data.
-@throws {Error} If any error occurs during the process of retrieving or caching the data.
-*/
-  const obtainICGCDataMAF = async (
-    projects = ["BRCA-US"],
-    datatype = "ssm",
-    analysis_type = "WGS",
-    output_format = "TSV"
-  ) => {
-    const cacheName = "ICGC";
-    const fileName =
-      cacheName +
-      "_" +
-      projects +
-      "_" +
-      datatype +
-      "_" +
-      analysis_type +
-      "_" +
-      output_format;
-
-    const ICGCDataset = await localforage.default
-      .getItem(fileName)
-      .then(function (value) {
-        return value;
-      });
-
-    if (ICGCDataset !== null) {
-      console.log("Data found within local forage. Returning data now...");
-      return ICGCDataset;
-    } else {
-      console.log("Data not found within local forage. Procuring data now...");
-      const ICGCMAF = retrieveICGCDatasets(
-        (projects = projects),
-        (datatype = datatype),
-        (analysis_type = analysis_type),
-        (output_format = output_format)
-      ).then((nestedArray) => {
-        let selectedColumns = [
-          "icgc_mutation_id",
-          "project_code",
-          "icgc_donor_id",
-          "chromosome",
-          "chromosome_start",
-          "chromosome_end",
-          "assembly_version",
-          "mutation_type",
-          "reference_genome_allele",
-          "mutated_to_allele",
-        ];
-
-        const indices = findIndicesOfValuesInArray(
-          nestedArray[0],
-          selectedColumns
-        );
-
-        const data = returnDesiredColumns(nestedArray, indices);
-        return Object.values(groupAndSortData(data)).map(
-          (patients) => {
-            return patients.map((mutations) => {
-              return combineKeysAndValues(selectedColumns, mutations);
-            });
-          }
-        );
-      });
-
-      localforage.default.setItem(fileName, await ICGCMAF);
-      return await ICGCMAF;
-    }
-  };
-
-  //#endregion
-
-  //#region Convert MAF to Mutational Spectrum Matrix
-
-  // This function returns a list of all possible single base substitution trinucleotide
-  // contexts, which are defined as the 5' base, the base substitution, and the 3' base.
-  // For example, the trinucleotide context of the single base substitution C>A at position
-  // 100 of the reference genome would be "N[C>A]N", where N is the base at position 99 and
-  // position 101 of the reference genome.
-
-  function get_sbs_trinucleotide_contexts() {
-    const nucleotide_bases = ["A", "C", "G", "T"];
-    const substitution_types = ["C>A", "C>G", "C>T", "T>A", "T>C", "T>G"];
-    let sbs_trinucleotide_contexts = [];
-
-    for (let base_5 of nucleotide_bases) {
-      for (let substitution of substitution_types) {
-        for (let base_3 of nucleotide_bases) {
-          sbs_trinucleotide_contexts.push(
-            `${base_5}[${substitution}]${base_3}`
-          );
-        }
-      }
-    }
-
-    return sbs_trinucleotide_contexts;
-  }
-
-  function standardize_substitution(ref_allele, mut_allele) {
-    /*
-COSMIC signatures define mutations from a pyrimidine allele (C, T) to any
-other base (C>A, C>G, C>T, T>A, T>C, T>G). If a mutation in the MAF file
-is defined from a reference purine allele (A, G), then we infer the substituted
-base in the complementary sequence, which would be from a pyrimidine
-allele due to purines and pyrimidines complementing each other in a
-double-stranded DNA.
- :param ref_allele: base in the reference genome.
-:param mut_allele: base in the mutated genome
-:return: substitution string from pyrimidine to any other base.
-*/
-    var complement_seq, purines;
-    complement_seq = {
-      A: "T",
-      C: "G",
-      T: "A",
-      G: "C",
-    };
-    purines = ["A", "G"];
-
-    if (purines.some((v) => ref_allele.includes(v))) {
-      return `${complement_seq[ref_allele]}>${complement_seq[mut_allele]}`;
-    } else {
-      return `${ref_allele}>${mut_allele}`;
-    }
-  }
-
-  function init_sbs_mutational_spectra(n_records) {
-    /*
-Initilizes an ordered dictionary with SBS trinucleotide context as keys and
-a list of counts, one for each sample.
- :param n_records: number of samples to record in the mutational spectra matrix.
-:return: a dictionary of trinucleotide context and a list of counts
-initialized to zeros.
-*/
-
-    let tri_nuc_context = get_sbs_trinucleotide_contexts();
-
-    let sbs_mutational_spectra = {};
-
-    for (var i = 0; i < tri_nuc_context.length; i++) {
-      let context = tri_nuc_context[i];
-      sbs_mutational_spectra[context] = 0;
-    }
-
-    return sbs_mutational_spectra;
-  }
-
-  function standardize_trinucleotide(trinucleotide_ref) {
-    // COSMIC signatures define mutations from a pyrimidine allele (C, T) to any
-    // other base (C>A, C>G, C>T, T>A, T>C, T>G). If a mutation in the MAF file
-    // is defined from a purine allele (A, G), then we infer the trinucleotide
-    // context in the complementary sequence, which would be from a pyrimidine
-    // allele due to purines and pyrimidines complementing each other in a
-    // double-stranded DNA.
-
-    // :param trinucleotide_ref: trinucleotide sequence seen in the reference genome.
-    // :return: a pyrimidine-centric trinucleotide sequence.
-
-    let complement_seq = {
-      A: "T",
-      C: "G",
-      T: "A",
-      G: "C",
-    };
-    let purines = "AG";
-    if (purines.includes(trinucleotide_ref[1])) {
-      return `${complement_seq[trinucleotide_ref[2]]}${
-        complement_seq[trinucleotide_ref[1]]
-      }${complement_seq[trinucleotide_ref[0]]}`;
-    } else {
-      return trinucleotide_ref;
-    }
-  }
-
-  /**
-
-Converts patient mutation data into mutational spectra.
-@async
-@function convertMatrix
-@memberof ICGC
-@param {Array} data - The patient mutation data to be converted.
-@param {number} [batch_size=100] - The number of mutations to process in each batch.
-@returns {Object} - The mutational spectra of each patient in an object.
-@throws {Error} - If there is an error in processing the mutation data.
-*/
-
-  async function convertMatrix(data, batch_size = 100) {
-    const mutationalSpectra = {};
-
-    for (let patient of data) {
-      var mutationalSpectrum = init_sbs_mutational_spectra();
-      var promises = [];
-
-      for (let i = 0; i < patient.length; i++) {
-        var chromosomeNumber = patient[i]["chromosome"];
-        var referenceAllele = patient[i]["reference_genome_allele"];
-        var mutatedTo = patient[i]["mutated_to_allele"];
-        var position = patient[i]["chromosome_start"];
-        var variantType = patient[i]["mutation_type"];
-
-        var promise = getMutationalContext(chromosomeNumber, parseInt(position))
-          .then((sequence) => {
-            sequence = standardize_trinucleotide(sequence);
-            let fivePrime = sequence[0];
-            let threePrime = sequence[2];
-            let mutationType = String(
-              `${fivePrime}[${standardize_substitution(
-                referenceAllele,
-                mutatedTo
-              )}]${threePrime}`
-            ).toUpperCase();
-
-            if (
-              (variantType == "SNP" ||
-                variantType == "single base substitution") &&
-              !mutationType.includes("N") &&
-              !mutationType.includes("U")
-            ) {
-              mutationalSpectrum[mutationType] =
-                Number(mutationalSpectrum[mutationType]) + Number(1);
-            }
-          })
-          .catch((error) => {
-            console.error(error);
-          });
-        promises.push(promise);
-
-        if (i % batch_size === 0 || i === patient.length - 1) {
-          await Promise.all(promises);
-          promises = [];
-        }
-      }
-      mutationalSpectra[[patient[0]["project_code"]]] = mutationalSpectrum;
-    }
-
-    return mutationalSpectra;
-  }
-
-  async function getMutationalContext(chromosomeNumber, startPosition) {
-    const chrName = String(chromosomeNumber);
-    const startByte = startPosition - 2;
-    const endByte = startPosition;
-
-    const alternative = await (
-      await fetch(
-        `https://api.genome.ucsc.edu/getData/sequence?genome=hg19;chrom=chr${chrName};start=${startByte};end=${
-          endByte + 1
-        }`
-      )
-    ).json();
-
-    const sequence = alternative.dna;
-    return sequence;
-  }
-
-  //#endregion
-
-  //#region Convert WGS MAF file to Panel MAF file
-
-  function isNumeric(n) {
-    return !isNaN(parseFloat(n)) && isFinite(n);
-  }
-  /**
-
-Converts whole-genome variant frequencies (WgMAFs) to panel variant frequencies.
-@async
-@function convertWGStoPanel
-@memberof ICGC
-@param {Array<Array<number>>} WgMAFs - An array of arrays containing WgMAFs.
-@param {Array<Array<number>>|string} panelDf - An array of arrays or a string representing the file path of the panel variant frequencies.
-@returns {Promise<Array<Array<number>>>} An array of arrays containing panel variant frequencies.
-  */
-  function downsampleWGSArray(WGSArray, panelArray) {
-    const includedRows = [];
-
-    for (var i = 0; i < WGSArray.length - 1; i++) {
-      let row = WGSArray[i];
-
-      let filteredRow;
-      if (isNumeric(row["chromosome"])) {
-        filteredRow = panelArray.filter(
-          (panelRow) =>
-            parseInt(panelRow["Chromosome"]) === parseInt(row["chromosome"]) &&
-            parseInt(panelRow["Start_Position"]) <=
-              parseInt(row["chromosome_start"]) &&
-            parseInt(panelRow["End_Position"]) >=
-              parseInt(row["chromosome_end"])
-        );
-      } else {
-        filteredRow = panelArray.filter(
-          (panelRow) =>
-            panelRow["Chromosome"] === row["chromosome"] &&
-            parseInt(panelRow["Start_Position"]) <=
-              parseInt(row["chromosome_start"]) &&
-            parseInt(panelRow["End_Position"]) >=
-              parseInt(row["chromosome_end"])
-        );
-      }
-
-      if (filteredRow.length > 0) {
-        includedRows.push(row);
-      }
-    }
-
-    return includedRows;
-  }
-
-  // Create a function that reads a csv file and returns a nested array of the data
-  async function readCSV(csvFile) {
-    return new Promise((resolve, reject) => {
-      Papa.default.parse(csvFile, {
-        download: true,
-        header: true,
-        complete: function (results) {
-          resolve(results.data);
-        },
-      });
-    });
-  }
-
-  async function convertWGStoPanel(WgMAFs, panelDf) {
-    // Check if the panel file is an array of arrays or a file path. If it is a file path, read the file and convert it to an array of arrays
-    let bed_file;
-    if (typeof panelDf === "string") {
-      bed_file = await readCSV(panelDf);
-    } else {
-      bed_file = panelDf;
-    }
-
-    const panelMAFs = [];
-    for (let WgMAF of WgMAFs) {
-      const downsampledWGSMAF = downsampleWGSArray(WgMAF, bed_file);
-      panelMAFs.push(downsampledWGSMAF);
-    }
-    return panelMAFs;
-  }
-
 function cosineSimilarity(a, b) {
   let dotProduct = 0;
   let magnitudeA = 0;
@@ -6978,7 +6398,7 @@ async function nnls(A, b, maxiter = 3 * A[0].length) {
   return { x, rnorm };
 }
 
-async function fetchURLAndCache$1(cacheName, url, ICGC = null) {
+async function fetchURLAndCache(cacheName, url, ICGC = null) {
   const isCacheSupported = "caches" in window;
   let matchedURL;
 
@@ -7294,6 +6714,778 @@ function doubleClustering(
   };
 }
 
+/**
+ * Preprocesses mutational and exposure data for a given data source.
+ * Currently only supports data from MSigDB portal.
+ * @param {Array} mutationalData - Array of mutational data.
+ * @param {Array} exposureData - Array of exposure data.
+ * @param {string} dataSource - Data source identifier.
+ * @returns {Object} - Object containing input (Xs) and output (Ys) arrays for regression.
+ * @throws {Error} - If an unknown data source is provided.
+ */
+
+function preprocessData(mutationalData, exposureData, dataSource) {
+  switch (dataSource.toUpperCase()) {
+    case "MSIGPORTAL":
+      return preprocessMSIGPORTALExposureData(mutationalData, exposureData);
+    case "ICGC":
+      return null;
+    default:
+      throw new Error("Unknown data source: " + dataSource);
+  }
+}
+
+function intersectByKeys(dict1, dict2) {
+  const intersection = {};
+  for (const key in dict1) {
+    if (key in dict2) {
+      intersection[key] = [dict1[key].map(data =>data["mutations"]), dict2[key].map(data =>data["exposure"])];
+    }
+  }
+  return intersection;
+}
+
+function preprocessMSIGPORTALExposureData(mutationalData, exposureData) {
+  // Group the data by the column "sampleName"
+  const groupedMutationalData = groupBy(mutationalData, "sample");
+  const groupedExposureData = groupBy(exposureData, "sample");
+
+  const intersectedData = intersectByKeys(
+    groupedMutationalData,
+    groupedExposureData
+  );
+
+    // Separate the intersected data into Xs and Ys
+    const Xs = [];
+    const Ys = [];
+    for (const key in intersectedData) {
+
+      // Check if the length of the Xs is 96 (i.e. the number of mutational signatures) and the length of the Ys is 65 (i.e. the number of mutational exposures)
+
+      if (intersectedData[key][0].length !== intersectedData[Object.keys(intersectedData)[0]][0].length || intersectedData[key][1].length !== intersectedData[Object.keys(intersectedData)[0]][1].length) {
+        continue;
+      }else {
+        Xs.push(intersectedData[key][0]);
+        Ys.push(intersectedData[key][1]);
+      }
+        }
+    return { Xs, Ys };  
+}
+
+/**
+ * Performs k-fold stratified cross-validation for multivariate linear or MLP regression models.
+ * @param {Array} Xs - Array of input data.
+ * @param {Array} Ys - Array of output data.
+ * @param {number} [k=10] - Number of folds for cross-validation.
+ * @param {string} [modelType="MLR"] - Regression model type ("MLR" for multivariate linear regression or "MLP" for multilayer perceptron).
+ * @returns {Object} - Object containing an array of trained regression models, an array of mean squared errors for each fold, and the average mean squared error across all folds.
+ * @throws {Error} - If an unknown model type is provided.
+ */
+function kFoldStratifiedCV(Xs, Ys, k = 10, modelType = "MLR") {
+  
+    // Prepare the dataset for stratified k-fold cross-validation
+    const dataset = [];
+    for (let i = 0; i < Xs.length; i++) {
+      dataset.push({
+        input: Xs[i],
+        output: Ys[i],
+      });
+    }
+  
+    // Create a stratified k-fold cross-validator
+    const crossValidator = CV.getFolds(dataset, k);
+  
+    // Initialize variables to store performance metrics
+    let totalMSE = 0;
+  
+    const models = [];
+    const mses = [];
+    // Perform stratified k-fold cross-validation
+    crossValidator.forEach((crossFold) => {
+      // Prepare the training data
+
+      const X_train = crossFold.trainIndex.map(index => Xs[index]);
+
+      const Y_train = crossFold.trainIndex.map(index => Ys[index]);
+  
+      // Prepare the testing data
+      const X_test = crossFold.testIndex.map(index => Xs[index]);
+      const Y_test = crossFold.testIndex.map(index => Ys[index]);
+  
+      // Train the multivariate linear regression model
+      let regression;
+
+
+      switch (modelType.toUpperCase()) {
+        case "MLR":
+            regression = new MLR.default(X_train, Y_train);
+            models.push(regression);
+            break;
+        case "MLP":
+            regression = new MLP.default(X_train, Y_train);
+            models.push(regression);
+            break;
+        default:
+            throw new Error("Unknown model type: " + modelType);
+        }
+
+  
+      // Test the model and calculate the mean squared error
+      let mse = 0;
+      for (let i = 0; i < X_test.length; i++) {
+        const prediction = regression.predict(X_test[i]);
+        mse += meanSquaredError(prediction, Y_test[i]);
+      }
+      mse /= X_test.length;
+      mses.push(mse);
+      // Accumulate the mean squared error
+      totalMSE += mse;
+    });
+  
+    // Calculate the average mean squared error
+    const averageMSE = totalMSE / k;
+  
+    // Return the average mean squared error
+    return {'model': models, 'MSE':mses, 'averageMSE':averageMSE};
+  }
+  
+  function meanSquaredError(prediction, actual) {
+    let mse = 0;
+    for (let i = 0; i < prediction.length; i++) {
+      mse += Math.pow(prediction[i] - actual[i], 2);
+    }
+    return mse;
+  }
+
+function get_sbs_trinucleotide_contexts() {
+  const nucleotide_bases = ["A", "C", "G", "T"];
+  const substitution_types = ["C>A", "C>G", "C>T", "T>A", "T>C", "T>G"];
+  let sbs_trinucleotide_contexts = [];
+
+  for (let base_5 of nucleotide_bases) {
+    for (let substitution of substitution_types) {
+      for (let base_3 of nucleotide_bases) {
+        sbs_trinucleotide_contexts.push(`${base_5}[${substitution}]${base_3}`);
+      }
+    }
+  }
+
+  return sbs_trinucleotide_contexts;
+}
+
+function standardize_substitution(ref_allele, mut_allele) {
+  /*
+COSMIC signatures define mutations from a pyrimidine allele (C, T) to any
+other base (C>A, C>G, C>T, T>A, T>C, T>G). If a mutation in the MAF file
+is defined from a reference purine allele (A, G), then we infer the substituted
+base in the complementary sequence, which would be from a pyrimidine
+allele due to purines and pyrimidines complementing each other in a
+double-stranded DNA.
+ :param ref_allele: base in the reference genome.
+:param mut_allele: base in the mutated genome
+:return: substitution string from pyrimidine to any other base.
+*/
+  var complement_seq, purines;
+  complement_seq = {
+    A: "T",
+    C: "G",
+    T: "A",
+    G: "C",
+  };
+  purines = ["A", "G"];
+
+  if (purines.some((v) => ref_allele.includes(v))) {
+    return `${complement_seq[ref_allele]}>${complement_seq[mut_allele]}`;
+  } else {
+    return `${ref_allele}>${mut_allele}`;
+  }
+}
+
+function init_sbs_mutational_spectra(n_records) {
+  /*
+Initilizes an ordered dictionary with SBS trinucleotide context as keys and
+a list of counts, one for each sample.
+ :param n_records: number of samples to record in the mutational spectra matrix.
+:return: a dictionary of trinucleotide context and a list of counts
+initialized to zeros.
+*/
+
+  let tri_nuc_context = get_sbs_trinucleotide_contexts();
+
+  let sbs_mutational_spectra = {};
+
+  for (var i = 0; i < tri_nuc_context.length; i++) {
+    let context = tri_nuc_context[i];
+    sbs_mutational_spectra[context] = 0;
+  }
+
+  return sbs_mutational_spectra;
+}
+
+function standardize_trinucleotide(trinucleotide_ref) {
+  // COSMIC signatures define mutations from a pyrimidine allele (C, T) to any
+  // other base (C>A, C>G, C>T, T>A, T>C, T>G). If a mutation in the MAF file
+  // is defined from a purine allele (A, G), then we infer the trinucleotide
+  // context in the complementary sequence, which would be from a pyrimidine
+  // allele due to purines and pyrimidines complementing each other in a
+  // double-stranded DNA.
+
+  // :param trinucleotide_ref: trinucleotide sequence seen in the reference genome.
+  // :return: a pyrimidine-centric trinucleotide sequence.
+
+  let complement_seq = {
+    A: "T",
+    C: "G",
+    T: "A",
+    G: "C",
+  };
+  let purines = "AG";
+  if (purines.includes(trinucleotide_ref[1])) {
+    return `${complement_seq[trinucleotide_ref[2]]}${
+      complement_seq[trinucleotide_ref[1]]
+    }${complement_seq[trinucleotide_ref[0]]}`;
+  } else {
+    return trinucleotide_ref;
+  }
+}
+
+/**
+
+Converts patient mutation data into mutational spectra.
+@async
+@function convertMatrix
+@memberof ICGC
+@param {Array} data - The patient mutation data to be converted.
+@param {number} [batch_size=100] - The number of mutations to process in each batch.
+@returns {Object} - The mutational spectra of each patient in an object.
+@throws {Error} - If there is an error in processing the mutation data.
+*/
+
+async function convertMatrix(data, group_by="project_code", batch_size = 100) {
+  const mutationalSpectra = {};
+
+  for (let patient of data) {
+    // Move the initialization of mutationalSpectrum inside the loop
+    var mutationalSpectrum = init_sbs_mutational_spectra();
+    var promises = [];
+
+    for (let i = 0; i < patient.length; i++) {
+      var chromosomeNumber = patient[i]["chromosome"];
+      var referenceAllele = patient[i]["reference_genome_allele"];
+      var mutatedTo = patient[i]["mutated_to_allele"];
+      var position = patient[i]["chromosome_start"];
+      var variantType = patient[i]["mutation_type"];
+
+      var promise = getMutationalContext(chromosomeNumber, parseInt(position))
+        .then((sequence) => {
+          sequence = standardize_trinucleotide(sequence);
+          let fivePrime = sequence[0];
+          let threePrime = sequence[2];
+          let mutationType = String(
+            `${fivePrime}[${standardize_substitution(
+              referenceAllele,
+              mutatedTo
+            )}]${threePrime}`
+          ).toUpperCase();
+
+          if (
+            (variantType == "SNP" ||
+              variantType == "single base substitution") &&
+            !mutationType.includes("N") &&
+            !mutationType.includes("U")
+          ) {
+            mutationalSpectrum[mutationType] =
+              Number(mutationalSpectrum[mutationType]) + Number(1);
+          }
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+      promises.push(promise);
+
+      if (i % batch_size === 0 || i === patient.length - 1) {
+        await Promise.all(promises);
+        promises = [];
+      }
+    }
+    // Use the patient's project_code as the key in the mutationalSpectra object
+    mutationalSpectra[patient[0][group_by]] = mutationalSpectrum;
+  }
+
+  return mutationalSpectra;
+}
+
+async function getMutationalContext(chromosomeNumber, startPosition) {
+  const chrName = String(chromosomeNumber);
+  const startByte = startPosition - 2;
+  const endByte = startPosition;
+
+  const alternative = await (
+    await fetch(
+      `https://api.genome.ucsc.edu/getData/sequence?genome=hg19;chrom=chr${chrName};start=${startByte};end=${
+        endByte + 1
+      }`
+    )
+  ).json();
+
+  const sequence = alternative.dna;
+  return sequence;
+}
+
+//#region Retrieving SSM Files from ICGC Data Portal and Converting to MAF File
+
+async function getDownloadId(pqlQuery, dataType = "ssm", outputFormat = "TSV") {
+  const info = `[{"key":"${dataType}", "value":"${outputFormat}"}]`;
+  const url = `https://dcc.icgc.org/api/v1/download/submitPQL?pql=${pqlQuery}&info=${info}`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`GET ${url} resulted in status code ${response.status}`);
+  }
+
+  const json = await response.json();
+  if (!json.downloadId) {
+    throw new Error(`GET ${url} did not return a download ID`);
+  }
+  return await json.downloadId;
+}
+function findInArr(arr, seg) {
+  const matches = []; // initialize array
+  let i = 0; // initialize i
+  while (i < arr.length - seg.length) {
+    const s = arr.slice(i, i + seg.length); // create segment
+    if (s.every((d, i) => s[i] == seg[i])) {
+      // if matches, push to matches
+      matches.push(i);
+    }
+    i++; // increment i
+  }
+  return matches;
+}
+
+// This function parses the TSV data into rows
+// and returns an array of cells
+
+function tsvParseRows(tsvData) {
+  // Split the TSV data into rows
+  const rows = tsvData.trim().split("\n");
+
+  // Map each row to an array of cells
+  const cells = rows.map((row) => row.split("\t"));
+
+  // Return the cells
+  return cells;
+}
+
+async function retrieveData(download_id, project, dataset, analysis_type) {
+  // Create the URL that we will use to fetch the data
+  const url = `https://dcc.icgc.org/api/v1/download/${download_id}`;
+
+  console.log(url);
+  // Create a cache name that we will use for the data
+  const cacheName = "ICGC";
+
+  // Fetch the data, caching the result
+  return await fetchURLAndCache(
+    cacheName,
+    url,
+    project + "_" + dataset + "_" + analysis_type
+  )
+    // Convert the response to an ArrayBuffer
+    .then((response) => response.arrayBuffer())
+
+    // Convert the ArrayBuffer to an array of bytes
+    .then((arrayBuffer) => {
+      const uArr = new Uint8Array(arrayBuffer);
+
+      // Find the locations of the GZIP headers in the data
+      let headerLocs = findInArr(uArr, [31, 139, 8, 0, 0]);
+
+      // Create an array to hold the chunks of the data
+      const chunks = [];
+
+      // Loop through the locations of the headers
+      for (let i = 0; i < headerLocs.length - 1; i++) {
+        // Create a block of data from the header to the next header
+        const block = uArr.slice(headerLocs[i], headerLocs[i + 1]);
+
+        // Inflate the block using the pako library
+        chunks.push(pako$1.default.inflate(block));
+      }
+
+      // Create a block of data from the last header to the end of the data
+      const block = uArr.slice(headerLocs[headerLocs.length - 1], uArr.length);
+
+      // Inflate the block using the pako library
+      chunks.push(pako$1.default.inflate(block));
+
+      // Create a new TextDecoder
+      const decoder = new TextDecoder();
+
+      // Decode the chunks into strings
+      let decodedChunks = chunks.map((d) => decoder.decode(d));
+
+      // Create an array to hold the parsed chunks
+      const parsedChunks = [];
+
+      // Loop through the chunks
+      for (let chunk of decodedChunks) {
+        // Parse the TSV rows and push them to the parsed chunks array using Papa Parse
+        parsedChunks.push(tsvParseRows(chunk));
+      }
+
+      // Return the parsed chunks
+      return [].concat(...parsedChunks);
+    })
+
+    // Return the parsed rows
+    .then((data) => {
+      return data;
+    })
+
+    // Catch any errors and return a rejected promise
+    .catch((err) => {
+      console.error(err);
+      return Promise.reject(err);
+    });
+}
+
+async function retrieveICGCDatasets(
+  projects = ["BRCA-US"],
+  datatype = "ssm",
+  analysis_type = "WGS",
+  output_format = "TSV"
+) {
+  const supportedFormats = ["TSV", "json"];
+
+  if (!supportedFormats.includes(output_format)) {
+    throw new Error(
+      `Output format ${output_format} isn't supported. Supported formats: ${supportedFormats}.`
+    );
+  }
+  let files = [];
+  for (let project of projects) {
+    const pql_query = `select(*),in(donor.projectId,'${project}'),in(donor.availableDataTypes,'${datatype}'),in(donor.analysisTypes,'${analysis_type}')`;
+    const download_id = await getDownloadId(pql_query, datatype, output_format);
+
+    files.push(
+      await retrieveData(download_id, project, datatype, analysis_type)
+    );
+  }
+
+  return [].concat(...(await files));
+}
+
+// Create a function that will find the positions of a set of values in an array and output the indices of the values within the array that match the values in the set
+function findIndicesOfValuesInArray(array, values) {
+  let indices = [];
+  for (let i = 0; i < array.length; i++) {
+    if (values.includes(array[i])) {
+      indices.push(i);
+    }
+  }
+  return indices;
+}
+
+// Create a function that will take in the nested array and return a nested array with only the columns we want to keep
+
+function returnDesiredColumns(nestedArray, selectColumns) {
+  let output = [];
+  for (let row of nestedArray.slice(1)) {
+    let newRow = [];
+    for (let column of selectColumns) {
+      newRow.push(row[column]);
+    }
+    output.push(newRow);
+  }
+  return output;
+}
+
+function groupAndSortData(data) {
+  // Create an object to hold the grouped data
+  const groupedData = {};
+
+  // Loop through the input data and group it by donor ID
+  data.forEach((row) => {
+    const donorID = row[1];
+    const chromosome = row[3];
+    const position = row[4];
+
+    // If this donor ID hasn't been seen yet, create an empty array for it
+    if (!groupedData[donorID]) {
+      groupedData[donorID] = [];
+    }
+
+    // Check to see if the array already contains a row with the same chromosome and position as the current row and if not, add it
+    if (
+      !groupedData[donorID].some(
+        (r) => r[3] === chromosome && r[4] === position
+      )
+    ) {
+      groupedData[donorID].push(row);
+    }
+  });
+
+  // Loop through the grouped data and sort each array by chromosome and position
+  Object.values(groupedData).forEach((rows) => {
+    rows.sort((a, b) => {
+      const chrA = a[1];
+      const chrB = b[1];
+      const posA = a[2];
+      const posB = b[2];
+
+      if (chrA !== chrB) {
+        // Sort by chromosome first
+        return chrA.localeCompare(chrB);
+      } else {
+        // If chromosomes are the same, sort by position
+        return posA - posB;
+      }
+    });
+  });
+
+  // Return the grouped and sorted data
+  return groupedData;
+}
+
+function combineKeysAndValues(keys, values) {
+  const dictionary = {};
+  for (let i = 0; i < keys.length; i++) {
+    dictionary[keys[i]] = values[i];
+  }
+  return dictionary;
+}
+/**
+
+@function obtainICGCDataMAF
+@async
+@memberof ICGC
+@description A function that retrieves ICGC (International Cancer Genome Consortium) mutation data in MAF (Mutation Annotation Format) format from local cache or external source.
+@param {string[]} [projects=["BRCA-US"]] An array of project codes to retrieve data from. Defaults to ["BRCA-US"].
+@param {string} [datatype="ssm"] The type of mutation data to retrieve. Defaults to "ssm".
+@param {string} [analysis_type="WGS"] The type of analysis to retrieve data from. Defaults to "WGS".
+@param {string} [output_format="TSV"] The format of the output file. Defaults to "TSV".
+@returns {Promise<Array<Object>>} A promise that resolves to an array of objects containing mutation data.
+@throws {Error} If any error occurs during the process of retrieving or caching the data.
+*/
+const obtainICGCDataMAF = async (
+  projects = ["BRCA-US"],
+  datatype = "ssm",
+  analysis_type = "WGS",
+  output_format = "TSV"
+) => {
+  const cacheName = "ICGC";
+  const fileName =
+    cacheName +
+    "_" +
+    projects +
+    "_" +
+    datatype +
+    "_" +
+    analysis_type +
+    "_" +
+    output_format;
+
+  const ICGCDataset = await localforage.default
+    .getItem(fileName)
+    .then(function (value) {
+      return value;
+    });
+
+  if (ICGCDataset !== null) {
+    console.log("Data found within local forage. Returning data now...");
+    return ICGCDataset;
+  } else {
+    console.log("Data not found within local forage. Procuring data now...");
+    const ICGCMAF = retrieveICGCDatasets(
+      (projects = projects),
+      (datatype = datatype),
+      (analysis_type = analysis_type),
+      (output_format = output_format)
+    ).then((nestedArray) => {
+      let selectedColumns = [
+        "icgc_mutation_id",
+        "project_code",
+        "icgc_donor_id",
+        "chromosome",
+        "chromosome_start",
+        "chromosome_end",
+        "assembly_version",
+        "mutation_type",
+        "reference_genome_allele",
+        "mutated_to_allele",
+      ];
+
+      const indices = findIndicesOfValuesInArray(
+        nestedArray[0],
+        selectedColumns
+      );
+
+      const data = returnDesiredColumns(nestedArray, indices);
+      return Object.values(groupAndSortData(data)).map((patients) => {
+        return patients.map((mutations) => {
+          return combineKeysAndValues(selectedColumns, mutations);
+        });
+      });
+    });
+
+    localforage.default.setItem(fileName, await ICGCMAF);
+    return await ICGCMAF;
+  }
+};
+
+//#endregion
+
+//#region Convert WGS MAF file to Panel MAF file
+
+function isNumeric(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+/**
+
+Converts whole-genome variant frequencies (WgMAFs) to panel variant frequencies.
+@async
+@function convertWGStoPanel
+@memberof ICGC
+@param {Array<Array<number>>} WgMAFs - An array of arrays containing WgMAFs.
+@param {Array<Array<number>>|string} panelDf - An array of arrays or a string representing the file path of the panel variant frequencies.
+@returns {Promise<Array<Array<number>>>} An array of arrays containing panel variant frequencies.
+  */
+function downsampleWGSArray(WGSArray, panelArray) {
+  const includedRows = [];
+
+  for (var i = 0; i < WGSArray.length - 1; i++) {
+    let row = WGSArray[i];
+
+    let filteredRow;
+    if (isNumeric(row["chromosome"])) {
+      filteredRow = panelArray.filter(
+        (panelRow) =>
+          parseInt(panelRow["Chromosome"]) === parseInt(row["chromosome"]) &&
+          parseInt(panelRow["Start_Position"]) <=
+            parseInt(row["chromosome_start"]) &&
+          parseInt(panelRow["End_Position"]) >= parseInt(row["chromosome_end"])
+      );
+    } else {
+      filteredRow = panelArray.filter(
+        (panelRow) =>
+          panelRow["Chromosome"] === row["chromosome"] &&
+          parseInt(panelRow["Start_Position"]) <=
+            parseInt(row["chromosome_start"]) &&
+          parseInt(panelRow["End_Position"]) >= parseInt(row["chromosome_end"])
+      );
+    }
+
+    if (filteredRow.length > 0) {
+      includedRows.push(row);
+    }
+  }
+
+  return includedRows;
+}
+
+// Create a function that reads a csv file and returns a nested array of the data
+async function readCSV(csvFile) {
+  return new Promise((resolve, reject) => {
+    Papa.default.parse(csvFile, {
+      download: true,
+      header: true,
+      complete: function (results) {
+        resolve(results.data);
+      },
+    });
+  });
+}
+
+async function convertWGStoPanel(WgMAFs, panelDf) {
+  // Check if the panel file is an array of arrays or a file path. If it is a file path, read the file and convert it to an array of arrays
+  let bed_file;
+  if (typeof panelDf === "string") {
+    bed_file = await readCSV(panelDf);
+  } else {
+    bed_file = panelDf;
+  }
+
+  const panelMAFs = [];
+  for (let WgMAF of WgMAFs) {
+    const downsampledWGSMAF = downsampleWGSArray(WgMAF, bed_file);
+    panelMAFs.push(downsampledWGSMAF);
+  }
+  return panelMAFs;
+}
+
+
+function convertICGCMutationalSpectraIntoJSON(MAFfiles, mutSpec, dataType ="WGS"){
+  
+  // check if the length of the mutspec dictionary is the same as the length of the MAFfiles array
+
+  if (MAFfiles.length != Object.keys(mutSpec).length){
+    throw new Error("The number of MAF files and the number of mutational spectra do not match");
+  }
+
+  // loop through each mutational spectrum in the mutSpec dictionary and create a JSON object for each one
+
+  const mergedPatientJSONs = [];
+  
+  let i = 0;
+  for (let patient in mutSpec){
+    const patientJSON = [];
+
+    for (let mutationType in mutSpec[patient]){
+      let mutSpecObj = {
+        "sample": MAFfiles[i][0]["project_code"],
+        "strategy": dataType,
+        "profile": "SBS",
+        "matrix": 96,
+        "mutationType": mutationType,
+        "mutations": mutSpec[patient][mutationType],
+      };
+      patientJSON.push(mutSpecObj);
+    }
+    mergedPatientJSONs.push(patientJSON);
+    i++;
+  }
+  return mergedPatientJSONs;
+
+}
+
+/**
+ * Load a certain dependency library from link
+ *
+ *
+ * @param {string} url Library URL.
+ *
+ * @example
+ * let tcga = await import('https://raw.githubusercontent.com/YasCoMa/msig/main/mSigSDKScripts/tcga.js')
+ * await tcga.loadScript('https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.11/pako.min.js')
+ *
+ */
+async function loadScript(url) {
+  console.log(`${url} loaded`);
+  async function asyncScript(url) {
+    let load = new Promise((resolve, regect) => {
+      let s = document.createElement("script");
+      s.src = url;
+      s.onload = resolve;
+      document.head.appendChild(s);
+    });
+    await load;
+  }
+  // satisfy dependencies
+  await asyncScript(url);
+}
+
+if (typeof pako == "undefined") {
+  loadScript("https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.11/pako.min.js");
+}
+
+if (typeof mutspec == "undefined") {
+  var server = "./mutationalSpectrum.js";
+
+  import(server).then((module) => {
+  });
+}
+
 // import * as mSigPortalPlotting from "./index.js";
 
 const mSigSDK = (function () {
@@ -7332,7 +7524,7 @@ console.log(mutationalSignatures);
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_options?
     source=Reference_signatures&strategy=${genomeDataType}&profile=${mutationType}&offset=0`;
     const cacheName = "getMutationalSignaturesOptions";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   /**
@@ -7358,7 +7550,7 @@ Retrieves mutational signatures data from the specified endpoint and returns it 
     source=Reference_signatures&strategy=${genomeDataType}&profile=${mutationType}&matrix=96&signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
     const cacheName = "getMutationalSignaturesData";
     const unformattedData = await (
-      await fetchURLAndCache$1(cacheName, url)
+      await fetchURLAndCache(cacheName, url)
     ).json();
     extractMutationalSpectra(
       unformattedData,
@@ -7388,7 +7580,7 @@ console.log(summary);
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_summary?signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
     const cacheName = "getMutationalSignaturesSummary";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
   //#endregion
 
@@ -7415,7 +7607,7 @@ Retrieves mutational spectrum options from the mutational signatures API.
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_options?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&offset=0&limit=${numberOfResults}`;
     const cacheName = "getMutationalSpectrumOptions";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   /**
@@ -7449,7 +7641,7 @@ Retrieves mutational spectrum options from the mutational signatures API.
       let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
 
       let unformattedData = await (
-        await fetchURLAndCache$1(cacheName, url)
+        await fetchURLAndCache(cacheName, url)
       ).json();
 
       return unformattedData;
@@ -7459,7 +7651,7 @@ Retrieves mutational spectrum options from the mutational signatures API.
       let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
 
       let unformattedData = await (
-        await fetchURLAndCache$1(cacheName, url)
+        await fetchURLAndCache(cacheName, url)
       ).json();
       extractMutationalSpectra(unformattedData, "sample");
       return unformattedData;
@@ -7472,7 +7664,7 @@ Retrieves mutational spectrum options from the mutational signatures API.
     }
 
     urls.forEach((url) => {
-      promises.push(fetchURLAndCache$1(cacheName, url));
+      promises.push(fetchURLAndCache(cacheName, url));
     });
 
     const results = await Promise.all(promises);
@@ -7510,7 +7702,7 @@ Fetches the mutational spectrum summary from the mutational signatures API based
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_summary?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSpectrumSummary";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   //#endregion
@@ -7537,7 +7729,7 @@ Fetches the mutational signature association options from the API endpoint
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureAssociationOptions";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   /**
@@ -7561,7 +7753,7 @@ Retrieves mutational signature association data from a specified cancer study us
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association?study=${study}&strategy=${genomeDataType}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureAssociationData";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   //#endregion
@@ -7586,7 +7778,7 @@ Retrieves a list of mutational signature activity options from the mutational si
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureActivityOptions";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
   /**
 
@@ -7611,7 +7803,7 @@ Retrieves mutational signature landscape data from the mutational-signatures API
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&cancer=${cancerType}&offset=0`;
     const cacheName = "getMutationalSignatureActivityData";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   /**
@@ -7635,7 +7827,7 @@ Retrieves mutational signature landscape data from an API endpoint.
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureLandscapeData";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   //#endregion
@@ -7671,7 +7863,7 @@ cancer_type: The cancer type.
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology_options?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureEtiologyOptions";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   /**
@@ -7696,7 +7888,7 @@ Retrieves mutational signature etiology data from the Cancer Genomics Research L
   ) {
     const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
     const cacheName = "getMutationalSignatureEtiologyData";
-    return await (await fetchURLAndCache$1(cacheName, url)).json();
+    return await (await fetchURLAndCache(cacheName, url)).json();
   }
 
   //#endregion
@@ -8784,10 +8976,18 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     convertMatrix,
     convertWGStoPanel,
     plotPatientMutationalSpectrumICGC,
+    convertICGCMutationalSpectraIntoJSON
   };
 
   const tools = {
     groupBy,
+    plotPatientMutationalSignaturesExposure,
+    plotDatasetMutationalSignaturesExposure,
+  };
+  const machineLearning = {
+    preprocessData,
+    kFoldStratifiedCV,
+    fitMutationalSpectraToSignatures
   };
 
   //#endregion
@@ -8797,9 +8997,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     mSigPortal,
     ICGC,
     tools,
-    fitMutationalSpectraToSignatures,
-    plotPatientMutationalSignaturesExposure,
-    plotDatasetMutationalSignaturesExposure,
+    machineLearning,
   };
 })();
 
