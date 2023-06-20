@@ -63,6 +63,7 @@ async function retrieveData(download_id, project, dataset, analysis_type) {
   return await fetchURLAndCache(
     cacheName,
     url,
+    null,
     project + "_" + dataset + "_" + analysis_type
   )
     // Convert the response to an ArrayBuffer

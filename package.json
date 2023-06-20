@@ -3,6 +3,8 @@
     "@rollup/plugin-node-resolve": "^15.0.1"
   },
   "dependencies": {
-    "build": "^0.1.4"
+    "build": "^0.1.4",
+    "js-yaml": "^4.1.0",
+    "jsdoc": "^4.0.2"
   }
 }

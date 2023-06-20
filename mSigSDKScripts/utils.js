@@ -28,8 +28,16 @@ function deepCopy(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
-// Solve argmin_x || Ax - b ||_2 for x>=0. A is a matrix, b is a vector.
-// Output is a vector x with the same length as b. The rnrom is the residual || Ax - b ||^2.
+/**
+ * Solves argmin_x || Ax - b ||_2 for x>=0. A is a matrix, b is a vector.
+ * @async
+ * @function nnls
+ * @memberof machineLearning
+ * @param {number[][]} A - The matrix A.
+ * @param {number[]} b - The vector b.
+ * @param {number} [maxiter=3*A[0].length] - Maximum number of iterations.
+ * @returns {Object} An object with two properties: x and rnorm. x is a vector with the same length as b. rnorm is the residual || Ax - b ||^2.
+ */
 async function nnls(A, b, maxiter = 3 * A[0].length) {
   const transpose = (matrix) =>
     matrix[0].map((_, i) => matrix.map((row) => row[i]));
@@ -281,6 +289,15 @@ function createDistanceMatrix(matrix, metric, similarity) {
   return distanceMatrix;
 }
 
+/**
+ * Performs hierarchical clustering on a distance matrix.
+ * @function hierarchicalClustering
+ * @memberof machineLearning
+ * @param {number[][]} distanceMatrix - The distance matrix to be clustered.
+ * @param {string[]} sampleNames - The names of the samples in the distance matrix.
+ * @returns {Object} The final clustering result as a tree.
+ */
+
 function hierarchicalClustering(distanceMatrix, sampleNames) {
   let order = flatten(upgma(distanceMatrix).slice(-1)).slice(
     0,
@@ -342,6 +359,14 @@ function copyNestedArray(arr) {
   }
   return copy;
 }
+
+/**
+ * Performs UPGMA clustering on a distance matrix.
+ * @function upgma
+ * @memberof machineLearning
+ * @param {number[][]} distanceMatrix - The distance matrix to be clustered.
+ * @returns {Array} An array of arrays representing the clustering result. Each inner array contains three elements: two clusters being merged and their average distance.
+ */
 
 function upgma(distanceMatrix) {
   distanceMatrix = copyNestedArray(distanceMatrix);
@@ -405,6 +430,17 @@ function euclideanDistance(pointA, pointB) {
   }
   return Math.sqrt(sum);
 }
+
+/**
+ * Performs double clustering on a matrix.
+ * @function doubleClustering
+ * @memberof machineLearning
+ * @param {number[][]} matrix - The matrix to be clustered.
+ * @param {string[]} rowNames - The names of the rows in the matrix.
+ * @param {string[]} colNames - The names of the columns in the matrix.
+ * @param {function} [metric=euclideanDistance] - The distance metric to use for clustering.
+ * @returns {Object} An object with three properties: matrix, rowNames, and colNames. matrix is the clustered matrix. rowNames and colNames are the names of the rows and columns in the clustered matrix, respectively.
+ */
 
 function doubleClustering(
   matrix,

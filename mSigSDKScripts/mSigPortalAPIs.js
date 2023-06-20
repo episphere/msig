@@ -1,11 +1,14 @@
-
-  //#region Mutational Signatures
+import {
+  fetchURLAndCache,
+} from "./utils.js";
+ 
+ //#region Mutational Signatures
 
   /**
 
 Retrieves the mutational signature options from the specified API endpoint.
 @async
-@function
+@function getMutationalSignaturesOptions
 @memberof mSigPortalData
 @name getMutationalSignaturesOptions
 @param {string} [genomeDataType="WGS"] - The genome data type to use. Defaults to "WGS".
@@ -15,21 +18,21 @@ Retrieves the mutational signature options from the specified API endpoint.
 const mutationalSignatures = await getMutationalSignaturesOptions("WGS", "SBS");
 console.log(mutationalSignatures);
 */
-async function getMutationalSignaturesOptions(
-    genomeDataType = "WGS",
-    mutationType = "SBS"
-  ) {
-    const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_options?
-    source=Reference_signatures&strategy=${genomeDataType}&profile=${mutationType}&offset=0`;
-    const cacheName = "getMutationalSignaturesOptions";
-    return await (await fetchURLAndCache(cacheName, url)).json();
-  }
+export async function getMutationalSignaturesOptions(
+  genomeDataType = "WGS",
+  mutationType = "SBS"
+) {
+  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_options?
+  source=Reference_signatures&strategy=${genomeDataType}&profile=${mutationType}&offset=0`;
+  const cacheName = "getMutationalSignaturesOptions";
+  return await (await fetchURLAndCache(cacheName, url)).json();
+}
 
-  /**
+/**
 
 Retrieves mutational signatures data from the specified endpoint and returns it as JSON.
 @async
-@function
+@function getMutationalSignaturesData
 @memberof mSigPortalData
 @param {string} [genomeDataType="WGS"] - The type of genome data to use. Defaults to "WGS".
 @param {string} [signatureSetName="COSMIC_v3_Signatures_GRCh37_SBS96"] - The name of the signature set to use. Defaults to "COSMIC_v3_Signatures_GRCh37_SBS96".
@@ -38,30 +41,30 @@ Retrieves mutational signatures data from the specified endpoint and returns it 
 @returns {Promise<Object>} - A Promise that resolves to the unformatted mutational signatures data as JSON.
 */
 
-  async function getMutationalSignaturesData(
-    genomeDataType = "WGS",
-    signatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96",
-    mutationType = "SBS",
-    numberofResults = 10
-  ) {
-    const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature?
-    source=Reference_signatures&strategy=${genomeDataType}&profile=${mutationType}&matrix=96&signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
-    const cacheName = "getMutationalSignaturesData";
-    const unformattedData = await (
-      await fetchURLAndCache(cacheName, url)
-    ).json();
-    const formattedData = extractMutationalSpectra(
-      unformattedData,
-      "signatureName"
-    );
-    return unformattedData;
-  }
+export async function getMutationalSignaturesData(
+  genomeDataType = "WGS",
+  signatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96",
+  mutationType = "SBS",
+  numberofResults = 10
+) {
+  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature?
+  source=Reference_signatures&strategy=${genomeDataType}&profile=${mutationType}&matrix=96&signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
+  const cacheName = "getMutationalSignaturesData";
+  const unformattedData = await (
+    await fetchURLAndCache(cacheName, url)
+  ).json();
+  const formattedData = extractMutationalSpectra(
+    unformattedData,
+    "signatureName"
+  );
+  return unformattedData;
+}
 
-  /**
+/**
 
 Returns a summary of mutational signatures based on the provided signature set name and number of results.
 @async
-@function
+@function getMutationalSignaturesSummary
 @memberof mSigPortalData
 @param {number} [numberofResults=10] - The number of results to retrieve. Defaults to 10 if not provided.
 @param {string} [signatureSetName="COSMIC_v3.3_Signatures"] - The name of the signature set to retrieve. Defaults to "COSMIC_v3.3_Signatures" if not provided.
@@ -72,24 +75,24 @@ const summary = await getMutationalSignaturesSummary(20, "COSMIC_v3.3_Signatures
 console.log(summary);
 */
 
-  async function getMutationalSignaturesSummary(
-    numberofResults = 10,
-    signatureSetName = "COSMIC_v3.3_Signatures"
-  ) {
-    const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_summary?signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
-    const cacheName = "getMutationalSignaturesSummary";
-    return await (await fetchURLAndCache(cacheName, url)).json();
-  }
-  //#endregion
+export async function getMutationalSignaturesSummary(
+  numberofResults = 10,
+  signatureSetName = "COSMIC_v3.3_Signatures"
+) {
+  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_summary?signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
+  const cacheName = "getMutationalSignaturesSummary";
+  return await (await fetchURLAndCache(cacheName, url)).json();
+}
+//#endregion
 
-  //#region Mutational Spectrum
+//#region Mutational Spectrum
 
-  /**
+/**
 
 Retrieves mutational spectrum options from the mutational signatures API.
 @async
+@function getMutationalSpectrumOptions
 @memberof mSigPortalData
-@function
 @param {string} [study="PCAWG"] - The name of the study to retrieve options for. Defaults to "PCAWG".
 @param {string} [genomeDataType="WGS"] - The genome data type to retrieve options for. Defaults to "WGS".
 @param {string} [cancerType="Lung-AdenoCA"] - The cancer type to retrieve options for. Defaults to "Lung-AdenoCA".
@@ -97,18 +100,18 @@ Retrieves mutational spectrum options from the mutational signatures API.
 @returns {Promise<Object>} A Promise that resolves to the JSON response from the mutational signatures API.
 */
 
-  async function getMutationalSpectrumOptions(
-    study = "PCAWG",
-    genomeDataType = "WGS",
-    cancerType = "Lung-AdenoCA",
-    numberOfResults = 10
-  ) {
-    const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_options?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&offset=0&limit=${numberOfResults}`;
-    const cacheName = "getMutationalSpectrumOptions";
-    return await (await fetchURLAndCache(cacheName, url)).json();
-  }
+export async function getMutationalSpectrumOptions(
+  study = "PCAWG",
+  genomeDataType = "WGS",
+  cancerType = "Lung-AdenoCA",
+  numberOfResults = 10
+) {
+  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_options?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&offset=0&limit=${numberOfResults}`;
+  const cacheName = "getMutationalSpectrumOptions";
+  return await (await fetchURLAndCache(cacheName, url)).json();
+}
 
-  /**
+/**
 
 * Fetches mutational spectrum data from the Cancer Genomics Data Server API and returns it in a formatted way.
 * @async
@@ -122,67 +125,65 @@ Retrieves mutational spectrum options from the mutational signatures API.
 * @param {number} [matrixSize=96] - The size of the mutational spectrum matrix.
 * @returns {Promise} - A promise that resolves to the formatted mutational spectrum data.
 */
-  async function getMutationalSpectrumData(
-    study = "PCAWG",
-    samples = null,
-    genomeDataType = "WGS",
-    cancerType = "Lung-AdenoCA",
-    mutationType = "SBS",
-    matrixSize = 96
-  ) {
-    const cacheName = "getMutationalSpectrumData";
+export async function getMutationalSpectrumData(
+  study = "PCAWG",
+  samples = null,
+  genomeDataType = "WGS",
+  cancerType = "Lung-AdenoCA",
+  mutationType = "SBS",
+  matrixSize = 96
+) {
+  const cacheName = "getMutationalSpectrumData";
 
-    const promises = [];
-    let urls = [];
+  const promises = [];
+  let urls = [];
 
-    if (cancerType == null) {
-      let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
+  if (cancerType == null) {
+    let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
 
-      let unformattedData = await (
-        await fetchURLAndCache(cacheName, url)
-      ).json();
+    let unformattedData = await (
+      await fetchURLAndCache(cacheName, url)
+    ).json();
 
-      return unformattedData;
-    }
-
-    if (samples === null) {
-      let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
-
-      let unformattedData = await (
-        await fetchURLAndCache(cacheName, url)
-      ).json();
-      let formattedData = extractMutationalSpectra(unformattedData, "sample");
-      return unformattedData;
-    } else {
-      samples.forEach((sample) => {
-        urls.push(
-          `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&sample=${sample}&cancer=${cancerType}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`
-        );
-      });
-    }
-
-    urls.forEach((url) => {
-      promises.push(fetchURLAndCache(cacheName, url));
-    });
-
-    const results = await Promise.all(promises);
-
-    const data = await Promise.all(
-      results.map((result) => {
-        return result.json();
-      })
-    );
-
-    let formattedData = extractMutationalSpectra(data.flat(), "sample");
-
-    return data;
+    return unformattedData;
   }
 
-  /**
+  if (samples === null) {
+    let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
+
+    let unformattedData = await (
+      await fetchURLAndCache(cacheName, url)
+    ).json();
+    let formattedData = extractMutationalSpectra(unformattedData, "sample");
+    return unformattedData;
+  } else {
+    samples.forEach((sample) => {
+      urls.push(
+        `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&sample=${sample}&cancer=${cancerType}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`
+      );
+    });
+  }
+
+  urls.forEach((url) => {
+    promises.push(fetchURLAndCache(cacheName, url));
+  });
+
+  const results = await Promise.all(promises);
+
+  const data = await Promise.all(
+    results.map((result) => {
+      return result.json();
+    })
+  );
+
+  return data;
+}
+
+/**
 
 Fetches the mutational spectrum summary from the mutational signatures API based on the given parameters.
 @async
-@function
+@function getMutationalSpectrumSummary
 @memberof mSigPortalData
 @param {string} [study="PCAWG"] - The name of the cancer genome study. Default is "PCAWG".
 @param {string} [genomeDataType="WGS"] - The type of genomic data used. Default is "WGS".
@@ -192,26 +193,26 @@ Fetches the mutational spectrum summary from the mutational signatures API based
 @throws {Error} - If the API request fails.
 */
 
-  async function getMutationalSpectrumSummary(
-    study = "PCAWG",
-    genomeDataType = "WGS",
-    cancerType = "Lung-AdenoCA",
-    numberOfResults = 10
-  ) {
-    const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_summary?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
-    const cacheName = "getMutationalSpectrumSummary";
-    return await (await fetchURLAndCache(cacheName, url)).json();
-  }
+export async function getMutationalSpectrumSummary(
+  study = "PCAWG",
+  genomeDataType = "WGS",
+  cancerType = "Lung-AdenoCA",
+  numberOfResults = 10
+) {
+  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_summary?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
+  const cacheName = "getMutationalSpectrumSummary";
+  return await (await fetchURLAndCache(cacheName, url)).json();
+}
 
-  //#endregion
+//#endregion
 
-  //#region Mutational Signature Association
+//#region Mutational Signature Association
 
-  /**
+/**
 
 Fetches the mutational signature association options from the API endpoint
 @async
-@function
+@function getMutationalSignatureAssociationOptions
 @memberof mSigPortalData
 @param {string} [study="PCAWG"] - The name of the study. Defaults to "PCAWG".
 @param {string} [genomeDataType="WGS"] - The type of genome data. Defaults to "WGS".
@@ -220,21 +221,21 @@ Fetches the mutational signature association options from the API endpoint
 @throws {Error} - If an error occurs during the fetching or caching of the data.
 */
 
-  async function getMutationalSignatureAssociationOptions(
-    study = "PCAWG",
-    genomeDataType = "WGS",
-    numberOfResults = 10
-  ) {
-    const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
-    const cacheName = "getMutationalSignatureAssociationOptions";
-    return await (await fetchURLAndCache(cacheName, url)).json();
-  }
+export async function getMutationalSignatureAssociationOptions(
+  study = "PCAWG",
+  genomeDataType = "WGS",
+  numberOfResults = 10
+) {
+  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
+  const cacheName = "getMutationalSignatureAssociationOptions";
+  return await (await fetchURLAndCache(cacheName, url)).json();
+}
 
-  /**
+/**
 
 Retrieves mutational signature association data from a specified cancer study using the provided parameters.
 @async
-@function
+@function getMutationalSignatureAssociationData
 @memberof mSigPortalData
 @param {string} [study="PCAWG"] - The name of the cancer study. Default is "PCAWG".
 @param {string} [genomeDataType="WGS"] - The type of genome data used. Default is "WGS".
@@ -243,22 +244,22 @@ Retrieves mutational signature association data from a specified cancer study us
 @returns {Promise<object>} - A Promise that resolves to the JSON response containing the mutational signature association data.
 */
 
-  async function getMutationalSignatureAssociationData(
-    study = "PCAWG",
-    genomeDataType = "WGS",
-    cancerType = "Biliary-AdenoCA",
-    numberOfResults = 10
-  ) {
-    const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association?study=${study}&strategy=${genomeDataType}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
-    const cacheName = "getMutationalSignatureAssociationData";
-    return await (await fetchURLAndCache(cacheName, url)).json();
-  }
+export async function getMutationalSignatureAssociationData(
+  study = "PCAWG",
+  genomeDataType = "WGS",
+  cancerType = "Biliary-AdenoCA",
+  numberOfResults = 10
+) {
+  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association?study=${study}&strategy=${genomeDataType}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
+  const cacheName = "getMutationalSignatureAssociationData";
+  return await (await fetchURLAndCache(cacheName, url)).json();
+}
 
-  //#endregion
+//#endregion
 
-  //#region Mutational Signature Activity
+//#region Mutational Signature Activity
 
-  /**
+/**
 
 Retrieves a list of mutational signature activity options from the mutational signatures API.
 @async
@@ -269,20 +270,20 @@ Retrieves a list of mutational signature activity options from the mutational si
 @param {number} [numberOfResults=10] - The number of results to retrieve. Defaults to 10.
 @returns {Promise<Array>} - A promise that resolves with an array of mutational signature activity options.
 */
-  async function getMutationalSignatureActivityOptions(
-    study = "PCAWG",
-    genomeDataType = "WGS",
-    numberOfResults = 10
-  ) {
-    const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
-    const cacheName = "getMutationalSignatureActivityOptions";
-    return await (await fetchURLAndCache(cacheName, url)).json();
-  }
-  /**
+export async function getMutationalSignatureActivityOptions(
+  study = "PCAWG",
+  genomeDataType = "WGS",
+  numberOfResults = 10
+) {
+  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
+  const cacheName = "getMutationalSignatureActivityOptions";
+  return await (await fetchURLAndCache(cacheName, url)).json();
+}
+/**
 
 Retrieves mutational signature landscape data from the mutational-signatures API.
 @async
-@function
+@function getMutationalSignatureActivityData
 @memberof mSigPortalData
 @param {string} [study="PCAWG"] - The name of the study. Default value is "PCAWG".
 @param {string} [genomeDataType="WGS"] - The type of genome data. Default value is "WGS".
@@ -292,23 +293,24 @@ Retrieves mutational signature landscape data from the mutational-signatures API
 @returns {Promise<Object>} - A Promise that resolves to the JSON data of the mutational signature landscape.
 */
 
-  async function getMutationalSignatureActivityData(
-    study = "PCAWG",
-    genomeDataType = "WGS",
-    signatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96",
-    cancerType = "",
-    numberOfResults = 10
-  ) {
-    const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&cancer=${cancerType}&offset=0`;
-    const cacheName = "getMutationalSignatureActivityData";
-    return await (await fetchURLAndCache(cacheName, url)).json();
-  }
+export async function getMutationalSignatureActivityData(
+  study = "PCAWG",
+  genomeDataType = "WGS",
+  signatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96",
+  cancerType = "",
+  numberOfResults = 10
+) {
+  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&cancer=${cancerType}&offset=0`;
+  const cacheName = "getMutationalSignatureActivityData";
+  return await (await fetchURLAndCache(cacheName, url)).json();
+}
 
-  /**
+/**
 
 Retrieves mutational signature landscape data from an API endpoint.
 @async
 @function getMutationalSignatureLandscapeData
+@memberof mSigPortalData
 @param {string} [study="PCAWG"] - The study to retrieve data from.
 @param {string} [genomeDataType="WGS"] - The type of genomic data used in the study.
 @param {string} [cancerType=""] - The type of cancer to retrieve data for.
@@ -316,27 +318,27 @@ Retrieves mutational signature landscape data from an API endpoint.
 @param {number} [numberOfResults=10] - The number of results to retrieve.
 @returns {Promise<object>} - A promise that resolves to an object containing the mutational signature landscape data.
 */
-  async function getMutationalSignatureLandscapeData(
-    study = "PCAWG",
-    genomeDataType = "WGS",
-    cancerType = "",
-    signatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96",
-    numberOfResults = 10
-  ) {
-    const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
-    const cacheName = "getMutationalSignatureLandscapeData";
-    return await (await fetchURLAndCache(cacheName, url)).json();
-  }
+export async function getMutationalSignatureLandscapeData(
+  study = "PCAWG",
+  genomeDataType = "WGS",
+  cancerType = "",
+  signatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96",
+  numberOfResults = 10
+) {
+  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
+  const cacheName = "getMutationalSignatureLandscapeData";
+  return await (await fetchURLAndCache(cacheName, url)).json();
+}
 
-  //#endregion
+//#endregion
 
-  //#region Mutational Signature Etiology
+//#region Mutational Signature Etiology
 
-  /**
+/**
 
 Retrieves the etiology options for a given mutational signature from the Cancer.gov Mutational Signatures API.
 @async
-@function
+@function getMutationalSignatureEtiologyOptions
 @memberof mSigPortalData
 @param {string} [study="PCAWG"] - The name of the study to retrieve etiology options for. Defaults to "PCAWG".
 @param {string} [genomeDataType="WGS"] - The type of genome data to retrieve etiology options for. Defaults to "WGS".
@@ -352,19 +354,19 @@ study: The name of the study.
 genome_data_type: The type of genome data.
 cancer_type: The cancer type.
 */
-  async function getMutationalSignatureEtiologyOptions(
-    study = "PCAWG",
-    genomeDataType = "WGS",
-    signatureName = "SBS3",
-    cancerType = "",
-    numberOfResults = 10
-  ) {
-    const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology_options?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
-    const cacheName = "getMutationalSignatureEtiologyOptions";
-    return await (await fetchURLAndCache(cacheName, url)).json();
-  }
+export async function getMutationalSignatureEtiologyOptions(
+  study = "PCAWG",
+  genomeDataType = "WGS",
+  signatureName = "SBS3",
+  cancerType = "",
+  numberOfResults = 10
+) {
+  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology_options?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
+  const cacheName = "getMutationalSignatureEtiologyOptions";
+  return await (await fetchURLAndCache(cacheName, url)).json();
+}
 
-  /**
+/**
 
 Retrieves mutational signature etiology data from the Cancer Genomics Research Laboratory (CGR) website.
 @async
@@ -377,16 +379,16 @@ Retrieves mutational signature etiology data from the Cancer Genomics Research L
 @param {number} [numberOfResults=10] - The number of results to return. Default is 10.
 @returns {Promise} A promise that resolves to the mutational signature etiology data in JSON format.
 */
-  async function getMutationalSignatureEtiologyData(
-    study = "PCAWG",
-    genomeDataType = "WGS",
-    signatureName = "SBS3",
-    cancerType = "",
-    numberOfResults = 10
-  ) {
-    const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
-    const cacheName = "getMutationalSignatureEtiologyData";
-    return await (await fetchURLAndCache(cacheName, url)).json();
-  }
+export async function getMutationalSignatureEtiologyData(
+  study = "PCAWG",
+  genomeDataType = "WGS",
+  signatureName = "SBS3",
+  cancerType = "",
+  numberOfResults = 10
+) {
+  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
+  const cacheName = "getMutationalSignatureEtiologyData";
+  return await (await fetchURLAndCache(cacheName, url)).json();
+}
 
-  //#endregion
+//#endregion

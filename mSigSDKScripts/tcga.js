@@ -394,11 +394,8 @@ async function getMafInformationFromProjects(projects) {
  * @async
  * @function getVariantInformationFromMafFiles
  * @memberof tcga
- *
  * @param {array} res Object containing the list of maf files and samples demographic information
- *
  * @returns {Object} Object containing the list of patient mutation information
- *
  * @example
  * let tcga = await import('https://raw.githubusercontent.com/YasCoMa/msig/main/mSigSDKScripts/tcga.js')
  * let res = { 'TCGA-LUSC': { 'maf_files': ['0b3d2db3-8ae3-4d39-bd9b-9d1e7a133b65', '9fed5902-6e95-4526-a119-ec4eade5576b' ] } }
@@ -493,32 +490,6 @@ async function getVariantInformationFromMafFiles(res) {
   }
 
   return result;
-}
-
-/**
- * Load a certain dependency library from link
- *
- *
- * @param {string} url Library URL.
- *
- * @example
- * let tcga = await import('https://raw.githubusercontent.com/YasCoMa/msig/main/mSigSDKScripts/tcga.js')
- * await tcga.loadScript('https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.11/pako.min.js')
- *
- */
-async function loadScript(url) {
-  console.log(`${url} loaded`);
-  async function asyncScript(url) {
-    let load = new Promise((resolve, regect) => {
-      let s = document.createElement("script");
-      s.src = url;
-      s.onload = resolve;
-      document.head.appendChild(s);
-    });
-    await load;
-  }
-  // satisfy dependencies
-  await asyncScript(url);
 }
 
 function convertTCGAProjectIntoJSON(MAFfiles, mutSpec, dataType = "WGS") {

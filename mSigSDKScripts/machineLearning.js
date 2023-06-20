@@ -8,6 +8,7 @@ import { groupBy } from "./utils.js";
  * Preprocesses mutational and exposure data for a given data source.
  * Currently only supports data from MSigDB portal.
  * @param {Array} mutationalData - Array of mutational data.
+ * @memberof machineLearning
  * @param {Array} exposureData - Array of exposure data.
  * @param {string} dataSource - Data source identifier.
  * @returns {Object} - Object containing input (Xs) and output (Ys) arrays for regression.
@@ -64,6 +65,7 @@ function preprocessMSIGPORTALExposureData(mutationalData, exposureData) {
 
 /**
  * Performs k-fold stratified cross-validation for multivariate linear or MLP regression models.
+ * @memberof machineLearning
  * @param {Array} Xs - Array of input data.
  * @param {Array} Ys - Array of output data.
  * @param {number} [k=10] - Number of folds for cross-validation.
