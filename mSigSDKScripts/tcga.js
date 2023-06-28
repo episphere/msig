@@ -423,7 +423,7 @@ async function getVariantInformationFromMafFiles(res) {
             var url = `https://api.gdc.cancer.gov/data/${f}`;
 
             try {
-              dat = await fetch(url);
+              var dat = await fetch(url);
               var raw = await dat.arrayBuffer();
               data = await pako.default.inflate(raw, { to: "string" });
 
