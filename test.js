@@ -1,4 +1,8 @@
 mSigSDK = await (await import("./main.js")).mSigSDK;
+projects = ['TCGA-KIRC']
+MAFDescriptions = await mSigSDK.TCGA.getMafInformationFromProjects(projects)
+
+MAFFiles = await mSigSDK.TCGA.getVariantInformationFromMafFiles(MAFDescriptions)
 
 WGS_data = await mSigSDK.ICGC.obtainICGCDataMAF(["COAD-US"],"ssm", "WGS", "TSV")
 
