@@ -7943,7 +7943,7 @@ async function getVariantInformationFromMafFiles(res) {
             try {
               var dat = await fetch(url);
               var raw = await dat.arrayBuffer();
-              data = await pako.default.inflate(raw, { to: "string" });
+              var data = await pako.default.inflate(raw, { to: "string" });
 
               data = data
                 .split("\n")
