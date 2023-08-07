@@ -53,10 +53,10 @@ export async function getMutationalSignaturesData(
   const unformattedData = await (
     await fetchURLAndCache(cacheName, url)
   ).json();
-  const formattedData = extractMutationalSpectra(
-    unformattedData,
-    "signatureName"
-  );
+  // const formattedData = extractMutationalSpectra(
+  //   unformattedData,
+  //   "signatureName"
+  // );
   return unformattedData;
 }
 
@@ -154,7 +154,7 @@ export async function getMutationalSpectrumData(
     let unformattedData = await (
       await fetchURLAndCache(cacheName, url)
     ).json();
-    let formattedData = extractMutationalSpectra(unformattedData, "sample");
+    // let formattedData = extractMutationalSpectra(unformattedData, "sample");
     return unformattedData;
   } else {
     samples.forEach((sample) => {
