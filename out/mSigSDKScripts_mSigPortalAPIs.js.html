@@ -26,13 +26,11 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>import {
-  fetchURLAndCache,
-} from "./utils.js";
- 
- //#region Mutational Signatures
+            <pre class="prettyprint source linenums"><code>import { fetchURLAndCache } from "./utils.js";
 
-  /**
+//#region Mutational Signatures
+
+/**
 
 Retrieves the mutational signature options from the specified API endpoint.
 @async
@@ -56,35 +54,39 @@ export async function getMutationalSignaturesOptions(
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
 
-/**
 
-Retrieves mutational signatures data from the specified endpoint and returns it as JSON.
-@async
-@function getMutationalSignaturesData
-@memberof mSigPortalData
-@param {string} [genomeDataType="WGS"] - The type of genome data to use. Defaults to "WGS".
-@param {string} [signatureSetName="COSMIC_v3_Signatures_GRCh37_SBS96"] - The name of the signature set to use. Defaults to "COSMIC_v3_Signatures_GRCh37_SBS96".
-@param {string} [mutationType="SBS"] - The type of mutation to analyze. Defaults to "SBS".
-@param {number} [numberofResults=10] - The number of results to retrieve. Defaults to 10.
-@returns {Promise&lt;Object>} - A Promise that resolves to the unformatted mutational signatures data as JSON.
-*/
+/**
+ * @async
+ * @function getMutationalSignaturesData
+ * @memberof mSigPortalData
+ * @param {string} [genomeDataType="WGS"] - The type of genome data to use. Defaults to "WGS".
+ * @param {string} [signatureSetName="COSMIC_v3_Signatures_GRCh37_SBS96"] - The name of the signature set to use. Defaults to "COSMIC_v3_Signatures_GRCh37_SBS96".
+ * @param {string} [mutationType="SBS"] - The type of mutation to analyze. Defaults to "SBS".
+ * @param {number} [matrix=96] - The size of the mutational signature matrix. Defaults to 96.
+ * @param {number} [numberofResults=10] - The number of results to retrieve. Defaults to 10.
+ * @returns {Promise&lt;Object>} - A Promise that resolves to the unformatted mutational signatures data as JSON.
+ * @throws {Error} - If there was an issue fetching the mutational signatures data.
+ * @example
+ * const mutationalSignatures = await getMutationalSignaturesData("WGS", "COSMIC_v3_Signatures_GRCh37_SBS96", "SBS", 96, 10);
+ * console.log(mutationalSignatures);
+ * 
+  */
 
 export async function getMutationalSignaturesData(
   genomeDataType = "WGS",
   signatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96",
   mutationType = "SBS",
+  matrix = 96,
   numberofResults = 10
 ) {
   const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature?
-  source=Reference_signatures&amp;strategy=${genomeDataType}&amp;profile=${mutationType}&amp;matrix=96&amp;signatureSetName=${signatureSetName}&amp;limit=${numberofResults}&amp;offset=0`;
+  source=Reference_signatures&amp;strategy=${genomeDataType}&amp;profile=${mutationType}&amp;matrix=${matrix}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberofResults}&amp;offset=0`;
   const cacheName = "getMutationalSignaturesData";
-  const unformattedData = await (
-    await fetchURLAndCache(cacheName, url)
-  ).json();
-  const formattedData = extractMutationalSpectra(
-    unformattedData,
-    "signatureName"
-  );
+  const unformattedData = await (await fetchURLAndCache(cacheName, url)).json();
+  // const formattedData = extractMutationalSpectra(
+  //   unformattedData,
+  //   "signatureName"
+  // );
   return unformattedData;
 }
 
@@ -166,23 +168,37 @@ export async function getMutationalSpectrumData(
   const promises = [];
   let urls = [];
 
-  if (cancerType == null) {
+  if (cancerType == '') {
     let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&amp;strategy=${genomeDataType}&amp;profile=${mutationType}&amp;matrix=${matrixSize}&amp;offset=0`;
 
-    let unformattedData = await (
-      await fetchURLAndCache(cacheName, url)
-    ).json();
+    let unformattedData = await (await fetchURLAndCache(cacheName, url)).json();
 
     return unformattedData;
   }
 
   if (samples === null) {
-    let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&amp;cancer=${cancerType}&amp;strategy=${genomeDataType}&amp;profile=${mutationType}&amp;matrix=${matrixSize}&amp;offset=0`;
+    let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}`;
 
-    let unformattedData = await (
-      await fetchURLAndCache(cacheName, url)
-    ).json();
-    let formattedData = extractMutationalSpectra(unformattedData, "sample");
+    if (cancerType !== null) {
+      url += `&amp;cancer=${cancerType}`;
+    }
+
+    if (genomeDataType !== null) {
+      url += `&amp;strategy=${genomeDataType}`;
+    }
+
+    if (mutationType !== null) {
+      url += `&amp;profile=${mutationType}`;
+    }
+
+    if (matrixSize !== null) {
+      url += `&amp;matrix=${matrixSize}`;
+    }
+
+    url += `&amp;offset=0`;
+
+    let unformattedData = await (await fetchURLAndCache(cacheName, url)).json();
+    // let formattedData = extractMutationalSpectra(unformattedData, "sample");
     return unformattedData;
   } else {
     samples.forEach((sample) => {
@@ -328,7 +344,13 @@ export async function getMutationalSignatureActivityData(
   cancerType = "",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;cancer=${cancerType}&amp;offset=0`;
+  let url = "";
+  if (cancerType == "") {
+    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;offset=0`;
+  } else {
+    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;cancer=${cancerType}&amp;offset=0`;
+  }
+
   const cacheName = "getMutationalSignatureActivityData";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -353,7 +375,12 @@ export async function getMutationalSignatureLandscapeData(
   signatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;cancer=${cancerType}&amp;limit=${numberOfResults}&amp;offset=0`;
+  let url = "";
+  if (cancerType == "") {
+    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;offset=0`;
+  } else {
+    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;cancer=${cancerType}&amp;offset=0`;
+  }
   const cacheName = "getMutationalSignatureLandscapeData";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -383,13 +410,31 @@ genome_data_type: The type of genome data.
 cancer_type: The cancer type.
 */
 export async function getMutationalSignatureEtiologyOptions(
-  study = "PCAWG",
-  genomeDataType = "WGS",
-  signatureName = "SBS3",
+  category = "CancerSpecificSignatures_2022",
+  etiology = "",
+  signatureName = "",
   cancerType = "",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology_options?study=${study}&amp;strategy=${genomeDataType}&amp;signatureName=${signatureName}&amp;cancer=${cancerType}&amp;limit=${numberOfResults}&amp;offset=0`;
+  // Pass the arguments into the url of the api call only if they are not empty strings
+
+  let url =
+    "https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology_options?";
+
+  if (category != "") {
+    url += `category=${category}&amp;`;
+  }
+  if (etiology != "") {
+    url += `etiology=${etiology}&amp;`;
+  }
+  if (signatureName != "") {
+    url += `signature=${signatureName}&amp;`;
+  }
+  if (cancerType != "") {
+    url += `cancer=${cancerType}&amp;`;
+  }
+  url += `limit=${numberOfResults}&amp;offset=0`;
+
   const cacheName = "getMutationalSignatureEtiologyOptions";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -414,7 +459,14 @@ export async function getMutationalSignatureEtiologyData(
   cancerType = "",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&amp;strategy=${genomeDataType}&amp;signatureName=${signatureName}&amp;cancer=${cancerType}&amp;limit=${numberOfResults}&amp;offset=0`;
+  let url = "";
+
+  if (cancerType == "") {
+    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&amp;strategy=${genomeDataType}&amp;signatureName=${signatureName}&amp;limit=${numberOfResults}&amp;offset=0`;
+  } else {
+    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&amp;strategy=${genomeDataType}&amp;signatureName=${signatureName}&amp;cancer=${cancerType}&amp;limit=${numberOfResults}&amp;offset=0`;
+  }
+
   const cacheName = "getMutationalSignatureEtiologyData";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -430,13 +482,13 @@ export async function getMutationalSignatureEtiologyData(
 </div>
 
 <nav>
-    <h2><a href="../index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="ICGC.html">ICGC</a></li><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="tcga.html">tcga</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="ICGC.html">ICGC</a></li><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="tcga.html">tcga</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Tue Jun 20 2023 13:18:10 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Fri Oct 27 2023 12:13:21 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

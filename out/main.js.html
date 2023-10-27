@@ -26,7 +26,7 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>import * as UMAP from "https://cdn.jsdelivr.net/npm/umap-js/+esm";
+            <pre class="prettyprint source linenums"><code>import * as UMAP from "https://esm.sh/umap-js@1.3.3";
 import * as Plotly from "https://cdn.jsdelivr.net/npm/plotly.js-dist/+esm";
 
 import * as am5 from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/+esm";
@@ -57,10 +57,7 @@ import { default as plotMutationalProfileDBS78Comparison } from "./mSigPortalScr
 import { default as plotMutationalProfileID83Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/id83.js";
 import { default as plotMutationalProfileRS32Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/rs32.js";
 
-import {
-  preprocessData,
-  kFoldCV,
-} from "./mSigSDKScripts/machineLearning.js";
+import { preprocessData, kFoldCV } from "./mSigSDKScripts/machineLearning.js";
 
 import {
   obtainICGCDataMAF,
@@ -88,7 +85,7 @@ import {
   getTpmCountsByGenesFromFiles,
   getMafInformationFromProjects,
   getVariantInformationFromMafFiles,
-  convertTCGAProjectIntoJSON
+  convertTCGAProjectIntoJSON,
 } from "./mSigSDKScripts/tcga.js";
 
 // import every single function one by one from the mSigPortalAPIs.js file
@@ -107,9 +104,7 @@ import {
   getMutationalSignatureLandscapeData,
   getMutationalSignatureEtiologyOptions,
   getMutationalSignatureEtiologyData,
-
 } from "./mSigSDKScripts/mSigPortalAPIs.js";
-
 
 // import * as mSigPortalPlotting from "./index.js";
 
@@ -123,21 +118,92 @@ const mSigSDK = (function () {
    */
 
   /**
- * @namespace machineLearning
- */
+   * @namespace machineLearning
+   */
 
   /**
-* @namespace ICGC
-*/
+   * @namespace ICGC
+   */
 
   /**
-* @namespace tcga
-*/
-
-
-
+   * @namespace tcga
+   */
 
   //#region Plot the summary of a dataset
+
+  function plotGraphWithPlotlyAndMakeDataDownloadable(divID, data, layout) {
+    // Plot the graph using Plotly
+    Plotly.default.newPlot(divID, data, layout);
+
+    // Ensure Font Awesome CSS is included
+    const fontAwesomeLink =
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css";
+    if (!document.querySelector(`link[href="${fontAwesomeLink}"]`)) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = fontAwesomeLink;
+      document.head.appendChild(link);
+    }
+
+    // Get the container of the Plotly graph
+    const container = document.getElementById(divID);
+
+    // Ensure the container has a relative position
+    container.style.position = "relative";
+
+    // Create a download button with only the Font Awesome download icon
+    const downloadBtn = document.createElement("div");
+    downloadBtn.innerHTML =
+      '&lt;button class="btn">&lt;i class="fa fa-download">&lt;/i>&lt;/button>';
+    const btn = downloadBtn.firstChild;
+
+    // Position the button at the bottom right corner of the container
+    btn.style.position = "absolute";
+    btn.style.bottom = "0";
+    btn.style.right = "0";
+
+    // Add an event listener to handle the download action
+    btn.addEventListener("click", function () {
+      const graphData = {
+        traces: data,
+        layout: layout,
+      };
+      const blob = new Blob([JSON.stringify(graphData, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "graph_data.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Append the download button to the container
+    container.appendChild(btn);
+
+    // Add the provided CSS
+    const css = `
+        .btn {
+            background-color: DodgerBlue;
+            border: none;
+            border-radius: 100%;
+            color: white;
+            padding: 12px 12px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .btn:hover {
+            background-color: RoyalBlue;
+        }
+    `;
+
+    const style = document.createElement("style");
+    style.type = "text/css";
+    style.appendChild(document.createTextNode(css));
+    document.head.appendChild(style);
+  }
 
   /**
 
@@ -191,7 +257,7 @@ Generates a mutational spectrum summary plot and displays it in a given HTML div
           },
           barmode: "stack",
         };
-        Plotly.default.newPlot(divID, data, layout);
+        plotGraphWithPlotlyAndMakeDataDownloadable(divID, data, layout);
       }
     } catch (err) {
       console.error(err);
@@ -301,7 +367,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
       height: 600,
     };
 
-    Plotly.default.newPlot(divID, data, layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, data, layout);
   }
 
   //#endregion
@@ -309,14 +375,14 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
   //#region Plot a patient's mutational spectra
 
   /**
- * Plots the mutational spectrum for the given parameters.
- * @async
- * @function plotPatientMutationalSpectrumICGC
- * @memberof mSigPortalPlots
- * @param {Object} mutationalSpectra - An object containing the mutational spectra data.
- * @param {number} [matrixSize=96] - The size of the matrix to be plotted.
- * @param {string} [divID="mutationalSpectrumMatrix"] - The ID of the div element where the plot will be displayed.
- */
+   * Plots the mutational spectrum for the given parameters.
+   * @async
+   * @function plotPatientMutationalSpectrumICGC
+   * @memberof mSigPortalPlots
+   * @param {Object} mutationalSpectra - An object containing the mutational spectra data.
+   * @param {number} [matrixSize=96] - The size of the matrix to be plotted.
+   * @param {string} [divID="mutationalSpectrumMatrix"] - The ID of the div element where the plot will be displayed.
+   */
   async function plotPatientMutationalSpectrumICGC(
     mutationalSpectra,
     matrixSize = 96,
@@ -344,7 +410,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
         type: "bar",
       }));
 
-      Plotly.default.newPlot(divID, traces, layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces, layout);
     } else {
       let traces = [];
 
@@ -366,7 +432,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
         traces = traces.concat(plotlyData);
       }
 
-      Plotly.default.newPlot(divID, traces, layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces, layout);
     }
   }
 
@@ -418,7 +484,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         type: "bar",
       }));
 
-      Plotly.default.newPlot(divID, traces, layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces, layout);
     } else if (
       numberOfPatients == 2 &amp;&amp;
       matrixSize == 96 &amp;&amp;
@@ -428,7 +494,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         mutationalSpectra[0],
         mutationalSpectra[1]
       );
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &amp;&amp;
@@ -436,7 +506,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "SBS"
     ) {
       let traces = plotMutationalProfileSBS96(mutationalSpectra[0]);
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &amp;&amp;
@@ -444,7 +518,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "SBS"
     ) {
       let traces = plotMutationalProfileSBS192(mutationalSpectra[0]);
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 2 &amp;&amp;
@@ -455,7 +533,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         mutationalSpectra[0],
         mutationalSpectra[1]
       );
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &amp;&amp;
@@ -463,7 +545,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "SBS"
     ) {
       let traces = plotMutationalProfileSBS288(mutationalSpectra[0]);
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &amp;&amp;
@@ -471,7 +557,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "SBS"
     ) {
       let traces = plotMutationalProfileSBS384(mutationalSpectra[0]);
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &amp;&amp;
@@ -479,7 +569,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "SBS"
     ) {
       let traces = plotMutationalProfileSBS1536(mutationalSpectra[0]);
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &amp;&amp;
@@ -487,7 +581,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "DBS"
     ) {
       let traces = plotMutationalProfileDBS78(mutationalSpectra[0]);
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 2 &amp;&amp;
@@ -499,7 +597,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         mutationalSpectra[1],
         "pc"
       );
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &amp;&amp;
@@ -507,7 +609,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "DBS"
     ) {
       let traces = plotMutationalProfileDBS186(mutationalSpectra[0]);
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &amp;&amp;
@@ -515,7 +621,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "ID"
     ) {
       let traces = plotMutationalProfileID28(mutationalSpectra[0]);
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &amp;&amp;
@@ -523,7 +633,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "ID"
     ) {
       let traces = plotMutationalProfileID29(mutationalSpectra[0]);
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &amp;&amp;
@@ -531,7 +645,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "ID"
     ) {
       let traces = plotMutationalProfileID83(mutationalSpectra[0]);
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 2 &amp;&amp;
@@ -543,7 +661,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         mutationalSpectra[1],
         "pc"
       );
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &amp;&amp;
@@ -551,7 +673,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "ID"
     ) {
       let traces = plotMutationalProfileID415(mutationalSpectra[0]);
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &amp;&amp;
@@ -559,7 +685,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "RS"
     ) {
       let traces = plotMutationalProfileRS32(mutationalSpectra[0]);
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 2 &amp;&amp;
@@ -570,7 +700,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         mutationalSpectra[0],
         mutationalSpectra[1]
       );
-      Plotly.default.newPlot(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else {
       let traces = [];
@@ -593,18 +727,18 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         traces = traces.concat(plotlyData);
       }
 
-      Plotly.default.newPlot(divID, traces, layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces, layout);
     }
   }
 
   /**
- * Converts the mutational spectra data to a format that can be used to create a Plotly chart.
- * @function formatMutationalSpectraData
- * @memberof mSigPortalData
- * @param {Object} mutationalSpectrum - An object containing the mutational spectra data.
- * @param {string} sample - The name of the sample.
- * @returns {Object[]} The data in a format that can be used to create a Plotly chart. The data is an array of objects. Each object has a name, x, y, and type property. The name property is the name of the mutation type. The x property is an array of the mutation names. The y property is an array of the mutation frequencies. The type property is the type of substitution that takes place.
- */
+   * Converts the mutational spectra data to a format that can be used to create a Plotly chart.
+   * @function formatMutationalSpectraData
+   * @memberof mSigPortalData
+   * @param {Object} mutationalSpectrum - An object containing the mutational spectra data.
+   * @param {string} sample - The name of the sample.
+   * @returns {Object[]} The data in a format that can be used to create a Plotly chart. The data is an array of objects. Each object has a name, x, y, and type property. The name property is the name of the mutation type. The x property is an array of the mutation names. The y property is an array of the mutation frequencies. The type property is the type of substitution that takes place.
+   */
 
   function formatMutationalSpectraData(mutationalSpectrum, sample) {
     const matrixSize = Object.keys(mutationalSpectrum).length;
@@ -758,7 +892,7 @@ This function creates a heatmap using the cosine similarity matrix for the given
         nticks: Object.keys(groupedData).length,
       },
     };
-    Plotly.default.newPlot(divID, plotlyData, layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, plotlyData, layout);
     return cosSimilarityMatrix;
   }
 
@@ -804,7 +938,7 @@ This function creates a heatmap using the cosine similarity matrix for the given
     });
 
     // Plot the box traces using Plotly and display the plot in the specified divID
-    Plotly.default.newPlot(divID, groupTraces, {
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, groupTraces, {
       title: `Cumulative Exposure for ${group}`,
       yaxis: { title: "Log(Exposure)" },
       xaxis: { title: group },
@@ -1001,7 +1135,7 @@ Plots a UMAP visualization of the input data.
       layout.scene = { zaxis: { title: axisLabels[2] } };
     }
 
-    Plotly.default.newPlot(divID, trace, layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, trace, layout);
 
     return trace;
   }
@@ -1020,7 +1154,6 @@ Fits mutational spectra to mutational signatures using non-negative least square
 @param {Object} mutationalSpectra - An object containing mutational spectra data with sample names as keys and nested objects containing spectra values as values.
 @returns {Promise&lt;Object>} - A Promise that resolves to an object with sample names as keys and nested objects containing signature exposure values as values.
 */
-
 
   async function fitMutationalSpectraToSignatures(
     mutationalSignatures,
@@ -1092,7 +1225,7 @@ Plots mutational signature exposure data as a pie chart.
       title: plotTitle,
     };
 
-    Plotly.default.newPlot(divID, [data], layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, [data], layout);
 
     return data;
   }
@@ -1186,19 +1319,19 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
       height: 800,
     };
 
-    Plotly.default.newPlot(divID, [data], layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, [data], layout);
 
     return data;
   }
 
   function plotSignatureAssociations(divID, data, signature1, signature2) {
     let dat = plotSignatureAssociation(data, signature1, signature2);
-    Plotly.default.newPlot(divID, dat.traces, dat.layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, dat.traces, dat.layout);
   }
 
   function plotMSPrevalenceData(divID, data) {
     let dat = plotMSPrevalence(data);
-    Plotly.default.newPlot(divID, dat.traces, dat.layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, dat.traces, dat.layout);
   }
 
   //#endregion
@@ -1251,18 +1384,17 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     getTpmCountsByGenesFromFiles,
     getMafInformationFromProjects,
     getVariantInformationFromMafFiles,
-    convertTCGAProjectIntoJSON
+    convertTCGAProjectIntoJSON,
   };
   const tools = {
     groupBy,
-
   };
 
   const signatureFitting = {
     fitMutationalSpectraToSignatures,
     plotPatientMutationalSignaturesExposure,
     plotDatasetMutationalSignaturesExposure,
-  }
+  };
 
   const machineLearning = {
     preprocessData,
@@ -1293,13 +1425,13 @@ export { mSigSDK };
 </div>
 
 <nav>
-    <h2><a href="../index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="ICGC.html">ICGC</a></li><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="tcga.html">tcga</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="ICGC.html">ICGC</a></li><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="tcga.html">tcga</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Tue Jun 20 2023 13:18:10 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Fri Oct 27 2023 12:13:21 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

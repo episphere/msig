@@ -26,18 +26,23 @@ export async function getMutationalSignaturesOptions(
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
 
-/**
 
-Retrieves mutational signatures data from the specified endpoint and returns it as JSON.
-@async
-@function getMutationalSignaturesData
-@memberof mSigPortalData
-@param {string} [genomeDataType="WGS"] - The type of genome data to use. Defaults to "WGS".
-@param {string} [signatureSetName="COSMIC_v3_Signatures_GRCh37_SBS96"] - The name of the signature set to use. Defaults to "COSMIC_v3_Signatures_GRCh37_SBS96".
-@param {string} [mutationType="SBS"] - The type of mutation to analyze. Defaults to "SBS".
-@param {number} [numberofResults=10] - The number of results to retrieve. Defaults to 10.
-@returns {Promise<Object>} - A Promise that resolves to the unformatted mutational signatures data as JSON.
-*/
+/**
+ * @async
+ * @function getMutationalSignaturesData
+ * @memberof mSigPortalData
+ * @param {string} [genomeDataType="WGS"] - The type of genome data to use. Defaults to "WGS".
+ * @param {string} [signatureSetName="COSMIC_v3_Signatures_GRCh37_SBS96"] - The name of the signature set to use. Defaults to "COSMIC_v3_Signatures_GRCh37_SBS96".
+ * @param {string} [mutationType="SBS"] - The type of mutation to analyze. Defaults to "SBS".
+ * @param {number} [matrix=96] - The size of the mutational signature matrix. Defaults to 96.
+ * @param {number} [numberofResults=10] - The number of results to retrieve. Defaults to 10.
+ * @returns {Promise<Object>} - A Promise that resolves to the unformatted mutational signatures data as JSON.
+ * @throws {Error} - If there was an issue fetching the mutational signatures data.
+ * @example
+ * const mutationalSignatures = await getMutationalSignaturesData("WGS", "COSMIC_v3_Signatures_GRCh37_SBS96", "SBS", 96, 10);
+ * console.log(mutationalSignatures);
+ * 
+  */
 
 export async function getMutationalSignaturesData(
   genomeDataType = "WGS",

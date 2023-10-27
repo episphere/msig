@@ -1,0 +1,8 @@
+{
+    "source": {
+      "include": ["./mSigSDKScripts", "./main.js"],
+      "includePattern": ".+\\.js(doc|x)?$",
+      "excludePattern": "(^|\\/|\\\\)_"
+    }
+  }
+  
