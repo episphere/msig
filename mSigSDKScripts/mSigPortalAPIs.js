@@ -369,19 +369,30 @@ genome_data_type: The type of genome data.
 cancer_type: The cancer type.
 */
 export async function getMutationalSignatureEtiologyOptions(
-  study = "PCAWG",
-  genomeDataType = "WGS",
-  signatureName = "SBS3",
+  category = "CancerSpecificSignatures_2022",
+  etiology = "",
+  signatureName = "",
   cancerType = "",
   numberOfResults = 10
 ) {
-  let url = '';
 
-  if (cancerType == "") {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology_options?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&limit=${numberOfResults}&offset=0`;
-  }else{
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology_options?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
+  // Pass the arguments into the url of the api call only if they are not empty strings
+  
+  let url = "https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology_options?"
+
+  if (category != "") {
+    url += `category=${category}&`
   }
+  if (etiology != "") {
+    url += `etiology=${etiology}&`
+  }
+  if (signatureName != "") {
+    url += `signature=${signatureName}&`
+  }
+  if (cancerType != "") {
+    url += `cancer=${cancerType}&`
+  }
+  url += `limit=${numberOfResults}&offset=0`
 
   const cacheName = "getMutationalSignatureEtiologyOptions";
   return await (await fetchURLAndCache(cacheName, url)).json();
@@ -408,6 +419,7 @@ export async function getMutationalSignatureEtiologyData(
   numberOfResults = 10
 ) {
   let url = '';
+
 
   if (cancerType == "") {
     url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&limit=${numberOfResults}&offset=0`;
