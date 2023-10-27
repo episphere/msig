@@ -33,13 +33,4 @@ await fetch("https://api.gdc.cancer.gov/data/0b3d2db3-8ae3-4d39-bd9b-9d1e7a133b6
 // Testing UMAP
 mSigSDK = await (await import("./main.js")).mSigSDK;
 cancerType = "Lung-AdenoCA"
-extractedData = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-    "PCAWG",
-    null,
-    "WGS",
-    cancerType,
-    "SBS",
-    96,
-);
-
-embeddings = mSigSDK.mSigPortal.mSigPortalPlots.plotUMAPVisualization(extractedData, "PCAWG", "umapVisualization", 3, 0.1, 15)
+data = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSignatureActivityData('PCAWG','WGS','COSMIC_v3_Signatures_GRCh37_SBS96','',10)

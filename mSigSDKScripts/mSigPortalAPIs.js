@@ -300,7 +300,15 @@ export async function getMutationalSignatureActivityData(
   cancerType = "",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&cancer=${cancerType}&offset=0`;
+  let url = '';
+  if (cancerType == "") {
+    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&offset=0`;
+
+  }else{
+    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&cancer=${cancerType}&offset=0`;
+
+  }
+
   const cacheName = "getMutationalSignatureActivityData";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
