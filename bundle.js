@@ -1,4 +1,4 @@
-import * as UMAP from 'https://cdn.jsdelivr.net/npm/umap-js/+esm';
+import * as UMAP from 'https://esm.sh/umap-js@1.3.3';
 import * as Plotly from 'https://cdn.jsdelivr.net/npm/plotly.js-dist/+esm';
 import * as am5 from 'https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/+esm';
 import * as am5hierarchy from 'https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/hierarchy/+esm';
