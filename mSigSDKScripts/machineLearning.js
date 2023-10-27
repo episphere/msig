@@ -1,6 +1,6 @@
-import * as MLR from "https://cdn.jsdelivr.net/npm/ml-regression-multivariate-linear/+esm";
+import * as MLR from "https://esm.sh/ml-regression-multivariate-linear@2.0.4";
 
-import * as CV from "https://cdn.jsdelivr.net/npm/ml-cross-validation/+esm";
+import * as CV from "https://esm.sh/ml-cross-validation@1.3.0";
 
 import { groupBy } from "./utils.js";
 
