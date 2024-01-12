@@ -6799,7 +6799,10 @@ function intersectByKeys(dict1, dict2) {
   const intersection = {};
   for (const key in dict1) {
     if (key in dict2) {
-      intersection[key] = [dict1[key].map(data =>data["mutations"]), dict2[key].map(data =>data["exposure"])];
+      intersection[key] = [
+        dict1[key].map((data) => data["mutations"]),
+        dict2[key].map((data) => data["exposure"]),
+      ];
     }
   }
   return intersection;
@@ -6815,21 +6818,25 @@ function preprocessMSIGPORTALExposureData(mutationalData, exposureData) {
     groupedExposureData
   );
 
-    // Separate the intersected data into Xs and Ys
-    const Xs = [];
-    const Ys = [];
-    for (const key in intersectedData) {
+  // Separate the intersected data into Xs and Ys
+  const Xs = [];
+  const Ys = [];
+  for (const key in intersectedData) {
+    // Check if the length of the Xs is 96 (i.e. the number of mutational signatures) and the length of the Ys is 65 (i.e. the number of mutational exposures)
 
-      // Check if the length of the Xs is 96 (i.e. the number of mutational signatures) and the length of the Ys is 65 (i.e. the number of mutational exposures)
-
-      if (intersectedData[key][0].length !== intersectedData[Object.keys(intersectedData)[0]][0].length || intersectedData[key][1].length !== intersectedData[Object.keys(intersectedData)[0]][1].length) {
-        continue;
-      }else {
-        Xs.push(intersectedData[key][0]);
-        Ys.push(intersectedData[key][1]);
-      }
-        }
-    return { Xs, Ys };  
+    if (
+      intersectedData[key][0].length !==
+        intersectedData[Object.keys(intersectedData)[0]][0].length ||
+      intersectedData[key][1].length !==
+        intersectedData[Object.keys(intersectedData)[0]][1].length
+    ) {
+      continue;
+    } else {
+      Xs.push(intersectedData[key][0]);
+      Ys.push(intersectedData[key][1]);
+    }
+  }
+  return { Xs, Ys };
 }
 
 /**
@@ -6843,80 +6850,77 @@ function preprocessMSIGPORTALExposureData(mutationalData, exposureData) {
  * @throws {Error} - If an unknown model type is provided.
  */
 function kFoldCV(Xs, Ys, k = 10, modelType = "MLR") {
-  
-    // Prepare the dataset for stratified k-fold cross-validation
-    const dataset = [];
-    for (let i = 0; i < Xs.length; i++) {
-      dataset.push({
-        input: Xs[i],
-        output: Ys[i],
-      });
-    }
-  
-    // Create a stratified k-fold cross-validator
-    const crossValidator = CV.getFolds(dataset, k);
-  
-    // Initialize variables to store performance metrics
-    let totalMSE = 0;
-  
-    const models = [];
-    const mses = [];
-    // Perform stratified k-fold cross-validation
-    crossValidator.forEach((crossFold) => {
-      // Prepare the training data
-
-      const X_train = crossFold.trainIndex.map(index => Xs[index]);
-
-      const Y_train = crossFold.trainIndex.map(index => Ys[index]);
-  
-      // Prepare the testing data
-      const X_test = crossFold.testIndex.map(index => Xs[index]);
-      const Y_test = crossFold.testIndex.map(index => Ys[index]);
-  
-      // Train the multivariate linear regression model
-      let regression;
-
-
-      switch (modelType.toUpperCase()) {
-        case "MLR":
-            regression = new MLR.default(X_train, Y_train);
-            models.push(regression);
-            break;
-        case "MLP":
-            regression = new MLP.default(X_train, Y_train);
-            models.push(regression);
-            break;
-        default:
-            throw new Error("Unknown model type: " + modelType);
-        }
-
-  
-      // Test the model and calculate the mean squared error
-      let mse = 0;
-      for (let i = 0; i < X_test.length; i++) {
-        const prediction = regression.predict(X_test[i]);
-        mse += meanSquaredError(prediction, Y_test[i]);
-      }
-      mse /= X_test.length;
-      mses.push(mse);
-      // Accumulate the mean squared error
-      totalMSE += mse;
+  // Prepare the dataset for stratified k-fold cross-validation
+  const dataset = [];
+  for (let i = 0; i < Xs.length; i++) {
+    dataset.push({
+      input: Xs[i],
+      output: Ys[i],
     });
-  
-    // Calculate the average mean squared error
-    const averageMSE = totalMSE / k;
-  
-    // Return the average mean squared error
-    return {'model': models, 'MSE':mses, 'averageMSE':averageMSE};
   }
-  
-  function meanSquaredError(prediction, actual) {
-    let mse = 0;
-    for (let i = 0; i < prediction.length; i++) {
-      mse += Math.pow(prediction[i] - actual[i], 2);
+
+  // Create a stratified k-fold cross-validator
+  const crossValidator = CV.getFolds(dataset, k);
+
+  // Initialize variables to store performance metrics
+  let totalMSE = 0;
+
+  const models = [];
+  const mses = [];
+  // Perform stratified k-fold cross-validation
+  crossValidator.forEach((crossFold) => {
+    // Prepare the training data
+
+    const X_train = crossFold.trainIndex.map((index) => Xs[index]);
+
+    const Y_train = crossFold.trainIndex.map((index) => Ys[index]);
+
+    // Prepare the testing data
+    const X_test = crossFold.testIndex.map((index) => Xs[index]);
+    const Y_test = crossFold.testIndex.map((index) => Ys[index]);
+
+    // Train the multivariate linear regression model
+    let regression;
+
+    switch (modelType.toUpperCase()) {
+      case "MLR":
+        regression = new MLR.default(X_train, Y_train);
+        models.push(regression);
+        break;
+      case "MLP":
+        regression = new MLP.default(X_train, Y_train);
+        models.push(regression);
+        break;
+      default:
+        throw new Error("Unknown model type: " + modelType);
     }
-    return mse;
+
+    // Test the model and calculate the mean squared error
+    let mse = 0;
+    for (let i = 0; i < X_test.length; i++) {
+      const prediction = regression.predict(X_test[i]);
+      mse += meanSquaredError(prediction, Y_test[i]);
+    }
+    mse /= X_test.length;
+    mses.push(mse);
+    // Accumulate the mean squared error
+    totalMSE += mse;
+  });
+
+  // Calculate the average mean squared error
+  const averageMSE = totalMSE / k;
+
+  // Return the average mean squared error
+  return { model: models, MSE: mses, averageMSE: averageMSE };
+}
+
+function meanSquaredError(prediction, actual) {
+  let mse = 0;
+  for (let i = 0; i < prediction.length; i++) {
+    mse += Math.pow(prediction[i] - actual[i], 2);
   }
+  return mse;
+}
 
 function get_sbs_trinucleotide_contexts() {
   const nucleotide_bases = ["A", "C", "G", "T"];
@@ -8049,24 +8053,29 @@ async function getMutationalSignaturesOptions(
   genomeDataType = "WGS",
   mutationType = "SBS"
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_options?
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature_options?
   source=Reference_signatures&strategy=${genomeDataType}&profile=${mutationType}&offset=0`;
   const cacheName = "getMutationalSignaturesOptions";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
 
-/**
 
-Retrieves mutational signatures data from the specified endpoint and returns it as JSON.
-@async
-@function getMutationalSignaturesData
-@memberof mSigPortalData
-@param {string} [genomeDataType="WGS"] - The type of genome data to use. Defaults to "WGS".
-@param {string} [signatureSetName="COSMIC_v3_Signatures_GRCh37_SBS96"] - The name of the signature set to use. Defaults to "COSMIC_v3_Signatures_GRCh37_SBS96".
-@param {string} [mutationType="SBS"] - The type of mutation to analyze. Defaults to "SBS".
-@param {number} [numberofResults=10] - The number of results to retrieve. Defaults to 10.
-@returns {Promise<Object>} - A Promise that resolves to the unformatted mutational signatures data as JSON.
-*/
+/**
+ * @async
+ * @function getMutationalSignaturesData
+ * @memberof mSigPortalData
+ * @param {string} [genomeDataType="WGS"] - The type of genome data to use. Defaults to "WGS".
+ * @param {string} [signatureSetName="COSMIC_v3_Signatures_GRCh37_SBS96"] - The name of the signature set to use. Defaults to "COSMIC_v3_Signatures_GRCh37_SBS96".
+ * @param {string} [mutationType="SBS"] - The type of mutation to analyze. Defaults to "SBS".
+ * @param {number} [matrix=96] - The size of the mutational signature matrix. Defaults to 96.
+ * @param {number} [numberofResults=10] - The number of results to retrieve. Defaults to 10.
+ * @returns {Promise<Object>} - A Promise that resolves to the unformatted mutational signatures data as JSON.
+ * @throws {Error} - If there was an issue fetching the mutational signatures data.
+ * @example
+ * const mutationalSignatures = await getMutationalSignaturesData("WGS", "COSMIC_v3_Signatures_GRCh37_SBS96", "SBS", 96, 10);
+ * console.log(mutationalSignatures);
+ * 
+  */
 
 async function getMutationalSignaturesData(
   genomeDataType = "WGS",
@@ -8075,7 +8084,7 @@ async function getMutationalSignaturesData(
   matrix = 96,
   numberofResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature?
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature?
   source=Reference_signatures&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrix}&signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
   const cacheName = "getMutationalSignaturesData";
   const unformattedData = await (await fetchURLAndCache(cacheName, url)).json();
@@ -8105,7 +8114,7 @@ async function getMutationalSignaturesSummary(
   numberofResults = 10,
   signatureSetName = "COSMIC_v3.3_Signatures"
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_summary?signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature_summary?signatureSetName=${signatureSetName}&limit=${numberofResults}&offset=0`;
   const cacheName = "getMutationalSignaturesSummary";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -8132,7 +8141,7 @@ async function getMutationalSpectrumOptions(
   cancerType = "Lung-AdenoCA",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_options?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&offset=0&limit=${numberOfResults}`;
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum_options?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&offset=0&limit=${numberOfResults}`;
   const cacheName = "getMutationalSpectrumOptions";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -8165,7 +8174,7 @@ async function getMutationalSpectrumData(
   let urls = [];
 
   if (cancerType == '') {
-    let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
+    let url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
 
     let unformattedData = await (await fetchURLAndCache(cacheName, url)).json();
 
@@ -8173,7 +8182,7 @@ async function getMutationalSpectrumData(
   }
 
   if (samples === null) {
-    let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}`;
+    let url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}`;
 
     if (cancerType !== null) {
       url += `&cancer=${cancerType}`;
@@ -8199,7 +8208,7 @@ async function getMutationalSpectrumData(
   } else {
     samples.forEach((sample) => {
       urls.push(
-        `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&sample=${sample}&cancer=${cancerType}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`
+        `https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&sample=${sample}&cancer=${cancerType}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`
       );
     });
   }
@@ -8239,7 +8248,7 @@ async function getMutationalSpectrumSummary(
   cancerType = "Lung-AdenoCA",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_summary?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum_summary?study=${study}&cancer=${cancerType}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
   const cacheName = "getMutationalSpectrumSummary";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -8266,7 +8275,7 @@ async function getMutationalSignatureAssociationOptions(
   genomeDataType = "WGS",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_association_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
   const cacheName = "getMutationalSignatureAssociationOptions";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -8290,7 +8299,7 @@ async function getMutationalSignatureAssociationData(
   cancerType = "Biliary-AdenoCA",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association?study=${study}&strategy=${genomeDataType}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_association?study=${study}&strategy=${genomeDataType}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
   const cacheName = "getMutationalSignatureAssociationData";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -8315,7 +8324,7 @@ async function getMutationalSignatureActivityOptions(
   genomeDataType = "WGS",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_activity_options?study=${study}&strategy=${genomeDataType}&limit=${numberOfResults}&offset=0`;
   const cacheName = "getMutationalSignatureActivityOptions";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -8342,9 +8351,9 @@ async function getMutationalSignatureActivityData(
 ) {
   let url = "";
   if (cancerType == "") {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&offset=0`;
+    url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&offset=0`;
   } else {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&cancer=${cancerType}&offset=0`;
+    url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&cancer=${cancerType}&offset=0`;
   }
 
   const cacheName = "getMutationalSignatureActivityData";
@@ -8373,9 +8382,9 @@ async function getMutationalSignatureLandscapeData(
 ) {
   let url = "";
   if (cancerType == "") {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&offset=0`;
+    url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&offset=0`;
   } else {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&cancer=${cancerType}&offset=0`;
+    url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&strategy=${genomeDataType}&signatureSetName=${signatureSetName}&limit=${numberOfResults}&cancer=${cancerType}&offset=0`;
   }
   const cacheName = "getMutationalSignatureLandscapeData";
   return await (await fetchURLAndCache(cacheName, url)).json();
@@ -8415,7 +8424,7 @@ async function getMutationalSignatureEtiologyOptions(
   // Pass the arguments into the url of the api call only if they are not empty strings
 
   let url =
-    "https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology_options?";
+    "https://analysistools.cancer.gov/mutational-signatures/api/signature_etiology_options?";
 
   if (category != "") {
     url += `category=${category}&`;
@@ -8458,9 +8467,9 @@ async function getMutationalSignatureEtiologyData(
   let url = "";
 
   if (cancerType == "") {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&limit=${numberOfResults}&offset=0`;
+    url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&limit=${numberOfResults}&offset=0`;
   } else {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
+    url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&strategy=${genomeDataType}&signatureName=${signatureName}&cancer=${cancerType}&limit=${numberOfResults}&offset=0`;
   }
 
   const cacheName = "getMutationalSignatureEtiologyData";
@@ -8481,65 +8490,66 @@ const mSigSDK = (function () {
    */
 
   /**
- * @namespace machineLearning
- */
+   * @namespace machineLearning
+   */
 
   /**
-* @namespace ICGC
-*/
+   * @namespace ICGC
+   */
 
   /**
-* @namespace tcga
-*/
+   * @namespace tcga
+   */
 
-
-
-
+  
   //#region Plot the summary of a dataset
-
 
   function plotGraphWithPlotlyAndMakeDataDownloadable(divID, data, layout) {
     // Plot the graph using Plotly
     Plotly.default.newPlot(divID, data, layout);
 
     // Ensure Font Awesome CSS is included
-    const fontAwesomeLink = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css";
+    const fontAwesomeLink =
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css";
     if (!document.querySelector(`link[href="${fontAwesomeLink}"]`)) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = fontAwesomeLink;
-        document.head.appendChild(link);
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = fontAwesomeLink;
+      document.head.appendChild(link);
     }
 
     // Get the container of the Plotly graph
     const container = document.getElementById(divID);
-    
+
     // Ensure the container has a relative position
-    container.style.position = 'relative';
+    container.style.position = "relative";
 
     // Create a download button with only the Font Awesome download icon
-    const downloadBtn = document.createElement('div');
-    downloadBtn.innerHTML = '<button class="btn"><i class="fa fa-download"></i></button>';
+    const downloadBtn = document.createElement("div");
+    downloadBtn.innerHTML =
+      '<button class="btn"><i class="fa fa-download"></i></button>';
     const btn = downloadBtn.firstChild;
 
     // Position the button at the bottom right corner of the container
-    btn.style.position = 'absolute';
-    btn.style.bottom = '0';
-    btn.style.right = '0';
+    btn.style.position = "absolute";
+    btn.style.bottom = "0";
+    btn.style.right = "0";
 
     // Add an event listener to handle the download action
-    btn.addEventListener('click', function() {
-        const graphData = {
-            traces: data,
-            layout: layout
-        };
-        const blob = new Blob([JSON.stringify(graphData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'graph_data.json';
-        a.click();
-        URL.revokeObjectURL(url);
+    btn.addEventListener("click", function () {
+      const graphData = {
+        traces: data,
+        layout: layout,
+      };
+      const blob = new Blob([JSON.stringify(graphData, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "graph_data.json";
+      a.click();
+      URL.revokeObjectURL(url);
     });
 
     // Append the download button to the container
@@ -8562,13 +8572,11 @@ const mSigSDK = (function () {
         }
     `;
 
-    const style = document.createElement('style');
-    style.type = 'text/css';
+    const style = document.createElement("style");
+    style.type = "text/css";
     style.appendChild(document.createTextNode(css));
     document.head.appendChild(style);
-}
-
-
+  }
 
   /**
 
@@ -8740,14 +8748,14 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
   //#region Plot a patient's mutational spectra
 
   /**
- * Plots the mutational spectrum for the given parameters.
- * @async
- * @function plotPatientMutationalSpectrumICGC
- * @memberof mSigPortalPlots
- * @param {Object} mutationalSpectra - An object containing the mutational spectra data.
- * @param {number} [matrixSize=96] - The size of the matrix to be plotted.
- * @param {string} [divID="mutationalSpectrumMatrix"] - The ID of the div element where the plot will be displayed.
- */
+   * Plots the mutational spectrum for the given parameters.
+   * @async
+   * @function plotPatientMutationalSpectrumICGC
+   * @memberof mSigPortalPlots
+   * @param {Object} mutationalSpectra - An object containing the mutational spectra data.
+   * @param {number} [matrixSize=96] - The size of the matrix to be plotted.
+   * @param {string} [divID="mutationalSpectrumMatrix"] - The ID of the div element where the plot will be displayed.
+   */
   async function plotPatientMutationalSpectrumICGC(
     mutationalSpectra,
     matrixSize = 96,
@@ -8859,7 +8867,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         mutationalSpectra[0],
         mutationalSpectra[1]
       );
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &&
@@ -8867,7 +8879,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "SBS"
     ) {
       let traces = SBS96(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &&
@@ -8875,7 +8891,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "SBS"
     ) {
       let traces = SBS192(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 2 &&
@@ -8886,7 +8906,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         mutationalSpectra[0],
         mutationalSpectra[1]
       );
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &&
@@ -8894,7 +8918,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "SBS"
     ) {
       let traces = SBS288(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &&
@@ -8902,7 +8930,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "SBS"
     ) {
       let traces = SBS384(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &&
@@ -8910,7 +8942,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "SBS"
     ) {
       let traces = SBS1536(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &&
@@ -8918,7 +8954,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "DBS"
     ) {
       let traces = DBS78(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 2 &&
@@ -8930,7 +8970,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         mutationalSpectra[1],
         "pc"
       );
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &&
@@ -8938,7 +8982,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "DBS"
     ) {
       let traces = DBS186(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &&
@@ -8946,7 +8994,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "ID"
     ) {
       let traces = ID28(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &&
@@ -8954,7 +9006,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "ID"
     ) {
       let traces = ID29(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &&
@@ -8962,7 +9018,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "ID"
     ) {
       let traces = ID83(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 2 &&
@@ -8974,7 +9034,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         mutationalSpectra[1],
         "pc"
       );
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &&
@@ -8982,7 +9046,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "ID"
     ) {
       let traces = ID415(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 1 &&
@@ -8990,7 +9058,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       mutationType == "RS"
     ) {
       let traces = RS32(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else if (
       numberOfPatients == 2 &&
@@ -9001,7 +9073,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         mutationalSpectra[0],
         mutationalSpectra[1]
       );
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces.traces, traces.layout);
+      plotGraphWithPlotlyAndMakeDataDownloadable(
+        divID,
+        traces.traces,
+        traces.layout
+      );
       return traces;
     } else {
       let traces = [];
@@ -9029,13 +9105,13 @@ Renders a plot of the mutational spectra for one or more patients in a given div
   }
 
   /**
- * Converts the mutational spectra data to a format that can be used to create a Plotly chart.
- * @function formatMutationalSpectraData
- * @memberof mSigPortalData
- * @param {Object} mutationalSpectrum - An object containing the mutational spectra data.
- * @param {string} sample - The name of the sample.
- * @returns {Object[]} The data in a format that can be used to create a Plotly chart. The data is an array of objects. Each object has a name, x, y, and type property. The name property is the name of the mutation type. The x property is an array of the mutation names. The y property is an array of the mutation frequencies. The type property is the type of substitution that takes place.
- */
+   * Converts the mutational spectra data to a format that can be used to create a Plotly chart.
+   * @function formatMutationalSpectraData
+   * @memberof mSigPortalData
+   * @param {Object} mutationalSpectrum - An object containing the mutational spectra data.
+   * @param {string} sample - The name of the sample.
+   * @returns {Object[]} The data in a format that can be used to create a Plotly chart. The data is an array of objects. Each object has a name, x, y, and type property. The name property is the name of the mutation type. The x property is an array of the mutation names. The y property is an array of the mutation frequencies. The type property is the type of substitution that takes place.
+   */
 
   function formatMutationalSpectraData(mutationalSpectrum, sample) {
     const matrixSize = Object.keys(mutationalSpectrum).length;
@@ -9452,7 +9528,6 @@ Fits mutational spectra to mutational signatures using non-negative least square
 @returns {Promise<Object>} - A Promise that resolves to an object with sample names as keys and nested objects containing signature exposure values as values.
 */
 
-
   async function fitMutationalSpectraToSignatures(
     mutationalSignatures,
     mutationalSpectra
@@ -9682,11 +9757,10 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     getTpmCountsByGenesFromFiles,
     getMafInformationFromProjects,
     getVariantInformationFromMafFiles,
-    convertTCGAProjectIntoJSON
+    convertTCGAProjectIntoJSON,
   };
   const tools = {
     groupBy,
-
   };
 
   const signatureFitting = {
