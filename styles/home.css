@@ -176,8 +176,7 @@
   margin-top: var(--dl-space-space-fiveunits);
   align-items: center;
   padding-top: var(--dl-space-space-tenunits);
-  border-color: var(--dl-color-gray-black);
-  border-width: 1px;
+  border: none;
   padding-left: var(--dl-space-space-tripleunit);
   margin-bottom: var(--dl-space-space-fiveunits);
   padding-right: var(--dl-space-space-tripleunit);
@@ -186,8 +185,9 @@
   background-size: cover;
   justify-content: center;
   /* background-image: url('https://media.istockphoto.com/id/1350623538/photo/molecular-background-with-dna-network-concept-music-sound-wave-big-data-visualization.jpg?s=612x612&w=0&k=20&c=C_-CCZhMz4kplEDxs8UegMhi-h3EMLdT2fEg04mNVFw='); */
-  background-color: rgba(56, 56, 56, 0.3);
+  background-color: rgba(56, 56, 56, 0.35);
   border-radius: 3%;
+  
 }
 .home-hero-text {
   width: 65%;
