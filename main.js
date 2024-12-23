@@ -32,12 +32,11 @@ import { default as plotMutationalProfileRS32Comparison } from "./mSigPortalScri
 import { preprocessData, kFoldCV } from "./mSigSDKScripts/machineLearning.js";
 
 import {
-  obtainICGCDataMAF,
   convertMatrix,
   convertWGStoPanel,
   init_sbs_mutational_spectra,
-  convertICGCMutationalSpectraIntoJSON,
-} from "./mSigSDKScripts/ICGC.js";
+  convertMutationalSpectraIntoJSON,
+} from "./mSigSDKScripts/userData.js";
 import {
   linspace,
   deepCopy,
@@ -1344,11 +1343,10 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
   };
 
   const ICGC = {
-    obtainICGCDataMAF,
     convertMatrix,
     convertWGStoPanel,
     plotPatientMutationalSpectrumICGC,
-    convertICGCMutationalSpectraIntoJSON,
+    convertMutationalSpectraIntoJSON,
   };
 
   const TCGA = {
