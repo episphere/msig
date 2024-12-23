@@ -2,8 +2,8 @@
 import * as localforage from "https://cdn.jsdelivr.net/npm/localforage/+esm";
 import * as pako from "https://cdn.jsdelivr.net/npm/pako/+esm";
 import * as Papa from "https://cdn.jsdelivr.net/npm/papaparse/+esm";
-import {fetchURLAndCache} from "./utils.js"
-import {  
+import { fetchURLAndCache } from "./utils.js"
+import {
   init_sbs_mutational_spectra,
   convertMatrix,
 } from "./mutationalSpectrum.js";
@@ -313,9 +313,8 @@ const obtainICGCDataMAF = async (
 
 //#region Convert WGS MAF file to Panel MAF file
 
-function isNumeric(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
+// Helper function to extract numeric part of a string
+const extractNumber = (str) => parseInt(str.replace(/\D/g, ""), 10);
 /**
 
 Converts whole-genome variant frequencies (WgMAFs) to panel variant frequencies.
@@ -329,47 +328,31 @@ Converts whole-genome variant frequencies (WgMAFs) to panel variant frequencies.
 function downsampleWGSArray(WGSArray, panelArray) {
   const includedRows = [];
 
-  for (var i = 0; i < WGSArray.length - 1; i++) {
-    let row = WGSArray[i];
+  // Convert all keys in WGSArray to lowercase
+  const WGSArrayLower = WGSArray.map(row =>
+    Object.fromEntries(
+      Object.entries(row).map(([key, value]) => [key.toLowerCase(), value])
+    )
+  );
 
-    let filteredRow;
-    if (isNumeric(row["chromosome"])) {
-      filteredRow = panelArray.filter(
-        (panelRow) =>
-          parseInt(panelRow["Chromosome"]) === parseInt(row["chromosome"]) &&
-          parseInt(panelRow["Start_Position"]) <=
-            parseInt(row["chromosome_start"]) &&
-          parseInt(panelRow["End_Position"]) >= parseInt(row["chromosome_end"])
-      );
-    } else {
-      filteredRow = panelArray.filter(
-        (panelRow) =>
-          panelRow["Chromosome"] === row["chromosome"] &&
-          parseInt(panelRow["Start_Position"]) <=
-            parseInt(row["chromosome_start"]) &&
-          parseInt(panelRow["End_Position"]) >= parseInt(row["chromosome_end"])
-      );
-    }
+  for (let i = 0; i < WGSArrayLower.length - 1; i++) {
+    const row = WGSArrayLower[i];
+
+    let filteredRow = panelArray.filter(
+      (panelRow) =>
+        extractNumber(panelRow["Chromosome"]) === extractNumber(row["chromosome"]) &&
+        parseInt(panelRow["Start_Position"], 10) <= parseInt(row["start_position"], 10) &&
+        parseInt(panelRow["End_Position"], 10) >= parseInt(row["end_position"], 10)
+    );
 
     if (filteredRow.length > 0) {
-      let MAFColumns = [
-        "icgc_mutation_id",
-        "project_code",
-        "icgc_donor_id",
-        "chromosome",
-        "chromosome_start",
-        "chromosome_end",
-        "assembly_version",
-        "mutation_type",
-        "reference_genome_allele",
-        "mutated_to_allele",
-      ];
       includedRows.push(row);
     }
   }
 
   return includedRows;
 }
+
 
 // Create a function that reads a csv file and returns a nested array of the data
 async function readCSV(csvFile) {
@@ -402,23 +385,23 @@ async function convertWGStoPanel(WgMAFs, panelDf) {
 }
 
 
-function convertICGCMutationalSpectraIntoJSON(MAFfiles, mutSpec, dataType ="WGS"){
-  
+function convertICGCMutationalSpectraIntoJSON(MAFfiles, mutSpec, dataType = "WGS") {
+
   // check if the length of the mutspec dictionary is the same as the length of the MAFfiles array
 
-  if (MAFfiles.length != Object.keys(mutSpec).length){
+  if (MAFfiles.length != Object.keys(mutSpec).length) {
     throw new Error("The number of MAF files and the number of mutational spectra do not match");
   }
 
   // loop through each mutational spectrum in the mutSpec dictionary and create a JSON object for each one
 
   const mergedPatientJSONs = [];
-  
+
   let i = 0;
-  for (let patient in mutSpec){
+  for (let patient in mutSpec) {
     const patientJSON = [];
 
-    for (let mutationType in mutSpec[patient]){
+    for (let mutationType in mutSpec[patient]) {
       let mutSpecObj = {
         "sample": MAFfiles[i][0]["project_code"],
         "strategy": dataType,

@@ -104,10 +104,24 @@ Converts patient mutation data into mutational spectra.
 @throws {Error} - If there is an error in processing the mutation data.
 */
 
+const extractFirstNumber = (str) => {
+  // Match the first occurrence of one or more digits
+  const match = str.match(/\d+/);
+  // Convert the match to an integer and return, or return null if no match
+  return match ? parseInt(match[0], 10) : null;
+};
+
 async function convertMatrix(data, group_by="project_code",  batch_size = 100, genome = "hg19",) {
   const mutationalSpectra = {};
 
   for (let patient of data) {
+
+    patient = patient.map(row =>
+      Object.fromEntries(
+        Object.entries(row).map(([key, value]) => [key.toLowerCase(), value])
+      )
+    );
+
     // Move the initialization of mutationalSpectrum inside the loop
     var mutationalSpectrum = init_sbs_mutational_spectra();
     var promises = [];
@@ -122,12 +136,14 @@ async function convertMatrix(data, group_by="project_code",  batch_size = 100, g
       } else if (!genome) {
         genome = "hg19";
       }
+      
 
       var chromosomeNumber = patient[i]["chromosome"];
-      var referenceAllele = patient[i]["reference_genome_allele"];
-      var mutatedTo = patient[i]["mutated_to_allele"];
-      var position = patient[i]["chromosome_start"];
-      var variantType = patient[i]["mutation_type"];
+      chromosomeNumber = extractFirstNumber(chromosomeNumber);
+      var referenceAllele = patient[i]["reference_allele"];
+      var mutatedTo = patient[i]["tumor_seq_allele2"];
+      var position = patient[i]["start_position"];
+      var variantType = patient[i]["variant_type"];
 
       var promise = getMutationalContext(chromosomeNumber, genome, parseInt(position))
         .then((sequence) => {
