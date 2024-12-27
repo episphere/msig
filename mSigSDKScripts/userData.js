@@ -78,13 +78,24 @@ async function convertWGStoPanel(WgMAFs, panelDf) {
 }
 
 
-function convertMutationalSpectraIntoJSON(MAFfiles, mutSpec, dataType = "WGS") {
+function convertMutationalSpectraIntoJSON(MAFfiles, mutSpec, sample_name, dataType = "WGS") {
 
   // check if the length of the mutspec dictionary is the same as the length of the MAFfiles array
 
   if (MAFfiles.length != Object.keys(mutSpec).length) {
     throw new Error("The number of MAF files and the number of mutational spectra do not match");
   }
+  // Convert all keys in MAFfiles to lowercase
+  MAFfiles = MAFfiles.map(file => {
+    return file.map(entry => {
+      const lowerCasedEntry = {};
+      for (const key in entry) {
+        lowerCasedEntry[key.toLowerCase()] = entry[key];
+      }
+      return lowerCasedEntry;
+    });
+  });
+  sample_name = sample_name.toLowerCase();
 
   // loop through each mutational spectrum in the mutSpec dictionary and create a JSON object for each one
 
@@ -96,7 +107,7 @@ function convertMutationalSpectraIntoJSON(MAFfiles, mutSpec, dataType = "WGS") {
 
     for (let mutationType in mutSpec[patient]) {
       let mutSpecObj = {
-        "sample": MAFfiles[i][0]["project_code"],
+        "sample": MAFfiles[i][0][sample_name],
         "strategy": dataType,
         "profile": "SBS",
         "matrix": 96,
