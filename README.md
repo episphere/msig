@@ -50,7 +50,7 @@ Explore interactive examples: [Observable Notebooks](https://observablehq.com/@a
 ### Contact
 **Aaron Ge**  
 Division of Cancer Epidemiology and Genetics, National Cancer Institute.  
-Email: [aaron.ge@nih.gov](mailto:aaron.ge@nih.gov).
+Email: [age1@som.umaryland.edu](mailto:age1@som.umaryland.edu).
 
 ---
 
