@@ -466,7 +466,9 @@ async function getVariantInformationFromMafFiles(res) {
                 result[p]["mutational_spectra"] = await convertMatrix(
                   info,
                   "sample",
-                  100
+                  100,
+                  "hg19",
+                  true
                 );
               }
             } catch (e) {

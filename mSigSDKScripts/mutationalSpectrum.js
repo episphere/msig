@@ -84,9 +84,8 @@ function standardize_trinucleotide(trinucleotide_ref) {
   };
   let purines = "AG";
   if (purines.includes(trinucleotide_ref[1])) {
-    return `${complement_seq[trinucleotide_ref[2]]}${
-      complement_seq[trinucleotide_ref[1]]
-    }${complement_seq[trinucleotide_ref[0]]}`;
+    return `${complement_seq[trinucleotide_ref[2]]}${complement_seq[trinucleotide_ref[1]]
+      }${complement_seq[trinucleotide_ref[0]]}`;
   } else {
     return trinucleotide_ref;
   }
@@ -128,7 +127,7 @@ const extractFirstNumber = (str) => {
   return match ? parseInt(match[0], 10) : null;
 };
 
-async function convertMatrix(data, group_by="project_code",  batch_size = 100, genome = "hg19",) {
+async function convertMatrix(data, group_by = "project_code", batch_size = 100, genome = "hg19", tcga = false) {
   const mutationalSpectra = {};
   group_by = group_by.toLowerCase();
 
@@ -145,7 +144,7 @@ async function convertMatrix(data, group_by="project_code",  batch_size = 100, g
     var promises = [];
 
     for (let i = 0; i < patient.length; i++) {
-      
+
       // if patient[i]['build'] exists, then use it to determine the genome
       // if patient[i]['build'] does not exist, then use the genome parameter
       // if genome parameter is not provided, then use hg19
@@ -154,14 +153,23 @@ async function convertMatrix(data, group_by="project_code",  batch_size = 100, g
       } else if (!genome) {
         genome = "hg19";
       }
-      
 
-      var chromosomeNumber = patient[i]["chromosome"];
-      chromosomeNumber = extractFirstNumber(chromosomeNumber);
-      var referenceAllele = patient[i]["reference_allele"];
-      var mutatedTo = patient[i]["tumor_seq_allele2"];
-      var position = patient[i]["start_position"];
-      var variantType = patient[i]["variant_type"];
+
+      if (tcga = false) {
+        var chromosomeNumber = patient[i]["chromosome"];
+        chromosomeNumber = extractFirstNumber(chromosomeNumber);
+        var referenceAllele = patient[i]["reference_allele"];
+        var mutatedTo = patient[i]["tumor_seq_allele2"];
+        var position = patient[i]["start_position"];
+        var variantType = patient[i]["variant_type"];
+      } else {
+        var chromosomeNumber = patient[i]["chromosome"];
+        var referenceAllele = patient[i]["reference_genome_allele"];
+        var mutatedTo = patient[i]["mutated_to_allele"];
+        var position = patient[i]["chromosome_start"];
+        var variantType = patient[i]["mutation_type"];
+      }
+
 
       var promise = getMutationalContext(chromosomeNumber, genome, parseInt(position))
         .then((sequence) => {
@@ -209,8 +217,7 @@ async function getMutationalContext(chromosomeNumber, genome, startPosition) {
 
   const alternative = await (
     await fetchURLAndCache("HG19",
-      `https://api.genome.ucsc.edu/getData/sequence?genome=${genome};chrom=chr${chrName};start=${startByte};end=${
-        endByte + 1
+      `https://api.genome.ucsc.edu/getData/sequence?genome=${genome};chrom=chr${chrName};start=${startByte};end=${endByte + 1
       }`
     )
   ).json();
