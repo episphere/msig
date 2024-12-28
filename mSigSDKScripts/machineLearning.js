@@ -1,4 +1,4 @@
-import * as MLR from "https://esm.sh/ml-regression-multivariate-linear@2.0.4";
+import * as MLR from "https://esm.sh/ml-regression-multivariate-linear@2.0.4"
 
 import * as CV from "https://esm.sh/ml-cross-validation@1.3.0";
 

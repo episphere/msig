@@ -1125,6 +1125,7 @@ Plots a UMAP visualization of the input data.
  *
  * @async
  * @function fitMutationalSpectraToSignatures
+ * @memberof machineLearning
  * @param {Object} mutationalSignatures - An object containing reference mutational signatures, typically obtained 
  * from external sources such as the mSigPortal API. Each key represents a signature name (e.g., "SBS1"), and each value 
  * is an object representing the mutation types (e.g., {"C>A": weight, "C>G": weight}).

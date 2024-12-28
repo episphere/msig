@@ -5,6 +5,6 @@
   "dependencies": {
     "build": "^0.1.4",
     "js-yaml": "^4.1.0",
-    "jsdoc": "^4.0.2"
+    "jsdoc": "^4.0.4"
   }
 }

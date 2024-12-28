@@ -58,6 +58,7 @@ async function readCSV(csvFile) {
  *
  * @async
  * @function convertWGStoPanel
+ * @memberof userData
  * @param {Array} WgMAFs - An array of WGS mutation data, where each element is an array representing mutations for a single sample.
  * Each mutation record should be an object with fields such as `chromosome`, `start_position`, etc.
  * @param {string|Array} panelDf - A BED file defining the regions of the panel or an array of arrays representing the panel regions.
@@ -122,6 +123,7 @@ async function convertWGStoPanel(WgMAFs, panelDf) {
  * and sample names, and outputs JSON objects representing the spectra in a structured format.
  * 
  * @function convertMutationalSpectraIntoJSON
+ * @memberof userData
  * @param {Array} MAFfiles - An array of arrays containing mutation annotation data for each sample. 
  * Each inner array represents a sample's mutation data, where each entry is an object with key-value pairs.
  * @param {Object} mutSpec - An object representing the mutational spectra. 
@@ -134,12 +136,12 @@ async function convertWGStoPanel(WgMAFs, panelDf) {
  * @example
  * // Example input:
  * const MAFfiles = [
- *   [{ sample_id: "Sample1", chromosome: "1", start_position: "12345", ... }],
- *   [{ sample_id: "Sample2", chromosome: "2", start_position: "67890", ... }]
+ *   [{ sample_id: "Sample1", ch   mosome: "1", start_position: "12345", ... }],
+ *   [{ sample_id: "Sample2", ch   mosome: "2", start_position: "67890", ... }]
  * ];
  * const mutSpec = {
- *   Patient1: { "A[C>A]A": 10, "A[C>A]C": 5, "A[C>A]G": 8, ... },
- *   Patient2: { "A[C>A]A": 7, "A[C>A]C": 4, "A[C>A]G": 6, ... }
+ *   Patient1: { "A[C>A]A": 10,    [C>A]C": 5, "A[C>A]G": 8, ... },
+ *   Patient2: { "A[C>A]A": 7, "   C>A]C": 4, "A[C>A]G": 6, ... }
  * };
  * const sample_name = "sample_id";
  * const result = convertMutationalSpectraIntoJSON(MAFfiles, mutSpec, sample_name, "WES");

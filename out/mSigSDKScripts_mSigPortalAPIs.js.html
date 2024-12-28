@@ -48,7 +48,7 @@ export async function getMutationalSignaturesOptions(
   genomeDataType = "WGS",
   mutationType = "SBS"
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_options?
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature_options?
   source=Reference_signatures&amp;strategy=${genomeDataType}&amp;profile=${mutationType}&amp;offset=0`;
   const cacheName = "getMutationalSignaturesOptions";
   return await (await fetchURLAndCache(cacheName, url)).json();
@@ -79,7 +79,7 @@ export async function getMutationalSignaturesData(
   matrix = 96,
   numberofResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature?
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature?
   source=Reference_signatures&amp;strategy=${genomeDataType}&amp;profile=${mutationType}&amp;matrix=${matrix}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberofResults}&amp;offset=0`;
   const cacheName = "getMutationalSignaturesData";
   const unformattedData = await (await fetchURLAndCache(cacheName, url)).json();
@@ -109,7 +109,7 @@ export async function getMutationalSignaturesSummary(
   numberofResults = 10,
   signatureSetName = "COSMIC_v3.3_Signatures"
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_signature_summary?signatureSetName=${signatureSetName}&amp;limit=${numberofResults}&amp;offset=0`;
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature_summary?signatureSetName=${signatureSetName}&amp;limit=${numberofResults}&amp;offset=0`;
   const cacheName = "getMutationalSignaturesSummary";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -136,7 +136,7 @@ export async function getMutationalSpectrumOptions(
   cancerType = "Lung-AdenoCA",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_options?study=${study}&amp;cancer=${cancerType}&amp;strategy=${genomeDataType}&amp;offset=0&amp;limit=${numberOfResults}`;
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum_options?study=${study}&amp;cancer=${cancerType}&amp;strategy=${genomeDataType}&amp;offset=0&amp;limit=${numberOfResults}`;
   const cacheName = "getMutationalSpectrumOptions";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -169,7 +169,7 @@ export async function getMutationalSpectrumData(
   let urls = [];
 
   if (cancerType == '') {
-    let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&amp;strategy=${genomeDataType}&amp;profile=${mutationType}&amp;matrix=${matrixSize}&amp;offset=0`;
+    let url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&amp;strategy=${genomeDataType}&amp;profile=${mutationType}&amp;matrix=${matrixSize}&amp;offset=0`;
 
     let unformattedData = await (await fetchURLAndCache(cacheName, url)).json();
 
@@ -177,7 +177,7 @@ export async function getMutationalSpectrumData(
   }
 
   if (samples === null) {
-    let url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}`;
+    let url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}`;
 
     if (cancerType !== null) {
       url += `&amp;cancer=${cancerType}`;
@@ -203,7 +203,7 @@ export async function getMutationalSpectrumData(
   } else {
     samples.forEach((sample) => {
       urls.push(
-        `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&amp;sample=${sample}&amp;cancer=${cancerType}&amp;strategy=${genomeDataType}&amp;profile=${mutationType}&amp;matrix=${matrixSize}&amp;offset=0`
+        `https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&amp;sample=${sample}&amp;cancer=${cancerType}&amp;strategy=${genomeDataType}&amp;profile=${mutationType}&amp;matrix=${matrixSize}&amp;offset=0`
       );
     });
   }
@@ -243,7 +243,7 @@ export async function getMutationalSpectrumSummary(
   cancerType = "Lung-AdenoCA",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/mutational_spectrum_summary?study=${study}&amp;cancer=${cancerType}&amp;strategy=${genomeDataType}&amp;limit=${numberOfResults}&amp;offset=0`;
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum_summary?study=${study}&amp;cancer=${cancerType}&amp;strategy=${genomeDataType}&amp;limit=${numberOfResults}&amp;offset=0`;
   const cacheName = "getMutationalSpectrumSummary";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -270,7 +270,7 @@ export async function getMutationalSignatureAssociationOptions(
   genomeDataType = "WGS",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association_options?study=${study}&amp;strategy=${genomeDataType}&amp;limit=${numberOfResults}&amp;offset=0`;
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_association_options?study=${study}&amp;strategy=${genomeDataType}&amp;limit=${numberOfResults}&amp;offset=0`;
   const cacheName = "getMutationalSignatureAssociationOptions";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -294,7 +294,7 @@ export async function getMutationalSignatureAssociationData(
   cancerType = "Biliary-AdenoCA",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_association?study=${study}&amp;strategy=${genomeDataType}&amp;cancer=${cancerType}&amp;limit=${numberOfResults}&amp;offset=0`;
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_association?study=${study}&amp;strategy=${genomeDataType}&amp;cancer=${cancerType}&amp;limit=${numberOfResults}&amp;offset=0`;
   const cacheName = "getMutationalSignatureAssociationData";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -319,7 +319,7 @@ export async function getMutationalSignatureActivityOptions(
   genomeDataType = "WGS",
   numberOfResults = 10
 ) {
-  const url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity_options?study=${study}&amp;strategy=${genomeDataType}&amp;limit=${numberOfResults}&amp;offset=0`;
+  const url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_activity_options?study=${study}&amp;strategy=${genomeDataType}&amp;limit=${numberOfResults}&amp;offset=0`;
   const cacheName = "getMutationalSignatureActivityOptions";
   return await (await fetchURLAndCache(cacheName, url)).json();
 }
@@ -346,9 +346,9 @@ export async function getMutationalSignatureActivityData(
 ) {
   let url = "";
   if (cancerType == "") {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;offset=0`;
+    url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;offset=0`;
   } else {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;cancer=${cancerType}&amp;offset=0`;
+    url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;cancer=${cancerType}&amp;offset=0`;
   }
 
   const cacheName = "getMutationalSignatureActivityData";
@@ -377,9 +377,9 @@ export async function getMutationalSignatureLandscapeData(
 ) {
   let url = "";
   if (cancerType == "") {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;offset=0`;
+    url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;offset=0`;
   } else {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;cancer=${cancerType}&amp;offset=0`;
+    url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_activity?study=${study}&amp;strategy=${genomeDataType}&amp;signatureSetName=${signatureSetName}&amp;limit=${numberOfResults}&amp;cancer=${cancerType}&amp;offset=0`;
   }
   const cacheName = "getMutationalSignatureLandscapeData";
   return await (await fetchURLAndCache(cacheName, url)).json();
@@ -419,7 +419,7 @@ export async function getMutationalSignatureEtiologyOptions(
   // Pass the arguments into the url of the api call only if they are not empty strings
 
   let url =
-    "https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology_options?";
+    "https://analysistools.cancer.gov/mutational-signatures/api/signature_etiology_options?";
 
   if (category != "") {
     url += `category=${category}&amp;`;
@@ -462,9 +462,9 @@ export async function getMutationalSignatureEtiologyData(
   let url = "";
 
   if (cancerType == "") {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&amp;strategy=${genomeDataType}&amp;signatureName=${signatureName}&amp;limit=${numberOfResults}&amp;offset=0`;
+    url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&amp;strategy=${genomeDataType}&amp;signatureName=${signatureName}&amp;limit=${numberOfResults}&amp;offset=0`;
   } else {
-    url = `https://analysistools-dev.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&amp;strategy=${genomeDataType}&amp;signatureName=${signatureName}&amp;cancer=${cancerType}&amp;limit=${numberOfResults}&amp;offset=0`;
+    url = `https://analysistools.cancer.gov/mutational-signatures/api/signature_etiology?study=${study}&amp;strategy=${genomeDataType}&amp;signatureName=${signatureName}&amp;cancer=${cancerType}&amp;limit=${numberOfResults}&amp;offset=0`;
   }
 
   const cacheName = "getMutationalSignatureEtiologyData";
@@ -482,13 +482,13 @@ export async function getMutationalSignatureEtiologyData(
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="ICGC.html">ICGC</a></li><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="tcga.html">tcga</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="tcga.html">tcga</a></li><li><a href="userData.html">userData</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Fri Oct 27 2023 12:13:21 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Fri Dec 27 2024 20:28:48 GMT-0500 (Eastern Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>

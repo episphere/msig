@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Module: User Data</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Module: User Data</h1>
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="~convertMutationalSpectraIntoJSON"><span class="type-signature">(inner) </span>convertMutationalSpectraIntoJSON<span class="signature">(MAFfiles, mutSpec, sample_name, dataType<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Converts mutational spectra into JSON objects for downstream processing or storage.This function takes mutation annotation format (MAF) files, mutational spectra data, and sample names, and outputs JSON objects representing the spectra in a structured format.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>MAFfiles</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">An array of arrays containing mutation annotation data for each sample. Each inner array represents a sample's mutation data, where each entry is an object with key-value pairs.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>mutSpec</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">An object representing the mutational spectra. Keys are patient identifiers, and values are objects with mutation types as keys and counts as values.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>sample_name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">The key in MAFfiles to be used as the sample identifier.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dataType</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "WGS"
+                
+                </td>
+            
+
+            <td class="description last">The sequencing strategy, e.g., "WGS" (Whole Genome Sequencing) or "WES" (Whole Exome Sequencing).</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="mSigSDKScripts_userData.js.html">mSigSDKScripts/userData.js</a>, <a href="mSigSDKScripts_userData.js.html#line123">line 123</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+
+        
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        - If the number of MAF files and the number of mutational spectra do not match.
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+
+    
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    - An array of arrays, where each inner array represents the JSON objects for a patient's mutational spectra.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Example input:const MAFfiles = [  [{ sample_id: "Sample1", ch   mosome: "1", start_position: "12345", ... }],  [{ sample_id: "Sample2", ch   mosome: "2", start_position: "67890", ... }]];const mutSpec = {  Patient1: { "A[C>A]A": 10,    [C>A]C": 5, "A[C>A]G": 8, ... },  Patient2: { "A[C>A]A": 7, "   C>A]C": 4, "A[C>A]G": 6, ... }};const sample_name = "sample_id";const result = convertMutationalSpectraIntoJSON(MAFfiles, mutSpec, sample_name, "WES");console.log(result);</code></pre>
+
+    <pre class="prettyprint"><code>// Example output:[  [    { sample: "Sample1", strategy: "WES", profile: "SBS", matrix: 96, mutationType: "C>A", mutations: 10 },    { sample: "Sample1", strategy: "WES", profile: "SBS", matrix: 96, mutationType: "C>G", mutations: 5 },    ...  ],  [    { sample: "Sample2", strategy: "WES", profile: "SBS", matrix: 96, mutationType: "C>A", mutations: 7 },    { sample: "Sample2", strategy: "WES", profile: "SBS", matrix: 96, mutationType: "C>G", mutations: 4 },    ...  ]];</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="~convertWGStoPanel"><span class="type-signature">(async, inner) </span>convertWGStoPanel<span class="signature">(WgMAFs, panelDf)</span><span class="type-signature"> &rarr; {Array}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Converts Whole Genome Sequencing (WGS) mutation data into panel data by downsampling based on a BED file.This function takes WGS mutation annotation files (MAFs) and a BED file defining panel regions, then filtersthe WGS data to include only mutations within the specified panel regions.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>WgMAFs</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">An array of WGS mutation data, where each element is an array representing mutations for a single sample.Each mutation record should be an object with fields such as `chromosome`, `start_position`, etc.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>panelDf</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+|
+
+<span class="param-type">Array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">A BED file defining the regions of the panel or an array of arrays representing the panel regions.If a string is provided, it is treated as a file path to a BED file and read into memory.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="mSigSDKScripts_userData.js.html">mSigSDKScripts/userData.js</a>, <a href="mSigSDKScripts_userData.js.html#line58">line 58</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    - An array of downsampled MAFs, where each element corresponds to a sample from the input WGS data,filtered to include only mutations within the panel regions.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>// Example input:const WgMAFs = [  [    { chromosome: "1", start_position: 12345, Hugo_Symbol: "TP53", ... },    { chromosome: "2", start_position: 67890, Hugo_Symbol: "BRCA1", ... },    ...  ],  [    { chromosome: "1", start_position: 54321, Hugo_Symbol: "KRAS", ... },    { chromosome: "2", start_position: 98765, Hugo_Symbol: "EGFR", ... },    ...  ],];const panelDf = "panel_regions.bed"; // Path to a BED file.// Convert WGS data to panel dataconst panelMAFs = await convertWGStoPanel(WgMAFs, panelDf);// Example output:// panelMAFs = [//   [//     { chromosome: "1", start_position: 12345, Hugo_Symbol: "TP53", ... },//     ...//   ],//   [//     { chromosome: "2", start_position: 98765, Hugo_Symbol: "EGFR", ... },//     ...//   ]// ];</code></pre>
+
+
+
+        
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-TCGA.html">TCGA</a></li><li><a href="module-User%2520Data.html">User Data</a></li><li><a href="module-Utils.html">Utils</a></li><li><a href="module-mSigPortal%2520APIs.html">mSigPortal APIs</a></li><li><a href="module-machineLearning.html">machineLearning</a></li></ul><h3>Namespaces</h3><ul><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="tcga.html">tcga</a></li><li><a href="userData.html">userData</a></li></ul><h3>Global</h3><ul><li><a href="global.html#fitMutationalSpectraToSignatures">fitMutationalSpectraToSignatures</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Fri Dec 27 2024 20:25:19 GMT-0500 (Eastern Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

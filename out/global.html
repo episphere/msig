@@ -104,7 +104,7 @@
     
 
     
-    <h4 class="name" id="kFoldCV"><span class="type-signature"></span>kFoldCV<span class="signature">(Xs, Ys, k<span class="signature-attributes">opt</span>, modelType<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    <h4 class="name" id="fitMutationalSpectraToSignatures"><span class="type-signature">(async) </span>fitMutationalSpectraToSignatures<span class="signature">(mutationalSignatures, mutationalSpectra)</span><span class="type-signature"> &rarr; {Object}</span></h4>
     
 
     
@@ -112,7 +112,7 @@
 
 
 <div class="description">
-    Performs k-fold stratified cross-validation for multivariate linear or MLP regression models.
+    Fits mutational spectra to known mutational signatures using non-negative least squares (NNLS).This function calculates the exposure of mutational signatures for each sample by fitting theobserved mutational spectra to the reference mutational signatures. It ensures non-negative contributionsfor all signatures and samples.
 </div>
 
 
@@ -136,11 +136,7 @@
         <th>Type</th>
 
         
-        <th>Attributes</th>
-        
 
-        
-        <th>Default</th>
         
 
         <th class="last">Description</th>
@@ -152,148 +148,46 @@
 
         <tr>
             
-                <td class="name"><code>Xs</code></td>
+                <td class="name"><code>mutationalSignatures</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type">Array</span>
+<span class="param-type">Object</span>
 
 
             
             </td>
 
             
-                <td class="attributes">
-                
-
-                
-
-                
-                </td>
-            
 
             
-                <td class="default">
-                
-                </td>
-            
 
-            <td class="description last">Array of input data.</td>
+            <td class="description last">An object containing reference mutational signatures, typically obtained from external sources such as the mSigPortal API. Each key represents a signature name (e.g., "SBS1"), and each value is an object representing the mutation types (e.g., {"C>A": weight, "C>G": weight}).</td>
         </tr>
 
     
 
         <tr>
             
-                <td class="name"><code>Ys</code></td>
+                <td class="name"><code>mutationalSpectra</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type">Array</span>
+<span class="param-type">Object</span>
 
 
             
             </td>
 
             
-                <td class="attributes">
-                
-
-                
-
-                
-                </td>
-            
 
             
-                <td class="default">
-                
-                </td>
-            
 
-            <td class="description last">Array of output data.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>k</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    10
-                
-                </td>
-            
-
-            <td class="description last">Number of folds for cross-validation.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>modelType</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    "MLR"
-                
-                </td>
-            
-
-            <td class="description last">Regression model type ("MLR" for multivariate linear regression or "MLP" for multilayer perceptron).</td>
+            <td class="description last">An object containing mutational spectra for each sample. Each key represents a sample identifier (e.g., "Sample1"), and each value is an object representing the counts for mutation types (e.g., {"C>A": count, "C>G": count}).</td>
         </tr>
 
     
@@ -334,7 +228,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="mSigSDKScripts_machineLearning.js.html">mSigSDKScripts/machineLearning.js</a>, <a href="mSigSDKScripts_machineLearning.js.html#line74">line 74</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1119">line 1119</a>
     </li></ul></dd>
     
 
@@ -357,42 +251,13 @@
 
 
 
-<h5>Throws:</h5>
-
-        
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        - If an unknown model type is provided.
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-
-    
 
 
 <h5>Returns:</h5>
 
         
 <div class="param-desc">
-    - Object containing an array of trained regression models, an array of mean squared errors for each fold, and the average mean squared error across all folds.
+    - An object where keys are sample identifiers, and values are objects containing the contribution of each signature (as weights) for that sample.
 </div>
 
 
@@ -410,386 +275,13 @@
 </dl>
 
     
-
-
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="loadScript"><span class="type-signature">(async) </span>loadScript<span class="signature">(url)</span><span class="type-signature"></span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    Load a certain dependency library from link
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>url</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">Library URL.</td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="mSigSDKScripts_tcga.js.html">mSigSDKScripts/tcga.js</a>, <a href="mSigSDKScripts_tcga.js.html#line509">line 509</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
 
     <h5>Example</h5>
     
-    <pre class="prettyprint"><code>let tcga = await import('https://raw.githubusercontent.com/YasCoMa/msig/main/mSigSDKScripts/tcga.js')
-await tcga.loadScript('https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.11/pako.min.js')</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="preprocessData"><span class="type-signature"></span>preprocessData<span class="signature">(mutationalData, exposureData, dataSource)</span><span class="type-signature"> &rarr; {Object}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    Preprocesses mutational and exposure data for a given data source.
-Currently only supports data from MSigDB portal.
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>mutationalData</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">Array of mutational data.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>exposureData</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">Array of exposure data.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>dataSource</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">Data source identifier.</td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="mSigSDKScripts_machineLearning.js.html">mSigSDKScripts/machineLearning.js</a>, <a href="mSigSDKScripts_machineLearning.js.html#line17">line 17</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Throws:</h5>
-
-        
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        - If an unknown data source is provided.
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-
-    
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    - Object containing input (Xs) and output (Ys) arrays for regression.
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Object</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
+    <pre class="prettyprint"><code>// Example: Obtaining mutational signatures and spectra// Step 1: Retrieve mutational signatures from the mSigPortal APIconst mutationalSignatures = await mSigPortal.mSigPortalData.getMutationalSignaturesData(  "WGS", "COSMIC_v3_Signatures_GRCh37_SBS96", "SBS", 96, 1000);// Step 2: Extract mutational spectra from sample dataconst extractedSpectra = await mSigPortal.mSigPortalData.extractMutationalSpectra(  mutationalSignatures, "signatureName");// Step 3: Fit mutational spectra to mutational signaturesconst nnlsExposures = await mSigPortal.signatureFitting.fitMutationalSpectraToSignatures(  mutationalSignatures, extractedSpectra);// Example output:console.log(nnlsExposures);// {//   Sample1: { SBS1: 0.6, SBS2: 0.4 },//   Sample2: { SBS1: 0.7, SBS2: 0.3 },//   ...// }</code></pre>
 
 
 
@@ -809,13 +301,13 @@ Currently only supports data from MSigDB portal.
 </div>
 
 <nav>
-    <h2><a href="../index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li></ul><h3>Global</h3><ul><li><a href="global.html#kFoldCV">kFoldCV</a></li><li><a href="global.html#loadScript">loadScript</a></li><li><a href="global.html#preprocessData">preprocessData</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="tcga.html">tcga</a></li><li><a href="userData.html">userData</a></li></ul><h3>Global</h3><ul><li><a href="global.html#fitMutationalSpectraToSignatures">fitMutationalSpectraToSignatures</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Tue Jun 20 2023 13:06:59 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Fri Dec 27 2024 20:28:30 GMT-0500 (Eastern Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>

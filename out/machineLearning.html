@@ -70,7 +70,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line92">line 92</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line91">line 91</a>
     </li></ul></dd>
     
 
@@ -718,8 +718,7 @@
 
 
 <div class="description">
-    Preprocesses mutational and exposure data for a given data source.
-Currently only supports data from MSigDB portal.
+    Preprocesses mutational and exposure data for a given data source.Currently only supports data from MSigDB portal.
 </div>
 
 
@@ -936,6 +935,193 @@ Currently only supports data from MSigDB portal.
     
 
 
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".fitMutationalSpectraToSignatures"><span class="type-signature">(async, static) </span>fitMutationalSpectraToSignatures<span class="signature">(mutationalSignatures, mutationalSpectra)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Fits mutational spectra to known mutational signatures using non-negative least squares (NNLS).This function calculates the exposure of mutational signatures for each sample by fitting theobserved mutational spectra to the reference mutational signatures. It ensures non-negative contributionsfor all signatures and samples.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>mutationalSignatures</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">An object containing reference mutational signatures, typically obtained from external sources such as the mSigPortal API. Each key represents a signature name (e.g., "SBS1"), and each value is an object representing the mutation types (e.g., {"C>A": weight, "C>G": weight}).</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>mutationalSpectra</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">An object containing mutational spectra for each sample. Each key represents a sample identifier (e.g., "Sample1"), and each value is an object representing the counts for mutation types (e.g., {"C>A": count, "C>G": count}).</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1119">line 1119</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    - An object where keys are sample identifiers, and values are objects containing the contribution of each signature (as weights) for that sample.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>// Example: Obtaining mutational signatures and spectra// Step 1: Retrieve mutational signatures from the mSigPortal APIconst mutationalSignatures = await mSigPortal.mSigPortalData.getMutationalSignaturesData(  "WGS", "COSMIC_v3_Signatures_GRCh37_SBS96", "SBS", 96, 1000);// Step 2: Extract mutational spectra from sample dataconst extractedSpectra = await mSigPortal.mSigPortalData.extractMutationalSpectra(  mutationalSignatures, "signatureName");// Step 3: Fit mutational spectra to mutational signaturesconst nnlsExposures = await mSigPortal.signatureFitting.fitMutationalSpectraToSignatures(  mutationalSignatures, extractedSpectra);// Example output:console.log(nnlsExposures);// {//   Sample1: { SBS1: 0.6, SBS2: 0.4 },//   Sample2: { SBS1: 0.7, SBS2: 0.3 },//   ...// }</code></pre>
 
 
 
@@ -1545,13 +1731,13 @@ Currently only supports data from MSigDB portal.
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="ICGC.html">ICGC</a></li><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="tcga.html">tcga</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="tcga.html">tcga</a></li><li><a href="userData.html">userData</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Fri Oct 27 2023 12:13:21 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Fri Dec 27 2024 20:28:48 GMT-0500 (Eastern Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>

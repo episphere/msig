@@ -1,8 +1,18 @@
 {
-    "source": {
-      "include": ["./mSigSDKScripts", "./main.js"],
-      "includePattern": ".+\\.js(doc|x)?$",
-      "excludePattern": "(^|\\/|\\\\)_"
-    }
+  "source": {
+    "include": [
+      "./mSigSDKScripts/mSigPortalAPIs.js",
+      "./mSigSDKScripts/tcga.js",
+      "./mSigSDKScripts/utils.js",
+      "./mSigSDKScripts/machineLearning.js",
+      "./main.js",
+      "./mSigSDKScripts/userData.js"
+    ],
+    "includePattern": ".*\\.js$",
+    "excludePattern": "(^|\\/|\\\\)_"
+  },
+  "opts": {
+    "destination": "./out",
+    "recurse": true
   }
-  
+}
