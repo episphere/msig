@@ -93,7 +93,7 @@ const mSigSDK = (function () {
    */
 
   /**
-   * @namespace ICGC
+   * @namespace userData
    */
 
   /**
@@ -349,13 +349,13 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
   /**
    * Plots the mutational spectrum for the given parameters.
    * @async
-   * @function plotPatientMutationalSpectrumICGC
+   * @function plotPatientMutationalSpectrumuserData
    * @memberof mSigPortalPlots
    * @param {Object} mutationalSpectra - An object containing the mutational spectra data.
    * @param {number} [matrixSize=96] - The size of the matrix to be plotted.
    * @param {string} [divID="mutationalSpectrumMatrix"] - The ID of the div element where the plot will be displayed.
    */
-  async function plotPatientMutationalSpectrumICGC(
+  async function plotPatientMutationalSpectrumuserData(
     mutationalSpectra,
     matrixSize = 96,
     divID = "mutationalSpectrumMatrix"
@@ -1376,10 +1376,10 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     mSigPortalPlots,
   };
 
-  const ICGC = {
+  const userData = {
     convertMatrix,
     convertWGStoPanel,
-    plotPatientMutationalSpectrumICGC,
+    plotPatientMutationalSpectrumuserData,
     convertMutationalSpectraIntoJSON,
   };
 
@@ -1411,7 +1411,7 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
   // Public members
   return {
     mSigPortal,
-    ICGC,
+    userData,
     tools,
     machineLearning,
     signatureFitting,
