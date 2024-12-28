@@ -93,16 +93,33 @@ function standardize_trinucleotide(trinucleotide_ref) {
 }
 
 /**
+ * Converts patient mutation data into mutational spectra.
+ * 
+ * This function processes mutation data for each patient, computes the mutational context,
+ * and aggregates the results into a mutational spectrum based on the specified grouping criterion.
+ * 
+ * @async
+ * @function convertMatrix
+ * @memberof ICGC
+ * @param {Array} data - The patient mutation data to be converted. Each patient's data should be an array of mutation records.
+ * @param {string} [group_by="project_code"] - The property used to group mutational spectra (e.g., "project_code").
+ * @param {number} [batch_size=100] - The number of mutations to process in each batch for parallelized computations.
+ * @param {string} [genome="hg19"] - The genome build to use for determining mutational context if not specified in mutation data.
+ * @returns {Object} - An object containing mutational spectra for each group, where keys are group identifiers.
+ * @throws {Error} - If there is an error in processing the mutation data or fetching the mutational context.
+ * 
+ * @example
+ * // Example usage:
+ * const data = [
+ *   [
+ *     { chromosome: "1", reference_allele: "C", tumor_seq_allele2: "T", start_position: "12345", variant_type: "SNP", project_code: "PRJ001" },
+ *     // Additional mutation records...
+ *   ]
+ * ];
+ * const spectra = await convertMatrix(data, "project_code", 50, "hg38");
+ * console.log(spectra);
+ */
 
-Converts patient mutation data into mutational spectra.
-@async
-@function convertMatrix
-@memberof ICGC
-@param {Array} data - The patient mutation data to be converted.
-@param {number} [batch_size=100] - The number of mutations to process in each batch.
-@returns {Object} - The mutational spectra of each patient in an object.
-@throws {Error} - If there is an error in processing the mutation data.
-*/
 
 const extractFirstNumber = (str) => {
   // Match the first occurrence of one or more digits
@@ -113,6 +130,7 @@ const extractFirstNumber = (str) => {
 
 async function convertMatrix(data, group_by="project_code",  batch_size = 100, genome = "hg19",) {
   const mutationalSpectra = {};
+  group_by = group_by.toLowerCase();
 
   for (let patient of data) {
 

@@ -1116,16 +1116,50 @@ Plots a UMAP visualization of the input data.
 
   //#region Signature Fitting
 
-  /**
+/**
+ * Fits mutational spectra to known mutational signatures using non-negative least squares (NNLS).
+ *
+ * This function calculates the exposure of mutational signatures for each sample by fitting the
+ * observed mutational spectra to the reference mutational signatures. It ensures non-negative contributions
+ * for all signatures and samples.
+ *
+ * @async
+ * @function fitMutationalSpectraToSignatures
+ * @param {Object} mutationalSignatures - An object containing reference mutational signatures, typically obtained 
+ * from external sources such as the mSigPortal API. Each key represents a signature name (e.g., "SBS1"), and each value 
+ * is an object representing the mutation types (e.g., {"C>A": weight, "C>G": weight}).
+ * @param {Object} mutationalSpectra - An object containing mutational spectra for each sample. Each key represents 
+ * a sample identifier (e.g., "Sample1"), and each value is an object representing the counts for mutation types 
+ * (e.g., {"C>A": count, "C>G": count}).
+ * @returns {Object} - An object where keys are sample identifiers, and values are objects containing the contribution 
+ * of each signature (as weights) for that sample.
+ * 
+ * @example
+ * // Example: Obtaining mutational signatures and spectra
+ * // Step 1: Retrieve mutational signatures from the mSigPortal API
+ * const mutationalSignatures = await mSigPortal.mSigPortalData.getMutationalSignaturesData(
+ *   "WGS", "COSMIC_v3_Signatures_GRCh37_SBS96", "SBS", 96, 1000
+ * );
+ *
+ * // Step 2: Extract mutational spectra from sample data
+ * const extractedSpectra = await mSigPortal.mSigPortalData.extractMutationalSpectra(
+ *   mutationalSignatures, "signatureName"
+ * );
+ *
+ * // Step 3: Fit mutational spectra to mutational signatures
+ * const nnlsExposures = await mSigPortal.signatureFitting.fitMutationalSpectraToSignatures(
+ *   mutationalSignatures, extractedSpectra
+ * );
+ *
+ * // Example output:
+ * console.log(nnlsExposures);
+ * // {
+ * //   Sample1: { SBS1: 0.6, SBS2: 0.4 },
+ * //   Sample2: { SBS1: 0.7, SBS2: 0.3 },
+ * //   ...
+ * // }
+ */
 
-Fits mutational spectra to mutational signatures using non-negative least squares (NNLS) regression.
-@async
-@function fitMutationalSpectraToSignatures
-@memberof mSigPortalPlots
-@param {Object} mutationalSignatures - An object containing mutational signature data with signature names as keys and nested objects containing signature values as values.
-@param {Object} mutationalSpectra - An object containing mutational spectra data with sample names as keys and nested objects containing spectra values as values.
-@returns {Promise<Object>} - A Promise that resolves to an object with sample names as keys and nested objects containing signature exposure values as values.
-*/
 
   async function fitMutationalSpectraToSignatures(
     mutationalSignatures,
