@@ -91,34 +91,6 @@ function standardize_trinucleotide(trinucleotide_ref) {
   }
 }
 
-/**
- * Converts patient mutation data into mutational spectra.
- * 
- * This function processes mutation data for each patient, computes the mutational context,
- * and aggregates the results into a mutational spectrum based on the specified grouping criterion.
- * 
- * @async
- * @function convertMatrix
- * @memberof ICGC
- * @param {Array} data - The patient mutation data to be converted. Each patient's data should be an array of mutation records.
- * @param {string} [group_by="project_code"] - The property used to group mutational spectra (e.g., "project_code").
- * @param {number} [batch_size=100] - The number of mutations to process in each batch for parallelized computations.
- * @param {string} [genome="hg19"] - The genome build to use for determining mutational context if not specified in mutation data.
- * @returns {Object} - An object containing mutational spectra for each group, where keys are group identifiers.
- * @throws {Error} - If there is an error in processing the mutation data or fetching the mutational context.
- * 
- * @example
- * // Example usage:
- * const data = [
- *   [
- *     { chromosome: "1", reference_allele: "C", tumor_seq_allele2: "T", start_position: "12345", variant_type: "SNP", project_code: "PRJ001" },
- *     // Additional mutation records...
- *   ]
- * ];
- * const spectra = await convertMatrix(data, "project_code", 50, "hg38");
- * console.log(spectra);
- */
-
 
 const extractFirstNumber = (str) => {
   // Match the first occurrence of one or more digits
@@ -127,88 +99,149 @@ const extractFirstNumber = (str) => {
   return match ? parseInt(match[0], 10) : null;
 };
 
-async function convertMatrix(data, group_by = "project_code", batch_size = 100, genome = "hg19", tcga = false) {
+/**
+ * Converts input mutational data into a mutational spectrum matrix grouped by a specified field.
+ *
+ * This function processes raw mutational data, extracts trinucleotide contexts, and aggregates 
+ * mutational spectra for each group. It supports TCGA and non-TCGA formats, allowing batch processing 
+ * for large datasets. The resulting mutational spectrum matrix is formatted for downstream visualization 
+ * and analysis.
+ *
+ * @async
+ * @function convertMatrix
+ * @param {Array<Array<Object>>} data - Array of patient-level mutational data. Each patient's data is represented 
+ * as an array of objects, where each object contains mutational details (e.g., chromosome, position, mutation type).
+ * @memberof userData
+ * @param {string} [group_by="Center"] - Field to group data by (e.g., "Center" or "sample_id"). This field should exist in the input data.
+ * @param {number} [batch_size=100] - Number of mutations to process in parallel batches. Adjust this for memory management.
+ * @param {string} [genome="hg19"] - Reference genome build. Defaults to "hg19" unless specified in the data.
+ * @param {boolean} [tcga=false] - Flag indicating whether the input data is in TCGA format. If true, expects TCGA-specific fields.
+ * @returns {Promise<Object>} - A promise resolving to an object where each key is a group (e.g., "CNIC"),
+ * and each value is a mutational spectrum object. The mutational spectrum object contains trinucleotide contexts as keys (e.g., "A[C>A]A") and counts as values.
+ *
+ * @example
+ * // Example input data
+ * const data = [
+ *   [
+ *     { chromosome: "1", start_position: "12345", reference_allele: "C", tumor_seq_allele2: "T", variant_type: "SNP", build: "hg19", Center: "CNIC" },
+ *     { chromosome: "2", start_position: "67890", reference_allele: "G", tumor_seq_allele2: "A", variant_type: "SNP", build: "hg19", Center: "CNIC" }
+ *   ],
+ *   [
+ *     { chromosome: "3", start_position: "101112", reference_allele: "T", tumor_seq_allele2: "C", variant_type: "SNP", build: "hg19", Center: "OtherCenter" }
+ *   ]
+ * ];
+ *
+ * // Convert data to mutational spectra grouped by Center
+ * const mutationalSpectra = await convertMatrix(data, "Center", 50, "hg19", false);
+ * console.log(mutationalSpectra);
+ * // Output:
+ * // {
+ * //   "CNIC": {
+ * //     "A[C>A]A": 9,
+ * //     "A[C>A]C": 7,
+ * //     "A[C>A]G": 6,
+ * //     ...
+ * //   },
+ * //   "OtherCenter": {
+ * //     "T[T>C]A": 15,
+ * //     "T[T>C]T": 8,
+ * //     ...
+ * //   }
+ * // }
+ */
+
+async function convertMatrix(
+  data,
+  group_by = "project_code",
+  batch_size = 100,
+  genome = "hg19",
+  tcga = false
+) {
   const mutationalSpectra = {};
   group_by = group_by.toLowerCase();
 
   for (let patient of data) {
-
-    patient = patient.map(row =>
+    // Convert all keys to lowercase for consistency
+    patient = patient.map((row) =>
       Object.fromEntries(
         Object.entries(row).map(([key, value]) => [key.toLowerCase(), value])
       )
     );
 
-    // Move the initialization of mutationalSpectrum inside the loop
-    var mutationalSpectrum = init_sbs_mutational_spectra();
-    var promises = [];
+    // Initialize a mutational spectrum for each 'patient' group
+    let mutationalSpectrum = init_sbs_mutational_spectra();
+    let promises = [];
 
     for (let i = 0; i < patient.length; i++) {
-
-      // if patient[i]['build'] exists, then use it to determine the genome
-      // if patient[i]['build'] does not exist, then use the genome parameter
-      // if genome parameter is not provided, then use hg19
-      if (patient[i]['build']) {
-        genome = patient[i]['build'];
+      // If patient[i]['build'] exists, use it to determine the genome
+      // Otherwise, use the 'genome' argument or default to "hg19"
+      if (patient[i]["build"]) {
+        genome = patient[i]["build"];
       } else if (!genome) {
         genome = "hg19";
       }
 
+      let chromosomeNumber;
+      let referenceAllele;
+      let mutatedTo;
+      let position;
+      let variantType;
 
-      if (tcga = false) {
-        var chromosomeNumber = patient[i]["chromosome"];
+      // Use a proper comparison or a simple "if (!tcga)" check
+      if (!tcga) {
+        chromosomeNumber = patient[i]["chromosome"];
         chromosomeNumber = extractFirstNumber(chromosomeNumber);
-        var referenceAllele = patient[i]["reference_allele"];
-        var mutatedTo = patient[i]["tumor_seq_allele2"];
-        var position = patient[i]["start_position"];
-        var variantType = patient[i]["variant_type"];
+        referenceAllele = patient[i]["reference_allele"];
+        mutatedTo = patient[i]["tumor_seq_allele2"];
+        position = patient[i]["start_position"];
+        variantType = patient[i]["variant_type"];
       } else {
-        var chromosomeNumber = patient[i]["chromosome"];
-        var referenceAllele = patient[i]["reference_genome_allele"];
-        var mutatedTo = patient[i]["mutated_to_allele"];
-        var position = patient[i]["chromosome_start"];
-        var variantType = patient[i]["mutation_type"];
+        chromosomeNumber = patient[i]["chromosome"];
+        referenceAllele = patient[i]["reference_genome_allele"];
+        mutatedTo = patient[i]["mutated_to_allele"];
+        position = patient[i]["chromosome_start"];
+        variantType = patient[i]["mutation_type"];
       }
 
-
-      var promise = getMutationalContext(chromosomeNumber, genome, parseInt(position))
+      // Get the trinucleotide context for this mutation
+      let promise = getMutationalContext(chromosomeNumber, genome, parseInt(position))
         .then((sequence) => {
           sequence = standardize_trinucleotide(sequence);
-          let fivePrime = sequence[0];
-          let threePrime = sequence[2];
-          let mutationType = String(
-            `${fivePrime}[${standardize_substitution(
-              referenceAllele,
-              mutatedTo
-            )}]${threePrime}`
-          ).toUpperCase();
 
+          const fivePrime = sequence[0];
+          const threePrime = sequence[2];
+          const standardizedSubstitution = standardize_substitution(referenceAllele, mutatedTo);
+          const mutationType = `${fivePrime}[${standardizedSubstitution}]${threePrime}`.toUpperCase();
+
+          // Only count valid single base substitutions
           if (
-            (variantType == "SNP" ||
-              variantType == "single base substitution") &&
+            (variantType === "SNP" || variantType === "single base substitution") &&
             !mutationType.includes("N") &&
             !mutationType.includes("U")
           ) {
-            mutationalSpectrum[mutationType] =
-              Number(mutationalSpectrum[mutationType]) + Number(1);
+            mutationalSpectrum[mutationType] = Number(mutationalSpectrum[mutationType]) + 1;
           }
         })
         .catch((error) => {
           console.error(error);
         });
+
       promises.push(promise);
 
+      // Batch processing to avoid too many parallel requests
       if (i % batch_size === 0 || i === patient.length - 1) {
         await Promise.all(promises);
         promises = [];
       }
     }
-    // Use the patient's project_code as the key in the mutationalSpectra object
+
+    // Use the patient's group_by field (e.g., project_code) as the key
     mutationalSpectra[patient[0][group_by]] = mutationalSpectrum;
   }
 
   return mutationalSpectra;
 }
+
 
 async function getMutationalContext(chromosomeNumber, genome, startPosition) {
   const chrName = String(chromosomeNumber);

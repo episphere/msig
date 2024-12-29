@@ -944,7 +944,7 @@
     
 
     
-    <h4 class="name" id=".fitMutationalSpectraToSignatures"><span class="type-signature">(async, static) </span>fitMutationalSpectraToSignatures<span class="signature">(mutationalSignatures, mutationalSpectra)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    <h4 class="name" id=".fitMutationalSpectraToSignatures"><span class="type-signature">(async, static) </span>fitMutationalSpectraToSignatures<span class="signature">(mutationalSignatures, mutationalSpectra, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Object}</span></h4>
     
 
     
@@ -952,7 +952,7 @@
 
 
 <div class="description">
-    Fits mutational spectra to known mutational signatures using non-negative least squares (NNLS).This function calculates the exposure of mutational signatures for each sample by fitting theobserved mutational spectra to the reference mutational signatures. It ensures non-negative contributionsfor all signatures and samples.
+    Fits mutational spectra to known mutational signatures using non-negative least squares (NNLS).This function calculates the exposure of mutational signatures for each sample by fittingthe observed mutational spectra to the reference mutational signatures. It then filters outsignatures whose contribution is below a fraction of the total exposure, by setting theirexposures to zero.You can choose to return exposures as absolute values (raw counts from NNLS) or relative values(sum to 1 for each sample). The filtering threshold is a fraction between 0 and 1.
 </div>
 
 
@@ -975,6 +975,8 @@
 
         <th>Type</th>
 
+        
+        <th>Attributes</th>
         
 
         
@@ -1001,10 +1003,18 @@
             </td>
 
             
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
 
             
 
-            <td class="description last">An object containing reference mutational signatures, typically obtained from external sources such as the mSigPortal API. Each key represents a signature name (e.g., "SBS1"), and each value is an object representing the mutation types (e.g., {"C>A": weight, "C>G": weight}).</td>
+            <td class="description last">Reference mutational signatures. Each key is a signature name,and each value is an object of mutation types (e.g., {"C>A": weight, "C>G": weight}).</td>
         </tr>
 
     
@@ -1024,10 +1034,162 @@
             </td>
 
             
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
 
             
 
-            <td class="description last">An object containing mutational spectra for each sample. Each key represents a sample identifier (e.g., "Sample1"), and each value is an object representing the counts for mutation types (e.g., {"C>A": count, "C>G": count}).</td>
+            <td class="description last">Mutational spectra for each sample. Each key is a sample ID,and each value is an object of mutation types with their counts (e.g., {"C>A": count, "C>G": count}).</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Configuration options for filtering and output.
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>exposureThreshold</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    0
+                
+                </td>
+            
+
+            <td class="description last">Exclude signatures below this fraction of the total,by setting their exposures to zero. Must be between 0 and 1.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>exposureType</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">"absolute"</span>
+|
+
+<span class="param-type">"relative"</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "relative"
+                
+                </td>
+            
+
+            <td class="description last">Return exposures as absolute or relative.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
         </tr>
 
     
@@ -1097,7 +1259,7 @@
 
         
 <div class="param-desc">
-    - An object where keys are sample identifiers, and values are objects containing the contribution of each signature (as weights) for that sample.
+    - An object with sample IDs as keys. Each value is an object of signature exposures.
 </div>
 
 
@@ -1121,7 +1283,7 @@
 
     <h5>Example</h5>
     
-    <pre class="prettyprint"><code>// Example: Obtaining mutational signatures and spectra// Step 1: Retrieve mutational signatures from the mSigPortal APIconst mutationalSignatures = await mSigPortal.mSigPortalData.getMutationalSignaturesData(  "WGS", "COSMIC_v3_Signatures_GRCh37_SBS96", "SBS", 96, 1000);// Step 2: Extract mutational spectra from sample dataconst extractedSpectra = await mSigPortal.mSigPortalData.extractMutationalSpectra(  mutationalSignatures, "signatureName");// Step 3: Fit mutational spectra to mutational signaturesconst nnlsExposures = await mSigPortal.signatureFitting.fitMutationalSpectraToSignatures(  mutationalSignatures, extractedSpectra);// Example output:console.log(nnlsExposures);// {//   Sample1: { SBS1: 0.6, SBS2: 0.4 },//   Sample2: { SBS1: 0.7, SBS2: 0.3 },//   ...// }</code></pre>
+    <pre class="prettyprint"><code>// Example usage:// 1. Get mutational signatures (e.g., from the mSigPortal API)const mutationalSignatures = await mSigPortal.mSigPortalData.getMutationalSignaturesData(  "WGS", "COSMIC_v3_Signatures_GRCh37_SBS96", "SBS", 96, 1000);// 2. Extract mutational spectra for each sampleconst extractedSpectra = await mSigPortal.mSigPortalData.extractMutationalSpectra(  mutationalSignatures, "signatureName");// 3. Fit spectra to signatures with post-fit filtering//    For instance, filter out signatures below 10% of the total exposure,//    and then return relative exposures that sum to 1.const nnlsExposures = await mSigPortal.signatureFitting.fitMutationalSpectraToSignatures(  mutationalSignatures,  extractedSpectra,  {    exposureThreshold: 0.1,    exposureType: "relative"  });console.log(nnlsExposures);// {//   Sample1: { SBS1: 0.75, SBS2: 0.25, SBS3: 0 },//   Sample2: { SBS1: 0.9, SBS2: 0.1, SBS3: 0 },//   ...// }</code></pre>
 
 
 
@@ -1737,7 +1899,7 @@
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Fri Dec 27 2024 20:41:26 GMT-0500 (Eastern Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Sun Dec 29 2024 18:07:43 GMT-0500 (Eastern Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>
