@@ -109,6 +109,342 @@
     
 
     
+    <h4 class="name" id=".convertMatrix"><span class="type-signature">(async, static) </span>convertMatrix<span class="signature">(data, group_by<span class="signature-attributes">opt</span>, batch_size<span class="signature-attributes">opt</span>, genome<span class="signature-attributes">opt</span>, tcga<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;Object>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Converts input mutational data into a mutational spectrum matrix grouped by a specified field.This function processes raw mutational data, extracts trinucleotide contexts, and aggregates mutational spectra for each group. It supports TCGA and non-TCGA formats, allowing batch processing for large datasets. The resulting mutational spectrum matrix is formatted for downstream visualization and analysis.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>data</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;Array.&lt;Object>></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Array of patient-level mutational data. Each patient's data is represented as an array of objects, where each object contains mutational details (e.g., chromosome, position, mutation type).</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>group_by</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "Center"
+                
+                </td>
+            
+
+            <td class="description last">Field to group data by (e.g., "Center" or "sample_id"). This field should exist in the input data.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>batch_size</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    100
+                
+                </td>
+            
+
+            <td class="description last">Number of mutations to process in parallel batches. Adjust this for memory management.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>genome</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "hg19"
+                
+                </td>
+            
+
+            <td class="description last">Reference genome build. Defaults to "hg19" unless specified in the data.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>tcga</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    false
+                
+                </td>
+            
+
+            <td class="description last">Flag indicating whether the input data is in TCGA format. If true, expects TCGA-specific fields.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="mSigSDKScripts_mutationalSpectrum.js.html">mSigSDKScripts/mutationalSpectrum.js</a>, <a href="mSigSDKScripts_mutationalSpectrum.js.html#line102">line 102</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    - A promise resolving to an object where each key is a group (e.g., "CNIC"),and each value is a mutational spectrum object. The mutational spectrum object contains trinucleotide contexts as keys (e.g., "A[C>A]A") and counts as values.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;Object></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>// Example input dataconst data = [  [    { chromosome: "1", start_position: "12345", reference_allele: "C", tumor_seq_allele2: "T", variant_type: "SNP", build: "hg19", Center: "CNIC" },    { chromosome: "2", start_position: "67890", reference_allele: "G", tumor_seq_allele2: "A", variant_type: "SNP", build: "hg19", Center: "CNIC" }  ],  [    { chromosome: "3", start_position: "101112", reference_allele: "T", tumor_seq_allele2: "C", variant_type: "SNP", build: "hg19", Center: "OtherCenter" }  ]];// Convert data to mutational spectra grouped by Centerconst mutationalSpectra = await convertMatrix(data, "Center", 50, "hg19", false);console.log(mutationalSpectra);// Output:// {//   "CNIC": {//     "A[C>A]A": 9,//     "A[C>A]C": 7,//     "A[C>A]G": 6,//     ...//   },//   "OtherCenter": {//     "T[T>C]A": 15,//     "T[T>C]T": 8,//     ...//   }// }</code></pre>
+
+
+
+        
+            
+
+    
+
+    
     <h4 class="name" id=".convertMutationalSpectraIntoJSON"><span class="type-signature">(static) </span>convertMutationalSpectraIntoJSON<span class="signature">(MAFfiles, mutSpec, sample_name, dataType<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array}</span></h4>
     
 
@@ -635,7 +971,7 @@
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Sun Dec 29 2024 18:07:43 GMT-0500 (Eastern Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Sun Dec 29 2024 18:18:19 GMT-0500 (Eastern Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>

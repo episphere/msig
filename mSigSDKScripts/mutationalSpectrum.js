@@ -109,9 +109,9 @@ const extractFirstNumber = (str) => {
  *
  * @async
  * @function convertMatrix
+ * @memberof userData
  * @param {Array<Array<Object>>} data - Array of patient-level mutational data. Each patient's data is represented 
  * as an array of objects, where each object contains mutational details (e.g., chromosome, position, mutation type).
- * @memberof userData
  * @param {string} [group_by="Center"] - Field to group data by (e.g., "Center" or "sample_id"). This field should exist in the input data.
  * @param {number} [batch_size=100] - Number of mutations to process in parallel batches. Adjust this for memory management.
  * @param {string} [genome="hg19"] - Reference genome build. Defaults to "hg19" unless specified in the data.

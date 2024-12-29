@@ -5,6 +5,7 @@
       "./mSigSDKScripts/tcga.js",
       "./mSigSDKScripts/utils.js",
       "./mSigSDKScripts/machineLearning.js",
+      "./mSigSDKScripts/mutationalSpectrum.js",
       "./main.js",
       "./mSigSDKScripts/userData.js"
     ],
