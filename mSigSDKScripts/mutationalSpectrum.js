@@ -96,6 +96,16 @@ function standardize_trinucleotide(trinucleotide_ref) {
 
 
 const extractFirstNumber = (str, extractSexChromosome = false) => {
+  // Check if the string is just "X" or "Y" and extractSexChromosome is true
+  if (extractSexChromosome && /^[XY]$/.test(str)) {
+    return str; // Return "X" or "Y" directly
+  }
+
+  // Check if the string consists only of digits
+  if (/^\d+$/.test(str)) {
+    return parseInt(str, 10); // Convert the string to an integer
+  }
+
   const match = str.match(/chr([XY\d]+)/);
   if (match) {
     const chrom = match[1];
@@ -225,7 +235,7 @@ async function convertMatrix(
           genome,
           position
         });
-        continue; // Skip this iteration if any value is missing
+        continue; // Skip this iteration if any value is missing. This is usually due to the chromosomeNumber being a sex chromosome
       }
 
       // Get the trinucleotide context for this mutation

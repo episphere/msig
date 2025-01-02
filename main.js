@@ -804,70 +804,196 @@ This function creates a heatmap using the cosine similarity matrix for the given
 @returns {Array<Array<number>>} - The cosine similarity matrix.
 */
 
-  async function plotCosineSimilarityHeatMap(
-    groupedData,
-    studyName = "PCAWG",
-    genomeDataType = "WGS",
-    cancerType = "Lung-AdenoCA",
-    divID = "cosineSimilarityHeatMap",
-    conductDoubleClustering = true,
-    colorscale = "RdBu"
-  ) {
-    groupedData = extractMutationalSpectra(groupedData);
-    let distanceMatrix = await createDistanceMatrix(
-      Object.values(groupedData).map((data) => Object.values(data)),
-      cosineSimilarity,
-      true
-    );
+async function plotCosineSimilarityHeatMap(
+  groupedData,
+  studyName = "PCAWG",
+  genomeDataType = "WGS",
+  cancerType = "Lung-AdenoCA",
+  divID = "cosineSimilarityHeatMap",
+  conductDoubleClustering = true,
+  colorscale = "RdBu",
+  showTable = false // New parameter with default value false
+) {
+  groupedData = extractMutationalSpectra(groupedData);
+  let distanceMatrix = await createDistanceMatrix(
+    Object.values(groupedData).map((data) => Object.values(data)),
+    cosineSimilarity,
+    true
+  );
 
-    let cosSimilarityMatrix = distanceMatrix.map(function (row) {
-      return row.map(function (cell) {
-        return 1 - cell;
-      });
+  let cosSimilarityMatrix = distanceMatrix.map(function (row) {
+    return row.map(function (cell) {
+      return 1 - cell;
     });
-    let reorderedData;
-    if (conductDoubleClustering) {
-      reorderedData = doubleClustering(
-        cosSimilarityMatrix,
-        Object.keys(groupedData),
-        Object.keys(groupedData)
-      );
-    } else {
-      reorderedData = {
-        matrix: cosSimilarityMatrix,
-        rowNames: Object.keys(groupedData),
-        colNames: Object.keys(groupedData),
-      };
-    }
-
-    let plotlyData = [
-      {
-        z: reorderedData.matrix,
-        x: reorderedData.rowNames,
-        y: reorderedData.colNames,
-        type: "heatmap",
-        colorscale: colorscale,
-      },
-    ];
-
-    let layout = {
-      title: `${studyName} ${cancerType} ${genomeDataType} Cosine Similarity Heatmap`,
-      height: 800,
-      xaxis: {
-        title: "Sample",
-        type: "category",
-        nticks: Object.keys(groupedData).length,
-      },
-      yaxis: {
-        title: "Sample",
-        type: "category",
-        nticks: Object.keys(groupedData).length,
-      },
+  });
+  let reorderedData;
+  if (conductDoubleClustering) {
+    reorderedData = doubleClustering(
+      cosSimilarityMatrix,
+      Object.keys(groupedData),
+      Object.keys(groupedData)
+    );
+  } else {
+    reorderedData = {
+      matrix: cosSimilarityMatrix,
+      rowNames: Object.keys(groupedData),
+      colNames: Object.keys(groupedData),
     };
-    plotGraphWithPlotlyAndMakeDataDownloadable(divID, plotlyData, layout);
-    return cosSimilarityMatrix;
   }
 
+  let plotlyData = [
+    {
+      z: reorderedData.matrix,
+      x: reorderedData.rowNames,
+      y: reorderedData.colNames,
+      type: "heatmap",
+      colorscale: colorscale,
+    },
+  ];
+
+  let layout = {
+    title: `${studyName} ${cancerType} ${genomeDataType} Cosine Similarity Heatmap`,
+    height: 800,
+    xaxis: {
+      title: "Sample",
+      type: "category",
+      nticks: Object.keys(groupedData).length,
+    },
+    yaxis: {
+      title: "Sample",
+      type: "category",
+      nticks: Object.keys(groupedData).length,
+    },
+  };
+
+  // Get the container of the Plotly graph
+  const container = document.getElementById(divID);
+
+  // Set container to display flex if showTable is true
+  if (showTable) {
+    container.style.display = "flex";
+    container.style.flexDirection = "row";
+  } else {
+    container.style.display = "block";
+  }
+
+  // Plot the graph using Plotly
+  Plotly.default.newPlot(divID, plotlyData, layout);
+
+  // Ensure Font Awesome CSS is included
+  const fontAwesomeLink =
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css";
+  if (!document.querySelector(`link[href="${fontAwesomeLink}"]`)) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = fontAwesomeLink;
+    document.head.appendChild(link);
+  }
+
+  // Create a download button with only the Font Awesome download icon
+  const downloadBtn = document.createElement("div");
+  downloadBtn.innerHTML =
+    '<button class="btn"><i class="fa fa-download"></i></button>';
+  const btn = downloadBtn.firstChild;
+
+  // Position the button at the bottom right corner of the container
+  btn.style.position = "absolute";
+  btn.style.bottom = "0";
+  btn.style.right = "0";
+
+  // Add an event listener to handle the download action
+  btn.addEventListener("click", function () {
+    const graphData = {
+      traces: plotlyData,
+      layout: layout,
+    };
+    const blob = new Blob([JSON.stringify(graphData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "graph_data.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Append the download button to the container
+  container.appendChild(btn);
+
+  // Add the provided CSS
+  const css = `
+      .btn {
+          background-color: DodgerBlue;
+          border: none;
+          border-radius: 100%;
+          color: white;
+          padding: 12px 12px;
+          cursor: pointer;
+          font-size: 20px;
+      }
+
+      .btn:hover {
+          background-color: RoyalBlue;
+      }
+  `;
+
+  const style = document.createElement("style");
+  style.type = "text/css";
+  style.appendChild(document.createTextNode(css));
+  document.head.appendChild(style);
+
+  // If showTable is true, create and append the table
+  if (showTable) {
+    // Create a container for the table
+    const tableContainer = document.createElement("div");
+    tableContainer.style.flex = "1";
+    tableContainer.style.marginLeft = "10px"; // Add some spacing between heatmap and table
+
+    // Create the table
+    const table = document.createElement("table");
+    table.style.borderCollapse = "collapse";
+    table.style.width = "100%";
+
+    // Create table headers
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    const emptyTh = document.createElement("th"); // Empty cell for row headers
+    headerRow.appendChild(emptyTh);
+    reorderedData.colNames.forEach((colName) => {
+      const th = document.createElement("th");
+      th.textContent = colName;
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    // Create table body
+    const tbody = document.createElement("tbody");
+    reorderedData.rowNames.forEach((rowName, rowIndex) => {
+      const tr = document.createElement("tr");
+      // Cell for row header
+      const rowHeader = document.createElement("th");
+      rowHeader.textContent = rowName;
+      tr.appendChild(rowHeader);
+      reorderedData.colNames.forEach((colName, colIndex) => {
+        const td = document.createElement("td");
+        td.textContent = cosSimilarityMatrix[rowIndex][colIndex].toFixed(3);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    // Append the table to the table container
+    tableContainer.appendChild(table);
+
+    // Append the table container to the main container
+    container.appendChild(tableContainer);
+  }
+
+  return cosSimilarityMatrix;
+}
   /**
  * Plots the cumulative exposure values for each "group" across all the different "sample".
  * @function plotSignatureActivityDataBy
