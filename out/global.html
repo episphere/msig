@@ -104,7 +104,7 @@
     
 
     
-    <h4 class="name" id="fitMutationalSpectraToSignatures"><span class="type-signature">(async) </span>fitMutationalSpectraToSignatures<span class="signature">(mutationalSignatures, mutationalSpectra)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    <h4 class="name" id="plotCosineSimilarityHeatMap"><span class="type-signature">(async) </span>plotCosineSimilarityHeatMap<span class="signature">(groupedData, studyName<span class="signature-attributes">opt</span>, genomeDataType<span class="signature-attributes">opt</span>, cancerType<span class="signature-attributes">opt</span>, divID<span class="signature-attributes">opt</span>, conductDoubleClustering<span class="signature-attributes">opt</span>, colorscale<span class="signature-attributes">opt</span>, showTable<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;Array.&lt;number>>>}</span></h4>
     
 
     
@@ -112,7 +112,7 @@
 
 
 <div class="description">
-    Fits mutational spectra to known mutational signatures using non-negative least squares (NNLS).This function calculates the exposure of mutational signatures for each sample by fitting theobserved mutational spectra to the reference mutational signatures. It ensures non-negative contributionsfor all signatures and samples.
+    Asynchronously plots a cosine similarity heatmap and optionally a corresponding table.This function takes grouped mutational spectra data, calculates the cosine similaritybetween samples, optionally performs double clustering to reorder the data, and thenvisualizes the similarity matrix as a heatmap using Plotly. It can also display atable showing the exact cosine similarity values alongside the heatmap.
 </div>
 
 
@@ -136,7 +136,11 @@
         <th>Type</th>
 
         
+        <th>Attributes</th>
+        
 
+        
+        <th>Default</th>
         
 
         <th class="last">Description</th>
@@ -148,46 +152,308 @@
 
         <tr>
             
-                <td class="name"><code>mutationalSignatures</code></td>
+                <td class="name"><code>groupedData</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type">Object</span>
+<span class="param-type">Object.&lt;string, Object.&lt;string, number>></span>
 
 
             
             </td>
 
             
+                <td class="attributes">
+                
 
+                
+
+                
+                </td>
             
 
-            <td class="description last">An object containing reference mutational signatures, typically obtained from external sources such as the mSigPortal API. Each key represents a signature name (e.g., "SBS1"), and each value is an object representing the mutation types (e.g., {"C>A": weight, "C>G": weight}).</td>
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">An object representing the grouped  mutational spectra data. The keys are sample names, and the values are objects  where keys are mutation types and values are mutation counts.  **Example:**  ```  {    'Sample1': {'C>A': 10, 'C>G': 5, 'C>T': 12, ...},    'Sample2': {'C>A': 8, 'C>G': 7, 'C>T': 15, ...},    ...  }  ```</td>
         </tr>
 
     
 
         <tr>
             
-                <td class="name"><code>mutationalSpectra</code></td>
+                <td class="name"><code>studyName</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type">Object</span>
+<span class="param-type">string</span>
 
 
             
             </td>
 
             
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
 
+                
+
+                
+                </td>
             
 
-            <td class="description last">An object containing mutational spectra for each sample. Each key represents a sample identifier (e.g., "Sample1"), and each value is an object representing the counts for mutation types (e.g., {"C>A": count, "C>G": count}).</td>
+            
+                <td class="default">
+                
+                    "PCAWG"
+                
+                </td>
+            
+
+            <td class="description last">The name of the study. Used in the plot title.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>genomeDataType</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "WGS"
+                
+                </td>
+            
+
+            <td class="description last">The type of genome data (e.g., "WGS", "WES").  Used in the plot title.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cancerType</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "Lung-AdenoCA"
+                
+                </td>
+            
+
+            <td class="description last">The type of cancer. Used in the plot title.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>divID</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "cosineSimilarityHeatMap"
+                
+                </td>
+            
+
+            <td class="description last">The ID of the HTML div element  where the plot and table will be rendered. If the div does not exist it is generated.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>conductDoubleClustering</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    true
+                
+                </td>
+            
+
+            <td class="description last">Whether to perform double clustering  (on both rows and columns) to reorder the data in the heatmap and table.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>colorscale</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "RdBu"
+                
+                </td>
+            
+
+            <td class="description last">The Plotly colorscale to use for the heatmap.  See https://plotly.com/javascript/colorscales/ for available options.  **Examples:** "Viridis", "RdBu", "Blues", "Greens", "Hot".</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>showTable</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    false
+                
+                </td>
+            
+
+            <td class="description last">Whether to display a table showing the exact  cosine similarity values alongside the heatmap.</td>
         </tr>
 
     
@@ -228,7 +494,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1119">line 1119</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line793">line 793</a>
     </li></ul></dd>
     
 
@@ -251,13 +517,42 @@
 
 
 
+<h5>Throws:</h5>
+
+        
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        Throws an error if any of the underlying functions (e.g.,  `extractMutationalSpectra`, `createDistanceMatrix`, `doubleClustering`,  `plotGraphWithPlotlyAndMakeDataDownloadable`) fail.
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+
+    
 
 
 <h5>Returns:</h5>
 
         
 <div class="param-desc">
-    - An object where keys are sample identifiers, and values are objects containing the contribution of each signature (as weights) for that sample.
+    A promise that resolves to the cosine similarity matrix  (a 2D array of numbers between 0 and 1).
 </div>
 
 
@@ -268,7 +563,7 @@
     </dt>
     <dd>
         
-<span class="param-type">Object</span>
+<span class="param-type">Promise.&lt;Array.&lt;Array.&lt;number>>></span>
 
 
     </dd>
@@ -279,9 +574,11 @@
 
 
 
-    <h5>Example</h5>
+    <h5>Examples</h5>
     
-    <pre class="prettyprint"><code>// Example: Obtaining mutational signatures and spectra// Step 1: Retrieve mutational signatures from the mSigPortal APIconst mutationalSignatures = await mSigPortal.mSigPortalData.getMutationalSignaturesData(  "WGS", "COSMIC_v3_Signatures_GRCh37_SBS96", "SBS", 96, 1000);// Step 2: Extract mutational spectra from sample dataconst extractedSpectra = await mSigPortal.mSigPortalData.extractMutationalSpectra(  mutationalSignatures, "signatureName");// Step 3: Fit mutational spectra to mutational signaturesconst nnlsExposures = await mSigPortal.signatureFitting.fitMutationalSpectraToSignatures(  mutationalSignatures, extractedSpectra);// Example output:console.log(nnlsExposures);// {//   Sample1: { SBS1: 0.6, SBS2: 0.4 },//   Sample2: { SBS1: 0.7, SBS2: 0.3 },//   ...// }</code></pre>
+    <pre class="prettyprint"><code>// Example usage with default parameters:const data = {  'Sample1': {'C>A': 10, 'C>G': 5, 'C>T': 12},  'Sample2': {'C>A': 8, 'C>G': 7, 'C>T': 15},  'Sample3': {'C>A': 12, 'C>G': 4, 'C>T': 10}};plotCosineSimilarityHeatMap(data)  .then(similarityMatrix => console.log(similarityMatrix))  .catch(error => console.error(error));</code></pre>
+
+    <pre class="prettyprint"><code>// Example usage with custom parameters:const data = {  'SampleA': {'C>A': 20, 'C>G': 10, 'C>T': 5},  'SampleB': {'C>A': 15, 'C>G': 12, 'C>T': 8},  'SampleC': {'C>A': 18, 'C>G': 9, 'C>T': 6}};plotCosineSimilarityHeatMap(  data,  "MyStudy",  "WES",  "Breast-AdenoCA",  "myHeatmapDiv",  false,  "Viridis",  true)  .then(similarityMatrix => console.log(similarityMatrix))  .catch(error => console.error(error));</code></pre>
 
 
 
@@ -301,13 +598,13 @@
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="tcga.html">tcga</a></li><li><a href="userData.html">userData</a></li></ul><h3>Global</h3><ul><li><a href="global.html#fitMutationalSpectraToSignatures">fitMutationalSpectraToSignatures</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="tcga.html">tcga</a></li><li><a href="userData.html">userData</a></li></ul><h3>Global</h3><ul><li><a href="global.html#plotCosineSimilarityHeatMap">plotCosineSimilarityHeatMap</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Fri Dec 27 2024 20:28:30 GMT-0500 (Eastern Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Thu Jan 02 2025 17:51:45 GMT-0500 (Eastern Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>

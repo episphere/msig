@@ -70,7 +70,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line87">line 87</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line86">line 86</a>
     </li></ul></dd>
     
 
@@ -109,7 +109,7 @@
     
 
     
-    <h4 class="name" id=".generateForceDirectedTree"><span class="type-signature">(async, static) </span>generateForceDirectedTree<span class="signature">(data, divID)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id=".MSPrevalence"><span class="type-signature">(static) </span>MSPrevalence<span class="signature">(data, minimum)</span><span class="type-signature"> &rarr; {Object}</span></h4>
     
 
     
@@ -117,7 +117,7 @@
 
 
 <div class="description">
-    Generates an AMCharts force directed tree based on the given data and parameters.
+    Calculates and visualizes the prevalence of mutational signatures across a set of samples, grouped by cancer type. The function generates two plots: a pie chart showing the overall prevalence of each signature based on total mutations (exposure) and a bar chart displaying the frequency of each signature across samples, considering a minimum exposure threshold.
 </div>
 
 
@@ -159,7 +159,7 @@
             <td class="type">
             
                 
-<span class="param-type">Object</span>
+<span class="param-type">object</span>
 
 
             
@@ -169,20 +169,26 @@
 
             
 
-            <td class="description last">An object containing the data to be used to generate the force directed tree.</td>
+            <td class="description last">An object representing the mutational signature prevalence data. The `data` object is expected to be an array of objects with the following structure:  `[{ signatureName: "SBS1", sample: "sample1", exposure: 10, burden: 5 }, { signatureName: "SBS5", sample: "sample1", exposure: 20, burden: 5 }, ... ]`  Where `signatureName` is the name of a mutational signature (string), `sample` is a sample identifier (string), `exposure` is a non-negative number representing the exposure of that signature in the sample (can be 0), and `burden` is a numeric value representing the mutational burden for the sample (must be a number).</td>
         </tr>
 
     
 
         <tr>
             
-                <td class="name"><code>divID</code></td>
+                <td class="name"><code>minimum</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type">string</span>
+<span class="param-type">number</span>
+|
+
+<span class="param-type">null</span>
+|
+
+<span class="param-type">undefined</span>
 
 
             
@@ -192,7 +198,7 @@
 
             
 
-            <td class="description last">The ID of the div element where the force directed tree will be displayed.</td>
+            <td class="description last">The minimum exposure value for a signature in a sample to be considered prevalent in that sample. Samples with exposure below this threshold are not counted in the frequency calculation for the bar chart. If `minimum` is `null` or `undefined`, it defaults to 100.  - `null` or `undefined`: Sets the minimum exposure to 100.  - Any positive number: Sets the minimum exposure to that number.</td>
         </tr>
 
     
@@ -233,7 +239,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line980">line 980</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1597">line 1597</a>
     </li></ul></dd>
     
 
@@ -258,6 +264,28 @@
 
 
 
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    - Returns an object containing the `traces` and `layout` for a Plotly plot.  - `traces`: An array of trace objects. If the maximum frequency of signatures (considering the `minimum` threshold) is less than 1%, the array contains only a single pie chart trace. Otherwise, it contains a pie chart trace followed by multiple bar chart traces (one for each signature).  - `layout`: An object defining the layout of the plot, including title annotations, axis settings, and overall appearance. It includes conditional logic to handle cases where no signature has a frequency greater than 1%.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
 
 
 
@@ -269,7 +297,7 @@
     
 
     
-    <h4 class="name" id=".plotCosineSimilarityHeatMap"><span class="type-signature">(async, static) </span>plotCosineSimilarityHeatMap<span class="signature">(groupedData, studyName<span class="signature-attributes">opt</span>, genomeDataType<span class="signature-attributes">opt</span>, cancerType<span class="signature-attributes">opt</span>, divID<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array.&lt;Array.&lt;number>>}</span></h4>
+    <h4 class="name" id=".MsAssociation"><span class="type-signature">(static) </span>MsAssociation<span class="signature">(data, signatureName1, signatureName2, both<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {object}</span></h4>
     
 
     
@@ -277,7 +305,291 @@
 
 
 <div class="description">
-    This function creates a heatmap using the cosine similarity matrix for the given grouped data.
+    Calculates the association between two mutational signatures across a set of samples. It computes the linear regression, Pearson correlation, and Spearman correlation between the log-transformed exposures of the two signatures. The results are used to generate a scatter plot with marginal histograms, visualizing the relationship between the signatures.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>data</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;object></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">An array of objects representing the exposure data for a set of samples. Each object in the array should have the following properties:  - `sample`: A string representing the sample ID.  - `signatureName`: A string representing the name of the mutational signature.  - `exposure`: A numeric value representing the exposure of the signature in the sample. This value can theoretically range from 0 to infinity, although in practice, values are often normalized.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>signatureName1</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">The name of the first mutational signature. This should match the `signatureName` values in the `data` array.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>signatureName2</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">The name of the second mutational signature. This should also match the `signatureName` values in the `data` array. It can be the same as `signatureName1`.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>both</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    false
+                
+                </td>
+            
+
+            <td class="description last">A boolean flag indicating whether to filter the data to include only samples where both signatures have non-zero exposure.  - `true`: Only samples with non-zero exposure to both signatures are included in the analysis. If `signatureName1` and `signatureName2` are the same, then no filtering occurs.  - `false`: All samples are included in the analysis, regardless of whether they have non-zero exposure to both signatures.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1562">line 1562</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    - Returns an object containing the traces and layout for a Plotly plot.  - `traces`: An array of trace objects to be used in a Plotly plot. This includes the main scatter plot trace, the linear regression line trace, and two marginal histogram traces.  - `layout`: An object containing the layout configuration for a Plotly plot, including title, axis labels, annotations, and other visual properties.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".plotCosineSimilarityHeatMap"><span class="type-signature">(async, static) </span>plotCosineSimilarityHeatMap<span class="signature">(groupedData, studyName<span class="signature-attributes">opt</span>, genomeDataType<span class="signature-attributes">opt</span>, cancerType<span class="signature-attributes">opt</span>, divID<span class="signature-attributes">opt</span>, conductDoubleClustering<span class="signature-attributes">opt</span>, colorscale<span class="signature-attributes">opt</span>, showTable<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;Array.&lt;number>>>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Generates a cosine similarity heatmap based on mutational spectra data.This function processes grouped mutational data to compute cosine similarities,optionally performs double clustering to reorder the data, and then visualizesthe similarities using a Plotly heatmap. It also supports displaying a tablerepresentation of the cosine similarity matrix alongside the heatmap.
 </div>
 
 
@@ -345,7 +657,7 @@
                 </td>
             
 
-            <td class="description last">An object containing grouped data where each key is a sample name and its value is an object containing sample data.</td>
+            <td class="description last">The input data object where keys represent sample names  and values are objects representing mutational spectra. The mutational spectra  should be represented as key-value pairs where keys are mutation types and values  are counts or frequencies.  Example:  ```  {    'Sample1': {'C>A': 10, 'C>G': 15, 'C>T': 20, ...},    'Sample2': {'C>A': 5, 'C>G': 8, 'C>T': 12, ...},    ...  }  ```  The range of keys (mutation types) should be consistent across all samples. The values  (counts or frequencies) can be integers or floats, and their range can vary based on the  underlying data, but typically they are non-negative.</td>
         </tr>
 
     
@@ -384,7 +696,7 @@
                 </td>
             
 
-            <td class="description last">The name of the study. Default value is "PCAWG".</td>
+            <td class="description last">The name of the study. This is used in the  title of the heatmap. Common values include study identifiers like "PCAWG",  "TCGA", or specific project names. The parameter should be a string and can  technically accept any string value, but it is intended to represent the name  of a study or dataset.</td>
         </tr>
 
     
@@ -423,7 +735,7 @@
                 </td>
             
 
-            <td class="description last">The type of genomic data used. Default value is "WGS".</td>
+            <td class="description last">The type of genomic data. This is also  used in the title of the heatmap. Expected values typically include abbreviations  for common genomic data types such as "WGS" (Whole Genome Sequencing), "WES"  (Whole Exome Sequencing), "RNA-Seq", etc. Similar to `studyName`, any string  is technically accepted, but the intended use is to describe the data type.</td>
         </tr>
 
     
@@ -462,7 +774,7 @@
                 </td>
             
 
-            <td class="description last">The type of cancer. Default value is "Lung-AdenoCA".</td>
+            <td class="description last">The type of cancer. This is included  in the title of the heatmap. Common values are standard cancer type  abbreviations or names, like "Lung-AdenoCA" (Lung Adenocarcinoma), "BRCA"  (Breast Invasive Carcinoma), etc. Any string value is accepted, but it should  represent a specific cancer type.</td>
         </tr>
 
     
@@ -501,7 +813,124 @@
                 </td>
             
 
-            <td class="description last">The ID of the div where the heatmap should be displayed. Default value is "cosineSimilarityHeatMap".</td>
+            <td class="description last">The ID of the HTML element where  the heatmap will be rendered. This should be a valid HTML element ID. If an element  with this ID does not exist, one will be created and appended to the document body.  Any string is accepted, but it should correspond to a unique ID in the HTML  document to avoid conflicts.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>conductDoubleClustering</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    true
+                
+                </td>
+            
+
+            <td class="description last">A flag indicating whether to  perform double clustering (hierarchical clustering on both rows and columns)  on the cosine similarity matrix. If `true`, the rows and columns of the heatmap  will be reordered based on the clustering. If `false`, the order of samples in  `groupedData` will be maintained. Boolean values `true` or `false` are expected.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>colorscale</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "RdBu"
+                
+                </td>
+            
+
+            <td class="description last">The Plotly colorscale to use for the heatmap.  This can be any valid Plotly colorscale name (e.g., "Viridis", "Greys", "YlGnBu",  "RdBu"). Plotly provides a wide range of predefined colorscales. The chosen  colorscale will affect the visual representation of the similarity values. Any  string is accepted but it should correspond to a valid Plotly colorscale for  optimal results.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>showTable</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    false
+                
+                </td>
+            
+
+            <td class="description last">A flag indicating whether to display a table  representation of the cosine similarity matrix alongside the heatmap. If `true`,  a table will be rendered next to the heatmap. If `false`, only the heatmap will  be displayed. Boolean values `true` or `false` are expected.</td>
         </tr>
 
     
@@ -542,7 +971,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line793">line 793</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line792">line 792</a>
     </li></ul></dd>
     
 
@@ -565,13 +994,25 @@
 
 
 
+<h5>Throws:</h5>
+
+        
+
+    <div class="param-desc">
+    
+        Will throw an error if the `cosineSimilarity` function or the  `plotGraphWithPlotlyAndMakeDataDownloadable` function throws an error.
+    
+    </div>
+
+
+    
 
 
 <h5>Returns:</h5>
 
         
 <div class="param-desc">
-    - The cosine similarity matrix.
+    A Promise that resolves to the cosine similarity matrix.  The matrix is a two-dimensional array of numbers, where each number represents  the cosine similarity between two samples. The values range from 0 to 1, where 1  indicates perfect similarity and 0 indicates no similarity. The dimensions of  the matrix will be NxN, where N is the number of samples in `groupedData`.
 </div>
 
 
@@ -582,7 +1023,7 @@
     </dt>
     <dd>
         
-<span class="param-type">Array.&lt;Array.&lt;number>></span>
+<span class="param-type">Promise.&lt;Array.&lt;Array.&lt;number>>></span>
 
 
     </dd>
@@ -600,7 +1041,7 @@
     
 
     
-    <h4 class="name" id=".plotDatasetMutationalSignaturesExposure"><span class="type-signature">(async, static) </span>plotDatasetMutationalSignaturesExposure<span class="signature">(exposureData, divID, relative<span class="signature-attributes">opt</span>, datasetName<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    <h4 class="name" id=".plotDatasetMutationalSignaturesExposure"><span class="type-signature">(static) </span>plotDatasetMutationalSignaturesExposure<span class="signature">(exposureData, divID, relative<span class="signature-attributes">opt</span>, datasetName<span class="signature-attributes">opt</span>, doubleCluster<span class="signature-attributes">opt</span>, colorscale<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {object}</span></h4>
     
 
     
@@ -608,7 +1049,7 @@
 
 
 <div class="description">
-    Plot the mutational signature exposure data for the given dataset using Plotly heatmap visualization.
+    Generates a heatmap visualizing the exposure of multiple samples to a set of mutational signatures within a dataset. The function provides options for displaying relative or absolute exposure values and for performing double hierarchical clustering to reorder the rows and columns of the heatmap. It also allows customization of the color scale used to represent exposure values.
 </div>
 
 
@@ -654,7 +1095,7 @@
             <td class="type">
             
                 
-<span class="param-type">Object</span>
+<span class="param-type">object</span>
 
 
             
@@ -676,7 +1117,7 @@
                 </td>
             
 
-            <td class="description last">An object containing mutational signature exposure data for each sample.</td>
+            <td class="description last">An object containing the exposure data for a set of samples. The structure of `exposureData` is expected to be:  `{ sampleId1: { signatureName1: exposureValue1, signatureName2: exposureValue2, ..., rnorm: number }, sampleId2: { signatureName1: exposureValue3, signatureName2: exposureValue4, ..., rnorm: number }, ... }`  The outer keys (e.g., `sampleId1`, `sampleId2`) are sample identifiers (strings). The inner objects (e.g., `{ signatureName1: exposureValue1, ... }`) represent the exposure values for a given sample. `signatureName` keys are strings representing the names of mutational signatures (e.g., "SBS1", "SBS5"), and `exposureValue` are non-negative numbers representing the contribution of that signature to the sample. `rnorm` is a number that will be removed from the data before plotting.</td>
         </tr>
 
     
@@ -711,7 +1152,7 @@
                 </td>
             
 
-            <td class="description last">The ID of the HTML div element where the heatmap plot should be rendered.</td>
+            <td class="description last">The ID of the HTML div element where the heatmap will be rendered.</td>
         </tr>
 
     
@@ -750,7 +1191,7 @@
                 </td>
             
 
-            <td class="description last">A boolean indicating whether to normalize the exposure data by total count for each sample.</td>
+            <td class="description last">A boolean indicating whether to display relative or absolute exposure values.  - `true`: The exposure values for each sample are normalized to sum to 1, representing the relative contribution of each signature.  - `false`: The raw exposure values are displayed.</td>
         </tr>
 
     
@@ -789,7 +1230,88 @@
                 </td>
             
 
-            <td class="description last">A string indicating the name of the dataset being plotted.</td>
+            <td class="description last">The name of the dataset being visualized. This is used as part of the plot title. Examples include:  - `"PCAWG"`  - `"TCGA"`  - Any other string that appropriately identifies the dataset.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>doubleCluster</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    true
+                
+                </td>
+            
+
+            <td class="description last">A boolean indicating whether to perform double hierarchical clustering on the exposure data.  - `true`: The rows and columns of the heatmap are reordered based on the results of double clustering, which groups similar samples and signatures together.  - `false`: The rows and columns are displayed in the order they appear in the input `exposureData`.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>colorscale</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+|
+
+<span class="param-type">Array</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "Custom"
+                
+                </td>
+            
+
+            <td class="description last">The color scale to use for the heatmap. Possible values are:  - `"Custom"`: A predefined custom color scale designed for visualizing exposure data.  - Any valid Plotly color scale name (e.g., `"Viridis"`, `"Blues"`, `"Hot"`, etc.).  - An array of arrays defining a custom color scale, where each inner array specifies a color stop with a value between 0 and 1 and a corresponding RGB color string (e.g., `[["0.0", "rgb(49,54,149)"], ["1.0", "rgb(165,0,38)"]]`).</td>
         </tr>
 
     
@@ -830,7 +1352,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1302">line 1302</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1440">line 1440</a>
     </li></ul></dd>
     
 
@@ -859,7 +1381,7 @@
 
         
 <div class="param-desc">
-    - An object representing the data plotted in the heatmap.
+    - Returns the data object used by Plotly to generate the heatmap. This object contains the z values (exposure values), x values (signature names), y values (sample names), and other settings for the heatmap, including the color scale. The structure is:  `{ z: [[exposureValue1, exposureValue2, ...], [exposureValue3, exposureValue4, ...], ...], x: [signatureName1, signatureName2, ...], y: [sampleId1, sampleId2, ...], type: "heatmap", colorscale: colorscale }`
 </div>
 
 
@@ -870,7 +1392,7 @@
     </dt>
     <dd>
         
-<span class="param-type">Object</span>
+<span class="param-type">object</span>
 
 
     </dd>
@@ -888,7 +1410,7 @@
     
 
     
-    <h4 class="name" id=".plotForceDirectedTree"><span class="type-signature">(async, static) </span>plotForceDirectedTree<span class="signature">(groupedData, studyName<span class="signature-attributes">opt</span>, genomeDataType<span class="signature-attributes">opt</span>, cancerType<span class="signature-attributes">opt</span>, divID<span class="signature-attributes">opt</span>, maxDepth<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    <h4 class="name" id=".plotForceDirectedTree"><span class="type-signature">(static) </span>plotForceDirectedTree<span class="signature">(groupedData, studyName<span class="signature-attributes">opt</span>, genomeDataType<span class="signature-attributes">opt</span>, cancerType<span class="signature-attributes">opt</span>, divID<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {object}</span></h4>
     
 
     
@@ -896,7 +1418,7 @@
 
 
 <div class="description">
-    Plots a force directed tree of the patients in the study based on their mutational spectra.
+    This function generates and displays a force-directed tree representing the relationships between patients in a study based on their mutational spectra. It calculates the cosine similarity between the mutational spectra of patients, performs hierarchical clustering based on these similarities, and then visualizes the resulting clusters as a force-directed tree.
 </div>
 
 
@@ -942,7 +1464,7 @@
             <td class="type">
             
                 
-<span class="param-type">Object</span>
+<span class="param-type">object</span>
 
 
             
@@ -964,7 +1486,7 @@
                 </td>
             
 
-            <td class="description last">An object containing patient data grouped by mutational spectra.</td>
+            <td class="description last">An object where keys represent sample IDs and values are objects containing mutational spectra data. The structure of `groupedData` is expected to be:  `{ sampleId1: { mutationType1: count1, mutationType2: count2, ... }, sampleId2: { mutationType1: count3, mutationType2: count4, ... }, ... }`  The inner objects (e.g., `{ mutationType1: count1, ... }`) represent the mutational spectrum for a given sample. `mutationType` keys can be any string representing a type of mutation (e.g., "C>A", "T>G"), and `count` values are non-negative integers representing the number of times that mutation type is observed in the sample.</td>
         </tr>
 
     
@@ -1003,7 +1525,7 @@
                 </td>
             
 
-            <td class="description last">The name of the study. Defaults to "PCAWG".</td>
+            <td class="description last">The name of the study. This is used for labeling purposes in the visualization. Common values include, but are not limited to:  - `"PCAWG"`  - `"TCGA"`  - Any other string representing a specific study.</td>
         </tr>
 
     
@@ -1042,7 +1564,7 @@
                 </td>
             
 
-            <td class="description last">The type of genome data. Defaults to "WGS".</td>
+            <td class="description last">The type of genome data used. This is also used for labeling purposes. Possible values include:  - `"WGS"`: Whole Genome Sequencing  - `"WES"`: Whole Exome Sequencing  - `"RNA-Seq"`: RNA Sequencing</td>
         </tr>
 
     
@@ -1081,7 +1603,7 @@
                 </td>
             
 
-            <td class="description last">The type of cancer. Defaults to "Lung-AdenoCA".</td>
+            <td class="description last">The type of cancer being studied. This is used for labeling in the visualization. Examples include:  - `"Lung-AdenoCA"`: Lung Adenocarcinoma  - `"Breast-AdenoCA"`: Breast Adenocarcinoma  - Any valid cancer type identifier.</td>
         </tr>
 
     
@@ -1120,46 +1642,7 @@
                 </td>
             
 
-            <td class="description last">The ID of the HTML element where the force directed tree will be displayed. Defaults to "forceDirectedTree".</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>maxDepth</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    0
-                
-                </td>
-            
-
-            <td class="description last">The maximum depth of the tree. If set to 0, the entire tree will be displayed. Defaults to 0.</td>
+            <td class="description last">The ID of the HTML div element where the force-directed tree will be rendered.</td>
         </tr>
 
     
@@ -1200,7 +1683,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line920">line 920</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1056">line 1056</a>
     </li></ul></dd>
     
 
@@ -1229,7 +1712,7 @@
 
         
 <div class="param-desc">
-    - An object containing the formatted clusters for the force directed tree.
+    - Returns the formatted hierarchical clusters used to generate the force-directed tree. The structure of this object is compatible with the AM5 charting library and represents the hierarchical relationships between samples based on their mutational spectra. The format is a nested object where each level represents a node in the tree. Each node can have properties such as `name`, `value`, `children` (an array of child nodes), and potentially others added during formatting.
 </div>
 
 
@@ -1240,7 +1723,7 @@
     </dt>
     <dd>
         
-<span class="param-type">Object</span>
+<span class="param-type">object</span>
 
 
     </dd>
@@ -1258,7 +1741,7 @@
     
 
     
-    <h4 class="name" id=".plotPatientMutationalSignaturesExposure"><span class="type-signature">(async, static) </span>plotPatientMutationalSignaturesExposure<span class="signature">(exposureData, divID, sample)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    <h4 class="name" id=".plotMSPrevalenceData"><span class="type-signature">(static) </span>plotMSPrevalenceData<span class="signature">(divID, data)</span><span class="type-signature"> &rarr; {void}</span></h4>
     
 
     
@@ -1266,7 +1749,189 @@
 
 
 <div class="description">
-    Plots mutational signature exposure data as a pie chart.
+    This function is a wrapper around the `plotMSPrevalence` function. It takes the output of `plotMSPrevalence` and uses it to generate a Plotly plot, which is then displayed in a specified div. The plot visualizes the prevalence of mutational signatures.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>divID</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">The ID of the div element where the plot will be rendered.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>data</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">An object representing the mutational signature prevalence data. The `data` object is expected to be an array of objects with the following structure:  `[{ signatureName: "SBS1", sample: "sample1", exposure: 10, burden: 5 }, { signatureName: "SBS5", sample: "sample1", exposure: 20, burden: 5 }, ... ]`  Where `signatureName` is the name of a mutational signature (string), `sample` is a sample identifier (string), `exposure` is a non-negative number representing the exposure of that signature in the sample, and `burden` is a numeric value representing the mutational burden for the sample.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1586">line 1586</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    - This function does not return a value. It directly renders the plot in the specified `divID`.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">void</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".plotPatientMutationalSignaturesExposure"><span class="type-signature">(static) </span>plotPatientMutationalSignaturesExposure<span class="signature">(exposureData, divID, sample)</span><span class="type-signature"> &rarr; {object}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Generates a pie chart visualizing the exposure of a single sample to a set of mutational signatures. The function takes exposure data, which includes the relative contribution of each signature to the sample's mutational profile, and displays it in a pie chart format.
 </div>
 
 
@@ -1308,7 +1973,7 @@
             <td class="type">
             
                 
-<span class="param-type">Object</span>
+<span class="param-type">object</span>
 
 
             
@@ -1318,7 +1983,7 @@
 
             
 
-            <td class="description last">An object containing mutational signature exposure data.</td>
+            <td class="description last">An object containing the exposure data for a set of samples. The structure of `exposureData` is expected to be:  `{ sampleId1: { signatureName1: exposureValue1, signatureName2: exposureValue2, ... }, sampleId2: { signatureName1: exposureValue3, signatureName2: exposureValue4, ... }, ... }`  The outer keys (e.g., `sampleId1`, `sampleId2`) are sample identifiers (strings). The inner objects (e.g., `{ signatureName1: exposureValue1, ... }`) represent the exposure values for a given sample. `signatureName` keys are strings representing the names of mutational signatures (e.g., "SBS1", "SBS5"), and `exposureValue` are non-negative numbers representing the contribution of that signature to the sample. These values typically sum to 1 for each sample. The `exposureData` object can contain multiple samples, but only the data for the specified `sample` will be used for plotting. `exposureData` must also have a `rnorm` property which is a number.</td>
         </tr>
 
     
@@ -1341,7 +2006,7 @@
 
             
 
-            <td class="description last">The ID of the HTML div element in which to display the plot.</td>
+            <td class="description last">The ID of the HTML div element where the pie chart will be rendered.</td>
         </tr>
 
     
@@ -1364,7 +2029,7 @@
 
             
 
-            <td class="description last">The name of the sample being plotted.</td>
+            <td class="description last">The ID of the sample for which to plot the mutational signature exposure. This should be one of the keys in the `exposureData` object (e.g., "sampleId1", "sampleId2").</td>
         </tr>
 
     
@@ -1405,7 +2070,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1258">line 1258</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1395">line 1395</a>
     </li></ul></dd>
     
 
@@ -1434,7 +2099,7 @@
 
         
 <div class="param-desc">
-    - The data used to create the plot.
+    - Returns the data object used by Plotly to generate the pie chart. This object contains the labels (signature names), values (exposure values), and other settings for the pie chart. The format is:  `{ labels: [signatureName1, signatureName2, ...], values: [exposureValue1, exposureValue2, ...], name: "sample exposure values", textposition: "inside", hole: 0.4, hoverinfo: "name + value", type: "pie" }`
 </div>
 
 
@@ -1445,7 +2110,7 @@
     </dt>
     <dd>
         
-<span class="param-type">Object</span>
+<span class="param-type">object</span>
 
 
     </dd>
@@ -1658,7 +2323,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line411">line 411</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line410">line 410</a>
     </li></ul></dd>
     
 
@@ -1940,7 +2605,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line349">line 349</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line348">line 348</a>
     </li></ul></dd>
     
 
@@ -2253,7 +2918,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line180">line 180</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line179">line 179</a>
     </li></ul></dd>
     
 
@@ -2464,7 +3129,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line272">line 272</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line271">line 271</a>
     </li></ul></dd>
     
 
@@ -2528,7 +3193,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
     
 
     
-    <h4 class="name" id=".plotSignatureActivityDataBy"><span class="type-signature">(static) </span>plotSignatureActivityDataBy<span class="signature">(jsonData, divID, group)</span><span class="type-signature"> &rarr; {void}</span></h4>
+    <h4 class="name" id=".plotSignatureActivityDataBy"><span class="type-signature">(static) </span>plotSignatureActivityDataBy<span class="signature">(divID, data, group<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {void}</span></h4>
     
 
     
@@ -2536,7 +3201,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
 
 
 <div class="description">
-    Plots the cumulative exposure values for each "group" across all the different "sample".
+    Generates a box plot of signature activity data, grouped by a specified attribute. The function takes a dataset and groups it by the provided attribute (e.g., "signatureName", "study", "cancerType"). For each group, it creates a box trace where the y-values represent the log10 of the exposure values and the x-values are set to the group name. The box plot displays the distribution of exposure values for each group, with the option to show all individual data points (jittered for better visibility). Hovering over the data points reveals the sample name and the log10 of the exposure value. The plot also indicates the fraction of samples within each group that have non-zero exposure.
 </div>
 
 
@@ -2560,7 +3225,11 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
         <th>Type</th>
 
         
+        <th>Attributes</th>
+        
 
+        
+        <th>Default</th>
         
 
         <th class="last">Description</th>
@@ -2568,29 +3237,6 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
     </thead>
 
     <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>jsonData</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">The JSON data structure containing the exposure values for each signatureName and sample.</td>
-        </tr>
-
     
 
         <tr>
@@ -2608,10 +3254,57 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
             </td>
 
             
+                <td class="attributes">
+                
 
+                
+
+                
+                </td>
             
 
-            <td class="description last">The string containing the ID of the div where the plot should be displayed.</td>
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">The ID of the div element where the plot will be rendered.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>data</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;object></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">An array of objects representing the signature activity data. Each object must have at least the following properties:  - `exposure`: A numeric value representing the exposure of a signature. It can be any positive number or zero.  - `sample`: A string representing the sample ID.  - The `data` array must also contain a property matching the name specified by the `group` parameter (e.g., "signatureName", "study", "cancerType").</td>
         </tr>
 
     
@@ -2631,10 +3324,26 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
             </td>
 
             
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
 
+                
+
+                
+                </td>
             
 
-            <td class="description last">The string containing the name of the grouping variable. Default value is "signatureName".</td>
+            
+                <td class="default">
+                
+                    "signatureName"
+                
+                </td>
+            
+
+            <td class="description last">The attribute to group the data by. Possible values are any property name present in the data objects, including, but not limited to:  - `"signatureName"`: Groups the data by signature names.  - `"study"`: Groups the data by study IDs.  - `"cancerType"`: Groups the data by cancer types.  - `"sample"`: Groups the data by sample IDs (Note: this might not result in a meaningful box plot).  - Any other custom property that exists in the data objects.  The default value is `"signatureName"`.</td>
         </tr>
 
     
@@ -2675,7 +3384,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line871">line 871</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1002">line 1002</a>
     </li></ul></dd>
     
 
@@ -2703,6 +3412,10 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
 <h5>Returns:</h5>
 
         
+<div class="param-desc">
+    - This function does not return a value. It directly renders the plot in the specified `divID`.
+</div>
+
 
 
 <dl>
@@ -2722,9 +3435,232 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
 
 
 
-    <h5>Example</h5>
+
+        
+            
+
     
-    <pre class="prettyprint"><code>const jsonData = '[{...}, {...}, {...}]';plotSignatureActivityDataBy(divID, jsonData, group = "signatureName");</code></pre>
+
+    
+    <h4 class="name" id=".plotSignatureAssociations"><span class="type-signature">(static) </span>plotSignatureAssociations<span class="signature">(divID, data, signature1, signature2)</span><span class="type-signature"> &rarr; {void}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    This function generates and plots a scatter plot with marginal histograms, along with statistical analysis, to visualize the association between two mutational signatures. It calculates and displays the linear regression line, Pearson correlation, and Spearman correlation, providing insights into the relationship between the exposures of two signatures in a set of samples.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>divID</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">The ID of the HTML div element where the plot will be rendered.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>data</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">An array of objects representing the exposure data for a set of samples. Each object in the array should have the following properties:  - `sample`: A string representing the sample ID.  - `signatureName`: A string representing the name of the mutational signature.  - `exposure`: A numeric value representing the exposure of the signature in the sample.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>signature1</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">The name of the first mutational signature. This should match the `signatureName` values in the `data` array. The values can be any valid signature name present in the dataset, for example, "SBS1", "SBS5", "DBS1", "ID4".</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>signature2</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">The name of the second mutational signature. This should also match the `signatureName` values in the `data` array. Similar to `signature1`, the values can be any signature name present in the dataset and can also be the same as `signature1` to assess the distribution of a single signature.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1548">line 1548</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    - This function does not return a value. It directly renders the plot in the specified `divID`.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">void</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
 
 
 
@@ -2734,7 +3670,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
     
 
     
-    <h4 class="name" id=".plotUMAPVisualization"><span class="type-signature">(async, static) </span>plotUMAPVisualization<span class="signature">(data, datasetName<span class="signature-attributes">opt</span>, divID, nComponents<span class="signature-attributes">opt</span>, minDist<span class="signature-attributes">opt</span>, nNeighbors<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array.&lt;object>}</span></h4>
+    <h4 class="name" id=".plotUMAPVisualization"><span class="type-signature">(static) </span>plotUMAPVisualization<span class="signature">(data, datasetName<span class="signature-attributes">opt</span>, divID, nComponents<span class="signature-attributes">opt</span>, minDist<span class="signature-attributes">opt</span>, nNeighbors<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {object}</span></h4>
     
 
     
@@ -2742,7 +3678,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
 
 
 <div class="description">
-    Plots a UMAP visualization of the input data.
+    Generates a UMAP (Uniform Manifold Approximation and Projection) visualization of mutational spectra data. UMAP is a dimensionality reduction technique used to project high-dimensional data into a lower-dimensional space (typically 2D or 3D) while preserving the global structure of the data. This function takes mutational spectra data, applies UMAP to reduce its dimensionality, and then creates either a 2D or 3D scatter plot to visualize the results. If `nComponents` is set to 3, it additionally generates a mesh3d trace to highlight the density of points in the 3D space.
 </div>
 
 
@@ -2810,7 +3746,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
                 </td>
             
 
-            <td class="description last">The input data to visualize.</td>
+            <td class="description last">An object representing the mutational spectra data. The structure of `data` is expected to be:  `{ sampleId1: { mutationType1: count1, mutationType2: count2, ... }, sampleId2: { mutationType1: count3, mutationType2: count4, ... }, ... }`  The outer keys (e.g., `sampleId1`, `sampleId2`) are sample identifiers (strings). The inner objects (e.g., `{ mutationType1: count1, ... }`) represent the mutational spectrum for a given sample. `mutationType` keys can be any string representing a type of mutation (e.g., "C>A", "T>G"), and `count` values are non-negative integers representing the number of times that mutation type is observed in the sample.</td>
         </tr>
 
     
@@ -2849,7 +3785,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
                 </td>
             
 
-            <td class="description last">The name of the dataset being visualized.</td>
+            <td class="description last">The name of the dataset being visualized. This is used as part of the plot title. Examples include:  - `"PCAWG"`  - `"TCGA"`  - Any other string that appropriately identifies the dataset.</td>
         </tr>
 
     
@@ -2884,7 +3820,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
                 </td>
             
 
-            <td class="description last">The ID of the HTML div element to plot the visualization in.</td>
+            <td class="description last">The ID of the HTML div element where the plot will be rendered.</td>
         </tr>
 
     
@@ -2923,7 +3859,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
                 </td>
             
 
-            <td class="description last">The number of dimensions to project the data into.</td>
+            <td class="description last">The number of dimensions to reduce the data to using UMAP. This determines whether a 2D or 3D plot is generated. Possible values are:  - `2`: Generates a 2D scatter plot.  - `3`: Generates a 3D scatter plot with an additional mesh3d trace.  Any other positive integer is technically permissible but may not yield meaningful visualizations.</td>
         </tr>
 
     
@@ -2962,7 +3898,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
                 </td>
             
 
-            <td class="description last">The minimum distance between points in the UMAP algorithm.</td>
+            <td class="description last">The effective minimum distance between embedded points in the UMAP projection. Smaller values result in a more clustered embedding, while larger values preserve more of the global structure. The valid range is between 0.0 and 1.0.</td>
         </tr>
 
     
@@ -3001,7 +3937,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
                 </td>
             
 
-            <td class="description last">The number of neighbors to consider in the UMAP algorithm.</td>
+            <td class="description last">The number of neighboring points to consider when constructing the UMAP. Larger values capture more global structure in the data, while smaller values preserve more local structure. Values should be positive integers, typically in the range of 2 to 100.</td>
         </tr>
 
     
@@ -3042,23 +3978,12 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1056">line 1056</a>
+        <a href="main.js.html">main.js</a>, <a href="main.js.html#line1171">line 1171</a>
     </li></ul></dd>
     
 
     
 
-    
-    <dt class="tag-see">See:</dt>
-    <dd class="tag-see">
-        <ul>
-            <li><a href="https://plotly.com/python/3d-mesh/">https://plotly.com/python/3d-mesh/</a> For more information on the alpha-shape algorithm used in 3D plotting.</li>
-        
-            <li><a href="https://plotly.com/python/line-and-scatter/">https://plotly.com/python/line-and-scatter/</a> For more information on scatter plots.</li>
-        
-            <li><a href="https://umap-learn.readthedocs.io/en/latest/">https://umap-learn.readthedocs.io/en/latest/</a> For more information on the UMAP algorithm.</li>
-        </ul>
-    </dd>
     
 
     
@@ -3082,7 +4007,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
 
         
 <div class="param-desc">
-    An array of plot trace objects, containing the x, y, and z coordinates of the plot, as well as any additional plot options.
+    - Returns the trace object used by Plotly to generate the visualization. This object contains the data points, plot type, marker settings, and, in the case of a 3D plot, the mesh3d settings. The structure depends on the value of `nComponents`.
 </div>
 
 
@@ -3093,7 +4018,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
     </dt>
     <dd>
         
-<span class="param-type">Array.&lt;object></span>
+<span class="param-type">object</span>
 
 
     </dd>
@@ -3127,7 +4052,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");</code></pre>
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Sun Dec 29 2024 18:18:19 GMT-0500 (Eastern Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Thu Jan 02 2025 18:22:29 GMT-0500 (Eastern Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>

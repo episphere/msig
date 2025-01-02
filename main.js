@@ -41,7 +41,6 @@ import {
   linspace,
   deepCopy,
   nnls,
-  limitDepth,
   formatHierarchicalClustersToAM5Format,
   groupBy,
   createDistanceMatrix,
@@ -791,223 +790,234 @@ Renders a plot of the mutational spectra for one or more patients in a given div
   }
 
   /**
+   * @async
+   * @function plotCosineSimilarityHeatMap
+   * @description Generates a cosine similarity heatmap based on mutational spectra data.
+   * This function processes grouped mutational data to compute cosine similarities,
+   * optionally performs double clustering to reorder the data, and then visualizes
+   * the similarities using a Plotly heatmap. It also supports displaying a table
+   * representation of the cosine similarity matrix alongside the heatmap.
+   * @memberof mSigPortalPlots
+   * @param {Object} groupedData - The input data object where keys represent sample names
+   *   and values are objects representing mutational spectra. The mutational spectra
+   *   should be represented as key-value pairs where keys are mutation types and values
+   *   are counts or frequencies.
+   *   Example:
+   *   ```
+   *   {
+   *     'Sample1': {'C>A': 10, 'C>G': 15, 'C>T': 20, ...},
+   *     'Sample2': {'C>A': 5, 'C>G': 8, 'C>T': 12, ...},
+   *     ...
+   *   }
+   *   ```
+   *   The range of keys (mutation types) should be consistent across all samples. The values
+   *   (counts or frequencies) can be integers or floats, and their range can vary based on the
+   *   underlying data, but typically they are non-negative.
+   *
+   * @param {string} [studyName="PCAWG"] - The name of the study. This is used in the
+   *   title of the heatmap. Common values include study identifiers like "PCAWG",
+   *   "TCGA", or specific project names. The parameter should be a string and can
+   *   technically accept any string value, but it is intended to represent the name
+   *   of a study or dataset.
+   *
+   * @param {string} [genomeDataType="WGS"] - The type of genomic data. This is also
+   *   used in the title of the heatmap. Expected values typically include abbreviations
+   *   for common genomic data types such as "WGS" (Whole Genome Sequencing), "WES"
+   *   (Whole Exome Sequencing), "RNA-Seq", etc. Similar to `studyName`, any string
+   *   is technically accepted, but the intended use is to describe the data type.
+   *
+   * @param {string} [cancerType="Lung-AdenoCA"] - The type of cancer. This is included
+   *   in the title of the heatmap. Common values are standard cancer type
+   *   abbreviations or names, like "Lung-AdenoCA" (Lung Adenocarcinoma), "BRCA"
+   *   (Breast Invasive Carcinoma), etc. Any string value is accepted, but it should
+   *   represent a specific cancer type.
+   *
+   * @param {string} [divID="cosineSimilarityHeatMap"] - The ID of the HTML element where
+   *   the heatmap will be rendered. This should be a valid HTML element ID. If an element
+   *   with this ID does not exist, one will be created and appended to the document body.
+   *   Any string is accepted, but it should correspond to a unique ID in the HTML
+   *   document to avoid conflicts.
+   *
+   * @param {boolean} [conductDoubleClustering=true] - A flag indicating whether to
+   *   perform double clustering (hierarchical clustering on both rows and columns)
+   *   on the cosine similarity matrix. If `true`, the rows and columns of the heatmap
+   *   will be reordered based on the clustering. If `false`, the order of samples in
+   *   `groupedData` will be maintained. Boolean values `true` or `false` are expected.
+   *
+   * @param {string} [colorscale="RdBu"] - The Plotly colorscale to use for the heatmap.
+   *   This can be any valid Plotly colorscale name (e.g., "Viridis", "Greys", "YlGnBu",
+   *   "RdBu"). Plotly provides a wide range of predefined colorscales. The chosen
+   *   colorscale will affect the visual representation of the similarity values. Any
+   *   string is accepted but it should correspond to a valid Plotly colorscale for
+   *   optimal results.
+   *
+   * @param {boolean} [showTable=false] - A flag indicating whether to display a table
+   *   representation of the cosine similarity matrix alongside the heatmap. If `true`,
+   *   a table will be rendered next to the heatmap. If `false`, only the heatmap will
+   *   be displayed. Boolean values `true` or `false` are expected.
+   *
+   * @returns {Promise<number[][]>} A Promise that resolves to the cosine similarity matrix.
+   *   The matrix is a two-dimensional array of numbers, where each number represents
+   *   the cosine similarity between two samples. The values range from 0 to 1, where 1
+   *   indicates perfect similarity and 0 indicates no similarity. The dimensions of
+   *   the matrix will be NxN, where N is the number of samples in `groupedData`.
+   *
+   * @throws Will throw an error if the `cosineSimilarity` function or the
+   *   `plotGraphWithPlotlyAndMakeDataDownloadable` function throws an error.
+   *
+   */
 
-This function creates a heatmap using the cosine similarity matrix for the given grouped data.
-@async
-@function plotCosineSimilarityHeatMap
-@memberof mSigPortalPlots
-@param {Object} groupedData - An object containing grouped data where each key is a sample name and its value is an object containing sample data.
-@param {string} [studyName="PCAWG"] - The name of the study. Default value is "PCAWG".
-@param {string} [genomeDataType="WGS"] - The type of genomic data used. Default value is "WGS".
-@param {string} [cancerType="Lung-AdenoCA"] - The type of cancer. Default value is "Lung-AdenoCA".
-@param {string} [divID="cosineSimilarityHeatMap"] - The ID of the div where the heatmap should be displayed. Default value is "cosineSimilarityHeatMap".
-@returns {Array<Array<number>>} - The cosine similarity matrix.
-*/
+  async function plotCosineSimilarityHeatMap(
+    groupedData,
+    studyName = "PCAWG",
+    genomeDataType = "WGS",
+    cancerType = "Lung-AdenoCA",
+    divID = "cosineSimilarityHeatMap",
+    conductDoubleClustering = true,
+    colorscale = "RdBu",
+    showTable = false
+  ) {
+    let container = document.getElementById(divID);
+    if (!container) {
+      container = document.createElement('div');
+      container.id = divID;
+      document.body.appendChild(container);
+    }
 
-async function plotCosineSimilarityHeatMap(
-  groupedData,
-  studyName = "PCAWG",
-  genomeDataType = "WGS",
-  cancerType = "Lung-AdenoCA",
-  divID = "cosineSimilarityHeatMap",
-  conductDoubleClustering = true,
-  colorscale = "RdBu",
-  showTable = false // New parameter with default value false
-) {
-  groupedData = extractMutationalSpectra(groupedData);
-  let distanceMatrix = await createDistanceMatrix(
-    Object.values(groupedData).map((data) => Object.values(data)),
-    cosineSimilarity,
-    true
-  );
+    container.innerHTML = '';
+    container.style.display = 'flex';
+    container.style.flexDirection = showTable ? 'row' : 'column';
+    container.style.gap = '20px';
+    container.style.width = '100%';
+    container.style.alignItems = 'center'; // Center items vertically
 
-  let cosSimilarityMatrix = distanceMatrix.map(function (row) {
-    return row.map(function (cell) {
-      return 1 - cell;
-    });
-  });
-  let reorderedData;
-  if (conductDoubleClustering) {
-    reorderedData = doubleClustering(
-      cosSimilarityMatrix,
-      Object.keys(groupedData),
-      Object.keys(groupedData)
+    const heatmapDiv = document.createElement('div');
+    heatmapDiv.id = `${divID}-heatmap`;
+    heatmapDiv.style.flex = showTable ? '1' : '1';
+    container.appendChild(heatmapDiv);
+
+    groupedData = extractMutationalSpectra(groupedData);
+    let distanceMatrix = await createDistanceMatrix(
+      Object.values(groupedData).map((data) => Object.values(data)),
+      cosineSimilarity,
+      true
     );
-  } else {
-    reorderedData = {
-      matrix: cosSimilarityMatrix,
-      rowNames: Object.keys(groupedData),
-      colNames: Object.keys(groupedData),
-    };
-  }
 
-  let plotlyData = [
-    {
-      z: reorderedData.matrix,
-      x: reorderedData.rowNames,
-      y: reorderedData.colNames,
-      type: "heatmap",
-      colorscale: colorscale,
-    },
-  ];
-
-  let layout = {
-    title: `${studyName} ${cancerType} ${genomeDataType} Cosine Similarity Heatmap`,
-    height: 800,
-    xaxis: {
-      title: "Sample",
-      type: "category",
-      nticks: Object.keys(groupedData).length,
-    },
-    yaxis: {
-      title: "Sample",
-      type: "category",
-      nticks: Object.keys(groupedData).length,
-    },
-  };
-
-  // Get the container of the Plotly graph
-  const container = document.getElementById(divID);
-
-  // Set container to display flex if showTable is true
-  if (showTable) {
-    container.style.display = "flex";
-    container.style.flexDirection = "row";
-  } else {
-    container.style.display = "block";
-  }
-
-  // Plot the graph using Plotly
-  Plotly.default.newPlot(divID, plotlyData, layout);
-
-  // Ensure Font Awesome CSS is included
-  const fontAwesomeLink =
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css";
-  if (!document.querySelector(`link[href="${fontAwesomeLink}"]`)) {
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = fontAwesomeLink;
-    document.head.appendChild(link);
-  }
-
-  // Create a download button with only the Font Awesome download icon
-  const downloadBtn = document.createElement("div");
-  downloadBtn.innerHTML =
-    '<button class="btn"><i class="fa fa-download"></i></button>';
-  const btn = downloadBtn.firstChild;
-
-  // Position the button at the bottom right corner of the container
-  btn.style.position = "absolute";
-  btn.style.bottom = "0";
-  btn.style.right = "0";
-
-  // Add an event listener to handle the download action
-  btn.addEventListener("click", function () {
-    const graphData = {
-      traces: plotlyData,
-      layout: layout,
-    };
-    const blob = new Blob([JSON.stringify(graphData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "graph_data.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  // Append the download button to the container
-  container.appendChild(btn);
-
-  // Add the provided CSS
-  const css = `
-      .btn {
-          background-color: DodgerBlue;
-          border: none;
-          border-radius: 100%;
-          color: white;
-          padding: 12px 12px;
-          cursor: pointer;
-          font-size: 20px;
-      }
-
-      .btn:hover {
-          background-color: RoyalBlue;
-      }
-  `;
-
-  const style = document.createElement("style");
-  style.type = "text/css";
-  style.appendChild(document.createTextNode(css));
-  document.head.appendChild(style);
-
-  // If showTable is true, create and append the table
-  if (showTable) {
-    // Create a container for the table
-    const tableContainer = document.createElement("div");
-    tableContainer.style.flex = "1";
-    tableContainer.style.marginLeft = "10px"; // Add some spacing between heatmap and table
-
-    // Create the table
-    const table = document.createElement("table");
-    table.style.borderCollapse = "collapse";
-    table.style.width = "100%";
-
-    // Create table headers
-    const thead = document.createElement("thead");
-    const headerRow = document.createElement("tr");
-    const emptyTh = document.createElement("th"); // Empty cell for row headers
-    headerRow.appendChild(emptyTh);
-    reorderedData.colNames.forEach((colName) => {
-      const th = document.createElement("th");
-      th.textContent = colName;
-      headerRow.appendChild(th);
-    });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-
-    // Create table body
-    const tbody = document.createElement("tbody");
-    reorderedData.rowNames.forEach((rowName, rowIndex) => {
-      const tr = document.createElement("tr");
-      // Cell for row header
-      const rowHeader = document.createElement("th");
-      rowHeader.textContent = rowName;
-      tr.appendChild(rowHeader);
-      reorderedData.colNames.forEach((colName, colIndex) => {
-        const td = document.createElement("td");
-        td.textContent = cosSimilarityMatrix[rowIndex][colIndex].toFixed(3);
-        tr.appendChild(td);
+    let cosSimilarityMatrix = distanceMatrix.map(function (row) {
+      return row.map(function (cell) {
+        return 1 - cell;
       });
-      tbody.appendChild(tr);
     });
-    table.appendChild(tbody);
 
-    // Append the table to the table container
-    tableContainer.appendChild(table);
+    let reorderedData;
+    if (conductDoubleClustering) {
+      reorderedData = doubleClustering(
+        cosSimilarityMatrix,
+        Object.keys(groupedData),
+        Object.keys(groupedData)
+      );
+    } else {
+      reorderedData = {
+        matrix: cosSimilarityMatrix,
+        rowNames: Object.keys(groupedData),
+        colNames: Object.keys(groupedData),
+      };
+    }
 
-    // Append the table container to the main container
-    container.appendChild(tableContainer);
+    let plotlyData = [
+      {
+        z: reorderedData.matrix,
+        x: reorderedData.rowNames,
+        y: reorderedData.colNames,
+        type: "heatmap",
+        colorscale: colorscale,
+      },
+    ];
+
+    let layout = {
+      title: `${studyName} ${cancerType} ${genomeDataType} Cosine Similarity Heatmap`,
+      height: 800,
+      width: showTable ? container.offsetWidth * 0.6 : container.offsetWidth,
+      xaxis: {
+        title: "Sample",
+        type: "category",
+        nticks: Object.keys(groupedData).length,
+      },
+      yaxis: {
+        title: "Sample",
+        type: "category",
+        nticks: Object.keys(groupedData).length,
+      },
+    };
+
+    plotGraphWithPlotlyAndMakeDataDownloadable(heatmapDiv.id, plotlyData, layout);
+
+    if (showTable) {
+      const tableDiv = document.createElement('div');
+      tableDiv.id = `${divID}-table`;
+      tableDiv.style.flex = '1';
+      tableDiv.style.overflowX = 'auto';
+      tableDiv.style.display = 'flex';  // Add flex display
+      tableDiv.style.alignItems = 'center';  // Center vertically
+      tableDiv.style.height = '800px';  // Match heatmap height
+      container.appendChild(tableDiv);
+
+      const tableWrapper = document.createElement('div');  // Add wrapper for table
+      tableWrapper.style.width = '100%';
+      tableDiv.appendChild(tableWrapper);
+
+      const table = document.createElement('table');
+      table.style.borderCollapse = 'collapse';
+      table.style.width = '100%';
+      table.style.fontSize = '12px';
+
+      // Create header row with simple styling
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      headerRow.innerHTML = '<th style="border: 1px solid #ddd; padding: 8px; background-color: #f8f9fa;">Sample</th>';
+      reorderedData.colNames.forEach(colName => {
+        headerRow.innerHTML += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f8f9fa;">${colName}</th>`;
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      // Create table body with simple styling
+      const tbody = document.createElement('tbody');
+      reorderedData.matrix.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">${reorderedData.rowNames[rowIndex]}</td>`;
+        row.forEach(value => {
+          const formattedValue = value.toFixed(3);
+          tr.innerHTML += `<td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${formattedValue}</td>`;
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      tableWrapper.appendChild(table);
+    }
+
+    return cosSimilarityMatrix;
   }
 
-  return cosSimilarityMatrix;
-}
   /**
- * Plots the cumulative exposure values for each "group" across all the different "sample".
- * @function plotSignatureActivityDataBy
- * @memberof mSigPortalPlots
- * @param {string} jsonData - The JSON data structure containing the exposure values for each signatureName and sample.
- * @param {string} divID - The string containing the ID of the div where the plot should be displayed.
- * @param {string} group - The string containing the name of the grouping variable. Default value is "signatureName".
-
-* @returns {void}
- *
- * @example
- * const jsonData = '[{...}, {...}, {...}]';
- * plotSignatureActivityDataBy(divID, jsonData, group = "signatureName");
- */
+   * @memberof mSigPortalPlots
+   * @function plotSignatureActivityDataBy
+   * @description Generates a box plot of signature activity data, grouped by a specified attribute. The function takes a dataset and groups it by the provided attribute (e.g., "signatureName", "study", "cancerType"). For each group, it creates a box trace where the y-values represent the log10 of the exposure values and the x-values are set to the group name. The box plot displays the distribution of exposure values for each group, with the option to show all individual data points (jittered for better visibility). Hovering over the data points reveals the sample name and the log10 of the exposure value. The plot also indicates the fraction of samples within each group that have non-zero exposure.
+   *
+   * @param {string} divID - The ID of the div element where the plot will be rendered.
+   * @param {Array<object>} data - An array of objects representing the signature activity data. Each object must have at least the following properties:
+   *   - `exposure`: A numeric value representing the exposure of a signature. It can be any positive number or zero.
+   *   - `sample`: A string representing the sample ID.
+   *   - The `data` array must also contain a property matching the name specified by the `group` parameter (e.g., "signatureName", "study", "cancerType").
+   * @param {string} [group="signatureName"] - The attribute to group the data by. Possible values are any property name present in the data objects, including, but not limited to:
+   *   - `"signatureName"`: Groups the data by signature names.
+   *   - `"study"`: Groups the data by study IDs.
+   *   - `"cancerType"`: Groups the data by cancer types.
+   *   - `"sample"`: Groups the data by sample IDs (Note: this might not result in a meaningful box plot).
+   *   - Any other custom property that exists in the data objects.
+   *   The default value is `"signatureName"`.
+   * @return {void} - This function does not return a value. It directly renders the plot in the specified `divID`.
+   */
   function plotSignatureActivityDataBy(divID, data, group = "signatureName") {
     // Group the data by the specified group using the groupBy function
     const groupedData = groupBy(data, group);
@@ -1044,19 +1054,28 @@ async function plotCosineSimilarityHeatMap(
   }
 
   /**
-
-Plots a force directed tree of the patients in the study based on their mutational spectra.
-@async
-@function plotForceDirectedTree
-@memberof mSigPortalPlots
-@param {Object} groupedData - An object containing patient data grouped by mutational spectra.
-@param {string} [studyName="PCAWG"] - The name of the study. Defaults to "PCAWG".
-@param {string} [genomeDataType="WGS"] - The type of genome data. Defaults to "WGS".
-@param {string} [cancerType="Lung-AdenoCA"] - The type of cancer. Defaults to "Lung-AdenoCA".
-@param {string} [divID="forceDirectedTree"] - The ID of the HTML element where the force directed tree will be displayed. Defaults to "forceDirectedTree".
-@param {number} [maxDepth=0] - The maximum depth of the tree. If set to 0, the entire tree will be displayed. Defaults to 0.
-@returns {Object} - An object containing the formatted clusters for the force directed tree.
-*/
+   * @memberof mSigPortalPlots
+   * @function plotForceDirectedTree
+   * @description This function generates and displays a force-directed tree representing the relationships between patients in a study based on their mutational spectra. It calculates the cosine similarity between the mutational spectra of patients, performs hierarchical clustering based on these similarities, and then visualizes the resulting clusters as a force-directed tree.
+   *
+   * @param {object} groupedData - An object where keys represent sample IDs and values are objects containing mutational spectra data. The structure of `groupedData` is expected to be:
+   *   `{ sampleId1: { mutationType1: count1, mutationType2: count2, ... }, sampleId2: { mutationType1: count3, mutationType2: count4, ... }, ... }`
+   *   The inner objects (e.g., `{ mutationType1: count1, ... }`) represent the mutational spectrum for a given sample. `mutationType` keys can be any string representing a type of mutation (e.g., "C>A", "T>G"), and `count` values are non-negative integers representing the number of times that mutation type is observed in the sample.
+   * @param {string} [studyName="PCAWG"] - The name of the study. This is used for labeling purposes in the visualization. Common values include, but are not limited to:
+   *   - `"PCAWG"`
+   *   - `"TCGA"`
+   *   - Any other string representing a specific study.
+   * @param {string} [genomeDataType="WGS"] - The type of genome data used. This is also used for labeling purposes. Possible values include:
+   *   - `"WGS"`: Whole Genome Sequencing
+   *   - `"WES"`: Whole Exome Sequencing
+   *   - `"RNA-Seq"`: RNA Sequencing
+   * @param {string} [cancerType="Lung-AdenoCA"] - The type of cancer being studied. This is used for labeling in the visualization. Examples include:
+   *   - `"Lung-AdenoCA"`: Lung Adenocarcinoma
+   *   - `"Breast-AdenoCA"`: Breast Adenocarcinoma
+   *   - Any valid cancer type identifier.
+   * @param {string} [divID="forceDirectedTree"] - The ID of the HTML div element where the force-directed tree will be rendered.
+   * @return {object} - Returns the formatted hierarchical clusters used to generate the force-directed tree. The structure of this object is compatible with the AM5 charting library and represents the hierarchical relationships between samples based on their mutational spectra. The format is a nested object where each level represents a node in the tree. Each node can have properties such as `name`, `value`, `children` (an array of child nodes), and potentially others added during formatting.
+   */
 
   // This function plots a force directed tree of the patients in the study based on their mutational spectra
   async function plotForceDirectedTree(
@@ -1064,8 +1083,7 @@ Plots a force directed tree of the patients in the study based on their mutation
     studyName = "PCAWG",
     genomeDataType = "WGS",
     cancerType = "Lung-AdenoCA",
-    divID = "forceDirectedTree",
-    maxDepth = 0
+    divID = "forceDirectedTree"
   ) {
     groupedData = extractMutationalSpectra(groupedData);
     let distanceMatrix = await createDistanceMatrix(
@@ -1094,23 +1112,10 @@ Plots a force directed tree of the patients in the study based on their mutation
     element.style.height = "600px";
     element.style.maxWidth = "100%";
 
-    if (maxDepth != 0) {
-      formattedClusters = limitDepth(formattedClusters, maxDepth);
-    }
-
     generateForceDirectedTree(formattedClusters, divID);
 
     return formattedClusters;
   }
-
-  /**
-   * Generates an AMCharts force directed tree based on the given data and parameters.
-   * @async
-   * @function generateForceDirectedTree
-   * @memberof mSigPortalPlots
-   * @param {Object} data - An object containing the data to be used to generate the force directed tree.
-   * @param {string} divID - The ID of the div element where the force directed tree will be displayed.
-   */
 
   async function generateForceDirectedTree(data, divID) {
     // Create root element
@@ -1162,23 +1167,28 @@ Plots a force directed tree of the patients in the study based on their mutation
 
   //#region Visualizes a set of mutational spectra using UMAP.
 
-  /**
 
-Plots a UMAP visualization of the input data.
-@async
-@function
-@memberof mSigPortalPlots
-@param {object} data - The input data to visualize.
-@param {string} [datasetName="PCAWG"] - The name of the dataset being visualized.
-@param {string} divID - The ID of the HTML div element to plot the visualization in.
-@param {number} [nComponents=3] - The number of dimensions to project the data into.
-@param {number} [minDist=0.1] - The minimum distance between points in the UMAP algorithm.
-@param {number} [nNeighbors=15] - The number of neighbors to consider in the UMAP algorithm.
-@returns {object[]} An array of plot trace objects, containing the x, y, and z coordinates of the plot, as well as any additional plot options.
-@see {@link https://plotly.com/python/3d-mesh/} For more information on the alpha-shape algorithm used in 3D plotting.
-@see {@link https://plotly.com/python/line-and-scatter/} For more information on scatter plots.
-@see {@link https://umap-learn.readthedocs.io/en/latest/} For more information on the UMAP algorithm.
-*/
+  /**
+ * @memberof mSigPortalPlots
+ * @function plotUMAPVisualization
+ * @description Generates a UMAP (Uniform Manifold Approximation and Projection) visualization of mutational spectra data. UMAP is a dimensionality reduction technique used to project high-dimensional data into a lower-dimensional space (typically 2D or 3D) while preserving the global structure of the data. This function takes mutational spectra data, applies UMAP to reduce its dimensionality, and then creates either a 2D or 3D scatter plot to visualize the results. If `nComponents` is set to 3, it additionally generates a mesh3d trace to highlight the density of points in the 3D space.
+ *
+ * @param {object} data - An object representing the mutational spectra data. The structure of `data` is expected to be:
+ *   `{ sampleId1: { mutationType1: count1, mutationType2: count2, ... }, sampleId2: { mutationType1: count3, mutationType2: count4, ... }, ... }`
+ *   The outer keys (e.g., `sampleId1`, `sampleId2`) are sample identifiers (strings). The inner objects (e.g., `{ mutationType1: count1, ... }`) represent the mutational spectrum for a given sample. `mutationType` keys can be any string representing a type of mutation (e.g., "C>A", "T>G"), and `count` values are non-negative integers representing the number of times that mutation type is observed in the sample.
+ * @param {string} [datasetName="PCAWG"] - The name of the dataset being visualized. This is used as part of the plot title. Examples include:
+ *   - `"PCAWG"`
+ *   - `"TCGA"`
+ *   - Any other string that appropriately identifies the dataset.
+ * @param {string} divID - The ID of the HTML div element where the plot will be rendered.
+ * @param {number} [nComponents=3] - The number of dimensions to reduce the data to using UMAP. This determines whether a 2D or 3D plot is generated. Possible values are:
+ *   - `2`: Generates a 2D scatter plot.
+ *   - `3`: Generates a 3D scatter plot with an additional mesh3d trace.
+ *   Any other positive integer is technically permissible but may not yield meaningful visualizations.
+ * @param {number} [minDist=0.1] - The effective minimum distance between embedded points in the UMAP projection. Smaller values result in a more clustered embedding, while larger values preserve more of the global structure. The valid range is between 0.0 and 1.0.
+ * @param {number} [nNeighbors=15] - The number of neighboring points to consider when constructing the UMAP. Larger values capture more global structure in the data, while smaller values preserve more local structure. Values should be positive integers, typically in the range of 2 to 100.
+ * @return {object} - Returns the trace object used by Plotly to generate the visualization. This object contains the data points, plot type, marker settings, and, in the case of a 3D plot, the mesh3d settings. The structure depends on the value of `nComponents`.
+ */
   async function plotUMAPVisualization(
     data,
     datasetName = "PCAWG",
@@ -1242,157 +1252,159 @@ Plots a UMAP visualization of the input data.
 
   //#region Signature Fitting
 
-/**
- * Fits mutational spectra to known mutational signatures using non-negative least squares (NNLS).
- *
- * This function calculates the exposure of mutational signatures for each sample by fitting
- * the observed mutational spectra to the reference mutational signatures. It then filters out
- * signatures whose contribution is below a fraction of the total exposure, by setting their
- * exposures to zero.
- *
- * You can choose to return exposures as absolute values (raw counts from NNLS) or relative values
- * (sum to 1 for each sample). The filtering threshold is a fraction between 0 and 1.
- *
- * @async
- * @function fitMutationalSpectraToSignatures
- * @memberof machineLearning
- * @param {Object} mutationalSignatures - Reference mutational signatures. Each key is a signature name,
- * and each value is an object of mutation types (e.g., {"C>A": weight, "C>G": weight}).
- * @param {Object} mutationalSpectra - Mutational spectra for each sample. Each key is a sample ID,
- * and each value is an object of mutation types with their counts (e.g., {"C>A": count, "C>G": count}).
- * @param {Object} [options] - Configuration options for filtering and output.
- * @param {number} [options.exposureThreshold=0] - Exclude signatures below this fraction of the total,
- * by setting their exposures to zero. Must be between 0 and 1.
- * @param {("absolute"|"relative")} [options.exposureType="relative"] - Return exposures as absolute or relative.
- * @param {boolean} [options.renormalize=true] - Whether to normalize exposures so that they sum to 1 after filtering.
- * @returns {Object} - An object with sample IDs as keys. Each value is an object of signature exposures.
- *
- * @example
- * // Example usage:
- * // 1. Get mutational signatures (e.g., from the mSigPortal API)
- * const mutationalSignatures = await mSigPortal.mSigPortalData.getMutationalSignaturesData(
- *   "WGS", "COSMIC_v3_Signatures_GRCh37_SBS96", "SBS", 96, 1000
- * );
- *
- * // 2. Extract mutational spectra for each sample
- * const extractedSpectra = await mSigPortal.mSigPortalData.extractMutationalSpectra(
- *   mutationalSignatures, "signatureName"
- * );
- *
- * // 3. Fit spectra to signatures with post-fit filtering
- * const nnlsExposures = await mSigPortal.signatureFitting.fitMutationalSpectraToSignatures(
- *   mutationalSignatures,
- *   extractedSpectra,
- *   {
- *     exposureThreshold: 0.1,
- *     exposureType: "relative",
- *     renormalize: true
- *   }
- * );
- *
- * console.log(nnlsExposures);
- * // {
- * //   Sample1: { SBS1: 0.75, SBS2: 0.25, SBS3: 0 },
- * //   Sample2: { SBS1: 0.9, SBS2: 0.1, SBS3: 0 },
- * //   ...
- * // }
- */
-async function fitMutationalSpectraToSignatures(
-  mutationalSignatures,
-  mutationalSpectra,
-  {
-    exposureThreshold = 0,
-    exposureType = "relative",
-    renormalize = true
-  } = {}
-) {
-  // Validate the threshold
-  if (exposureThreshold < 0 || exposureThreshold > 1) {
-    throw new Error("exposureThreshold must be between 0 and 1.");
+  /**
+   * Fits mutational spectra to known mutational signatures using non-negative least squares (NNLS).
+   *
+   * This function calculates the exposure of mutational signatures for each sample by fitting
+   * the observed mutational spectra to the reference mutational signatures. It then filters out
+   * signatures whose contribution is below a fraction of the total exposure, by setting their
+   * exposures to zero.
+   *
+   * You can choose to return exposures as absolute values (raw counts from NNLS) or relative values
+   * (sum to 1 for each sample). The filtering threshold is a fraction between 0 and 1.
+   *
+   * @async
+   * @function fitMutationalSpectraToSignatures
+   * @memberof machineLearning
+   * @param {Object} mutationalSignatures - Reference mutational signatures. Each key is a signature name,
+   * and each value is an object of mutation types (e.g., {"C>A": weight, "C>G": weight}).
+   * @param {Object} mutationalSpectra - Mutational spectra for each sample. Each key is a sample ID,
+   * and each value is an object of mutation types with their counts (e.g., {"C>A": count, "C>G": count}).
+   * @param {Object} [options] - Configuration options for filtering and output.
+   * @param {number} [options.exposureThreshold=0] - Exclude signatures below this fraction of the total,
+   * by setting their exposures to zero. Must be between 0 and 1.
+   * @param {("absolute"|"relative")} [options.exposureType="relative"] - Return exposures as absolute or relative.
+   * @param {boolean} [options.renormalize=true] - Whether to normalize exposures so that they sum to 1 after filtering.
+   * @returns {Object} - An object with sample IDs as keys. Each value is an object of signature exposures.
+   *
+   * @example
+   * // Example usage:
+   * // 1. Get mutational signatures (e.g., from the mSigPortal API)
+   * const mutationalSignatures = await mSigPortal.mSigPortalData.getMutationalSignaturesData(
+   *   "WGS", "COSMIC_v3_Signatures_GRCh37_SBS96", "SBS", 96, 1000
+   * );
+   *
+   * // 2. Extract mutational spectra for each sample
+   * const extractedSpectra = await mSigPortal.mSigPortalData.extractMutationalSpectra(
+   *   mutationalSignatures, "signatureName"
+   * );
+   *
+   * // 3. Fit spectra to signatures with post-fit filtering
+   * const nnlsExposures = await mSigPortal.signatureFitting.fitMutationalSpectraToSignatures(
+   *   mutationalSignatures,
+   *   extractedSpectra,
+   *   {
+   *     exposureThreshold: 0.1,
+   *     exposureType: "relative",
+   *     renormalize: true
+   *   }
+   * );
+   *
+   * console.log(nnlsExposures);
+   * // {
+   * //   Sample1: { SBS1: 0.75, SBS2: 0.25, SBS3: 0 },
+   * //   Sample2: { SBS1: 0.9, SBS2: 0.1, SBS3: 0 },
+   * //   ...
+   * // }
+   */
+  async function fitMutationalSpectraToSignatures(
+    mutationalSignatures,
+    mutationalSpectra,
+    {
+      exposureThreshold = 0,
+      exposureType = "relative",
+      renormalize = true
+    } = {}
+  ) {
+    // Validate the threshold
+    if (exposureThreshold < 0 || exposureThreshold > 1) {
+      throw new Error("exposureThreshold must be between 0 and 1.");
+    }
+
+    const signatureNames = Object.keys(mutationalSignatures);
+    const sampleNames = Object.keys(mutationalSpectra);
+
+    // Convert reference signatures to arrays for NNLS
+    const nnlsInputSignatures = Object.values(mutationalSignatures).map(signatureData =>
+      Object.values(signatureData)
+    );
+
+    // Convert mutational spectra to arrays for NNLS
+    const nnlsInputMatrix = Object.values(mutationalSpectra).map(spectrumData =>
+      Object.values(spectrumData)
+    );
+
+    const results = {};
+
+    for (let i = 0; i < sampleNames.length; i++) {
+      const sampleName = sampleNames[i];
+      const nnlsInput = nnlsInputMatrix[i];
+
+      // 1. Perform NNLS
+      const nnlsOutput = await nnls(nnlsInputSignatures, nnlsInput);
+      const exposureValues = nnlsOutput.x;
+      delete nnlsOutput.x;
+
+      // 2. Build an object of signature exposures (raw from NNLS)
+      let sampleExposures = {};
+      for (let j = 0; j < signatureNames.length; j++) {
+        sampleExposures[signatureNames[j]] = exposureValues[j];
+      }
+
+      // 3. Calculate the total exposure
+      const totalExposure = Object.values(sampleExposures).reduce((acc, val) => acc + val, 0);
+
+      // 4. Filter out signatures below the fraction threshold by setting to 0
+      if (totalExposure > 0) {
+        for (let signature of signatureNames) {
+          const fraction = sampleExposures[signature] / totalExposure;
+          if (fraction < exposureThreshold) {
+            sampleExposures[signature] = 0;
+          }
+        }
+      }
+
+      // 5. If renormalize is true, adjust exposures to sum to 1
+      if (renormalize) {
+        const filteredTotal = Object.values(sampleExposures).reduce((a, b) => a + b, 0);
+        if (filteredTotal > 0) {
+          for (let signature of signatureNames) {
+            sampleExposures[signature] = sampleExposures[signature] / filteredTotal;
+          }
+        }
+      }
+
+      // 6. If returning relative exposures, ensure they sum to 1
+      if (exposureType === "relative" && !renormalize) {
+        const filteredTotal = Object.values(sampleExposures).reduce((a, b) => a + b, 0);
+        if (filteredTotal > 0) {
+          for (let signature of signatureNames) {
+            sampleExposures[signature] = sampleExposures[signature] / filteredTotal;
+          }
+        }
+      }
+
+      // 7. Store the final exposures for each sample
+      results[sampleName] = sampleExposures;
+    }
+
+    return results;
   }
 
-  const signatureNames = Object.keys(mutationalSignatures);
-  const sampleNames = Object.keys(mutationalSpectra);
-
-  // Convert reference signatures to arrays for NNLS
-  const nnlsInputSignatures = Object.values(mutationalSignatures).map(signatureData =>
-    Object.values(signatureData)
-  );
-
-  // Convert mutational spectra to arrays for NNLS
-  const nnlsInputMatrix = Object.values(mutationalSpectra).map(spectrumData =>
-    Object.values(spectrumData)
-  );
-
-  const results = {};
-
-  for (let i = 0; i < sampleNames.length; i++) {
-    const sampleName = sampleNames[i];
-    const nnlsInput = nnlsInputMatrix[i];
-
-    // 1. Perform NNLS
-    const nnlsOutput = await nnls(nnlsInputSignatures, nnlsInput);
-    const exposureValues = nnlsOutput.x;
-    delete nnlsOutput.x;
-
-    // 2. Build an object of signature exposures (raw from NNLS)
-    let sampleExposures = {};
-    for (let j = 0; j < signatureNames.length; j++) {
-      sampleExposures[signatureNames[j]] = exposureValues[j];
-    }
-
-    // 3. Calculate the total exposure
-    const totalExposure = Object.values(sampleExposures).reduce((acc, val) => acc + val, 0);
-
-    // 4. Filter out signatures below the fraction threshold by setting to 0
-    if (totalExposure > 0) {
-      for (let signature of signatureNames) {
-        const fraction = sampleExposures[signature] / totalExposure;
-        if (fraction < exposureThreshold) {
-          sampleExposures[signature] = 0;
-        }
-      }
-    }
-
-    // 5. If renormalize is true, adjust exposures to sum to 1
-    if (renormalize) {
-      const filteredTotal = Object.values(sampleExposures).reduce((a, b) => a + b, 0);
-      if (filteredTotal > 0) {
-        for (let signature of signatureNames) {
-          sampleExposures[signature] = sampleExposures[signature] / filteredTotal;
-        }
-      }
-    }
-
-    // 6. If returning relative exposures, ensure they sum to 1
-    if (exposureType === "relative" && !renormalize) {
-      const filteredTotal = Object.values(sampleExposures).reduce((a, b) => a + b, 0);
-      if (filteredTotal > 0) {
-        for (let signature of signatureNames) {
-          sampleExposures[signature] = sampleExposures[signature] / filteredTotal;
-        }
-      }
-    }
-
-    // 7. Store the final exposures for each sample
-    results[sampleName] = sampleExposures;
-  }
-
-  return results;
-}
 
   /**
-
-Plots mutational signature exposure data as a pie chart.
-@async
-@function plotPatientMutationalSignaturesExposure
-@memberof mSigPortalPlots
-@param {Object} exposureData - An object containing mutational signature exposure data.
-@param {string} divID - The ID of the HTML div element in which to display the plot.
-@param {string} sample - The name of the sample being plotted.
-@returns {Object} - The data used to create the plot.
-*/
-
+   * @memberof mSigPortalPlots
+   * @function plotPatientMutationalSignaturesExposure
+   * @description Generates a pie chart visualizing the exposure of a single sample to a set of mutational signatures. The function takes exposure data, which includes the relative contribution of each signature to the sample's mutational profile, and displays it in a pie chart format.
+   *
+   * @param {object} exposureData - An object containing the exposure data for a set of samples. The structure of `exposureData` is expected to be:
+   *   `{ sampleId1: { signatureName1: exposureValue1, signatureName2: exposureValue2, ... }, sampleId2: { signatureName1: exposureValue3, signatureName2: exposureValue4, ... }, ... }`
+   *   The outer keys (e.g., `sampleId1`, `sampleId2`) are sample identifiers (strings). The inner objects (e.g., `{ signatureName1: exposureValue1, ... }`) represent the exposure values for a given sample. `signatureName` keys are strings representing the names of mutational signatures (e.g., "SBS1", "SBS5"), and `exposureValue` are non-negative numbers representing the contribution of that signature to the sample. These values typically sum to 1 for each sample. The `exposureData` object can contain multiple samples, but only the data for the specified `sample` will be used for plotting. `exposureData` must also have a `rnorm` property which is a number.
+   * @param {string} divID - The ID of the HTML div element where the pie chart will be rendered.
+   * @param {string} sample - The ID of the sample for which to plot the mutational signature exposure. This should be one of the keys in the `exposureData` object (e.g., "sampleId1", "sampleId2").
+   * @return {object} - Returns the data object used by Plotly to generate the pie chart. This object contains the labels (signature names), values (exposure values), and other settings for the pie chart. The format is:
+   *   `{ labels: [signatureName1, signatureName2, ...], values: [exposureValue1, exposureValue2, ...], name: "sample exposure values", textposition: "inside", hole: 0.4, hoverinfo: "name + value", type: "pie" }`
+   */
   // This function plots the exposure of a set of samples to a set of mutational signatures
   async function plotPatientMutationalSignaturesExposure(
     exposureData,
@@ -1426,17 +1438,31 @@ Plots mutational signature exposure data as a pie chart.
   }
 
   /**
-
-Plot the mutational signature exposure data for the given dataset using Plotly heatmap visualization.
-@async
-@function plotDatasetMutationalSignaturesExposure
-@memberof mSigPortalPlots
-@param {Object} exposureData - An object containing mutational signature exposure data for each sample.
-@param {string} divID - The ID of the HTML div element where the heatmap plot should be rendered.
-@param {boolean} [relative=true] - A boolean indicating whether to normalize the exposure data by total count for each sample.
-@param {string} [datasetName="PCAWG"] - A string indicating the name of the dataset being plotted.
-@returns {Object} - An object representing the data plotted in the heatmap.
-*/
+   * @memberof mSigPortalPlots
+   * @function plotDatasetMutationalSignaturesExposure
+   * @description Generates a heatmap visualizing the exposure of multiple samples to a set of mutational signatures within a dataset. The function provides options for displaying relative or absolute exposure values and for performing double hierarchical clustering to reorder the rows and columns of the heatmap. It also allows customization of the color scale used to represent exposure values.
+   *
+   * @param {object} exposureData - An object containing the exposure data for a set of samples. The structure of `exposureData` is expected to be:
+   *   `{ sampleId1: { signatureName1: exposureValue1, signatureName2: exposureValue2, ..., rnorm: number }, sampleId2: { signatureName1: exposureValue3, signatureName2: exposureValue4, ..., rnorm: number }, ... }`
+   *   The outer keys (e.g., `sampleId1`, `sampleId2`) are sample identifiers (strings). The inner objects (e.g., `{ signatureName1: exposureValue1, ... }`) represent the exposure values for a given sample. `signatureName` keys are strings representing the names of mutational signatures (e.g., "SBS1", "SBS5"), and `exposureValue` are non-negative numbers representing the contribution of that signature to the sample. `rnorm` is a number that will be removed from the data before plotting.
+   * @param {string} divID - The ID of the HTML div element where the heatmap will be rendered.
+   * @param {boolean} [relative=true] - A boolean indicating whether to display relative or absolute exposure values.
+   *   - `true`: The exposure values for each sample are normalized to sum to 1, representing the relative contribution of each signature.
+   *   - `false`: The raw exposure values are displayed.
+   * @param {string} [datasetName="PCAWG"] - The name of the dataset being visualized. This is used as part of the plot title. Examples include:
+   *   - `"PCAWG"`
+   *   - `"TCGA"`
+   *   - Any other string that appropriately identifies the dataset.
+   * @param {boolean} [doubleCluster=true] - A boolean indicating whether to perform double hierarchical clustering on the exposure data.
+   *   - `true`: The rows and columns of the heatmap are reordered based on the results of double clustering, which groups similar samples and signatures together.
+   *   - `false`: The rows and columns are displayed in the order they appear in the input `exposureData`.
+   * @param {string | Array} [colorscale="Custom"] - The color scale to use for the heatmap. Possible values are:
+   *   - `"Custom"`: A predefined custom color scale designed for visualizing exposure data.
+   *   - Any valid Plotly color scale name (e.g., `"Viridis"`, `"Blues"`, `"Hot"`, etc.).
+   *   - An array of arrays defining a custom color scale, where each inner array specifies a color stop with a value between 0 and 1 and a corresponding RGB color string (e.g., `[["0.0", "rgb(49,54,149)"], ["1.0", "rgb(165,0,38)"]]`).
+   * @return {object} - Returns the data object used by Plotly to generate the heatmap. This object contains the z values (exposure values), x values (signature names), y values (sample names), and other settings for the heatmap, including the color scale. The structure is:
+   *   `{ z: [[exposureValue1, exposureValue2, ...], [exposureValue3, exposureValue4, ...], ...], x: [signatureName1, signatureName2, ...], y: [sampleId1, sampleId2, ...], type: "heatmap", colorscale: colorscale }`
+   */
   async function plotDatasetMutationalSignaturesExposure(
     exposureData,
     divID,
@@ -1519,10 +1545,70 @@ Plot the mutational signature exposure data for the given dataset using Plotly h
     return data;
   }
 
+  /**
+   * @memberof mSigPortalPlots
+   * @function plotSignatureAssociations
+   * @description This function generates and plots a scatter plot with marginal histograms, along with statistical analysis, to visualize the association between two mutational signatures. It calculates and displays the linear regression line, Pearson correlation, and Spearman correlation, providing insights into the relationship between the exposures of two signatures in a set of samples.
+   *
+   * @param {string} divID - The ID of the HTML div element where the plot will be rendered.
+   * @param {object} data - An array of objects representing the exposure data for a set of samples. Each object in the array should have the following properties:
+   *   - `sample`: A string representing the sample ID.
+   *   - `signatureName`: A string representing the name of the mutational signature.
+   *   - `exposure`: A numeric value representing the exposure of the signature in the sample.
+   * @param {string} signature1 - The name of the first mutational signature. This should match the `signatureName` values in the `data` array. The values can be any valid signature name present in the dataset, for example, "SBS1", "SBS5", "DBS1", "ID4".
+   * @param {string} signature2 - The name of the second mutational signature. This should also match the `signatureName` values in the `data` array. Similar to `signature1`, the values can be any signature name present in the dataset and can also be the same as `signature1` to assess the distribution of a single signature.
+   * @return {void} - This function does not return a value. It directly renders the plot in the specified `divID`.
+   */
+  /**
+   * @memberof mSigPortalPlots
+   * @function MsAssociation
+   * @description Calculates the association between two mutational signatures across a set of samples. It computes the linear regression, Pearson correlation, and Spearman correlation between the log-transformed exposures of the two signatures. The results are used to generate a scatter plot with marginal histograms, visualizing the relationship between the signatures.
+   *
+   * @param {object[]} data - An array of objects representing the exposure data for a set of samples. Each object in the array should have the following properties:
+   *   - `sample`: A string representing the sample ID.
+   *   - `signatureName`: A string representing the name of the mutational signature.
+   *   - `exposure`: A numeric value representing the exposure of the signature in the sample. This value can theoretically range from 0 to infinity, although in practice, values are often normalized.
+   * @param {string} signatureName1 - The name of the first mutational signature. This should match the `signatureName` values in the `data` array.
+   * @param {string} signatureName2 - The name of the second mutational signature. This should also match the `signatureName` values in the `data` array. It can be the same as `signatureName1`.
+   * @param {boolean} [both=false] - A boolean flag indicating whether to filter the data to include only samples where both signatures have non-zero exposure.
+   *   - `true`: Only samples with non-zero exposure to both signatures are included in the analysis. If `signatureName1` and `signatureName2` are the same, then no filtering occurs.
+   *   - `false`: All samples are included in the analysis, regardless of whether they have non-zero exposure to both signatures.
+   * @return {object} - Returns an object containing the traces and layout for a Plotly plot.
+   *   - `traces`: An array of trace objects to be used in a Plotly plot. This includes the main scatter plot trace, the linear regression line trace, and two marginal histogram traces.
+   *   - `layout`: An object containing the layout configuration for a Plotly plot, including title, axis labels, annotations, and other visual properties.
+   */
+
   function plotSignatureAssociations(divID, data, signature1, signature2) {
     let dat = plotSignatureAssociation(data, signature1, signature2);
     plotGraphWithPlotlyAndMakeDataDownloadable(divID, dat.traces, dat.layout);
   }
+
+  /**
+ * @memberof mSigPortalPlots
+ * @function plotMSPrevalenceData
+ * @description This function is a wrapper around the `plotMSPrevalence` function. It takes the output of `plotMSPrevalence` and uses it to generate a Plotly plot, which is then displayed in a specified div. The plot visualizes the prevalence of mutational signatures.
+ *
+ * @param {string} divID - The ID of the div element where the plot will be rendered.
+ * @param {object} data - An object representing the mutational signature prevalence data. The `data` object is expected to be an array of objects with the following structure:
+ *   `[{ signatureName: "SBS1", sample: "sample1", exposure: 10, burden: 5 }, { signatureName: "SBS5", sample: "sample1", exposure: 20, burden: 5 }, ... ]`
+ *   Where `signatureName` is the name of a mutational signature (string), `sample` is a sample identifier (string), `exposure` is a non-negative number representing the exposure of that signature in the sample, and `burden` is a numeric value representing the mutational burden for the sample.
+ * @return {void} - This function does not return a value. It directly renders the plot in the specified `divID`.
+ */
+  /**
+   * @memberof mSigPortalPlots
+   * @function MSPrevalence
+   * @description Calculates and visualizes the prevalence of mutational signatures across a set of samples, grouped by cancer type. The function generates two plots: a pie chart showing the overall prevalence of each signature based on total mutations (exposure) and a bar chart displaying the frequency of each signature across samples, considering a minimum exposure threshold.
+   *
+   * @param {object} data - An object representing the mutational signature prevalence data. The `data` object is expected to be an array of objects with the following structure:
+   *   `[{ signatureName: "SBS1", sample: "sample1", exposure: 10, burden: 5 }, { signatureName: "SBS5", sample: "sample1", exposure: 20, burden: 5 }, ... ]`
+   *   Where `signatureName` is the name of a mutational signature (string), `sample` is a sample identifier (string), `exposure` is a non-negative number representing the exposure of that signature in the sample (can be 0), and `burden` is a numeric value representing the mutational burden for the sample (must be a number).
+   * @param {number|null|undefined} minimum - The minimum exposure value for a signature in a sample to be considered prevalent in that sample. Samples with exposure below this threshold are not counted in the frequency calculation for the bar chart. If `minimum` is `null` or `undefined`, it defaults to 100.
+   *   - `null` or `undefined`: Sets the minimum exposure to 100.
+   *   - Any positive number: Sets the minimum exposure to that number.
+   * @return {{traces: object[], layout: object}} - Returns an object containing the `traces` and `layout` for a Plotly plot.
+   *   - `traces`: An array of trace objects. If the maximum frequency of signatures (considering the `minimum` threshold) is less than 1%, the array contains only a single pie chart trace. Otherwise, it contains a pie chart trace followed by multiple bar chart traces (one for each signature).
+   *   - `layout`: An object defining the layout of the plot, including title annotations, axis settings, and overall appearance. It includes conditional logic to handle cases where no signature has a frequency greater than 1%.
+   */
 
   function plotMSPrevalenceData(divID, data) {
     let dat = plotMSPrevalence(data);
