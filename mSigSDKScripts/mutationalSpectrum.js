@@ -76,6 +76,9 @@ function standardize_trinucleotide(trinucleotide_ref) {
   // :param trinucleotide_ref: trinucleotide sequence seen in the reference genome.
   // :return: a pyrimidine-centric trinucleotide sequence.
 
+  // Ensure trinucleotide_ref is captialized
+  trinucleotide_ref = trinucleotide_ref.toUpperCase();
+
   let complement_seq = {
     A: "T",
     C: "G",
@@ -92,11 +95,22 @@ function standardize_trinucleotide(trinucleotide_ref) {
 }
 
 
-const extractFirstNumber = (str) => {
-  // Match the first occurrence of one or more digits
-  const match = str.match(/\d+/);
-  // Convert the match to an integer and return, or return null if no match
-  return match ? parseInt(match[0], 10) : null;
+const extractFirstNumber = (str, extractSexChromosome = false) => {
+  const match = str.match(/chr([XY\d]+)/);
+  if (match) {
+    const chrom = match[1];
+    if (extractSexChromosome) {
+      return chrom; // Returns "X", "Y", or "1", "2", etc., as strings
+    } else {
+      if (/^\d+$/.test(chrom)) {
+        return parseInt(chrom, 10); // Returns numbers as integers
+      } else {
+        return null; // Returns null for "X" and "Y"
+      }
+    }
+  } else {
+    return null; // Returns null if no match is found
+  }
 };
 
 /**
@@ -203,9 +217,23 @@ async function convertMatrix(
         variantType = patient[i]["mutation_type"];
       }
 
+      // Check if chromosomeNumber, genome, and position are defined
+      if (chromosomeNumber === null ||chromosomeNumber === undefined || genome === undefined || position === undefined) {
+        console.log(patient[i]["chromosome"]);
+        console.log(`Missing values at index ${i}:`, {
+          chromosomeNumber,
+          genome,
+          position
+        });
+        continue; // Skip this iteration if any value is missing
+      }
+
       // Get the trinucleotide context for this mutation
       let promise = getMutationalContext(chromosomeNumber, genome, parseInt(position))
         .then((sequence) => {
+          if (sequence === undefined) {
+            console.log(`Undefined sequence for chromosome ${chromosomeNumber}, genome ${genome}, position ${position}`);
+          }
           sequence = standardize_trinucleotide(sequence);
 
           const fivePrime = sequence[0];
@@ -223,7 +251,7 @@ async function convertMatrix(
           }
         })
         .catch((error) => {
-          console.error(error);
+          console.error(`Error fetching sequence for chromosome ${chromosomeNumber}, genome ${genome}, position ${position}:`, error);
         });
 
       promises.push(promise);
@@ -241,7 +269,6 @@ async function convertMatrix(
 
   return mutationalSpectra;
 }
-
 
 async function getMutationalContext(chromosomeNumber, genome, startPosition) {
   const chrName = String(chromosomeNumber);
