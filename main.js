@@ -1640,49 +1640,62 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     const isExposureRecord = (value) =>
       value && typeof value === "object" && !Array.isArray(value);
 
-    const isSampleExposureObject = (value) => {
-      if (!isExposureRecord(value)) {
-        return false;
+    const normalizeExposureValue = (value) => {
+      if (typeof value === "number" && Number.isFinite(value)) {
+        return value;
       }
 
-      const exposureEntries = Object.entries(value).filter(
-        ([signature]) => signature !== "rnorm"
-      );
+      if (typeof value === "string" && value.trim() !== "") {
+        const numericValue = Number(value);
+        if (Number.isFinite(numericValue)) {
+          return numericValue;
+        }
+      }
 
-      return (
-        exposureEntries.length > 0 &&
-        exposureEntries.every(([, exposure]) => typeof exposure === "number")
-      );
+      return null;
     };
 
-    let sampleDataset;
-    if (sample && isExposureRecord(dataset[sample])) {
-      sampleDataset = dataset[sample];
-    } else if (isSampleExposureObject(dataset)) {
-      sampleDataset = dataset;
-    } else if (sample) {
+    const getSignatureExposures = (value) => {
+      if (!isExposureRecord(value)) {
+        return null;
+      }
+
+      const signatureEntries = Object.entries(value)
+        .filter(([signature]) => signature !== "rnorm")
+        .map(([signature, exposure]) => [
+          signature,
+          normalizeExposureValue(exposure),
+        ])
+        .filter(([, exposure]) => exposure !== null);
+
+      if (signatureEntries.length === 0) {
+        return null;
+      }
+
+      return Object.fromEntries(signatureEntries);
+    };
+
+    const getRnormLabel = (value) => {
+      const normalizedRnorm = normalizeExposureValue(value);
+      return normalizedRnorm === null ? "not available" : normalizedRnorm;
+    };
+
+    const sampleDataFromDataset =
+      sample && isExposureRecord(dataset[sample]) ? dataset[sample] : null;
+    const sampleDataset = sampleDataFromDataset || dataset;
+    const signatureExposures = getSignatureExposures(sampleDataset);
+
+    if (!signatureExposures) {
       return renderPlotError(
         divID,
-        `no exposure data available for ${sample}.`
-      );
-    } else {
-      sampleDataset = dataset;
-    }
-
-    if (
-      !sampleDataset ||
-      typeof sampleDataset !== "object" ||
-      Array.isArray(sampleDataset)
-    ) {
-      return renderPlotError(
-        divID,
-        `no exposure data available for ${sample}.`
+        sample
+          ? `no exposure data available for ${sample}.`
+          : "no exposure data available."
       );
     }
 
-    const { rnorm, ...signatureExposures } = sampleDataset;
     const plotType = "pie";
-    const rnormLabel = rnorm === undefined ? "not available" : rnorm;
+    const rnormLabel = getRnormLabel(sampleDataset.rnorm);
     const plotTitle = `Mutational Signature Exposure for ${sample} (r-norm = ${rnormLabel})`;
 
     let data = {

@@ -2,12 +2,11 @@ import * as Papa from "https://cdn.jsdelivr.net/npm/papaparse/+esm";
 import {
   init_sbs_mutational_spectra,
   convertMatrix,
+  normalizeChromosome,
 } from "./mutationalSpectrum.js";
 
 //#region Convert WGS MAF file to Panel MAF file
 
-// Helper function to extract numeric part of a string
-const extractNumber = (str) => parseInt(str.replace(/\D/g, ""), 10);
 function downsampleWGSArray(WGSArray, panelArray) {
   const includedRows = [];
 
@@ -20,13 +19,18 @@ function downsampleWGSArray(WGSArray, panelArray) {
 
   for (let i = 0; i < WGSArrayLower.length - 1; i++) {
     const row = WGSArrayLower[i];
+    const rowChromosome = normalizeChromosome(row["chromosome"]);
 
-    let filteredRow = panelArray.filter(
-      (panelRow) =>
-        extractNumber(panelRow["Chromosome"]) === extractNumber(row["chromosome"]) &&
-        parseInt(panelRow["Start_Position"], 10) <= parseInt(row["start_position"], 10) &&
+    let filteredRow = panelArray.filter((panelRow) => {
+      const panelChromosome = normalizeChromosome(panelRow["Chromosome"]);
+      return (
+        rowChromosome !== null &&
+        panelChromosome === rowChromosome &&
+        parseInt(panelRow["Start_Position"], 10) <=
+          parseInt(row["start_position"], 10) &&
         parseInt(panelRow["End_Position"], 10) >= parseInt(row["end_position"], 10)
-    );
+      );
+    });
 
     if (filteredRow.length > 0) {
       includedRows.push(row);

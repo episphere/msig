@@ -95,32 +95,23 @@ function standardize_trinucleotide(trinucleotide_ref) {
 }
 
 
-const extractFirstNumber = (str, extractSexChromosome = false) => {
-  // Check if the string is just "X" or "Y" and extractSexChromosome is true
-  if (extractSexChromosome && /^[XY]$/.test(str)) {
-    return str; // Return "X" or "Y" directly
+const normalizeChromosome = (chromosome) => {
+  if (chromosome === null || chromosome === undefined) {
+    return null;
   }
 
-  // Check if the string consists only of digits
-  if (/^\d+$/.test(str)) {
-    return parseInt(str, 10); // Convert the string to an integer
+  const value = String(chromosome).trim();
+  const match = value.match(/^(?:chr)?(\d+|X|Y|M|MT)$/i);
+  if (!match) {
+    return null;
   }
 
-  const match = str.match(/chr([XY\d]+)/);
-  if (match) {
-    const chrom = match[1];
-    if (extractSexChromosome) {
-      return chrom; // Returns "X", "Y", or "1", "2", etc., as strings
-    } else {
-      if (/^\d+$/.test(chrom)) {
-        return parseInt(chrom, 10); // Returns numbers as integers
-      } else {
-        return null; // Returns null for "X" and "Y"
-      }
-    }
-  } else {
-    return null; // Returns null if no match is found
+  const chromosomeName = match[1].toUpperCase();
+  if (/^\d+$/.test(chromosomeName)) {
+    return String(parseInt(chromosomeName, 10));
   }
+
+  return chromosomeName === "MT" ? "M" : chromosomeName;
 };
 
 /**
@@ -214,13 +205,13 @@ async function convertMatrix(
       // Use a proper comparison or a simple "if (!tcga)" check
       if (!tcga) {
         chromosomeNumber = patient[i]["chromosome"];
-        chromosomeNumber = extractFirstNumber(chromosomeNumber);
+        chromosomeNumber = normalizeChromosome(chromosomeNumber);
         referenceAllele = patient[i]["reference_allele"];
         mutatedTo = patient[i]["tumor_seq_allele2"];
         position = patient[i]["start_position"];
         variantType = patient[i]["variant_type"];
       } else {
-        chromosomeNumber = patient[i]["chromosome"];
+        chromosomeNumber = normalizeChromosome(patient[i]["chromosome"]);
         referenceAllele = patient[i]["reference_genome_allele"];
         mutatedTo = patient[i]["mutated_to_allele"];
         position = patient[i]["chromosome_start"];
@@ -302,6 +293,7 @@ export {
   standardize_substitution,
   init_sbs_mutational_spectra,
   standardize_trinucleotide,
+  normalizeChromosome,
   convertMatrix,
   getMutationalContext,
 };
