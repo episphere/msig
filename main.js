@@ -31,57 +31,81 @@ async function importSdkModule(path) {
   return await import(fallbackUrl);
 }
 
-const [
-  { default: plotMSPrevalence },
-  { default: plotSignatureAssociation },
-  { default: plotMutationalProfileSBS96 },
-  { default: plotMutationalProfileSBS192 },
-  { default: plotMutationalProfileSBS288 },
-  { default: plotMutationalProfileSBS384 },
-  { default: plotMutationalProfileSBS1536 },
-  { default: plotMutationalProfileDBS78 },
-  { default: plotMutationalProfileDBS186 },
-  { default: plotMutationalProfileID28 },
-  { default: plotMutationalProfileID29 },
-  { default: plotMutationalProfileID83 },
-  { default: plotMutationalProfileID415 },
-  { default: plotMutationalProfileRS32 },
-  { default: plotMutationalProfileSBS96Comparison },
-  { default: plotMutationalProfileSBS192Comparison },
-  { default: plotMutationalProfileDBS78Comparison },
-  { default: plotMutationalProfileID83Comparison },
-  { default: plotMutationalProfileRS32Comparison },
-  { preprocessData, kFoldCV },
-  userDataModule,
-  utilsModule,
-  tcgaModule,
-  mSigPortalAPIsModule,
-] = await Promise.all([
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/msPrevalence/msPrevalence.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/msAssociation/msAssociation.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs96.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs192.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs288.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs384.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs1536.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/dbs78.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/dbs186.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id28.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id29.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id83.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id415.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/rs32.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/profileComparison/sbs96.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/profileComparison/sbs192.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/profileComparison/dbs78.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/profileComparison/id83.js"),
-  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/profileComparison/rs32.js"),
-  importSdkModule("mSigSDKScripts/machineLearning.js"),
-  importSdkModule("mSigSDKScripts/userData.js"),
-  importSdkModule("mSigSDKScripts/utils.js"),
-  importSdkModule("mSigSDKScripts/tcga.js"),
-  importSdkModule("mSigSDKScripts/mSigPortalAPIs.js"),
-]);
+const sdkModuleSpecs = [
+  ["plotMSPrevalence", "mSigPortalScripts/client/src/components/controls/plotly/msPrevalence/msPrevalence.js"],
+  ["plotSignatureAssociation", "mSigPortalScripts/client/src/components/controls/plotly/msAssociation/msAssociation.js"],
+  ["plotMutationalProfileSBS96", "mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs96.js"],
+  ["plotMutationalProfileSBS192", "mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs192.js"],
+  ["plotMutationalProfileSBS288", "mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs288.js"],
+  ["plotMutationalProfileSBS384", "mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs384.js"],
+  ["plotMutationalProfileSBS1536", "mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs1536.js"],
+  ["plotMutationalProfileDBS78", "mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/dbs78.js"],
+  ["plotMutationalProfileDBS186", "mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/dbs186.js"],
+  ["plotMutationalProfileID28", "mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id28.js"],
+  ["plotMutationalProfileID29", "mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id29.js"],
+  ["plotMutationalProfileID83", "mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id83.js"],
+  ["plotMutationalProfileID415", "mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id415.js"],
+  ["plotMutationalProfileRS32", "mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/rs32.js"],
+  ["plotMutationalProfileSBS96Comparison", "mSigPortalScripts/client/src/components/controls/plotly/profileComparison/sbs96.js"],
+  ["plotMutationalProfileSBS192Comparison", "mSigPortalScripts/client/src/components/controls/plotly/profileComparison/sbs192.js"],
+  ["plotMutationalProfileDBS78Comparison", "mSigPortalScripts/client/src/components/controls/plotly/profileComparison/dbs78.js"],
+  ["plotMutationalProfileID83Comparison", "mSigPortalScripts/client/src/components/controls/plotly/profileComparison/id83.js"],
+  ["plotMutationalProfileRS32Comparison", "mSigPortalScripts/client/src/components/controls/plotly/profileComparison/rs32.js"],
+  ["machineLearning", "mSigSDKScripts/machineLearning.js"],
+  ["userData", "mSigSDKScripts/userData.js"],
+  ["utils", "mSigSDKScripts/utils.js"],
+  ["tcga", "mSigSDKScripts/tcga.js"],
+  ["mSigPortalAPIs", "mSigSDKScripts/mSigPortalAPIs.js"],
+];
+
+const sdkModuleResults = await Promise.allSettled(
+  sdkModuleSpecs.map(([, path]) => importSdkModule(path))
+);
+
+function getLoadedModule(index) {
+  const [name] = sdkModuleSpecs[index];
+  const result = sdkModuleResults[index];
+
+  if (result.status === "fulfilled") {
+    return result.value;
+  }
+
+  console.warn(`mSigSDK could not load ${name}.`, result.reason);
+  return {};
+}
+
+function missingDependency(name) {
+  return function () {
+    throw new Error(`mSigSDK could not load ${name}. Try refreshing the page or adding a cache-busting query string to the SDK import URL.`);
+  };
+}
+
+const plotMSPrevalence = getLoadedModule(0).default || missingDependency("plotMSPrevalence");
+const plotSignatureAssociation = getLoadedModule(1).default || missingDependency("plotSignatureAssociation");
+const plotMutationalProfileSBS96 = getLoadedModule(2).default || missingDependency("plotMutationalProfileSBS96");
+const plotMutationalProfileSBS192 = getLoadedModule(3).default || missingDependency("plotMutationalProfileSBS192");
+const plotMutationalProfileSBS288 = getLoadedModule(4).default || missingDependency("plotMutationalProfileSBS288");
+const plotMutationalProfileSBS384 = getLoadedModule(5).default || missingDependency("plotMutationalProfileSBS384");
+const plotMutationalProfileSBS1536 = getLoadedModule(6).default || missingDependency("plotMutationalProfileSBS1536");
+const plotMutationalProfileDBS78 = getLoadedModule(7).default || missingDependency("plotMutationalProfileDBS78");
+const plotMutationalProfileDBS186 = getLoadedModule(8).default || missingDependency("plotMutationalProfileDBS186");
+const plotMutationalProfileID28 = getLoadedModule(9).default || missingDependency("plotMutationalProfileID28");
+const plotMutationalProfileID29 = getLoadedModule(10).default || missingDependency("plotMutationalProfileID29");
+const plotMutationalProfileID83 = getLoadedModule(11).default || missingDependency("plotMutationalProfileID83");
+const plotMutationalProfileID415 = getLoadedModule(12).default || missingDependency("plotMutationalProfileID415");
+const plotMutationalProfileRS32 = getLoadedModule(13).default || missingDependency("plotMutationalProfileRS32");
+const plotMutationalProfileSBS96Comparison = getLoadedModule(14).default || missingDependency("plotMutationalProfileSBS96Comparison");
+const plotMutationalProfileSBS192Comparison = getLoadedModule(15).default || missingDependency("plotMutationalProfileSBS192Comparison");
+const plotMutationalProfileDBS78Comparison = getLoadedModule(16).default || missingDependency("plotMutationalProfileDBS78Comparison");
+const plotMutationalProfileID83Comparison = getLoadedModule(17).default || missingDependency("plotMutationalProfileID83Comparison");
+const plotMutationalProfileRS32Comparison = getLoadedModule(18).default || missingDependency("plotMutationalProfileRS32Comparison");
+const machineLearningModule = getLoadedModule(19);
+const userDataModule = getLoadedModule(20);
+const utilsModule = getLoadedModule(21);
+const tcgaModule = getLoadedModule(22);
+const mSigPortalAPIsModule = getLoadedModule(23);
+const preprocessData = machineLearningModule.preprocessData || missingDependency("preprocessData");
+const kFoldCV = machineLearningModule.kFoldCV || missingDependency("kFoldCV");
 
 const {
   convertMatrix,
