@@ -7,6 +7,10 @@ import * as am5hierarchy from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/
 import * as am5themes_Animated from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5@5.3.7/themes/Animated.js/+esm";
 
 const SDK_FALLBACK_BASE_URL = "https://episphere.github.io/msig/";
+const SDK_NAME = "mSigSDK";
+const SDK_VERSION = "0.1.0";
+const SDK_REPOSITORY_URL = "https://github.com/episphere/msig";
+const SDK_IMPORT_URL = import.meta.url;
 
 async function importSdkModule(path) {
   const fallbackUrl = new URL(path, SDK_FALLBACK_BASE_URL).href;
@@ -176,8 +180,113 @@ const mSigSDK = (function () {
    * @namespace tcga
    */
 
+  /**
+   * @namespace provenance
+   */
+
 
   //#region Plot the summary of a dataset
+
+  function copyProvenanceValue(value) {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (typeof structuredClone === "function") {
+      try {
+        return structuredClone(value);
+      } catch (_error) {
+        // Fall back to JSON serialization below.
+      }
+    }
+
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch (_error) {
+      return String(value);
+    }
+  }
+
+  function asArray(value) {
+    if (value === undefined || value === null) {
+      return [];
+    }
+
+    return Array.isArray(value) ? value : [value];
+  }
+
+  function getRuntimeContext() {
+    const navigatorInfo =
+      typeof navigator === "undefined" ? {} : navigator;
+
+    let timezone = null;
+    try {
+      timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch (_error) {
+      timezone = null;
+    }
+
+    return {
+      userAgent: navigatorInfo.userAgent || null,
+      language: navigatorInfo.language || null,
+      platform: navigatorInfo.platform || null,
+      timezone,
+    };
+  }
+
+  /**
+   * Creates a reproducibility record for an analysis result.
+   *
+   * @function createProvenance
+   * @memberof provenance
+   * @param {Object} [options] - Provenance fields to include.
+   * @param {string} [options.analysis] - Short name for the analysis.
+   * @param {Object} [options.parameters] - Parameters used to generate the result.
+   * @param {string|string[]} [options.sourceUrls] - Source URLs used by the analysis.
+   * @param {Object|Object[]} [options.dataSources] - Optional structured source metadata.
+   * @param {string|string[]} [options.notes] - Optional free-text notes.
+   * @returns {Object} Versioned SDK, runtime, source, and parameter metadata.
+   */
+  function createProvenance({
+    analysis = null,
+    parameters = {},
+    sourceUrls = [],
+    dataSources = [],
+    notes = [],
+  } = {}) {
+    return {
+      analysis,
+      generatedAt: new Date().toISOString(),
+      sdk: {
+        name: SDK_NAME,
+        version: SDK_VERSION,
+        importUrl: SDK_IMPORT_URL,
+        fallbackBaseUrl: SDK_FALLBACK_BASE_URL,
+        repository: SDK_REPOSITORY_URL,
+      },
+      parameters: copyProvenanceValue(parameters) || {},
+      sourceUrls: asArray(sourceUrls),
+      dataSources: copyProvenanceValue(asArray(dataSources)),
+      runtime: getRuntimeContext(),
+      notes: asArray(notes),
+    };
+  }
+
+  /**
+   * Wraps a result with a reproducibility record.
+   *
+   * @function withProvenance
+   * @memberof provenance
+   * @param {*} data - Analysis output to preserve.
+   * @param {Object} [options] - Options passed to createProvenance.
+   * @returns {{data: *, provenance: Object}} Data plus provenance metadata.
+   */
+  function withProvenance(data, options = {}) {
+    return {
+      data,
+      provenance: createProvenance(options),
+    };
+  }
 
   function resolvePlotContainer(target, createIfMissing = true) {
     if (typeof document === "undefined") {
@@ -1961,16 +2070,24 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     kFoldCV,
   };
 
+  const provenance = {
+    createProvenance,
+    withProvenance,
+  };
+
   //#endregion
 
   // Public members
   return {
+    name: SDK_NAME,
+    version: SDK_VERSION,
     mSigPortal,
     userData,
     tools,
     machineLearning,
     signatureFitting,
     TCGA,
+    provenance,
   };
 })();
 

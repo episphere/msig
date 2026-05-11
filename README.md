@@ -39,6 +39,59 @@ This is all you need to do to run mSigSDK. You don't need to install anything:
 
 ---
 
+## Package Usage
+
+mSigSDK is described as a versioned ES module package. Browser projects can import the SDK entry point after installing the package from this repository or from a future npm release:
+
+```javascript
+import { mSigSDK } from "msig";
+
+console.log(mSigSDK.version);
+```
+
+The published package entry is `main.js`, and the current SDK version is exposed at runtime as:
+
+```javascript
+mSigSDK.version
+```
+
+---
+
+## Interactive Examples
+
+The canonical interactive recipes live in the Observable notebook: [mSigSDK / Aaron Ge](https://observablehq.com/@aaronge-2020/signatures). Use that notebook for live workflows, plots, and browser-first examples. The repo README keeps the stable SDK entry points and reproducibility helpers so example code does not drift in two places.
+
+---
+
+## Provenance
+
+```javascript
+const resultWithProvenance = mSigSDK.provenance.withProvenance(exposures, {
+  analysis: "PCAWG Lung-AdenoCA SBS96 signature fitting",
+  parameters: {
+    study,
+    genomeDataType,
+    cancerType,
+    mutationType,
+    matrixSize,
+    signatureSetName,
+    exposureThreshold: 0.05,
+    exposureType: "relative",
+  },
+  sourceUrls: [
+    "https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum",
+    "https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature",
+  ],
+  notes: "Generated in browser with mSigSDK.",
+});
+
+console.log(resultWithProvenance.provenance);
+```
+
+The provenance object includes the SDK name, SDK version, import URL, generation timestamp, browser runtime details, analysis parameters, and source URLs. This makes exported results easier to audit, rerun, and cite.
+
+---
+
 ## Development and Contributions
 
 ### Source Code
