@@ -6,38 +6,91 @@ import * as am5hierarchy from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/
 
 import * as am5themes_Animated from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5@5.3.7/themes/Animated.js/+esm";
 
-import { default as plotMSPrevalence } from "./mSigPortalScripts/client/src/components/controls/plotly/msPrevalence/msPrevalence.js";
-import { default as plotSignatureAssociation } from "./mSigPortalScripts/client/src/components/controls/plotly/msAssociation/msAssociation.js";
-import { default as plotMutationalProfileSBS96 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs96.js";
-import { default as plotMutationalProfileSBS192 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs192.js";
-import { default as plotMutationalProfileSBS288 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs288.js";
-import { default as plotMutationalProfileSBS384 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs384.js";
-import { default as plotMutationalProfileSBS1536 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs1536.js";
+const SDK_FALLBACK_BASE_URL = "https://episphere.github.io/msig/";
 
-import { default as plotMutationalProfileDBS78 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/dbs78.js";
-import { default as plotMutationalProfileDBS186 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/dbs186.js";
+async function importSdkModule(path) {
+  const fallbackUrl = new URL(path, SDK_FALLBACK_BASE_URL).href;
+  let relativeUrl;
 
-import { default as plotMutationalProfileID28 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id28.js";
-import { default as plotMutationalProfileID29 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id29.js";
-import { default as plotMutationalProfileID83 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id83.js";
-import { default as plotMutationalProfileID415 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id415.js";
-import { default as plotMutationalProfileRS32 } from "./mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/rs32.js";
+  try {
+    relativeUrl = new URL(path, import.meta.url).href;
+  } catch (_error) {
+    relativeUrl = null;
+  }
 
-import { default as plotMutationalProfileSBS96Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/sbs96.js";
-import { default as plotMutationalProfileSBS192Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/sbs192.js";
-import { default as plotMutationalProfileDBS78Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/dbs78.js";
-import { default as plotMutationalProfileID83Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/id83.js";
-import { default as plotMutationalProfileRS32Comparison } from "./mSigPortalScripts/client/src/components/controls/plotly/profileComparison/rs32.js";
+  if (relativeUrl) {
+    try {
+      return await import(relativeUrl);
+    } catch (relativeError) {
+      if (relativeUrl === fallbackUrl) {
+        throw relativeError;
+      }
+    }
+  }
 
-import { preprocessData, kFoldCV } from "./mSigSDKScripts/machineLearning.js";
+  return await import(fallbackUrl);
+}
 
-import {
+const [
+  { default: plotMSPrevalence },
+  { default: plotSignatureAssociation },
+  { default: plotMutationalProfileSBS96 },
+  { default: plotMutationalProfileSBS192 },
+  { default: plotMutationalProfileSBS288 },
+  { default: plotMutationalProfileSBS384 },
+  { default: plotMutationalProfileSBS1536 },
+  { default: plotMutationalProfileDBS78 },
+  { default: plotMutationalProfileDBS186 },
+  { default: plotMutationalProfileID28 },
+  { default: plotMutationalProfileID29 },
+  { default: plotMutationalProfileID83 },
+  { default: plotMutationalProfileID415 },
+  { default: plotMutationalProfileRS32 },
+  { default: plotMutationalProfileSBS96Comparison },
+  { default: plotMutationalProfileSBS192Comparison },
+  { default: plotMutationalProfileDBS78Comparison },
+  { default: plotMutationalProfileID83Comparison },
+  { default: plotMutationalProfileRS32Comparison },
+  { preprocessData, kFoldCV },
+  userDataModule,
+  utilsModule,
+  tcgaModule,
+  mSigPortalAPIsModule,
+] = await Promise.all([
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/msPrevalence/msPrevalence.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/msAssociation/msAssociation.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs96.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs192.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs288.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs384.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/sbs1536.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/dbs78.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/dbs186.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id28.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id29.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id83.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/id415.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/mutationalProfiles/rs32.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/profileComparison/sbs96.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/profileComparison/sbs192.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/profileComparison/dbs78.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/profileComparison/id83.js"),
+  importSdkModule("mSigPortalScripts/client/src/components/controls/plotly/profileComparison/rs32.js"),
+  importSdkModule("mSigSDKScripts/machineLearning.js"),
+  importSdkModule("mSigSDKScripts/userData.js"),
+  importSdkModule("mSigSDKScripts/utils.js"),
+  importSdkModule("mSigSDKScripts/tcga.js"),
+  importSdkModule("mSigSDKScripts/mSigPortalAPIs.js"),
+]);
+
+const {
   convertMatrix,
   convertWGStoPanel,
   init_sbs_mutational_spectra,
   convertMutationalSpectraIntoJSON,
-} from "./mSigSDKScripts/userData.js";
-import {
+} = userDataModule;
+
+const {
   linspace,
   deepCopy,
   nnls,
@@ -47,20 +100,20 @@ import {
   hierarchicalClustering,
   doubleClustering,
   cosineSimilarity,
-} from "./mSigSDKScripts/utils.js";
+} = utilsModule;
 
-import {
+const {
   getProjectsByGene,
   getTpmCountsByGenesOnProjects,
   getTpmCountsByGenesFromFiles,
   getMafInformationFromProjects,
   getVariantInformationFromMafFiles,
   convertTCGAProjectIntoJSON,
-} from "./mSigSDKScripts/tcga.js";
+} = tcgaModule;
 
 // import every single function one by one from the mSigPortalAPIs.js file
 
-import {
+const {
   getMutationalSignaturesOptions,
   getMutationalSignaturesData,
   getMutationalSignaturesSummary,
@@ -74,7 +127,7 @@ import {
   getMutationalSignatureLandscapeData,
   getMutationalSignatureEtiologyOptions,
   getMutationalSignatureEtiologyData,
-} from "./mSigSDKScripts/mSigPortalAPIs.js";
+} = mSigPortalAPIsModule;
 
 // import * as mSigPortalPlotting from "./index.js";
 
@@ -102,9 +155,57 @@ const mSigSDK = (function () {
 
   //#region Plot the summary of a dataset
 
+  function resolvePlotContainer(target, createIfMissing = true) {
+    if (typeof document === "undefined") {
+      throw new Error("Plotting requires a browser DOM.");
+    }
+
+    if (typeof Element !== "undefined" && target instanceof Element) {
+      return { element: target, created: false, providedElement: true };
+    }
+
+    const id =
+      typeof target === "string" && target.startsWith("#")
+        ? target.slice(1)
+        : target;
+
+    let element = typeof id === "string" ? document.getElementById(id) : null;
+    let created = false;
+
+    if (!element && createIfMissing) {
+      element = document.createElement("div");
+      if (typeof id === "string" && id.length > 0) {
+        element.id = id;
+      }
+      created = true;
+    }
+
+    if (!element) {
+      throw new Error(`Could not find a container for ${target}.`);
+    }
+
+    return { element, created, providedElement: false };
+  }
+
+  function setContainerHTML(target, html) {
+    const { element } = resolvePlotContainer(target);
+    element.innerHTML = html;
+    return element;
+  }
+
+  function renderPlotError(target, message) {
+    return setContainerHTML(
+      target,
+      `<p style="color:red">Error: ${message}</p>`
+    );
+  }
+
   function plotGraphWithPlotlyAndMakeDataDownloadable(divID, data, layout) {
+    const { element: container } = resolvePlotContainer(divID);
+    const plotly = Plotly.default || Plotly;
+
     // Plot the graph using Plotly
-    Plotly.default.newPlot(divID, data, layout);
+    plotly.newPlot(container, data, layout);
 
     // Ensure Font Awesome CSS is included
     const fontAwesomeLink =
@@ -117,8 +218,6 @@ const mSigSDK = (function () {
     }
 
     // Get the container of the Plotly graph
-    const container = document.getElementById(divID);
-
     // Ensure the container has a relative position
     container.style.position = "relative";
 
@@ -174,6 +273,8 @@ const mSigSDK = (function () {
     style.type = "text/css";
     style.appendChild(document.createTextNode(css));
     document.head.appendChild(style);
+
+    return container;
   }
 
   /**
@@ -214,9 +315,10 @@ Generates a mutational spectrum summary plot and displays it in a given HTML div
       );
       let data = await getBarPlotData(summary);
       if (data.length == 0) {
-        // $(`#${divID}`).html(
-        //   `<p style="color:red">Error: no data available for the selected parameters.</p>`
-        // );
+        return renderPlotError(
+          divID,
+          "no data available for the selected parameters."
+        );
       } else {
         let layout = {
           title: `${studyName} ${cancerTypeOrGroup} ${genomeDataType} Mutational Spectrum Summary`,
@@ -232,7 +334,7 @@ Generates a mutational spectrum summary plot and displays it in a given HTML div
       }
     } catch (err) {
       console.error(err);
-      $(`#${divID}`).html(`<p>Error: ${err.message}</p>`);
+      return renderPlotError(divID, err.message);
     }
   }
 
@@ -359,10 +461,18 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
     matrixSize = 96,
     divID = "mutationalSpectrumMatrix"
   ) {
+    if (!mutationalSpectra || typeof mutationalSpectra !== "object") {
+      return renderPlotError(
+        divID,
+        "no data available for the selected parameters."
+      );
+    }
+
     const numberOfPatients = Object.keys(mutationalSpectra).length;
     if (numberOfPatients == 0) {
-      $(`#${divID}`).html(
-        `<p style="color:red">Error: no data available for the selected parameters.</p>`
+      return renderPlotError(
+        divID,
+        "no data available for the selected parameters."
       );
     } else if (numberOfPatients > 1) {
       const layout = {
@@ -424,14 +534,54 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     mutationalSpectra,
     divID = "mutationalSpectrumMatrix"
   ) {
-    let matrixSize = mutationalSpectra[0].length;
-    let mutationType = mutationalSpectra[0][0].profile;
+    if (!mutationalSpectra) {
+      return renderPlotError(
+        divID,
+        "no data available for the selected parameters."
+      );
+    }
+
+    if (!Array.isArray(mutationalSpectra)) {
+      if (
+        typeof mutationalSpectra === "object" &&
+        Object.keys(mutationalSpectra).length > 0
+      ) {
+        return plotPatientMutationalSpectrumuserData(
+          mutationalSpectra,
+          undefined,
+          divID
+        );
+      }
+
+      return renderPlotError(
+        divID,
+        "mutationalSpectra must be a non-empty array or sample-keyed object."
+      );
+    }
+
     const numberOfPatients = Object.keys(mutationalSpectra).length;
-    console.log(numberOfPatients, mutationType, matrixSize);
 
     if (numberOfPatients == 0) {
-      $(`#${divID}`).html(
-        `<p style="color:red">Error: no data available for the selected parameters.</p>`
+      return renderPlotError(
+        divID,
+        "no data available for the selected parameters."
+      );
+    }
+
+    if (!Array.isArray(mutationalSpectra[0]) || mutationalSpectra[0].length === 0) {
+      return renderPlotError(
+        divID,
+        "mutationalSpectra must contain at least one non-empty sample array."
+      );
+    }
+
+    const matrixSize = mutationalSpectra[0].length;
+    const mutationType = mutationalSpectra[0][0]?.profile;
+
+    if (!mutationType) {
+      return renderPlotError(
+        divID,
+        "mutationalSpectra records must include a profile value."
       );
     } else if (
       numberOfPatients > 2 &&
@@ -764,6 +914,26 @@ Renders a plot of the mutational spectra for one or more patients in a given div
    */
 
   function extractMutationalSpectra(data, groupName = "sample") {
+    if (!data) {
+      return {};
+    }
+
+    if (!Array.isArray(data)) {
+      const values = typeof data === "object" ? Object.values(data) : [];
+      const groupedApiRows =
+        values.length > 0 &&
+        values.every(Array.isArray) &&
+        values
+          .flat()
+          .every((row) => row && typeof row === "object" && "mutationType" in row);
+
+      if (!groupedApiRows) {
+        return data;
+      }
+
+      data = values;
+    }
+
     data = data.flat();
 
     // Group all of the dictionaries in the data array by sample name
@@ -832,11 +1002,10 @@ Renders a plot of the mutational spectra for one or more patients in a given div
    *   (Breast Invasive Carcinoma), etc. Any string value is accepted, but it should
    *   represent a specific cancer type.
    *
-   * @param {string} [divID="cosineSimilarityHeatMap"] - The ID of the HTML element where
-   *   the heatmap will be rendered. This should be a valid HTML element ID. If an element
-   *   with this ID does not exist, one will be created and appended to the document body.
-   *   Any string is accepted, but it should correspond to a unique ID in the HTML
-   *   document to avoid conflicts.
+   * @param {string|HTMLElement} [divID="cosineSimilarityHeatMap"] - The target element or
+   *   target element ID where the heatmap will be rendered. If an element with this ID does
+   *   not exist, a detached element will be created and returned. Observable notebooks can
+   *   render that returned element in the current cell.
    *
    * @param {boolean} [conductDoubleClustering=true] - A flag indicating whether to
    *   perform double clustering (hierarchical clustering on both rows and columns)
@@ -856,11 +1025,10 @@ Renders a plot of the mutational spectra for one or more patients in a given div
    *   a table will be rendered next to the heatmap. If `false`, only the heatmap will
    *   be displayed. Boolean values `true` or `false` are expected.
    *
-   * @returns {Promise<number[][]>} A Promise that resolves to the cosine similarity matrix.
-   *   The matrix is a two-dimensional array of numbers, where each number represents
-   *   the cosine similarity between two samples. The values range from 0 to 1, where 1
-   *   indicates perfect similarity and 0 indicates no similarity. The dimensions of
-   *   the matrix will be NxN, where N is the number of samples in `groupedData`.
+   * @returns {Promise<number[][]|HTMLElement>} A Promise that resolves to the cosine
+   *   similarity matrix when rendering into an existing ID, or to the rendered element when a
+   *   detached/provided element is used. Returned elements expose the matrix on
+   *   `element.cosSimilarityMatrix` and `element.value`.
    *
    * @throws Will throw an error if the `cosineSimilarity` function or the
    *   `plotGraphWithPlotlyAndMakeDataDownloadable` function throws an error.
@@ -877,12 +1045,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     colorscale = "RdBu",
     showTable = false
   ) {
-    let container = document.getElementById(divID);
-    if (!container) {
-      container = document.createElement('div');
-      container.id = divID;
-      document.body.appendChild(container);
-    }
+    const {
+      element: container,
+      created,
+      providedElement,
+    } = resolvePlotContainer(divID);
 
     container.innerHTML = '';
     container.style.display = 'flex';
@@ -892,7 +1059,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     container.style.alignItems = 'center'; // Center items vertically
 
     const heatmapDiv = document.createElement('div');
-    heatmapDiv.id = `${divID}-heatmap`;
+    heatmapDiv.id = `${container.id || "cosineSimilarityHeatMap"}-heatmap`;
     heatmapDiv.style.flex = showTable ? '1' : '1';
     container.appendChild(heatmapDiv);
 
@@ -934,10 +1101,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       },
     ];
 
+    const containerWidth = container.offsetWidth || container.clientWidth || 800;
     let layout = {
       title: `${studyName} ${cancerType} ${genomeDataType} Cosine Similarity Heatmap`,
       height: 800,
-      width: showTable ? container.offsetWidth * 0.6 : container.offsetWidth,
+      width: showTable ? containerWidth * 0.6 : containerWidth,
       xaxis: {
         title: "Sample",
         type: "category",
@@ -950,11 +1118,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       },
     };
 
-    plotGraphWithPlotlyAndMakeDataDownloadable(heatmapDiv.id, plotlyData, layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(heatmapDiv, plotlyData, layout);
 
     if (showTable) {
       const tableDiv = document.createElement('div');
-      tableDiv.id = `${divID}-table`;
+      tableDiv.id = `${container.id || "cosineSimilarityHeatMap"}-table`;
       tableDiv.style.flex = '1';
       tableDiv.style.overflowX = 'auto';
       tableDiv.style.display = 'flex';  // Add flex display
@@ -994,6 +1162,13 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       });
       table.appendChild(tbody);
       tableWrapper.appendChild(table);
+    }
+
+    container.cosSimilarityMatrix = cosSimilarityMatrix;
+    container.value = cosSimilarityMatrix;
+
+    if (created || providedElement) {
+      return container;
     }
 
     return cosSimilarityMatrix;
@@ -1106,7 +1281,6 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       groupedData
     );
 
-    // $(`#${divID}`).css({"width": "100%", "height": "550px", "max-width": "100%"})
     const element = document.getElementById(divID);
     element.style.width = "100%";
     element.style.height = "600px";
@@ -1411,16 +1585,44 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     divID,
     sample
   ) {
-    let dataset = deepCopy(exposureData);
+    if (!exposureData || typeof exposureData !== "object") {
+      return renderPlotError(divID, "exposureData must be an object.");
+    }
 
-    const rnorm = dataset["rnorm"];
-    delete dataset["rnorm"];
+    const dataset = deepCopy(exposureData);
+    if (
+      sample &&
+      (!dataset[sample] ||
+        typeof dataset[sample] !== "object" ||
+        Array.isArray(dataset[sample]))
+    ) {
+      return renderPlotError(
+        divID,
+        `no exposure data available for ${sample}.`
+      );
+    }
+
+    const sampleDataset = sample ? dataset[sample] : dataset;
+
+    if (
+      !sampleDataset ||
+      typeof sampleDataset !== "object" ||
+      Array.isArray(sampleDataset)
+    ) {
+      return renderPlotError(
+        divID,
+        `no exposure data available for ${sample}.`
+      );
+    }
+
+    const { rnorm, ...signatureExposures } = sampleDataset;
     const plotType = "pie";
-    const plotTitle = `Mutational Signature Exposure for ${sample} (r-norm = ${rnorm})`;
+    const rnormLabel = rnorm === undefined ? "not available" : rnorm;
+    const plotTitle = `Mutational Signature Exposure for ${sample} (r-norm = ${rnormLabel})`;
 
     let data = {
-      labels: Object.keys(dataset),
-      values: Object.values(dataset),
+      labels: Object.keys(signatureExposures),
+      values: Object.values(signatureExposures),
       name: `${sample} exposure values`,
       textposition: "inside",
       hole: 0.4,
