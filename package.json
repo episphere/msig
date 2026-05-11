@@ -1,4 +1,35 @@
 {
+  "name": "msig",
+  "version": "0.1.0",
+  "description": "Browser-first JavaScript SDK for mutational signature analysis with mSigPortal data, plotting, and researcher workflow helpers.",
+  "type": "module",
+  "module": "./main.js",
+  "exports": {
+    ".": "./main.js"
+  },
+  "files": [
+    "main.js",
+    "mSigSDKScripts",
+    "mSigPortalScripts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "docs": "jsdoc -c jsdoc.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/episphere/msig.git"
+  },
+  "keywords": [
+    "mutational-signatures",
+    "cancer-genomics",
+    "msigportal",
+    "bioinformatics"
+  ],
+  "author": "Aaron Ge",
+  "license": "MIT",
+  "homepage": "https://episphere.github.io/msig/",
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.0.1"
   },
