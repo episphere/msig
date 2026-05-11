@@ -1,0 +1,190 @@
+<!doctype html>
+<notebook theme="air">
+  <title>mSigSDK NMF extraction</title>
+
+  <script type="text/markdown">
+    # NMF Signature Extraction
+
+    This notebook isolates browser-sized de novo extraction. It loads a small real cohort, runs NMF with a few random starts, compares extracted signatures to COSMIC references, and shows the profile, exposure, and rank-selection diagnostics.
+
+    Keep the defaults small while developing. NMF can become expensive quickly in the browser.
+  </script>
+
+  <script type="module" pinned id="1">
+    const nmfSdkUrl = "http://127.0.0.1:8080/main.js?v=2026-05-11-focused-nmf";
+    const { mSigSDK } = await import(nmfSdkUrl);
+
+    display({
+      importedFrom: nmfSdkUrl,
+      name: mSigSDK.name,
+      version: mSigSDK.version,
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## Settings and Real Data
+
+    The notebook uses high-burden Lung-AdenoCA spectra so the browser has enough signal to extract simple components. Increase sample count, rank grid, random starts, or iterations only when you are ready for heavier computation.
+  </script>
+
+  <script type="module" pinned id="2">
+    const nmfContexts = mSigSDK.validation.getExpectedContexts({
+      profile: "SBS",
+      matrix: 96,
+    });
+    const nmfStudy = "PCAWG";
+    const nmfGenomeDataType = "WGS";
+    const nmfCancerType = "Lung-AdenoCA";
+    const nmfMutationType = "SBS";
+    const nmfMatrixSize = 96;
+    const nmfSignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
+    const nmfSampleLimit = 6;
+    const nmfRank = 3;
+    const nmfRuns = 3;
+    const nmfMaxIterations = 180;
+
+    const [nmfRawSpectrumRows, nmfRawSignatureRows] = await Promise.all([
+      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+        nmfStudy,
+        null,
+        nmfGenomeDataType,
+        nmfCancerType,
+        nmfMutationType,
+        nmfMatrixSize
+      ),
+      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
+        nmfGenomeDataType,
+        nmfSignatureSetName,
+        nmfMutationType,
+        nmfMatrixSize,
+        10000
+      ),
+    ]);
+
+    const nmfSpectrumRows = Array.isArray(nmfRawSpectrumRows)
+      ? nmfRawSpectrumRows.flat()
+      : [];
+    const nmfSignatureRows = Array.isArray(nmfRawSignatureRows)
+      ? nmfRawSignatureRows.flat()
+      : [];
+    const nmfAllGroupedSpectra =
+      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(nmfSpectrumRows);
+    const nmfAllReferenceSignatures =
+      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
+        nmfSignatureRows,
+        "signatureName"
+      );
+    const nmfAllBurden = mSigSDK.qc.summarizeMutationBurden(nmfAllGroupedSpectra, {
+      expectedContexts: nmfContexts,
+    });
+    const nmfSelectedSampleNames = nmfAllBurden.samples
+      .filter((sample) => sample.totalMutations > 0)
+      .sort((a, b) => b.totalMutations - a.totalMutations)
+      .slice(0, nmfSampleLimit)
+      .map((sample) => sample.sample);
+    const nmfGroupedSpectra = Object.fromEntries(
+      nmfSelectedSampleNames.map((sample) => [sample, nmfAllGroupedSpectra[sample]])
+    );
+
+    display({
+      samples: nmfSelectedSampleNames,
+      rank: nmfRank,
+      randomStarts: nmfRuns,
+      maxIterations: nmfMaxIterations,
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## Extract and Match Signatures
+
+    NMF learns signatures and exposures without being given the true signatures. The COSMIC match table is a post hoc interpretation aid, not an automatic naming step.
+  </script>
+
+  <script type="module" pinned id="3">
+    const nmfResult = mSigSDK.signatureExtraction.extractSignaturesNMF(
+      nmfGroupedSpectra,
+      {
+        rank: nmfRank,
+        nRuns: nmfRuns,
+        maxIterations: nmfMaxIterations,
+        tolerance: 1e-5,
+        seed: 123,
+        contexts: nmfContexts,
+        signaturePrefix: "NMF",
+      }
+    );
+    const nmfMatches = mSigSDK.signatureExtraction.compareExtractedToReference(
+      nmfResult.signatures,
+      nmfAllReferenceSignatures,
+      { contexts: nmfContexts, topN: 3 }
+    );
+
+    display({
+      rank: nmfResult.rank,
+      converged: nmfResult.converged,
+      reconstructionError: nmfResult.reconstructionError,
+      averageSampleCosineSimilarity: nmfResult.averageSampleCosineSimilarity,
+      bestRun: nmfResult.bestRun,
+      matches: nmfMatches,
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## Extracted Signature Profiles
+
+    Profiles are shown through the established mSigPortal SBS96 renderer so the mutation context colors match COSMIC conventions.
+  </script>
+
+  <script type="module" pinned id="4">
+    const nmfProfilesDiv = document.createElement("div");
+    nmfProfilesDiv.style.width = "100%";
+    await mSigSDK.signatureExtractionPlots.plotNMFSignatureProfiles(
+      nmfProfilesDiv,
+      nmfResult
+    );
+    display(nmfProfilesDiv);
+  </script>
+
+  <script type="text/markdown">
+    ## Exposure Heatmap
+
+    The heatmap shows whether extracted signatures are broad cohort processes or concentrated in a few samples.
+  </script>
+
+  <script type="module" pinned id="5">
+    const nmfExposureDiv = document.createElement("div");
+    nmfExposureDiv.style.width = "100%";
+    await mSigSDK.signatureExtractionPlots.plotNMFExposureHeatmap(
+      nmfExposureDiv,
+      nmfResult,
+      { relative: true }
+    );
+    display(nmfExposureDiv);
+  </script>
+
+  <script type="text/markdown">
+    ## Rank Diagnostics
+
+    This small rank grid is intentionally modest. In production, use more ranks and more random starts, then judge reconstruction, stability, and interpretability together.
+  </script>
+
+  <script type="module" pinned id="6">
+    const nmfRankSelection = mSigSDK.signatureExtraction.selectNMFRank(
+      nmfGroupedSpectra,
+      {
+        ranks: [2, 3],
+        nRuns: 2,
+        maxIterations: 120,
+        seed: 456,
+        contexts: nmfContexts,
+      }
+    );
+    const nmfRankDiv = document.createElement("div");
+    nmfRankDiv.style.width = "100%";
+    await mSigSDK.signatureExtractionPlots.plotNMFRankSelection(
+      nmfRankDiv,
+      nmfRankSelection
+    );
+    display(nmfRankDiv);
+  </script>
+</notebook>

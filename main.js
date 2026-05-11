@@ -1,5 +1,6 @@
 import * as UMAP from "https://esm.sh/umap-js@1.3.3";
 import * as Plotly from "https://esm.sh/plotly.js-dist-min@3.5.1";
+import * as d3 from "https://esm.sh/d3@7.9.0";
 
 import * as am5 from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/+esm";
 import * as am5hierarchy from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/hierarchy/+esm";
@@ -11,6 +12,18 @@ const SDK_NAME = "mSigSDK";
 const SDK_VERSION = "0.1.0";
 const SDK_REPOSITORY_URL = "https://github.com/episphere/msig";
 const SDK_IMPORT_URL = import.meta.url;
+const SCIENTIFIC_COLORS = {
+  blue: "#0072B2",
+  sky: "#56B4E9",
+  green: "#009E73",
+  orange: "#E69F00",
+  vermillion: "#D55E00",
+  purple: "#CC79A7",
+  yellow: "#F0E442",
+  gray: "#6B7280",
+  lightGray: "#E5E7EB",
+  darkGray: "#111827",
+};
 
 async function importSdkModule(path) {
   const fallbackUrl = new URL(path, SDK_FALLBACK_BASE_URL).href;
@@ -60,6 +73,12 @@ const sdkModuleSpecs = [
   ["utils", "mSigSDKScripts/utils.js"],
   ["tcga", "mSigSDKScripts/tcga.js"],
   ["mSigPortalAPIs", "mSigSDKScripts/mSigPortalAPIs.js"],
+  ["validation", "mSigSDKScripts/validation.js"],
+  ["qc", "mSigSDKScripts/qc.js"],
+  ["signatureExtraction", "mSigSDKScripts/signatureExtraction.js"],
+  ["io", "mSigSDKScripts/io.js"],
+  ["reports", "mSigSDKScripts/reports.js"],
+  ["workflows", "mSigSDKScripts/workflows.js"],
 ];
 
 const sdkModuleResults = await Promise.allSettled(
@@ -108,6 +127,12 @@ const userDataModule = getLoadedModule(20);
 const utilsModule = getLoadedModule(21);
 const tcgaModule = getLoadedModule(22);
 const mSigPortalAPIsModule = getLoadedModule(23);
+const validationModule = getLoadedModule(24);
+const qcModule = getLoadedModule(25);
+const signatureExtractionModule = getLoadedModule(26);
+const ioModule = getLoadedModule(27);
+const reportsModule = getLoadedModule(28);
+const workflowsModule = getLoadedModule(29);
 const preprocessData = machineLearningModule.preprocessData || missingDependency("preprocessData");
 const kFoldCV = machineLearningModule.kFoldCV || missingDependency("kFoldCV");
 
@@ -157,6 +182,64 @@ const {
   getMutationalSignatureEtiologyData,
 } = mSigPortalAPIsModule;
 
+const {
+  assertValid,
+  getExpectedContexts,
+  getMatrixContexts,
+  getSBS96Contexts,
+  normalizeMatrixObject,
+  rowsToMatrix,
+  rowsToSampleSpectra,
+  rowsToSignatureMatrix,
+  validateExposureMatrix,
+  validateMafRows,
+  validateSignatureMatrix,
+  validateSpectra,
+} = validationModule;
+
+const {
+  bootstrapSignatureFit,
+  calculateFitResiduals,
+  calculateReconstructionError,
+  fitSpectraWithNNLS,
+  normalizeExposures,
+  runThresholdSensitivity,
+  summarizeMissingContexts,
+  summarizeMutationBurden,
+} = qcModule;
+
+const {
+  compareExtractedToReference,
+  extractSignaturesNMF,
+  extractSignaturesNMFInWorker,
+  selectNMFRank,
+  spectraToMatrix,
+} = signatureExtractionModule;
+
+const {
+  exposureMatrixToRows,
+  exportCOSMICSignatureMatrix,
+  exportMatrixTSV,
+  exportSigProfilerMatrix,
+  importCOSMICSignatureMatrix,
+  importMatrixTSV,
+  importSigProfilerMatrix,
+  rowsToExposureMatrix,
+  signatureMatrixToRows,
+  spectraToRows,
+} = ioModule;
+
+const {
+  createAnalysisReport,
+  createAnalysisReportHTML,
+  downloadAnalysisReport,
+} = reportsModule;
+
+const {
+  createNMFAnalysis,
+  createSignatureFitAnalysis,
+} = workflowsModule;
+
 // import * as mSigPortalPlotting from "./index.js";
 
 const mSigSDK = (function () {
@@ -182,6 +265,30 @@ const mSigSDK = (function () {
 
   /**
    * @namespace provenance
+   */
+
+  /**
+   * @namespace validation
+   */
+
+  /**
+   * @namespace qc
+   */
+
+  /**
+   * @namespace signatureExtraction
+   */
+
+  /**
+   * @namespace io
+   */
+
+  /**
+   * @namespace reports
+   */
+
+  /**
+   * @namespace workflows
    */
 
 
@@ -288,6 +395,79 @@ const mSigSDK = (function () {
     };
   }
 
+  function scientificPlotLayout({
+    title,
+    height = 520,
+    margin = { l: 88, r: 36, t: 72, b: 88 },
+    xaxis = {},
+    yaxis = {},
+    legend = {},
+    annotations = [],
+    shapes = [],
+  } = {}) {
+    return {
+      title: {
+        text: title,
+        x: 0.02,
+        xanchor: "left",
+        font: { size: 18, color: SCIENTIFIC_COLORS.darkGray },
+      },
+      font: {
+        family: "Arial, sans-serif",
+        size: 13,
+        color: "#1F2937",
+      },
+      paper_bgcolor: "#FFFFFF",
+      plot_bgcolor: "#FFFFFF",
+      height,
+      margin,
+      hovermode: "closest",
+      legend: {
+        orientation: "h",
+        x: 0,
+        y: 1.1,
+        bgcolor: "rgba(255,255,255,0)",
+        ...legend,
+      },
+      xaxis: {
+        showline: true,
+        linecolor: "#374151",
+        linewidth: 1,
+        ticks: "outside",
+        tickcolor: "#374151",
+        gridcolor: SCIENTIFIC_COLORS.lightGray,
+        zerolinecolor: "#9CA3AF",
+        automargin: true,
+        ...xaxis,
+      },
+      yaxis: {
+        showline: true,
+        linecolor: "#374151",
+        linewidth: 1,
+        ticks: "outside",
+        tickcolor: "#374151",
+        gridcolor: SCIENTIFIC_COLORS.lightGray,
+        zerolinecolor: "#9CA3AF",
+        automargin: true,
+        ...yaxis,
+      },
+      annotations,
+      shapes,
+    };
+  }
+
+  function formatPlotNumber(value, digits = 3) {
+    if (!Number.isFinite(value)) {
+      return value;
+    }
+
+    if (Math.abs(value) >= 1000) {
+      return value.toLocaleString();
+    }
+
+    return Number(value.toFixed(digits));
+  }
+
   function resolvePlotContainer(target, createIfMissing = true) {
     if (typeof document === "undefined") {
       throw new Error("Plotting requires a browser DOM.");
@@ -354,16 +534,17 @@ const mSigSDK = (function () {
     // Ensure the container has a relative position
     container.style.position = "relative";
 
-    // Create a download button with only the Font Awesome download icon
+    // Create a compact download button for the plotted data.
     const downloadBtn = document.createElement("div");
     downloadBtn.innerHTML =
-      '<button class="btn"><i class="fa fa-download"></i></button>';
+      '<button class="msig-download-btn" title="Download plot data"><i class="fa fa-download"></i></button>';
     const btn = downloadBtn.firstChild;
 
-    // Position the button at the bottom right corner of the container
+    // Position the button at the top right corner of the container.
     btn.style.position = "absolute";
-    btn.style.bottom = "0";
-    btn.style.right = "0";
+    btn.style.top = "8px";
+    btn.style.right = "8px";
+    btn.style.zIndex = "5";
 
     // Add an event listener to handle the download action
     btn.addEventListener("click", function () {
@@ -387,18 +568,21 @@ const mSigSDK = (function () {
 
     // Add the provided CSS
     const css = `
-        .btn {
-            background-color: DodgerBlue;
-            border: none;
-            border-radius: 100%;
-            color: white;
-            padding: 12px 12px;
+        .msig-download-btn {
+            background-color: rgba(255, 255, 255, 0.92);
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            color: #374151;
+            padding: 6px 8px;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 13px;
+            line-height: 1;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
         }
 
-        .btn:hover {
-            background-color: RoyalBlue;
+        .msig-download-btn:hover {
+            background-color: #f9fafb;
+            color: #111827;
         }
     `;
 
@@ -408,6 +592,221 @@ const mSigSDK = (function () {
     document.head.appendChild(style);
 
     return container;
+  }
+
+  function ensureD3PlotStyles() {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    if (document.getElementById("msig-d3-plot-styles")) {
+      return;
+    }
+
+    const style = document.createElement("style");
+    style.id = "msig-d3-plot-styles";
+    style.textContent = `
+      .msig-d3-plot {
+        position: relative;
+        max-width: 980px;
+        width: 100%;
+        background: #ffffff;
+        color: #111827;
+        font-family: Arial, sans-serif;
+      }
+      .msig-d3-header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 18px;
+        margin: 0 0 14px 0;
+      }
+      .msig-d3-title {
+        margin: 0 0 4px 0;
+        font: 700 22px/1.15 Arial, sans-serif;
+        letter-spacing: 0;
+      }
+      .msig-d3-subtitle {
+        max-width: 700px;
+        color: #6b7280;
+        font: 400 13px/1.45 Arial, sans-serif;
+      }
+      .msig-d3-badges {
+        display: grid;
+        grid-auto-flow: column;
+        gap: 8px;
+      }
+      .msig-d3-badge {
+        min-width: 88px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        background: #f8fafc;
+        padding: 7px 10px;
+      }
+      .msig-d3-badge-label {
+        color: #6b7280;
+        font: 700 10px/1.1 Arial, sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+      .msig-d3-badge-value {
+        margin-top: 3px;
+        color: #111827;
+        font: 700 16px/1.2 Arial, sans-serif;
+      }
+      .msig-d3-tooltip {
+        pointer-events: none;
+        position: absolute;
+        z-index: 20;
+        max-width: 260px;
+        opacity: 0;
+        transform: translateY(-6px);
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 10px 24px rgba(17, 24, 39, 0.14);
+        padding: 9px 10px;
+        color: #111827;
+        font: 12px/1.35 Arial, sans-serif;
+      }
+      .msig-d3-tooltip div {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        white-space: nowrap;
+      }
+      .msig-d3-tooltip span {
+        color: #6b7280;
+      }
+      .msig-d3-tooltip strong {
+        font-weight: 700;
+      }
+      .msig-d3-axis path,
+      .msig-d3-axis line {
+        stroke: #cbd5e1;
+      }
+      .msig-d3-axis text {
+        fill: #374151;
+        font: 12px Arial, sans-serif;
+      }
+      .msig-d3-axis-title {
+        fill: #111827;
+        font: 700 12px Arial, sans-serif;
+      }
+      .msig-d3-caption {
+        fill: #6b7280;
+        font: 12px Arial, sans-serif;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function escapeHTML(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function tooltipRows(rows) {
+    return rows
+      .map(
+        ([label, value]) =>
+          `<div><span>${escapeHTML(label)}</span><strong>${escapeHTML(
+            value
+          )}</strong></div>`
+      )
+      .join("");
+  }
+
+  function createD3PlotFrame(
+    target,
+    { title, subtitle, badges = [], maxWidth = "980px" } = {}
+  ) {
+    ensureD3PlotStyles();
+    const { element: container } = resolvePlotContainer(target);
+    container.innerHTML = "";
+    container.classList.add("msig-d3-plot");
+    container.style.maxWidth = maxWidth;
+
+    const header = document.createElement("div");
+    header.className = "msig-d3-header";
+
+    const copy = document.createElement("div");
+    copy.style.minWidth = "0";
+    if (title) {
+      const titleElement = document.createElement("div");
+      titleElement.className = "msig-d3-title";
+      titleElement.textContent = title;
+      copy.appendChild(titleElement);
+    }
+    if (subtitle) {
+      const subtitleElement = document.createElement("div");
+      subtitleElement.className = "msig-d3-subtitle";
+      subtitleElement.textContent = subtitle;
+      copy.appendChild(subtitleElement);
+    }
+    header.appendChild(copy);
+
+    if (badges.length > 0) {
+      const badgeContainer = document.createElement("div");
+      badgeContainer.className = "msig-d3-badges";
+      badges.forEach(({ label, value }) => {
+        const badge = document.createElement("div");
+        badge.className = "msig-d3-badge";
+
+        const badgeLabel = document.createElement("div");
+        badgeLabel.className = "msig-d3-badge-label";
+        badgeLabel.textContent = label;
+
+        const badgeValue = document.createElement("div");
+        badgeValue.className = "msig-d3-badge-value";
+        badgeValue.textContent = value;
+
+        badge.append(badgeLabel, badgeValue);
+        badgeContainer.appendChild(badge);
+      });
+      header.appendChild(badgeContainer);
+    }
+
+    const chart = document.createElement("div");
+    chart.style.width = "100%";
+
+    const tooltip = document.createElement("div");
+    tooltip.className = "msig-d3-tooltip";
+
+    container.append(header, chart, tooltip);
+
+    const showTooltip = (event, html) => {
+      const bounds = container.getBoundingClientRect();
+      tooltip.innerHTML = html;
+      tooltip.style.opacity = "1";
+      tooltip.style.left = `${event.clientX - bounds.left + 14}px`;
+      tooltip.style.top = `${event.clientY - bounds.top + 14}px`;
+    };
+    const hideTooltip = () => {
+      tooltip.style.opacity = "0";
+    };
+
+    return { container, chart, tooltip, showTooltip, hideTooltip };
+  }
+
+  function appendResponsiveSvg(chart, width, height, label) {
+    return d3
+      .select(chart)
+      .append("svg")
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .attr("width", "100%")
+      .attr("height", "auto")
+      .attr("role", "img")
+      .attr("aria-label", label || "mSigSDK plot");
+  }
+
+  function styleD3Axis(selection) {
+    selection.classed("msig-d3-axis", true);
   }
 
   /**
@@ -2004,6 +2403,1629 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     plotGraphWithPlotlyAndMakeDataDownloadable(divID, dat.traces, dat.layout);
   }
 
+  function plotMutationBurdenSummary(divID, burdenSummary) {
+    const samples = [...(burdenSummary.samples || [])].sort(
+      (a, b) => a.totalMutations - b.totalMutations
+    );
+    if (samples.length === 0) {
+      return renderPlotError(divID, "No mutation burden data available.");
+    }
+
+    const threshold = Number(burdenSummary.overall?.lowBurdenThreshold);
+    const hasThreshold = Number.isFinite(threshold) && threshold > 0;
+    const maxBurden = Math.max(
+      ...samples.map((sample) => Number(sample.totalMutations) || 0),
+      hasThreshold ? threshold : 0,
+      1
+    );
+    const lowBurdenCount = samples.filter(
+      (sample) => sample.flags?.lowBurden
+    ).length;
+    const emptyCount = samples.filter(
+      (sample) => sample.flags?.emptySpectrum
+    ).length;
+
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title: "Mutation burden QC",
+      subtitle:
+        "Each bar is a sample-level mutation count across the selected contexts. The vertical marker is the low-burden threshold used to flag spectra before fitting.",
+      badges: [
+        {
+          label: "Threshold",
+          value: hasThreshold ? formatPlotNumber(threshold, 1) : "Off",
+        },
+        { label: "Flagged", value: `${lowBurdenCount}/${samples.length}` },
+        { label: "Empty", value: String(emptyCount) },
+      ],
+    });
+
+    const width = 920;
+    const rowHeight = 28;
+    const margin = { top: 38, right: 92, bottom: 58, left: 132 };
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = Math.max(240, samples.length * rowHeight);
+    const height = innerHeight + margin.top + margin.bottom;
+    const svg = appendResponsiveSvg(
+      chart,
+      width,
+      height,
+      "Mutation burden by sample"
+    );
+    const plot = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+    const x = d3
+      .scaleLinear()
+      .domain([0, maxBurden * 1.1])
+      .nice()
+      .range([0, innerWidth]);
+    const y = d3
+      .scaleBand()
+      .domain(samples.map((sample) => sample.sample))
+      .range([0, innerHeight])
+      .padding(0.22);
+
+    plot
+      .append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(
+        d3
+          .axisBottom(x)
+          .ticks(6)
+          .tickFormat((value) => d3.format(",")(value))
+      )
+      .call(styleD3Axis);
+    plot
+      .append("g")
+      .call(d3.axisLeft(y).tickSize(0))
+      .call(styleD3Axis)
+      .select(".domain")
+      .remove();
+    plot
+      .append("g")
+      .attr("stroke", SCIENTIFIC_COLORS.lightGray)
+      .attr("stroke-opacity", 0.8)
+      .call(d3.axisBottom(x).ticks(6).tickSize(innerHeight).tickFormat(""))
+      .call((axis) => axis.select(".domain").remove());
+
+    if (hasThreshold) {
+      plot
+        .append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", Math.min(x(threshold), innerWidth))
+        .attr("height", innerHeight)
+        .attr("fill", SCIENTIFIC_COLORS.orange)
+        .attr("opacity", 0.07);
+      plot
+        .append("line")
+        .attr("x1", x(threshold))
+        .attr("x2", x(threshold))
+        .attr("y1", 0)
+        .attr("y2", innerHeight)
+        .attr("stroke", SCIENTIFIC_COLORS.vermillion)
+        .attr("stroke-width", 2)
+        .attr("stroke-dasharray", "5 5");
+      plot
+        .append("text")
+        .attr("x", Math.min(x(threshold) + 8, innerWidth - 120))
+        .attr("y", -13)
+        .attr("fill", SCIENTIFIC_COLORS.vermillion)
+        .attr("font", "700 12px Arial, sans-serif")
+        .attr("dominant-baseline", "middle")
+        .text(`Threshold: ${formatPlotNumber(threshold, 1)}`);
+    }
+
+    const statusColor = (sample) =>
+      sample.flags?.emptySpectrum
+        ? SCIENTIFIC_COLORS.vermillion
+        : sample.flags?.lowBurden
+          ? SCIENTIFIC_COLORS.orange
+          : SCIENTIFIC_COLORS.blue;
+    const statusLabel = (sample) =>
+      sample.flags?.emptySpectrum
+        ? "empty spectrum"
+        : sample.flags?.lowBurden
+          ? "below threshold"
+          : "passes threshold";
+
+    plot
+      .selectAll("rect.msig-burden-bar")
+      .data(samples)
+      .join("rect")
+      .attr("class", "msig-burden-bar")
+      .attr("x", 0)
+      .attr("y", (sample) => y(sample.sample))
+      .attr("width", (sample) => x(sample.totalMutations))
+      .attr("height", y.bandwidth())
+      .attr("rx", 4)
+      .attr("fill", statusColor)
+      .attr("opacity", 0.88)
+      .on("mousemove", (event, sample) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Sample", sample.sample],
+            ["Total mutations", d3.format(",")(sample.totalMutations)],
+            ["Non-zero contexts", sample.nonZeroContexts],
+            ["Status", statusLabel(sample)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+
+    plot
+      .selectAll("text.msig-burden-label")
+      .data(samples)
+      .join("text")
+      .attr("class", "msig-burden-label")
+      .attr("x", (sample) => Math.min(x(sample.totalMutations) + 7, innerWidth))
+      .attr("y", (sample) => y(sample.sample) + y.bandwidth() / 2)
+      .attr("dy", "0.35em")
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .attr("font", "700 11px Arial, sans-serif")
+      .text((sample) => d3.format(",")(sample.totalMutations));
+
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + innerWidth / 2)
+      .attr("y", height - 12)
+      .attr("text-anchor", "middle")
+      .text("Total mutations");
+
+    return { data: samples, threshold };
+  }
+
+  async function plotReconstructionError(
+    divID,
+    reconstructionError,
+    { cosineReferenceLines = [] } = {}
+  ) {
+    const samples = [...(reconstructionError.samples || [])].sort(
+      (a, b) => a.cosineSimilarity - b.cosineSimilarity
+    );
+    if (samples.length === 0) {
+      return renderPlotError(divID, "No reconstruction error data available.");
+    }
+
+    const cosineValues = samples.map((sample) => sample.cosineSimilarity);
+    const rmseValues = samples.map((sample) => sample.rmse);
+    const minCosine = Math.min(...cosineValues.filter(Number.isFinite), 1);
+    const maxRmse = Math.max(...rmseValues.filter(Number.isFinite), 0);
+    const cosineRangeStart = Math.max(
+      0,
+      Math.floor((minCosine - 0.02) * 20) / 20
+    );
+    const rows = samples.map((sample, index) => ({
+      sample: sample.sample,
+      order: index + 1,
+      cosineSimilarity: sample.cosineSimilarity,
+      rmse: sample.rmse,
+      cosineGap: 1 - sample.cosineSimilarity,
+    }));
+    const referenceLines = cosineReferenceLines
+      .map((line) => ({
+        value: Number(line.value),
+        label: line.label || String(line.value),
+      }))
+      .filter((line) => Number.isFinite(line.value));
+
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title: "Reconstruction quality",
+      subtitle:
+        "Known-signature fitting is evaluated with paired diagnostics: cosine similarity should approach 1, while RMSE should approach 0.",
+      badges: [
+        {
+          label: "Median cosine",
+          value: formatPlotNumber(d3.median(cosineValues), 4),
+        },
+        {
+          label: "Max RMSE",
+          value: formatPlotNumber(maxRmse, 5),
+        },
+      ],
+    });
+
+    const width = 940;
+    const rowHeight = 28;
+    const margin = { top: 24, right: 28, bottom: 64, left: 132 };
+    const gap = 54;
+    const cosineWidth = 510;
+    const rmseWidth = width - margin.left - margin.right - gap - cosineWidth;
+    const innerHeight = Math.max(260, samples.length * rowHeight);
+    const height = innerHeight + margin.top + margin.bottom;
+    const svg = appendResponsiveSvg(
+      chart,
+      width,
+      height,
+      "Reconstruction quality by sample"
+    );
+    const y = d3
+      .scaleBand()
+      .domain(samples.map((sample) => sample.sample))
+      .range([0, innerHeight])
+      .padding(0.28);
+    const xCosine = d3
+      .scaleLinear()
+      .domain([cosineRangeStart, 1])
+      .range([0, cosineWidth]);
+    const xRmse = d3
+      .scaleLinear()
+      .domain([0, maxRmse === 0 ? 1 : maxRmse * 1.12])
+      .nice()
+      .range([0, rmseWidth]);
+    const cosinePlot = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+    const rmsePlot = svg
+      .append("g")
+      .attr(
+        "transform",
+        `translate(${margin.left + cosineWidth + gap},${margin.top})`
+      );
+
+    cosinePlot
+      .append("g")
+      .attr("stroke", SCIENTIFIC_COLORS.lightGray)
+      .attr("stroke-opacity", 0.9)
+      .call(
+        d3
+          .axisBottom(xCosine)
+          .ticks(5)
+          .tickSize(innerHeight)
+          .tickFormat("")
+      )
+      .call((axis) => axis.select(".domain").remove());
+    rmsePlot
+      .append("g")
+      .attr("stroke", SCIENTIFIC_COLORS.lightGray)
+      .attr("stroke-opacity", 0.9)
+      .call(d3.axisBottom(xRmse).ticks(4).tickSize(innerHeight).tickFormat(""))
+      .call((axis) => axis.select(".domain").remove());
+
+    cosinePlot
+      .append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(d3.axisBottom(xCosine).ticks(5).tickFormat(d3.format(".2f")))
+      .call(styleD3Axis);
+    rmsePlot
+      .append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(d3.axisBottom(xRmse).ticks(4).tickFormat(d3.format(".3g")))
+      .call(styleD3Axis);
+    cosinePlot
+      .append("g")
+      .call(d3.axisLeft(y).tickSize(0))
+      .call(styleD3Axis)
+      .select(".domain")
+      .remove();
+
+    referenceLines.forEach((line) => {
+      cosinePlot
+        .append("line")
+        .attr("x1", xCosine(line.value))
+        .attr("x2", xCosine(line.value))
+        .attr("y1", 0)
+        .attr("y2", innerHeight)
+        .attr("stroke", SCIENTIFIC_COLORS.gray)
+        .attr("stroke-dasharray", "4 4");
+      cosinePlot
+        .append("text")
+        .attr("x", xCosine(line.value) + 5)
+        .attr("y", 12)
+        .attr("fill", SCIENTIFIC_COLORS.gray)
+        .attr("font", "700 11px Arial, sans-serif")
+        .text(line.label);
+    });
+
+    cosinePlot
+      .selectAll("line.msig-cosine-gap")
+      .data(rows)
+      .join("line")
+      .attr("class", "msig-cosine-gap")
+      .attr("x1", (row) => xCosine(row.cosineSimilarity))
+      .attr("x2", xCosine(1))
+      .attr("y1", (row) => y(row.sample) + y.bandwidth() / 2)
+      .attr("y2", (row) => y(row.sample) + y.bandwidth() / 2)
+      .attr("stroke", "#cbd5e1")
+      .attr("stroke-width", 3)
+      .attr("stroke-linecap", "round");
+    cosinePlot
+      .selectAll("circle.msig-cosine-point")
+      .data(rows)
+      .join("circle")
+      .attr("class", "msig-cosine-point")
+      .attr("cx", (row) => xCosine(row.cosineSimilarity))
+      .attr("cy", (row) => y(row.sample) + y.bandwidth() / 2)
+      .attr("r", 6)
+      .attr("fill", SCIENTIFIC_COLORS.blue)
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 1.5)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Sample", row.sample],
+            ["Cosine similarity", formatPlotNumber(row.cosineSimilarity, 4)],
+            ["1 - cosine", formatPlotNumber(row.cosineGap, 4)],
+            ["RMSE", formatPlotNumber(row.rmse, 5)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+
+    rmsePlot
+      .selectAll("rect.msig-rmse-bar")
+      .data(rows)
+      .join("rect")
+      .attr("class", "msig-rmse-bar")
+      .attr("x", 0)
+      .attr("y", (row) => y(row.sample))
+      .attr("width", (row) => xRmse(row.rmse))
+      .attr("height", y.bandwidth())
+      .attr("rx", 4)
+      .attr("fill", SCIENTIFIC_COLORS.orange)
+      .attr("opacity", 0.72)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Sample", row.sample],
+            ["RMSE", formatPlotNumber(row.rmse, 5)],
+            ["Cosine similarity", formatPlotNumber(row.cosineSimilarity, 4)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + cosineWidth / 2)
+      .attr("y", margin.top - 8)
+      .attr("text-anchor", "middle")
+      .text("Cosine similarity");
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + cosineWidth + gap + rmseWidth / 2)
+      .attr("y", margin.top - 8)
+      .attr("text-anchor", "middle")
+      .text("RMSE");
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + cosineWidth / 2)
+      .attr("y", height - 14)
+      .attr("text-anchor", "middle")
+      .text("Higher is better");
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + cosineWidth + gap + rmseWidth / 2)
+      .attr("y", height - 14)
+      .attr("text-anchor", "middle")
+      .text("Lower is better");
+
+    return { data: rows, thresholds: { cosineReferenceLines: referenceLines } };
+  }
+
+  function spectrumRecordToProfileRows(record, sample, contexts = null) {
+    const entries =
+      contexts && contexts.length
+        ? contexts.map((context) => [context, record?.[context]])
+        : Object.entries(record || {});
+
+    return entries.map(([mutationType, value]) => {
+      const numericValue = Number(value);
+      return {
+        sample,
+        profile: "SBS",
+        mutationType,
+        mutations: Number.isFinite(numericValue) ? numericValue : 0,
+      };
+    });
+  }
+
+  async function plotFitResiduals(divID, residualResult, sampleName = null) {
+    const samples = residualResult.samples || [];
+    const selectedSample =
+      samples.find((sample) => sample.sample === sampleName) || samples[0];
+
+    if (!selectedSample) {
+      return renderPlotError(divID, "No residual data available.");
+    }
+
+    const contexts =
+      residualResult.contexts && residualResult.contexts.length > 0
+        ? residualResult.contexts
+        : Object.keys(selectedSample.observed || {});
+    const supportsSbs96 = contexts.every((context) =>
+      /^.\[.>.\].$/.test(context)
+    );
+
+    if (!supportsSbs96) {
+      return renderPlotError(
+        divID,
+        "Profile comparison residual plots currently support SBS96 contexts."
+      );
+    }
+
+    const observedRows = spectrumRecordToProfileRows(
+      selectedSample.observed,
+      selectedSample.sample,
+      contexts
+    );
+    const reconstructedRows = spectrumRecordToProfileRows(
+      selectedSample.reconstructed,
+      `${selectedSample.sample}; reconstructed`,
+      contexts
+    );
+    const observedTotal = observedRows.reduce(
+      (total, row) => total + row.mutations,
+      0
+    );
+    const reconstructedTotal = reconstructedRows.reduce(
+      (total, row) => total + row.mutations,
+      0
+    );
+
+    if (observedTotal <= 0 || reconstructedTotal <= 0) {
+      return renderPlotError(
+        divID,
+        "Observed and reconstructed spectra both need non-zero totals."
+      );
+    }
+
+    return plotPatientMutationalSpectrum(
+      [observedRows, reconstructedRows],
+      divID
+    );
+  }
+
+  async function plotBootstrapConfidenceIntervals(divID, bootstrapResult) {
+    const signatures = [...(bootstrapResult.signatures || [])].sort(
+      (a, b) => b.mean - a.mean
+    );
+    if (signatures.length === 0) {
+      return renderPlotError(divID, "No bootstrap signature data available.");
+    }
+
+    const confidenceLabel = formatPlotNumber(
+      (bootstrapResult.confidenceLevel || 0.95) * 100,
+      1
+    );
+    const exposureSamples = bootstrapResult.exposureSamples || [];
+    const rows = signatures.map((signature) => ({
+      signatureName: signature.signatureName,
+      mean: signature.mean,
+      median: signature.median,
+      lower: signature.lower,
+      upper: signature.upper,
+      intervalWidth: signature.upper - signature.lower,
+      selectionFrequency: signature.selectionFrequency,
+      values: exposureSamples.map((sample) => sample[signature.signatureName] || 0),
+    }));
+    const maxExposure = Math.max(
+      ...rows.flatMap((row) => [row.upper, row.mean, ...row.values]),
+      0.01
+    );
+    const selectedCount = rows.filter(
+      (row) => row.selectionFrequency >= 0.5
+    ).length;
+
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title: "Bootstrap exposure uncertainty",
+      subtitle:
+        "Each row shows the bootstrap exposure distribution for one signature, with the confidence interval and mean exposure overlaid. The right panel shows how often the signature survives thresholding.",
+      badges: [
+        { label: "Iterations", value: String(bootstrapResult.iterations || 0) },
+        { label: "Interval", value: `${confidenceLabel}%` },
+        { label: "Selected", value: `${selectedCount}/${rows.length}` },
+      ],
+    });
+
+    const width = 960;
+    const rowHeight = 48;
+    const margin = { top: 28, right: 26, bottom: 62, left: 132 };
+    const exposureWidth = 640;
+    const selectionGap = 48;
+    const selectionWidth = 110;
+    const innerHeight = Math.max(300, rows.length * rowHeight);
+    const height = innerHeight + margin.top + margin.bottom;
+    const svg = appendResponsiveSvg(
+      chart,
+      width,
+      height,
+      "Bootstrap confidence intervals and exposure distributions"
+    );
+    const y = d3
+      .scaleBand()
+      .domain(rows.map((row) => row.signatureName))
+      .range([0, innerHeight])
+      .padding(0.28);
+    const x = d3
+      .scaleLinear()
+      .domain([0, maxExposure * 1.08])
+      .nice()
+      .range([0, exposureWidth]);
+    const selectionX = d3.scaleLinear().domain([0, 1]).range([0, selectionWidth]);
+    const plot = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+    const selectionPlot = svg
+      .append("g")
+      .attr(
+        "transform",
+        `translate(${margin.left + exposureWidth + selectionGap},${margin.top})`
+      );
+
+    plot
+      .append("g")
+      .attr("stroke", SCIENTIFIC_COLORS.lightGray)
+      .attr("stroke-opacity", 0.9)
+      .call(d3.axisBottom(x).ticks(6).tickSize(innerHeight).tickFormat(""))
+      .call((axis) => axis.select(".domain").remove());
+    plot
+      .append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(d3.axisBottom(x).ticks(6).tickFormat(d3.format(".2f")))
+      .call(styleD3Axis);
+    plot
+      .append("g")
+      .call(d3.axisLeft(y).tickSize(0))
+      .call(styleD3Axis)
+      .select(".domain")
+      .remove();
+    selectionPlot
+      .append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(d3.axisBottom(selectionX).ticks(3).tickFormat(d3.format(".0%")))
+      .call(styleD3Axis);
+
+    const ridgeArea = d3
+      .area()
+      .curve(d3.curveBasis)
+      .x((bin) => x((bin.x0 + bin.x1) / 2))
+      .y0((bin) => bin.centerY)
+      .y1((bin) => bin.centerY - bin.height);
+
+    rows.forEach((row) => {
+      const centerY = y(row.signatureName) + y.bandwidth() / 2;
+      const bins = d3
+        .bin()
+        .domain(x.domain())
+        .thresholds(26)(row.values);
+      const maxBin = Math.max(...bins.map((bin) => bin.length), 1);
+      const ridge = bins.map((bin) => ({
+        ...bin,
+        centerY,
+        height: (bin.length / maxBin) * y.bandwidth() * 0.48,
+      }));
+
+      plot
+        .append("path")
+        .datum(ridge)
+        .attr("d", ridgeArea)
+        .attr("fill", SCIENTIFIC_COLORS.sky)
+        .attr("opacity", 0.22);
+    });
+
+    const draws = rows.flatMap((row) =>
+      row.values.map((value, index) => ({
+        signatureName: row.signatureName,
+        value,
+        index,
+      }))
+    );
+    plot
+      .selectAll("circle.msig-bootstrap-draw")
+      .data(draws)
+      .join("circle")
+      .attr("class", "msig-bootstrap-draw")
+      .attr("cx", (draw) => x(draw.value))
+      .attr("cy", (draw) => {
+        const bandY = y(draw.signatureName) + y.bandwidth() / 2;
+        const jitter = (((draw.index * 37) % 100) / 100 - 0.5) * y.bandwidth();
+        return bandY + jitter * 0.7 + y.bandwidth() * 0.16;
+      })
+      .attr("r", 2.4)
+      .attr("fill", "#475569")
+      .attr("opacity", 0.22);
+
+    plot
+      .selectAll("line.msig-bootstrap-interval")
+      .data(rows)
+      .join("line")
+      .attr("class", "msig-bootstrap-interval")
+      .attr("x1", (row) => x(row.lower))
+      .attr("x2", (row) => x(row.upper))
+      .attr("y1", (row) => y(row.signatureName) + y.bandwidth() / 2)
+      .attr("y2", (row) => y(row.signatureName) + y.bandwidth() / 2)
+      .attr("stroke", SCIENTIFIC_COLORS.darkGray)
+      .attr("stroke-width", 3)
+      .attr("stroke-linecap", "round");
+    plot
+      .selectAll("circle.msig-bootstrap-mean")
+      .data(rows)
+      .join("circle")
+      .attr("class", "msig-bootstrap-mean")
+      .attr("cx", (row) => x(row.mean))
+      .attr("cy", (row) => y(row.signatureName) + y.bandwidth() / 2)
+      .attr("r", 6.5)
+      .attr("fill", SCIENTIFIC_COLORS.blue)
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 1.5)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Signature", row.signatureName],
+            ["Mean exposure", formatPlotNumber(row.mean, 4)],
+            ["Median exposure", formatPlotNumber(row.median, 4)],
+            [`${confidenceLabel}% lower`, formatPlotNumber(row.lower, 4)],
+            [`${confidenceLabel}% upper`, formatPlotNumber(row.upper, 4)],
+            ["Selection frequency", d3.format(".1%")(row.selectionFrequency)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+
+    selectionPlot
+      .selectAll("rect.msig-bootstrap-selection")
+      .data(rows)
+      .join("rect")
+      .attr("class", "msig-bootstrap-selection")
+      .attr("x", 0)
+      .attr("y", (row) => y(row.signatureName))
+      .attr("width", (row) => selectionX(row.selectionFrequency))
+      .attr("height", y.bandwidth())
+      .attr("rx", 4)
+      .attr("fill", SCIENTIFIC_COLORS.green)
+      .attr("opacity", 0.72)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Signature", row.signatureName],
+            ["Selection frequency", d3.format(".1%")(row.selectionFrequency)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    selectionPlot
+      .selectAll("text.msig-bootstrap-selection-label")
+      .data(rows)
+      .join("text")
+      .attr("class", "msig-bootstrap-selection-label")
+      .attr("x", (row) => Math.min(selectionX(row.selectionFrequency) + 5, selectionWidth))
+      .attr("y", (row) => y(row.signatureName) + y.bandwidth() / 2)
+      .attr("dy", "0.35em")
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .attr("font", "700 10px Arial, sans-serif")
+      .text((row) => d3.format(".0%")(row.selectionFrequency));
+
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + exposureWidth / 2)
+      .attr("y", height - 14)
+      .attr("text-anchor", "middle")
+      .text("Relative exposure");
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + exposureWidth + selectionGap + selectionWidth / 2)
+      .attr("y", height - 14)
+      .attr("text-anchor", "middle")
+      .text("Selected");
+
+    return { data: rows };
+  }
+
+  async function plotThresholdSensitivity(divID, thresholdResult) {
+    const runs = [...(thresholdResult.runs || [])]
+      .filter((run) => Number.isFinite(run.threshold))
+      .sort((a, b) => a.threshold - b.threshold);
+
+    if (runs.length === 0) {
+      return renderPlotError(divID, "No threshold sensitivity results available.");
+    }
+
+    const baselineRun = runs[0];
+    const metricDefinitions = [
+      {
+        key: "averageCosineSimilarity",
+        metric: "Cosine",
+        valueFormat: 4,
+        color: SCIENTIFIC_COLORS.blue,
+      },
+      {
+        key: "averageRmse",
+        metric: "RMSE",
+        valueFormat: 5,
+        color: SCIENTIFIC_COLORS.orange,
+      },
+      {
+        key: "averageActiveSignatures",
+        metric: "Active signatures",
+        valueFormat: 2,
+        color: SCIENTIFIC_COLORS.green,
+      },
+    ];
+    const metricOrder = metricDefinitions.map(({ metric }) => metric);
+    const metricColorRange = metricDefinitions.map(({ color }) => color);
+    const thresholdLabels = runs.map((run) =>
+      String(formatPlotNumber(run.threshold, 3))
+    );
+    const thresholdMin = runs[0].threshold;
+    const thresholdMax = runs[runs.length - 1].threshold;
+    const thresholdSpan = Math.max(thresholdMax - thresholdMin, 1e-6);
+    const xDomain = [thresholdMin, thresholdMax + thresholdSpan * 0.28];
+    const formatSignedPercent = (value) =>
+      `${value > 0 ? "+" : ""}${formatPlotNumber(value, 1)}%`;
+    const rows = runs.flatMap((run) =>
+      metricDefinitions.map(({ key, metric, valueFormat }) => {
+        const value = Number(run[key]);
+        const baseline = Number(baselineRun[key]);
+        const delta = value - baseline;
+        const percentChange =
+          Number.isFinite(baseline) && Math.abs(baseline) > 1e-12
+            ? (delta / Math.abs(baseline)) * 100
+            : 0;
+
+        return {
+          threshold: run.threshold,
+          thresholdLabel: String(formatPlotNumber(run.threshold, 3)),
+          metric,
+          value,
+          valueLabel: formatPlotNumber(value, valueFormat),
+          baseline,
+          baselineLabel: formatPlotNumber(baseline, valueFormat),
+          delta,
+          deltaLabel: formatPlotNumber(delta, valueFormat),
+          percentChange,
+          percentChangeLabel: formatSignedPercent(percentChange),
+          absPercentChange: Math.abs(percentChange),
+        };
+      })
+    );
+    const stabilityRows = runs.map((run) => {
+      const thresholdLabel = String(formatPlotNumber(run.threshold, 3));
+      const rowsForThreshold = rows.filter(
+        (row) => row.threshold === run.threshold
+      );
+      const instabilityScore =
+        rowsForThreshold.reduce(
+          (total, row) => total + row.absPercentChange,
+          0
+        ) / rowsForThreshold.length;
+      const largestDriver = rowsForThreshold.reduce((largest, row) =>
+        row.absPercentChange > largest.absPercentChange ? row : largest
+      );
+
+      return {
+        threshold: run.threshold,
+        thresholdLabel,
+        instabilityScore,
+        instabilityScoreLabel: `${formatPlotNumber(instabilityScore, 1)}%`,
+        largestDriver: largestDriver.metric,
+        largestDriverChange: largestDriver.percentChange,
+        largestDriverChangeLabel: formatSignedPercent(
+          largestDriver.percentChange
+        ),
+      };
+    });
+    const maxAbsPercentChange = Math.max(
+      ...rows.map((row) => row.absPercentChange),
+      1
+    );
+    const maxInstabilityScore = Math.max(
+      ...stabilityRows.map((row) => row.instabilityScore),
+      1
+    );
+    const yDomainMax = maxAbsPercentChange * 1.14;
+    const colorDomain = [-maxAbsPercentChange, 0, maxAbsPercentChange];
+    const endpointRows = metricDefinitions
+      .map(({ metric, color }, index) => {
+        const endpoint = [...rows]
+          .reverse()
+          .find((row) => row.metric === metric);
+
+        return endpoint
+          ? {
+              ...endpoint,
+              label: `${metric}: ${endpoint.percentChangeLabel}`,
+              labelColor: color,
+              labelOffset: (index - 1) * 16,
+            }
+          : null;
+      })
+      .filter(Boolean);
+
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title: "Threshold stability atlas",
+      subtitle:
+        "A defensible exposure threshold should preserve reconstruction quality and the active signature set. This view shows drift from the baseline threshold rather than declaring universal good or bad cutoffs.",
+      badges: [
+        { label: "Baseline", value: formatPlotNumber(baselineRun.threshold, 3) },
+        { label: "Max drift", value: `${formatPlotNumber(maxAbsPercentChange, 1)}%` },
+      ],
+    });
+
+    const width = 1040;
+    const margin = { top: 28, right: 235, bottom: 52, left: 82 };
+    const topHeight = 285;
+    const heatTop = topHeight + 76;
+    const heatHeight = 128;
+    const heatWidth = 560;
+    const impactGap = 64;
+    const instabilityWidth = 220;
+    const height = heatTop + heatHeight + margin.bottom;
+    const svg = appendResponsiveSvg(
+      chart,
+      width,
+      height,
+      "Threshold sensitivity of signature fitting"
+    );
+    const x = d3.scaleLinear().domain(xDomain).range([0, width - margin.left - margin.right]);
+    const y = d3
+      .scaleLinear()
+      .domain([-yDomainMax, yDomainMax])
+      .nice()
+      .range([topHeight, 0]);
+    const metricColor = d3.scaleOrdinal(metricOrder, metricColorRange);
+    const signedColor = d3
+      .scaleLinear()
+      .domain(colorDomain)
+      .range([SCIENTIFIC_COLORS.blue, "#f8fafc", SCIENTIFIC_COLORS.orange]);
+    const topPlot = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    topPlot
+      .append("g")
+      .attr("stroke", SCIENTIFIC_COLORS.lightGray)
+      .attr("stroke-opacity", 0.9)
+      .call(d3.axisLeft(y).ticks(6).tickSize(-x.range()[1]).tickFormat(""))
+      .call((axis) => axis.select(".domain").remove());
+    topPlot
+      .append("g")
+      .attr("transform", `translate(0,${topHeight})`)
+      .call(d3.axisBottom(x).ticks(runs.length).tickFormat(d3.format(".2f")))
+      .call(styleD3Axis);
+    topPlot
+      .append("g")
+      .call(
+        d3
+          .axisLeft(y)
+          .ticks(6)
+          .tickFormat((value) => `${value > 0 ? "+" : ""}${formatPlotNumber(value, 1)}%`)
+      )
+      .call(styleD3Axis);
+    topPlot
+      .append("line")
+      .attr("x1", 0)
+      .attr("x2", x.range()[1])
+      .attr("y1", y(0))
+      .attr("y2", y(0))
+      .attr("stroke", "#64748b")
+      .attr("stroke-width", 1.4);
+
+    const line = d3
+      .line()
+      .curve(d3.curveMonotoneX)
+      .x((row) => x(row.threshold))
+      .y((row) => y(row.percentChange));
+    const rowsByMetric = d3.group(rows, (row) => row.metric);
+    for (const [metric, metricRows] of rowsByMetric) {
+      topPlot
+        .append("path")
+        .datum(metricRows)
+        .attr("fill", "none")
+        .attr("stroke", metricColor(metric))
+        .attr("stroke-width", 3)
+        .attr("stroke-linecap", "round")
+        .attr("stroke-linejoin", "round")
+        .attr("d", line);
+    }
+    topPlot
+      .selectAll("circle.msig-threshold-point")
+      .data(rows)
+      .join("circle")
+      .attr("class", "msig-threshold-point")
+      .attr("cx", (row) => x(row.threshold))
+      .attr("cy", (row) => y(row.percentChange))
+      .attr("r", 5.5)
+      .attr("fill", (row) => metricColor(row.metric))
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 1.3)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Metric", row.metric],
+            ["Threshold", formatPlotNumber(row.threshold, 3)],
+            ["Value", row.valueLabel],
+            ["Baseline", row.baselineLabel],
+            ["Change", row.percentChangeLabel],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    topPlot
+      .selectAll("text.msig-threshold-end-label")
+      .data(endpointRows)
+      .join("text")
+      .attr("class", "msig-threshold-end-label")
+      .attr("x", (row) => x(row.threshold) + 10)
+      .attr("y", (row) => y(row.percentChange) + row.labelOffset)
+      .attr("fill", (row) => row.labelColor)
+      .attr("font", "700 12px Arial, sans-serif")
+      .attr("dominant-baseline", "middle")
+      .text((row) => row.label);
+
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + x.range()[1] / 2)
+      .attr("y", margin.top + topHeight + 42)
+      .attr("text-anchor", "middle")
+      .text("Exposure threshold");
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -(margin.top + topHeight / 2))
+      .attr("y", 18)
+      .attr("text-anchor", "middle")
+      .text("% change from baseline");
+
+    const heatX = d3
+      .scaleBand()
+      .domain(thresholdLabels)
+      .range([0, heatWidth])
+      .padding(0.08);
+    const heatY = d3
+      .scaleBand()
+      .domain(metricOrder)
+      .range([0, heatHeight])
+      .padding(0.12);
+    const heatPlot = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top + heatTop})`);
+    heatPlot
+      .selectAll("rect.msig-threshold-heat")
+      .data(rows)
+      .join("rect")
+      .attr("class", "msig-threshold-heat")
+      .attr("x", (row) => heatX(row.thresholdLabel))
+      .attr("y", (row) => heatY(row.metric))
+      .attr("width", heatX.bandwidth())
+      .attr("height", heatY.bandwidth())
+      .attr("rx", 4)
+      .attr("fill", (row) => signedColor(row.percentChange))
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 1)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Metric", row.metric],
+            ["Threshold", row.thresholdLabel],
+            ["Value", row.valueLabel],
+            ["Baseline", row.baselineLabel],
+            ["Change", row.percentChangeLabel],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    heatPlot
+      .selectAll("text.msig-threshold-heat-label")
+      .data(rows)
+      .join("text")
+      .attr("class", "msig-threshold-heat-label")
+      .attr("x", (row) => heatX(row.thresholdLabel) + heatX.bandwidth() / 2)
+      .attr("y", (row) => heatY(row.metric) + heatY.bandwidth() / 2)
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "middle")
+      .attr("fill", (row) =>
+        row.absPercentChange > maxAbsPercentChange * 0.55 ? "#ffffff" : "#111827"
+      )
+      .attr("font", "700 11px Arial, sans-serif")
+      .text((row) => row.percentChangeLabel);
+    heatPlot
+      .append("g")
+      .attr("transform", `translate(0,${heatHeight})`)
+      .call(d3.axisBottom(heatX).tickSize(0))
+      .call(styleD3Axis)
+      .select(".domain")
+      .remove();
+    heatPlot
+      .append("g")
+      .call(d3.axisLeft(heatY).tickSize(0))
+      .call(styleD3Axis)
+      .select(".domain")
+      .remove();
+
+    const instabilityPlot = svg
+      .append("g")
+      .attr(
+        "transform",
+        `translate(${margin.left + heatWidth + impactGap},${margin.top + heatTop})`
+      );
+    const instabilityX = d3
+      .scaleLinear()
+      .domain([0, maxInstabilityScore * 1.32])
+      .range([0, instabilityWidth]);
+    const instabilityY = d3
+      .scaleBand()
+      .domain(thresholdLabels)
+      .range([0, heatHeight])
+      .padding(0.22);
+    instabilityPlot
+      .append("g")
+      .attr("transform", `translate(0,${heatHeight})`)
+      .call(d3.axisBottom(instabilityX).ticks(4).tickFormat((value) => `${formatPlotNumber(value, 1)}%`))
+      .call(styleD3Axis);
+    instabilityPlot
+      .append("g")
+      .call(d3.axisLeft(instabilityY).tickSize(0))
+      .call(styleD3Axis)
+      .select(".domain")
+      .remove();
+    instabilityPlot
+      .selectAll("rect.msig-threshold-instability")
+      .data(stabilityRows)
+      .join("rect")
+      .attr("class", "msig-threshold-instability")
+      .attr("x", 0)
+      .attr("y", (row) => instabilityY(row.thresholdLabel))
+      .attr("width", (row) => instabilityX(row.instabilityScore))
+      .attr("height", instabilityY.bandwidth())
+      .attr("rx", 4)
+      .attr("fill", (row) => metricColor(row.largestDriver))
+      .attr("opacity", 0.76)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Threshold", row.thresholdLabel],
+            ["Mean absolute change", row.instabilityScoreLabel],
+            ["Largest driver", row.largestDriver],
+            ["Driver change", row.largestDriverChangeLabel],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    instabilityPlot
+      .selectAll("text.msig-threshold-instability-label")
+      .data(stabilityRows)
+      .join("text")
+      .attr("class", "msig-threshold-instability-label")
+      .attr("x", (row) => instabilityX(row.instabilityScore) + 5)
+      .attr("y", (row) => instabilityY(row.thresholdLabel) + instabilityY.bandwidth() / 2)
+      .attr("dominant-baseline", "middle")
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .attr("font", "700 10px Arial, sans-serif")
+      .text((row) => row.instabilityScoreLabel);
+
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + heatWidth / 2)
+      .attr("y", margin.top + heatTop - 14)
+      .attr("text-anchor", "middle")
+      .text("Signed metric change");
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + heatWidth + impactGap + instabilityWidth / 2)
+      .attr("y", margin.top + heatTop - 14)
+      .attr("text-anchor", "middle")
+      .text("Instability score");
+
+    return {
+      data: rows,
+      stability: stabilityRows,
+      baselineThreshold: baselineRun.threshold,
+      maxAbsolutePercentChange: maxAbsPercentChange,
+    };
+  }
+
+  async function plotNMFSignatureProfiles(
+    divID,
+    nmfResult,
+    { maxSignatures = Infinity } = {}
+  ) {
+    const { element: container } = resolvePlotContainer(divID);
+    const signatures = Object.entries(nmfResult?.signatures || {}).slice(
+      0,
+      maxSignatures
+    );
+    const contexts = nmfResult?.contexts || null;
+
+    if (signatures.length === 0) {
+      return renderPlotError(divID, "No extracted NMF signatures available.");
+    }
+
+    container.innerHTML = "";
+    container.style.display = "grid";
+    container.style.gap = "28px";
+
+    const rendered = [];
+    for (const [signatureName, signatureRecord] of signatures) {
+      const signatureDiv = document.createElement("div");
+      signatureDiv.style.width = "100%";
+      container.appendChild(signatureDiv);
+      rendered.push(
+        await plotPatientMutationalSpectrum(
+          [spectrumRecordToProfileRows(signatureRecord, signatureName, contexts)],
+          signatureDiv
+        )
+      );
+    }
+
+    return rendered;
+  }
+
+  async function plotNMFExposureHeatmap(
+    divID,
+    nmfResult,
+    { relative = true } = {}
+  ) {
+    if (!nmfResult?.exposures) {
+      return renderPlotError(divID, "No NMF exposure matrix available.");
+    }
+
+    const sampleNames = Object.keys(nmfResult.exposures);
+    const signatureNames = Array.from(
+      new Set(
+        sampleNames.flatMap((sample) => Object.keys(nmfResult.exposures[sample]))
+      )
+    ).sort();
+    if (sampleNames.length === 0 || signatureNames.length === 0) {
+      return renderPlotError(divID, "No NMF exposure matrix available.");
+    }
+
+    const rows = sampleNames.flatMap((sample) => {
+      const exposures = nmfResult.exposures[sample] || {};
+      const total = signatureNames.reduce(
+        (sum, signature) => sum + (Number(exposures[signature]) || 0),
+        0
+      );
+      return signatureNames.map((signature) => {
+        const rawValue = Number(exposures[signature]) || 0;
+        const value = relative && total > 0 ? rawValue / total : rawValue;
+        return {
+          sample,
+          signature,
+          value,
+          rawValue,
+        };
+      });
+    });
+    const maxValue = Math.max(...rows.map((row) => row.value), 1e-12);
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title: "NMF sample exposures",
+      subtitle:
+        "Heatmaps are the standard first-pass view for signature activities: rows are samples, columns are extracted signatures, and color encodes exposure.",
+      badges: [
+        { label: "Samples", value: String(sampleNames.length) },
+        { label: "Signatures", value: String(signatureNames.length) },
+        { label: "Scale", value: relative ? "Relative" : "Raw" },
+      ],
+    });
+
+    const width = 900;
+    const margin = { top: 36, right: 28, bottom: 86, left: 132 };
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = Math.max(260, sampleNames.length * 30);
+    const height = innerHeight + margin.top + margin.bottom;
+    const svg = appendResponsiveSvg(
+      chart,
+      width,
+      height,
+      "NMF exposure heatmap"
+    );
+    const x = d3
+      .scaleBand()
+      .domain(signatureNames)
+      .range([0, innerWidth])
+      .padding(0.06);
+    const y = d3
+      .scaleBand()
+      .domain(sampleNames)
+      .range([0, innerHeight])
+      .padding(0.08);
+    const color = d3.scaleSequential(d3.interpolateViridis).domain([0, maxValue]);
+    const plot = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    plot
+      .selectAll("rect.msig-nmf-exposure")
+      .data(rows)
+      .join("rect")
+      .attr("class", "msig-nmf-exposure")
+      .attr("x", (row) => x(row.signature))
+      .attr("y", (row) => y(row.sample))
+      .attr("width", x.bandwidth())
+      .attr("height", y.bandwidth())
+      .attr("rx", 3)
+      .attr("fill", (row) => color(row.value))
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Sample", row.sample],
+            ["Signature", row.signature],
+            [relative ? "Relative exposure" : "Exposure", formatPlotNumber(row.value, 4)],
+            ["Raw exposure", formatPlotNumber(row.rawValue, 4)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    plot
+      .append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(d3.axisBottom(x).tickSize(0))
+      .call(styleD3Axis)
+      .selectAll("text")
+      .attr("text-anchor", "end")
+      .attr("transform", "rotate(-35)")
+      .attr("dx", "-0.5em")
+      .attr("dy", "0.15em");
+    plot
+      .append("g")
+      .call(d3.axisLeft(y).tickSize(0))
+      .call(styleD3Axis)
+      .select(".domain")
+      .remove();
+    plot.selectAll(".domain").remove();
+
+    const legendWidth = 180;
+    const legendHeight = 10;
+    const legendX = width - margin.right - legendWidth;
+    const legendY = 12;
+    const gradientId = `msig-nmf-exposure-gradient-${Math.random()
+      .toString(36)
+      .slice(2)}`;
+    const defs = svg.append("defs");
+    const gradient = defs
+      .append("linearGradient")
+      .attr("id", gradientId)
+      .attr("x1", "0%")
+      .attr("x2", "100%");
+    d3.range(0, 1.01, 0.1).forEach((stop) => {
+      gradient
+        .append("stop")
+        .attr("offset", `${stop * 100}%`)
+        .attr("stop-color", color(stop * maxValue));
+    });
+    svg
+      .append("rect")
+      .attr("x", legendX)
+      .attr("y", legendY)
+      .attr("width", legendWidth)
+      .attr("height", legendHeight)
+      .attr("rx", 3)
+      .attr("fill", `url(#${gradientId})`);
+    svg
+      .append("text")
+      .attr("class", "msig-d3-caption")
+      .attr("x", legendX)
+      .attr("y", legendY + 26)
+      .text("0");
+    svg
+      .append("text")
+      .attr("class", "msig-d3-caption")
+      .attr("x", legendX + legendWidth)
+      .attr("y", legendY + 26)
+      .attr("text-anchor", "end")
+      .text(formatPlotNumber(maxValue, 3));
+
+    return { data: rows };
+  }
+
+  async function plotNMFRankSelection(divID, rankSelection) {
+    const runs = [...(rankSelection?.runs || [])].sort((a, b) => a.rank - b.rank);
+    if (runs.length === 0) {
+      return renderPlotError(divID, "No NMF rank-selection results available.");
+    }
+
+    const recommendedRank = rankSelection.recommendedRank;
+    const metrics = [
+      {
+        key: "reconstructionError",
+        label: "Reconstruction error",
+        caption: "lower is better",
+        color: SCIENTIFIC_COLORS.orange,
+      },
+      {
+        key: "averageSampleCosineSimilarity",
+        label: "Average sample cosine",
+        caption: "higher is better",
+        color: SCIENTIFIC_COLORS.blue,
+      },
+    ];
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title: "NMF rank diagnostics",
+      subtitle:
+        "Rank selection is a model-selection problem. Compare reconstruction error with sample-level cosine similarity, then inspect whether the extracted signatures remain interpretable.",
+      badges: [
+        { label: "Ranks tested", value: String(runs.length) },
+        { label: "Recommended", value: String(recommendedRank) },
+      ],
+    });
+
+    const width = 920;
+    const panelWidth = 365;
+    const panelGap = 72;
+    const margin = { top: 34, right: 34, bottom: 62, left: 72 };
+    const innerHeight = 260;
+    const height = innerHeight + margin.top + margin.bottom;
+    const svg = appendResponsiveSvg(chart, width, height, "NMF rank diagnostics");
+    const x = d3
+      .scaleLinear()
+      .domain(d3.extent(runs, (run) => run.rank))
+      .nice()
+      .range([0, panelWidth]);
+
+    metrics.forEach((metric, metricIndex) => {
+      const panelX = margin.left + metricIndex * (panelWidth + panelGap);
+      const values = runs.map((run) => Number(run[metric.key]));
+      const domain = d3.extent(values);
+      const pad = Math.max((domain[1] - domain[0]) * 0.08, 1e-6);
+      const y = d3
+        .scaleLinear()
+        .domain([domain[0] - pad, domain[1] + pad])
+        .nice()
+        .range([innerHeight, 0]);
+      const panel = svg
+        .append("g")
+        .attr("transform", `translate(${panelX},${margin.top})`);
+
+      panel
+        .append("g")
+        .attr("stroke", SCIENTIFIC_COLORS.lightGray)
+        .attr("stroke-opacity", 0.9)
+        .call(d3.axisLeft(y).ticks(5).tickSize(-panelWidth).tickFormat(""))
+        .call((axis) => axis.select(".domain").remove());
+      panel
+        .append("g")
+        .attr("transform", `translate(0,${innerHeight})`)
+        .call(d3.axisBottom(x).ticks(runs.length).tickFormat(d3.format("d")))
+        .call(styleD3Axis);
+      panel
+        .append("g")
+        .call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".3g")))
+        .call(styleD3Axis);
+
+      if (Number.isFinite(recommendedRank)) {
+        panel
+          .append("line")
+          .attr("x1", x(recommendedRank))
+          .attr("x2", x(recommendedRank))
+          .attr("y1", 0)
+          .attr("y2", innerHeight)
+          .attr("stroke", SCIENTIFIC_COLORS.green)
+          .attr("stroke-width", 1.6)
+          .attr("stroke-dasharray", "5 5");
+      }
+
+      const line = d3
+        .line()
+        .x((run) => x(run.rank))
+        .y((run) => y(run[metric.key]))
+        .curve(d3.curveMonotoneX);
+      panel
+        .append("path")
+        .datum(runs)
+        .attr("fill", "none")
+        .attr("stroke", metric.color)
+        .attr("stroke-width", 3)
+        .attr("stroke-linecap", "round")
+        .attr("d", line);
+      panel
+        .selectAll(`circle.msig-nmf-rank-${metric.key}`)
+        .data(runs)
+        .join("circle")
+        .attr("class", `msig-nmf-rank-${metric.key}`)
+        .attr("cx", (run) => x(run.rank))
+        .attr("cy", (run) => y(run[metric.key]))
+        .attr("r", 6)
+        .attr("fill", metric.color)
+        .attr("stroke", "#ffffff")
+        .attr("stroke-width", 1.4)
+        .on("mousemove", (event, run) =>
+          showTooltip(
+            event,
+            tooltipRows([
+              ["Rank", run.rank],
+              [metric.label, formatPlotNumber(run[metric.key], 5)],
+              ["Converged", run.converged ? "yes" : "no"],
+              ["Iterations", run.iterations],
+            ])
+          )
+        )
+        .on("mouseleave", hideTooltip);
+
+      svg
+        .append("text")
+        .attr("class", "msig-d3-axis-title")
+        .attr("x", panelX + panelWidth / 2)
+        .attr("y", margin.top - 12)
+        .attr("text-anchor", "middle")
+        .text(metric.label);
+      svg
+        .append("text")
+        .attr("class", "msig-d3-caption")
+        .attr("x", panelX + panelWidth / 2)
+        .attr("y", height - 14)
+        .attr("text-anchor", "middle")
+        .text(`Rank (${metric.caption})`);
+    });
+
+    return { data: runs };
+  }
+
+  async function analyzeSpectraWithSignatures(
+    spectra,
+    signatures,
+    {
+      exposureThreshold = 0,
+      exposureType = "relative",
+      renormalize = true,
+      expectedContexts = null,
+      mutationBurdenOptions = {},
+      parameters = {},
+      reportFormat = "object",
+    } = {}
+  ) {
+    const fitParameters = {
+      exposureThreshold,
+      exposureType,
+      renormalize,
+      ...parameters,
+    };
+    const exposures = await fitMutationalSpectraToSignatures(
+      signatures,
+      spectra,
+      {
+        exposureThreshold,
+        exposureType,
+        renormalize,
+      }
+    );
+    const provenanceRecord = createProvenance({
+      analysis: "signature fitting",
+      parameters: fitParameters,
+    });
+    const analysis = createSignatureFitAnalysis({
+      spectra,
+      signatures,
+      exposures,
+      parameters: fitParameters,
+      expectedContexts,
+      mutationBurdenOptions,
+      provenance: provenanceRecord,
+      reportFormat,
+    });
+
+    return {
+      exposures,
+      provenance: provenanceRecord,
+      ...analysis,
+    };
+  }
+
+  function extractSignaturesFromSpectra(
+    spectra,
+    {
+      referenceSignatures = null,
+      nmfOptions = {},
+      expectedContexts = null,
+      mutationBurdenOptions = {},
+      parameters = {},
+      reportFormat = "object",
+    } = {}
+  ) {
+    const provenanceRecord = createProvenance({
+      analysis: "NMF signature extraction",
+      parameters: {
+        ...parameters,
+        nmfOptions,
+      },
+    });
+    const analysis = createNMFAnalysis({
+      spectra,
+      referenceSignatures,
+      nmfOptions,
+      parameters,
+      expectedContexts,
+      mutationBurdenOptions,
+      provenance: provenanceRecord,
+      reportFormat,
+    });
+
+    return {
+      provenance: provenanceRecord,
+      ...analysis,
+    };
+  }
+
+  async function analyzeMafFiles(
+    mafFiles,
+    signatures = null,
+    {
+      groupBy = "project_code",
+      batchSize = 100,
+      genome = "hg19",
+      tcga = false,
+      expectedContexts = null,
+      reportFormat = "object",
+      fitting = {},
+    } = {}
+  ) {
+    const spectra = await convertMatrix(
+      mafFiles,
+      groupBy,
+      batchSize,
+      genome,
+      tcga
+    );
+    const parameters = {
+      groupBy,
+      batchSize,
+      genome,
+      tcga,
+      ...fitting,
+    };
+
+    if (signatures) {
+      return analyzeSpectraWithSignatures(spectra, signatures, {
+        ...fitting,
+        expectedContexts,
+        parameters,
+        reportFormat,
+      });
+    }
+
+    const validation = {
+      maf: validateMafRows(mafFiles),
+      spectra: validateSpectra(spectra, { expectedContexts }),
+    };
+    const qc = {
+      mutationBurden: summarizeMutationBurden(spectra, { expectedContexts }),
+      missingContexts: summarizeMissingContexts(spectra, { expectedContexts }),
+    };
+    const provenanceRecord = createProvenance({
+      analysis: "MAF to mutational spectra",
+      parameters,
+    });
+
+    return {
+      spectra,
+      validation,
+      qc,
+      provenance: provenanceRecord,
+      report: createAnalysisReport(
+        {
+          title: "mSigSDK MAF Analysis Report",
+          summary:
+            "MAF conversion summary with validation, mutation burden, and missing-context checks.",
+          parameters,
+          validation,
+          qc,
+          provenance: provenanceRecord,
+        },
+        { format: reportFormat }
+      ),
+    };
+  }
+
   //#endregion
 
   //#region Define the public members of the mSigSDK
@@ -2070,6 +4092,83 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     kFoldCV,
   };
 
+  const validation = {
+    assertValid,
+    getExpectedContexts,
+    getMatrixContexts,
+    getSBS96Contexts,
+    normalizeMatrixObject,
+    rowsToMatrix,
+    rowsToSampleSpectra,
+    rowsToSignatureMatrix,
+    validateExposureMatrix,
+    validateMafRows,
+    validateSignatureMatrix,
+    validateSpectra,
+  };
+
+  const qc = {
+    bootstrapSignatureFit,
+    calculateFitResiduals,
+    calculateReconstructionError,
+    fitSpectraWithNNLS,
+    normalizeExposures,
+    runThresholdSensitivity,
+    summarizeMissingContexts,
+    summarizeMutationBurden,
+  };
+
+  const qcPlots = {
+    plotBootstrapConfidenceIntervals,
+    plotFitResiduals,
+    plotMutationBurdenSummary,
+    plotReconstructionError,
+    plotThresholdSensitivity,
+  };
+
+  const signatureExtraction = {
+    compareExtractedToReference,
+    extractSignaturesNMF,
+    extractSignaturesNMFInWorker,
+    selectNMFRank,
+    spectraToMatrix,
+  };
+
+  const signatureExtractionPlots = {
+    plotNMFExposureHeatmap,
+    plotNMFRankSelection,
+    plotNMFSignatureProfiles,
+  };
+
+  const io = {
+    exposureMatrixToRows,
+    exportCOSMICSignatureMatrix,
+    exportMatrixTSV,
+    exportSigProfilerMatrix,
+    importCOSMICSignatureMatrix,
+    importMatrixTSV,
+    importSigProfilerMatrix,
+    rowsToExposureMatrix,
+    rowsToSampleSpectra,
+    rowsToSignatureMatrix,
+    signatureMatrixToRows,
+    spectraToRows,
+  };
+
+  const reports = {
+    createAnalysisReport,
+    createAnalysisReportHTML,
+    downloadAnalysisReport,
+  };
+
+  const workflows = {
+    analyzeMafFiles,
+    analyzeSpectraWithSignatures,
+    createNMFAnalysis,
+    createSignatureFitAnalysis,
+    extractSignaturesFromSpectra,
+  };
+
   const provenance = {
     createProvenance,
     withProvenance,
@@ -2087,6 +4186,14 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     machineLearning,
     signatureFitting,
     TCGA,
+    validation,
+    qc,
+    qcPlots,
+    signatureExtraction,
+    signatureExtractionPlots,
+    io,
+    reports,
+    workflows,
     provenance,
   };
 })();

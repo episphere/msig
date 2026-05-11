@@ -92,6 +92,107 @@ The provenance object includes the SDK name, SDK version, import URL, generation
 
 ---
 
+## Research-Grade Analysis Helpers
+
+mSigSDK includes pure helper namespaces for validation, QC, de novo signature extraction, interoperability, and analysis reporting. These functions return structured objects first so they can be used in Observable notebooks, browser apps, or downstream scripts.
+
+### QC and Uncertainty
+
+```javascript
+const burden = mSigSDK.qc.summarizeMutationBurden(groupedSpectra, {
+  lowBurdenThresholdMode: "fixed", // "fixed", "quantile", or "none"
+  lowBurdenThreshold: 100,
+});
+const missing = mSigSDK.qc.summarizeMissingContexts(groupedSpectra, {
+  expectedContexts: mSigSDK.validation.getExpectedContexts({
+    profile: "SBS",
+    matrix: 96,
+  }),
+});
+
+const reconstruction = mSigSDK.qc.calculateReconstructionError(
+  referenceSignatures,
+  groupedSpectra,
+  exposures
+);
+
+const thresholdSensitivity = await mSigSDK.qc.runThresholdSensitivity(
+  referenceSignatures,
+  groupedSpectra,
+  { thresholds: [0, 0.01, 0.03, 0.05, 0.1] }
+);
+```
+
+Plot wrappers are available under `mSigSDK.qcPlots`, including D3 mutation burden summaries, reconstruction error, bootstrap confidence intervals, and threshold sensitivity. SBS96 observed-vs-reconstructed residual comparisons reuse the established mSigPortal mutational spectrum renderer.
+
+### NMF Signature Extraction
+
+```javascript
+const nmf = mSigSDK.signatureExtraction.extractSignaturesNMF(groupedSpectra, {
+  rank: 5,
+  nRuns: 20,
+  maxIterations: 1000,
+  seed: 123,
+});
+
+const matches = mSigSDK.signatureExtraction.compareExtractedToReference(
+  nmf.signatures,
+  referenceSignatures
+);
+```
+
+For larger cohorts, `mSigSDK.signatureExtraction.extractSignaturesNMFInWorker(...)` runs the NMF extraction in a Web Worker when the browser supports it.
+
+NMF plot helpers are available under `mSigSDK.signatureExtractionPlots`. Extracted SBS96 signature profiles reuse the existing mSigPortal profile visualization, while sample exposure heatmaps and rank-selection diagnostics are rendered with D3.
+
+### Observable Notebook Workflows
+
+The SDK includes focused Observable Kit notebooks for browser testing without loading every analysis into one runtime:
+
+- `msig-sdk-notebooks.onb.html`: index of focused notebooks.
+- `msig-sdk-qc-walkthrough.onb.html`: known-signature fitting QC.
+- `msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals and threshold sensitivity.
+- `msig-sdk-nmf-extraction.onb.html`: browser-sized NMF extraction and rank diagnostics.
+- `msig-sdk-export-report.onb.html`: import/export, reports, provenance, and workflow helpers.
+
+### Validation, Interop, and Reports
+
+```javascript
+const validation = mSigSDK.validation.validateSpectra(groupedSpectra, {
+  expectedContexts: mSigSDK.validation.getExpectedContexts({
+    profile: "SBS",
+    matrix: 96,
+  }),
+});
+
+const sigProfilerMatrix = mSigSDK.io.exportSigProfilerMatrix(groupedSpectra);
+
+const report = mSigSDK.reports.createAnalysisReport({
+  title: "Signature fitting QC report",
+  validation,
+  qc: { burden, missing, reconstruction },
+  provenance: resultWithProvenance.provenance,
+});
+```
+
+High-level workflows combine these pieces:
+
+```javascript
+const analysis = await mSigSDK.workflows.analyzeSpectraWithSignatures(
+  groupedSpectra,
+  referenceSignatures,
+  {
+    exposureThreshold: 0.05,
+    mutationBurdenOptions: {
+      lowBurdenThresholdMode: "fixed",
+      lowBurdenThreshold: 100,
+    },
+  }
+);
+```
+
+---
+
 ## Development and Contributions
 
 ### Source Code

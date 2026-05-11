@@ -15,7 +15,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "docs": "jsdoc -c jsdoc.json"
+    "docs": "jsdoc -c jsdoc.json",
+    "serve:observable": "node scripts/serve-observable-sdk.mjs"
   },
   "repository": {
     "type": "git",

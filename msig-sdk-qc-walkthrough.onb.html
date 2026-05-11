@@ -1,0 +1,228 @@
+<!doctype html>
+<notebook theme="air">
+  <title>mSigSDK known-signature QC</title>
+
+  <script type="text/markdown">
+    # Known-signature QC
+
+    This notebook focuses on the standard quality-control loop for known-signature fitting: load real mSigPortal spectra, choose a small reference set, fit exposures with non-negative least squares, then inspect mutation burden, reconstruction quality, and residual spectra.
+
+    This is the fastest notebook to open when you are working on the core QC plotting functions.
+  </script>
+
+  <script type="module" pinned id="1">
+    const qcSdkUrl = "http://127.0.0.1:8080/main.js?v=2026-05-11-focused-qc";
+    const { mSigSDK } = await import(qcSdkUrl);
+
+    display({
+      importedFrom: qcSdkUrl,
+      name: mSigSDK.name,
+      version: mSigSDK.version,
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## Settings and Real Data
+
+    Change `qcMutationBurdenThreshold` to the burden cutoff you want to test. The threshold is passed directly into validation and the burden plot, so the visual marker and QC flags stay synchronized.
+  </script>
+
+  <script type="module" pinned id="2">
+    const qcContexts = mSigSDK.validation.getExpectedContexts({
+      profile: "SBS",
+      matrix: 96,
+    });
+    const qcStudy = "PCAWG";
+    const qcGenomeDataType = "WGS";
+    const qcCancerType = "Lung-AdenoCA";
+    const qcMutationType = "SBS";
+    const qcMatrixSize = 96;
+    const qcSignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
+    const qcSampleLimit = 8;
+    const qcMutationBurdenThreshold = 100;
+    const qcExposureThreshold = 0.01;
+    const qcPreferredSignatureNames = [
+      "SBS1",
+      "SBS2",
+      "SBS4",
+      "SBS5",
+      "SBS13",
+      "SBS17a",
+      "SBS17b",
+      "SBS18",
+      "SBS40",
+    ];
+
+    const [qcRawSpectrumRows, qcRawSignatureRows] = await Promise.all([
+      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+        qcStudy,
+        null,
+        qcGenomeDataType,
+        qcCancerType,
+        qcMutationType,
+        qcMatrixSize
+      ),
+      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
+        qcGenomeDataType,
+        qcSignatureSetName,
+        qcMutationType,
+        qcMatrixSize,
+        10000
+      ),
+    ]);
+
+    const qcSpectrumRows = Array.isArray(qcRawSpectrumRows)
+      ? qcRawSpectrumRows.flat()
+      : [];
+    const qcSignatureRows = Array.isArray(qcRawSignatureRows)
+      ? qcRawSignatureRows.flat()
+      : [];
+    const qcAllGroupedSpectra =
+      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(qcSpectrumRows);
+    const qcAllReferenceSignatures =
+      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
+        qcSignatureRows,
+        "signatureName"
+      );
+
+    const qcAllBurden = mSigSDK.qc.summarizeMutationBurden(qcAllGroupedSpectra, {
+      expectedContexts: qcContexts,
+    });
+    const qcSelectedSampleNames = qcAllBurden.samples
+      .filter((sample) => sample.totalMutations > 0)
+      .sort((a, b) => b.totalMutations - a.totalMutations)
+      .slice(0, qcSampleLimit)
+      .map((sample) => sample.sample);
+    const qcGroupedSpectra = Object.fromEntries(
+      qcSelectedSampleNames.map((sample) => [sample, qcAllGroupedSpectra[sample]])
+    );
+
+    const qcAvailablePreferredSignatures = qcPreferredSignatureNames.filter(
+      (signature) => qcAllReferenceSignatures[signature]
+    );
+    const qcSelectedSignatureNames =
+      qcAvailablePreferredSignatures.length > 0
+        ? qcAvailablePreferredSignatures
+        : Object.keys(qcAllReferenceSignatures).slice(0, 8);
+    const qcReferenceSignatures = Object.fromEntries(
+      qcSelectedSignatureNames.map((signature) => [
+        signature,
+        qcAllReferenceSignatures[signature],
+      ])
+    );
+
+    display({
+      study: qcStudy,
+      cancerType: qcCancerType,
+      samples: qcSelectedSampleNames,
+      signatures: qcSelectedSignatureNames,
+      mutationBurdenThreshold: qcMutationBurdenThreshold,
+      exposureThreshold: qcExposureThreshold,
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## Validate, Fit, and Build QC Objects
+
+    Validation checks the matrix contract before fitting. The fitting call then estimates relative exposures, and the QC calls generate the objects used by the plots below.
+  </script>
+
+  <script type="module" pinned id="3">
+    const qcSpectraValidation = mSigSDK.validation.validateSpectra(
+      qcGroupedSpectra,
+      {
+        expectedContexts: qcContexts,
+        minTotalMutations: qcMutationBurdenThreshold,
+      }
+    );
+    const qcSignatureValidation = mSigSDK.validation.validateSignatureMatrix(
+      qcReferenceSignatures,
+      { expectedContexts: qcContexts }
+    );
+    const qcExposures = await mSigSDK.signatureFitting.fitMutationalSpectraToSignatures(
+      qcReferenceSignatures,
+      qcGroupedSpectra,
+      {
+        exposureThreshold: qcExposureThreshold,
+        exposureType: "relative",
+        renormalize: true,
+      }
+    );
+    const qcBurden = mSigSDK.qc.summarizeMutationBurden(qcGroupedSpectra, {
+      expectedContexts: qcContexts,
+      lowBurdenThresholdMode: "fixed",
+      lowBurdenThreshold: qcMutationBurdenThreshold,
+    });
+    const qcReconstruction = mSigSDK.qc.calculateReconstructionError(
+      qcReferenceSignatures,
+      qcGroupedSpectra,
+      qcExposures,
+      { contexts: qcContexts }
+    );
+    const qcResiduals = mSigSDK.qc.calculateFitResiduals(
+      qcReferenceSignatures,
+      qcGroupedSpectra,
+      qcExposures,
+      { contexts: qcContexts }
+    );
+    const qcResidualSample =
+      qcReconstruction.samples
+        .slice()
+        .sort((a, b) => a.cosineSimilarity - b.cosineSimilarity)[0]?.sample ||
+      qcSelectedSampleNames[0];
+
+    display({
+      spectraValid: qcSpectraValidation.valid,
+      signaturesValid: qcSignatureValidation.valid,
+      burden: qcBurden.overall,
+      residualSample: qcResidualSample,
+      reconstruction: qcReconstruction.samples,
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## Mutation Burden
+
+    Samples below the dashed threshold marker are flagged as lower burden. This is a screening step, not a biological conclusion by itself.
+  </script>
+
+  <script type="module" pinned id="4">
+    const qcBurdenDiv = document.createElement("div");
+    qcBurdenDiv.style.width = "100%";
+    await mSigSDK.qcPlots.plotMutationBurdenSummary(qcBurdenDiv, qcBurden);
+    display(qcBurdenDiv);
+  </script>
+
+  <script type="text/markdown">
+    ## Reconstruction Quality
+
+    Cosine similarity measures profile-shape agreement; RMSE measures residual magnitude. Researchers usually inspect both.
+  </script>
+
+  <script type="module" pinned id="5">
+    const qcReconstructionDiv = document.createElement("div");
+    qcReconstructionDiv.style.width = "100%";
+    await mSigSDK.qcPlots.plotReconstructionError(
+      qcReconstructionDiv,
+      qcReconstruction
+    );
+    display(qcReconstructionDiv);
+  </script>
+
+  <script type="text/markdown">
+    ## Residual Spectrum
+
+    This uses the established mSigPortal SBS96 comparison plot. Positive residuals are underfit contexts; negative residuals are overfit contexts.
+  </script>
+
+  <script type="module" pinned id="6">
+    const qcResidualDiv = document.createElement("div");
+    qcResidualDiv.style.width = "100%";
+    await mSigSDK.qcPlots.plotFitResiduals(
+      qcResidualDiv,
+      qcResiduals,
+      qcResidualSample
+    );
+    display(qcResidualDiv);
+  </script>
+</notebook>

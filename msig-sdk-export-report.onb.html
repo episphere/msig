@@ -1,0 +1,205 @@
+<!doctype html>
+<notebook theme="air">
+  <title>mSigSDK export and reports</title>
+
+  <script type="text/markdown">
+    # Export, Reports, and Workflow Helpers
+
+    This lightweight notebook checks the non-visual research utilities: SigProfiler-style matrix export/import, structured reports, provenance, and the high-level workflow helper.
+  </script>
+
+  <script type="module" pinned id="1">
+    const repSdkUrl = "http://127.0.0.1:8080/main.js?v=2026-05-11-focused-report";
+    const { mSigSDK } = await import(repSdkUrl);
+
+    display({
+      importedFrom: repSdkUrl,
+      name: mSigSDK.name,
+      version: mSigSDK.version,
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## Load a Small Real Dataset
+
+    This notebook keeps the data small because it is intended to test interoperability and reporting, not heavy visualization.
+  </script>
+
+  <script type="module" pinned id="2">
+    const repContexts = mSigSDK.validation.getExpectedContexts({
+      profile: "SBS",
+      matrix: 96,
+    });
+    const repStudy = "PCAWG";
+    const repGenomeDataType = "WGS";
+    const repCancerType = "Lung-AdenoCA";
+    const repMutationType = "SBS";
+    const repMatrixSize = 96;
+    const repSignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
+    const repSampleLimit = 5;
+    const repMutationBurdenThreshold = 100;
+    const repExposureThreshold = 0.01;
+    const repPreferredSignatureNames = [
+      "SBS1",
+      "SBS2",
+      "SBS4",
+      "SBS5",
+      "SBS13",
+      "SBS17a",
+      "SBS17b",
+      "SBS18",
+      "SBS40",
+    ];
+
+    const [repRawSpectrumRows, repRawSignatureRows] = await Promise.all([
+      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+        repStudy,
+        null,
+        repGenomeDataType,
+        repCancerType,
+        repMutationType,
+        repMatrixSize
+      ),
+      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
+        repGenomeDataType,
+        repSignatureSetName,
+        repMutationType,
+        repMatrixSize,
+        10000
+      ),
+    ]);
+
+    const repSpectrumRows = Array.isArray(repRawSpectrumRows)
+      ? repRawSpectrumRows.flat()
+      : [];
+    const repSignatureRows = Array.isArray(repRawSignatureRows)
+      ? repRawSignatureRows.flat()
+      : [];
+    const repAllGroupedSpectra =
+      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(repSpectrumRows);
+    const repAllReferenceSignatures =
+      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
+        repSignatureRows,
+        "signatureName"
+      );
+    const repAllBurden = mSigSDK.qc.summarizeMutationBurden(repAllGroupedSpectra, {
+      expectedContexts: repContexts,
+    });
+    const repSelectedSampleNames = repAllBurden.samples
+      .filter((sample) => sample.totalMutations > 0)
+      .sort((a, b) => b.totalMutations - a.totalMutations)
+      .slice(0, repSampleLimit)
+      .map((sample) => sample.sample);
+    const repGroupedSpectra = Object.fromEntries(
+      repSelectedSampleNames.map((sample) => [sample, repAllGroupedSpectra[sample]])
+    );
+    const repSelectedSignatureNames = repPreferredSignatureNames.filter(
+      (signature) => repAllReferenceSignatures[signature]
+    );
+    const repReferenceSignatures = Object.fromEntries(
+      repSelectedSignatureNames.map((signature) => [
+        signature,
+        repAllReferenceSignatures[signature],
+      ])
+    );
+
+    display({
+      samples: repSelectedSampleNames,
+      signatures: repSelectedSignatureNames,
+      mutationBurdenThreshold: repMutationBurdenThreshold,
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## Export and Round Trip a SigProfiler-Style Matrix
+
+    Interoperability is important because signature analysts often move between mSigSDK, SigProfiler, COSMIC tables, R/Bioconductor workflows, and supplemental tables.
+  </script>
+
+  <script type="module" pinned id="3">
+    const repSigProfilerTsv = mSigSDK.io.exportSigProfilerMatrix(
+      repGroupedSpectra,
+      { contexts: repContexts }
+    );
+    const repRoundTripSpectra =
+      mSigSDK.io.importSigProfilerMatrix(repSigProfilerTsv);
+
+    display({
+      tsvPreview: repSigProfilerTsv.split("\n").slice(0, 5).join("\n"),
+      roundTripSamples: Object.keys(repRoundTripSpectra),
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## High-Level Workflow Helper
+
+    The workflow helper performs fitting, validation, QC object creation, provenance, and report assembly in one call. Lower-level functions remain available when you need finer control.
+  </script>
+
+  <script type="module" pinned id="4">
+    const repWorkflowAnalysis =
+      await mSigSDK.workflows.analyzeSpectraWithSignatures(
+        repGroupedSpectra,
+        repReferenceSignatures,
+        {
+          exposureThreshold: repExposureThreshold,
+          expectedContexts: repContexts,
+          mutationBurdenOptions: {
+            lowBurdenThresholdMode: "fixed",
+            lowBurdenThreshold: repMutationBurdenThreshold,
+          },
+          parameters: {
+            dataset: `${repStudy} ${repCancerType}`,
+            genomeDataType: repGenomeDataType,
+            signatureSetName: repSignatureSetName,
+            samples: repSelectedSampleNames,
+            signatures: repSelectedSignatureNames,
+            matrix: "SBS96",
+          },
+        }
+      );
+
+    display({
+      validation: repWorkflowAnalysis.validation,
+      burden: repWorkflowAnalysis.qc.mutationBurden.overall,
+      reconstructionSamples:
+        repWorkflowAnalysis.qc.reconstructionError.samples,
+      reportTitle: repWorkflowAnalysis.report.title,
+      provenance: repWorkflowAnalysis.provenance,
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## Manual Report Assembly
+
+    You can also build a report from individual pieces when you want full control over what gets included.
+  </script>
+
+  <script type="module" pinned id="5">
+    const repProvenance = mSigSDK.provenance.createProvenance({
+      analysis: "focused export report notebook",
+      parameters: {
+        sdkUrl: repSdkUrl,
+        study: repStudy,
+        genomeDataType: repGenomeDataType,
+        cancerType: repCancerType,
+        signatureSetName: repSignatureSetName,
+        mutationBurdenThreshold: repMutationBurdenThreshold,
+        exposureThreshold: repExposureThreshold,
+      },
+      sourceUrls: [
+        repSdkUrl,
+        "https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum",
+        "https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature",
+      ],
+    });
+    const repManualReport = mSigSDK.reports.createAnalysisReport({
+      title: "Focused mSigSDK interoperability report",
+      validation: repWorkflowAnalysis.validation,
+      qc: repWorkflowAnalysis.qc,
+      provenance: repProvenance,
+    });
+
+    display(repManualReport);
+  </script>
+</notebook>
