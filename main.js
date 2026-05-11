@@ -1616,9 +1616,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
    * @function plotPatientMutationalSignaturesExposure
    * @description Generates a pie chart visualizing the exposure of a single sample to a set of mutational signatures. The function takes exposure data, which includes the relative contribution of each signature to the sample's mutational profile, and displays it in a pie chart format.
    *
-   * @param {object} exposureData - An object containing the exposure data for a set of samples. The structure of `exposureData` is expected to be:
+   * @param {object} exposureData - An object containing exposure data for either a set of samples or a single sample. The structure of `exposureData` can be:
    *   `{ sampleId1: { signatureName1: exposureValue1, signatureName2: exposureValue2, ... }, sampleId2: { signatureName1: exposureValue3, signatureName2: exposureValue4, ... }, ... }`
-   *   The outer keys (e.g., `sampleId1`, `sampleId2`) are sample identifiers (strings). The inner objects (e.g., `{ signatureName1: exposureValue1, ... }`) represent the exposure values for a given sample. `signatureName` keys are strings representing the names of mutational signatures (e.g., "SBS1", "SBS5"), and `exposureValue` are non-negative numbers representing the contribution of that signature to the sample. These values typically sum to 1 for each sample. The `exposureData` object can contain multiple samples, but only the data for the specified `sample` will be used for plotting. `exposureData` must also have a `rnorm` property which is a number.
+   *   or a single sample object:
+   *   `{ signatureName1: exposureValue1, signatureName2: exposureValue2, ... }`.
+   *   The outer keys (e.g., `sampleId1`, `sampleId2`) are sample identifiers (strings). The inner objects (e.g., `{ signatureName1: exposureValue1, ... }`) represent the exposure values for a given sample. `signatureName` keys are strings representing the names of mutational signatures (e.g., "SBS1", "SBS5"), and `exposureValue` are non-negative numbers representing the contribution of that signature to the sample. These values typically sum to 1 for each sample. The `exposureData` object can contain multiple samples, but only the data for the specified `sample` will be used for plotting. Each sample may also have an optional `rnorm` property which is a number.
    * @param {string} divID - The ID of the HTML div element where the pie chart will be rendered.
    * @param {string} sample - The ID of the sample for which to plot the mutational signature exposure. This should be one of the keys in the `exposureData` object (e.g., "sampleId1", "sampleId2").
    * @return {object} - Returns the data object used by Plotly to generate the pie chart. This object contains the labels (signature names), values (exposure values), and other settings for the pie chart. The format is:
@@ -1635,19 +1637,37 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     }
 
     const dataset = deepCopy(exposureData);
-    if (
-      sample &&
-      (!dataset[sample] ||
-        typeof dataset[sample] !== "object" ||
-        Array.isArray(dataset[sample]))
-    ) {
+    const isExposureRecord = (value) =>
+      value && typeof value === "object" && !Array.isArray(value);
+
+    const isSampleExposureObject = (value) => {
+      if (!isExposureRecord(value)) {
+        return false;
+      }
+
+      const exposureEntries = Object.entries(value).filter(
+        ([signature]) => signature !== "rnorm"
+      );
+
+      return (
+        exposureEntries.length > 0 &&
+        exposureEntries.every(([, exposure]) => typeof exposure === "number")
+      );
+    };
+
+    let sampleDataset;
+    if (sample && isExposureRecord(dataset[sample])) {
+      sampleDataset = dataset[sample];
+    } else if (isSampleExposureObject(dataset)) {
+      sampleDataset = dataset;
+    } else if (sample) {
       return renderPlotError(
         divID,
         `no exposure data available for ${sample}.`
       );
+    } else {
+      sampleDataset = dataset;
     }
-
-    const sampleDataset = sample ? dataset[sample] : dataset;
 
     if (
       !sampleDataset ||
