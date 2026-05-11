@@ -1,5 +1,5 @@
 import * as UMAP from "https://esm.sh/umap-js@1.3.3";
-import * as Plotly from "https://cdn.jsdelivr.net/npm/plotly.js-dist/+esm";
+import * as Plotly from "https://esm.sh/plotly.js-dist-min@3.5.1";
 
 import * as am5 from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/+esm";
 import * as am5hierarchy from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/hierarchy/+esm";
@@ -892,11 +892,32 @@ Renders a plot of the mutational spectra for one or more patients in a given div
 
       return data;
     } else if (matrixSize === 192) {
-      console.error("Not supported yet");
+      return [
+        {
+          name: `${sample}`,
+          x: Object.keys(mutationalSpectrum),
+          y: Object.values(mutationalSpectrum),
+          type: "bar",
+        },
+      ];
     } else if (matrixSize === 1536) {
-      console.error("Not supported yet");
+      return [
+        {
+          name: `${sample}`,
+          x: Object.keys(mutationalSpectrum),
+          y: Object.values(mutationalSpectrum),
+          type: "bar",
+        },
+      ];
     } else {
-      console.error("Invalid Matrix Size");
+      return [
+        {
+          name: `${sample}`,
+          x: Object.keys(mutationalSpectrum),
+          y: Object.values(mutationalSpectrum),
+          type: "bar",
+        },
+      ];
     }
   }
 
