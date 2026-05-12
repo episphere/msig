@@ -1,4 +1,32 @@
-import { inferMutationContexts as inferContexts } from "./matrix.js";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: mSigSDKScripts/signatureExtraction.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: mSigSDKScripts/signatureExtraction.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { inferMutationContexts as inferContexts } from "./matrix.js";
 import {
   EPSILON,
   cosineSimilarity as vectorCosine,
@@ -14,21 +42,21 @@ import {
 } from "./validation.js";
 
 function normalizeColumnsAndScaleRows(w, h) {
-  for (let rankIndex = 0; rankIndex < h.length; rankIndex++) {
+  for (let rankIndex = 0; rankIndex &lt; h.length; rankIndex++) {
     let columnTotal = 0;
-    for (let rowIndex = 0; rowIndex < w.length; rowIndex++) {
+    for (let rowIndex = 0; rowIndex &lt; w.length; rowIndex++) {
       columnTotal += w[rowIndex][rankIndex];
     }
 
-    if (columnTotal <= EPSILON) {
+    if (columnTotal &lt;= EPSILON) {
       continue;
     }
 
-    for (let rowIndex = 0; rowIndex < w.length; rowIndex++) {
+    for (let rowIndex = 0; rowIndex &lt; w.length; rowIndex++) {
       w[rowIndex][rankIndex] /= columnTotal;
     }
 
-    for (let sampleIndex = 0; sampleIndex < h[rankIndex].length; sampleIndex++) {
+    for (let sampleIndex = 0; sampleIndex &lt; h[rankIndex].length; sampleIndex++) {
       h[rankIndex][sampleIndex] *= columnTotal;
     }
   }
@@ -39,7 +67,7 @@ function normalizeColumnsAndScaleRows(w, h) {
  *
  * @function spectraToMatrix
  * @memberof signatureExtraction
- * @param {Object<string,Object<string,number>>|number[][]} spectra - Sample spectra object or numeric matrix.
+ * @param {Object&lt;string,Object&lt;string,number>>|number[][]} spectra - Sample spectra object or numeric matrix.
  * @param {Object} [options] - Matrix conversion options.
  * @param {string[]} [options.contexts=null] - Context row order.
  * @param {string[]} [options.sampleNames=null] - Sample column order.
@@ -82,11 +110,11 @@ function matrixToSignatureObject(w, contexts, signaturePrefix = "NMF") {
   const signatures = {};
   const rank = w[0]?.length || 0;
 
-  for (let rankIndex = 0; rankIndex < rank; rankIndex++) {
+  for (let rankIndex = 0; rankIndex &lt; rank; rankIndex++) {
     const signatureName = `${signaturePrefix}${rankIndex + 1}`;
     signatures[signatureName] = {};
 
-    for (let contextIndex = 0; contextIndex < contexts.length; contextIndex++) {
+    for (let contextIndex = 0; contextIndex &lt; contexts.length; contextIndex++) {
       signatures[signatureName][contexts[contextIndex]] =
         w[contextIndex][rankIndex];
     }
@@ -98,11 +126,11 @@ function matrixToSignatureObject(w, contexts, signaturePrefix = "NMF") {
 function matrixToExposureObject(h, sampleNames, signaturePrefix = "NMF") {
   const exposures = {};
 
-  for (let sampleIndex = 0; sampleIndex < sampleNames.length; sampleIndex++) {
+  for (let sampleIndex = 0; sampleIndex &lt; sampleNames.length; sampleIndex++) {
     const sampleName = sampleNames[sampleIndex];
     exposures[sampleName] = {};
 
-    for (let rankIndex = 0; rankIndex < h.length; rankIndex++) {
+    for (let rankIndex = 0; rankIndex &lt; h.length; rankIndex++) {
       exposures[sampleName][`${signaturePrefix}${rankIndex + 1}`] =
         h[rankIndex][sampleIndex];
     }
@@ -141,13 +169,13 @@ function runNMF(x, { rank, maxIterations, tolerance, seed }) {
 
   normalizeColumnsAndScaleRows(w, h);
 
-  for (let iteration = 0; iteration < maxIterations; iteration++) {
+  for (let iteration = 0; iteration &lt; maxIterations; iteration++) {
     const wt = transpose(w);
     const numeratorH = matrixMultiply(wt, x);
     const denominatorH = matrixMultiply(matrixMultiply(wt, w), h);
 
-    for (let i = 0; i < h.length; i++) {
-      for (let j = 0; j < h[i].length; j++) {
+    for (let i = 0; i &lt; h.length; i++) {
+      for (let j = 0; j &lt; h[i].length; j++) {
         h[i][j] *= numeratorH[i][j] / (denominatorH[i][j] + EPSILON);
       }
     }
@@ -156,8 +184,8 @@ function runNMF(x, { rank, maxIterations, tolerance, seed }) {
     const numeratorW = matrixMultiply(x, ht);
     const denominatorW = matrixMultiply(matrixMultiply(w, h), ht);
 
-    for (let i = 0; i < w.length; i++) {
-      for (let j = 0; j < w[i].length; j++) {
+    for (let i = 0; i &lt; w.length; i++) {
+      for (let j = 0; j &lt; w[i].length; j++) {
         w[i][j] *= numeratorW[i][j] / (denominatorW[i][j] + EPSILON);
       }
     }
@@ -172,7 +200,7 @@ function runNMF(x, { rank, maxIterations, tolerance, seed }) {
         : Math.abs(previousError - metrics.reconstructionError) /
           Math.max(previousError, EPSILON);
 
-    if (relativeImprovement < tolerance) {
+    if (relativeImprovement &lt; tolerance) {
       converged = true;
       break;
     }
@@ -195,7 +223,7 @@ function runNMF(x, { rank, maxIterations, tolerance, seed }) {
  *
  * @function extractSignaturesNMF
  * @memberof signatureExtraction
- * @param {Object<string,Object<string,number>>|number[][]} spectra - Sample spectra object or matrix.
+ * @param {Object&lt;string,Object&lt;string,number>>|number[][]} spectra - Sample spectra object or matrix.
  * @param {Object} [options] - NMF options.
  * @param {number} [options.rank=5] - Number of signatures to extract.
  * @param {number} [options.maxIterations=1000] - Maximum multiplicative-update iterations.
@@ -230,7 +258,7 @@ function extractSignaturesNMF(
   const x = matrixInput.matrix;
   const runs = [];
 
-  for (let runIndex = 0; runIndex < nRuns; runIndex++) {
+  for (let runIndex = 0; runIndex &lt; nRuns; runIndex++) {
     const run = runNMF(x, {
       rank,
       maxIterations,
@@ -250,7 +278,7 @@ function extractSignaturesNMF(
   }
 
   const bestRun = runs.reduce((best, run) =>
-    run.reconstructionError < best.reconstructionError ? run : best
+    run.reconstructionError &lt; best.reconstructionError ? run : best
   );
   const signatures = matrixToSignatureObject(
     bestRun.w,
@@ -304,7 +332,7 @@ function extractSignaturesNMF(
  *
  * @function selectNMFRank
  * @memberof signatureExtraction
- * @param {Object<string,Object<string,number>>|number[][]} spectra - Sample spectra object or matrix.
+ * @param {Object&lt;string,Object&lt;string,number>>|number[][]} spectra - Sample spectra object or matrix.
  * @param {Object} [options] - Rank selection options.
  * @param {number[]} [options.ranks] - Candidate ranks to evaluate.
  * @param {number} [options.maxIterations=1000] - Maximum iterations per run.
@@ -348,7 +376,7 @@ function selectNMFRank(
     };
   });
   const recommended = runs.reduce((best, run) =>
-    run.reconstructionError < best.reconstructionError ? run : best
+    run.reconstructionError &lt; best.reconstructionError ? run : best
   );
 
   return {
@@ -363,8 +391,8 @@ function selectNMFRank(
  *
  * @function compareExtractedToReference
  * @memberof signatureExtraction
- * @param {Object<string,Object<string,number>>|Object} extractedSignatures - Extracted signature matrix or NMF result.
- * @param {Object<string,Object<string,number>>} referenceSignatures - Reference signature matrix.
+ * @param {Object&lt;string,Object&lt;string,number>>|Object} extractedSignatures - Extracted signature matrix or NMF result.
+ * @param {Object&lt;string,Object&lt;string,number>>} referenceSignatures - Reference signature matrix.
  * @param {Object} [options] - Matching options.
  * @param {string[]} [options.contexts=null] - Context order to use.
  * @param {number} [options.topN=5] - Number of matches to retain per extracted signature.
@@ -408,9 +436,9 @@ function compareExtractedToReference(
  *
  * @function extractSignaturesNMFInWorker
  * @memberof signatureExtraction
- * @param {Object<string,Object<string,number>>|number[][]} spectra - Sample spectra object or matrix.
+ * @param {Object&lt;string,Object&lt;string,number>>|number[][]} spectra - Sample spectra object or matrix.
  * @param {Object} [options] - Options passed to extractSignaturesNMF.
- * @returns {Promise<Object>} NMF result from the worker or synchronous fallback.
+ * @returns {Promise&lt;Object>} NMF result from the worker or synchronous fallback.
  */
 function extractSignaturesNMFInWorker(spectra, options = {}) {
   if (typeof Worker === "undefined" || typeof Blob === "undefined") {
@@ -465,3 +493,26 @@ export {
   selectNMFRank,
   spectraToMatrix,
 };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="io.html">io</a></li><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="provenance.html">provenance</a></li><li><a href="qc.html">qc</a></li><li><a href="qcPlots.html">qcPlots</a></li><li><a href="reports.html">reports</a></li><li><a href="signatureExtraction.html">signatureExtraction</a></li><li><a href="signatureExtractionPlots.html">signatureExtractionPlots</a></li><li><a href="tcga.html">tcga</a></li><li><a href="userData.html">userData</a></li><li><a href="validation.html">validation</a></li><li><a href="workflows.html">workflows</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Tue May 12 2026 18:43:04 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -10,4 +10,4 @@ This directory holds project-facing documentation that is useful for development
 - `manuscript/BENCHMARK_PROTOCOL.md`: compute and browser-rendering benchmark protocol for the revised manuscript.
 - `manuscript/figures/`: generated editable SVG drafts for the main manuscript figures.
 
-The public SDK documentation for end users remains in the repository `README.md` and generated JSDoc output under `out/`.
+The public SDK documentation for end users remains in the repository `README.md` and generated JSDoc output under `out/`. The generated reference includes the newer validation, QC/uncertainty, NMF extraction, import/export, reports, provenance, and workflow namespaces used by the Observable Kit notebooks in `notebooks/`.

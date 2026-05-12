@@ -1,4 +1,32 @@
-import {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: mSigSDKScripts/io.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: mSigSDKScripts/io.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import {
   getMatrixContexts,
   normalizeMatrixObject,
   rowsToSampleSpectra,
@@ -23,7 +51,7 @@ function serializeDelimited(rows, delimiter = "\t") {
  *
  * @function exportMatrixTSV
  * @memberof io
- * @param {Object<string,Object<string,number>>} matrix - Matrix keyed by row name.
+ * @param {Object&lt;string,Object&lt;string,number>>} matrix - Matrix keyed by row name.
  * @param {Object} [options] - Export options.
  * @param {string} [options.rowHeader="id"] - Header label for the row-name column.
  * @param {string[]} [options.columns=null] - Column order to export.
@@ -53,7 +81,7 @@ function exportMatrixTSV(matrix, { rowHeader = "id", columns = null } = {}) {
  * @param {Object} [options] - Import options.
  * @param {number} [options.idColumn=0] - Index of the row-name column.
  * @param {string} [options.delimiter="\t"] - Column delimiter.
- * @returns {Object<string,Object<string,number>>} Parsed matrix.
+ * @returns {Object&lt;string,Object&lt;string,number>>} Parsed matrix.
  */
 function importMatrixTSV(text, { idColumn = 0, delimiter = "\t" } = {}) {
   const rows = parseDelimited(text, delimiter);
@@ -87,7 +115,7 @@ function importMatrixTSV(text, { idColumn = 0, delimiter = "\t" } = {}) {
  *
  * @function spectraToRows
  * @memberof io
- * @param {Object<string,Object<string,number>>} spectra - Sample spectra matrix.
+ * @param {Object&lt;string,Object&lt;string,number>>} spectra - Sample spectra matrix.
  * @returns {Object[]} Rows with sample, mutationType, and mutations fields.
  */
 function spectraToRows(spectra) {
@@ -112,7 +140,7 @@ function spectraToRows(spectra) {
  *
  * @function signatureMatrixToRows
  * @memberof io
- * @param {Object<string,Object<string,number>>} signatures - Signature matrix.
+ * @param {Object&lt;string,Object&lt;string,number>>} signatures - Signature matrix.
  * @returns {Object[]} Rows with signatureName, mutationType, and contribution fields.
  */
 function signatureMatrixToRows(signatures) {
@@ -137,7 +165,7 @@ function signatureMatrixToRows(signatures) {
  *
  * @function exposureMatrixToRows
  * @memberof io
- * @param {Object<string,Object<string,number>>} exposures - Sample-by-signature exposure matrix.
+ * @param {Object&lt;string,Object&lt;string,number>>} exposures - Sample-by-signature exposure matrix.
  * @returns {Object[]} Rows with sample, signatureName, and exposure fields.
  */
 function exposureMatrixToRows(exposures) {
@@ -167,7 +195,7 @@ function exposureMatrixToRows(exposures) {
  * @param {string} [options.sampleKey="sample"] - Sample identifier field.
  * @param {string} [options.signatureKey="signatureName"] - Signature identifier field.
  * @param {string} [options.exposureKey="exposure"] - Exposure value field.
- * @returns {Object<string,Object<string,number>>} Exposure matrix.
+ * @returns {Object&lt;string,Object&lt;string,number>>} Exposure matrix.
  */
 function rowsToExposureMatrix(
   rows,
@@ -202,7 +230,7 @@ function rowsToExposureMatrix(
  *
  * @function exportSigProfilerMatrix
  * @memberof io
- * @param {Object<string,Object<string,number>>} spectra - Sample spectra matrix.
+ * @param {Object&lt;string,Object&lt;string,number>>} spectra - Sample spectra matrix.
  * @param {Object} [options] - Export options.
  * @param {string[]} [options.contexts=null] - Mutation-context row order.
  * @returns {string} Tab-separated SigProfiler-style matrix.
@@ -235,7 +263,7 @@ function exportSigProfilerMatrix(spectra, { contexts = null } = {}) {
  * @param {string} text - SigProfiler-style delimited matrix.
  * @param {Object} [options] - Import options.
  * @param {string} [options.delimiter="\t"] - Column delimiter.
- * @returns {Object<string,Object<string,number>>} Sample spectra matrix.
+ * @returns {Object&lt;string,Object&lt;string,number>>} Sample spectra matrix.
  */
 function importSigProfilerMatrix(text, { delimiter = "\t" } = {}) {
   const rows = parseDelimited(text, delimiter);
@@ -261,7 +289,7 @@ function importSigProfilerMatrix(text, { delimiter = "\t" } = {}) {
  *
  * @function exportCOSMICSignatureMatrix
  * @memberof io
- * @param {Object<string,Object<string,number>>} signatures - Signature matrix.
+ * @param {Object&lt;string,Object&lt;string,number>>} signatures - Signature matrix.
  * @param {Object} [options] - Export options.
  * @param {string[]} [options.contexts=null] - Mutation-context row order.
  * @returns {string} Tab-separated COSMIC-style signature matrix.
@@ -292,7 +320,7 @@ function exportCOSMICSignatureMatrix(signatures, { contexts = null } = {}) {
  * @param {string} text - COSMIC-style delimited matrix.
  * @param {Object} [options] - Import options.
  * @param {string} [options.delimiter="\t"] - Column delimiter.
- * @returns {Object<string,Object<string,number>>} Signature matrix.
+ * @returns {Object&lt;string,Object&lt;string,number>>} Signature matrix.
  */
 function importCOSMICSignatureMatrix(text, { delimiter = "\t" } = {}) {
   const rows = parseDelimited(text, delimiter);
@@ -329,3 +357,26 @@ export {
   signatureMatrixToRows,
   spectraToRows,
 };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="io.html">io</a></li><li><a href="mSigPortalData.html">mSigPortalData</a></li><li><a href="mSigPortalPlots.html">mSigPortalPlots</a></li><li><a href="machineLearning.html">machineLearning</a></li><li><a href="provenance.html">provenance</a></li><li><a href="qc.html">qc</a></li><li><a href="qcPlots.html">qcPlots</a></li><li><a href="reports.html">reports</a></li><li><a href="signatureExtraction.html">signatureExtraction</a></li><li><a href="signatureExtractionPlots.html">signatureExtractionPlots</a></li><li><a href="tcga.html">tcga</a></li><li><a href="userData.html">userData</a></li><li><a href="validation.html">validation</a></li><li><a href="workflows.html">workflows</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Tue May 12 2026 18:43:04 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

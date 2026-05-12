@@ -276,7 +276,15 @@ const mSigSDK = (function () {
    */
 
   /**
+   * @namespace qcPlots
+   */
+
+  /**
    * @namespace signatureExtraction
+   */
+
+  /**
+   * @namespace signatureExtractionPlots
    */
 
   /**
@@ -2403,6 +2411,15 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     plotGraphWithPlotlyAndMakeDataDownloadable(divID, dat.traces, dat.layout);
   }
 
+  /**
+   * Renders a D3 mutation-burden QC summary for sample spectra.
+   *
+   * @function plotMutationBurdenSummary
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} burdenSummary - Result from mSigSDK.qc.summarizeMutationBurden.
+   * @returns {Object|Element} Render metadata or an error element.
+   */
   function plotMutationBurdenSummary(divID, burdenSummary) {
     const samples = [...(burdenSummary.samples || [])].sort(
       (a, b) => a.totalMutations - b.totalMutations
@@ -2577,6 +2594,18 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     return { data: samples, threshold };
   }
 
+  /**
+   * Renders reconstruction quality diagnostics for fitted spectra.
+   *
+   * @async
+   * @function plotReconstructionError
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} reconstructionError - Result from mSigSDK.qc.calculateReconstructionError.
+   * @param {Object} [options] - Plot options.
+   * @param {Object[]} [options.cosineReferenceLines=[]] - Optional cosine reference markers.
+   * @returns {Promise<Object|Element>} Render metadata or an error element.
+   */
   async function plotReconstructionError(
     divID,
     reconstructionError,
@@ -2828,6 +2857,17 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     });
   }
 
+  /**
+   * Renders observed-versus-reconstructed residual spectra for one fitted sample.
+   *
+   * @async
+   * @function plotFitResiduals
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} residualResult - Result from mSigSDK.qc.calculateFitResiduals.
+   * @param {string} [sampleName=null] - Sample to render; defaults to the first sample.
+   * @returns {Promise<*>} Plot renderer result or an error element.
+   */
   async function plotFitResiduals(divID, residualResult, sampleName = null) {
     const samples = residualResult.samples || [];
     const selectedSample =
@@ -2884,6 +2924,16 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     );
   }
 
+  /**
+   * Renders bootstrap exposure intervals and selection frequencies.
+   *
+   * @async
+   * @function plotBootstrapConfidenceIntervals
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} bootstrapResult - Result from mSigSDK.qc.bootstrapSignatureFit.
+   * @returns {Promise<Object|Element>} Render metadata or an error element.
+   */
   async function plotBootstrapConfidenceIntervals(divID, bootstrapResult) {
     const signatures = [...(bootstrapResult.signatures || [])].sort(
       (a, b) => b.mean - a.mean
@@ -3124,6 +3174,16 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     return { data: rows };
   }
 
+  /**
+   * Renders a threshold-sensitivity atlas for fitted exposures.
+   *
+   * @async
+   * @function plotThresholdSensitivity
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} thresholdResult - Result from mSigSDK.qc.runThresholdSensitivity.
+   * @returns {Promise<Object|Element>} Render metadata or an error element.
+   */
   async function plotThresholdSensitivity(divID, thresholdResult) {
     const runs = [...(thresholdResult.runs || [])]
       .filter((run) => Number.isFinite(run.threshold))
@@ -3534,6 +3594,18 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     };
   }
 
+  /**
+   * Renders extracted NMF signature profiles with the SBS96 profile renderer.
+   *
+   * @async
+   * @function plotNMFSignatureProfiles
+   * @memberof signatureExtractionPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} nmfResult - Result from mSigSDK.signatureExtraction.extractSignaturesNMF.
+   * @param {Object} [options] - Plot options.
+   * @param {number} [options.maxSignatures=Infinity] - Maximum signatures to render.
+   * @returns {Promise<Array|Element>} Rendered profile results or an error element.
+   */
   async function plotNMFSignatureProfiles(
     divID,
     nmfResult,
@@ -3570,6 +3642,18 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     return rendered;
   }
 
+  /**
+   * Renders a heatmap of sample exposures from an NMF result.
+   *
+   * @async
+   * @function plotNMFExposureHeatmap
+   * @memberof signatureExtractionPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} nmfResult - Result from mSigSDK.signatureExtraction.extractSignaturesNMF.
+   * @param {Object} [options] - Plot options.
+   * @param {boolean} [options.relative=true] - Plot relative exposures per sample.
+   * @returns {Promise<Object|Element>} Render metadata or an error element.
+   */
   async function plotNMFExposureHeatmap(
     divID,
     nmfResult,
@@ -3729,6 +3813,16 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     return { data: rows };
   }
 
+  /**
+   * Renders rank-selection diagnostics from a rank-grid NMF run.
+   *
+   * @async
+   * @function plotNMFRankSelection
+   * @memberof signatureExtractionPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} rankSelection - Result from mSigSDK.signatureExtraction.selectNMFRank.
+   * @returns {Promise<Object|Element>} Render metadata or an error element.
+   */
   async function plotNMFRankSelection(divID, rankSelection) {
     const runs = [...(rankSelection?.runs || [])].sort((a, b) => a.rank - b.rank);
     if (runs.length === 0) {
@@ -3871,6 +3965,24 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     return { data: runs };
   }
 
+  /**
+   * Fits sample spectra to known signatures and returns exposures, QC, provenance, and a report.
+   *
+   * @async
+   * @function analyzeSpectraWithSignatures
+   * @memberof workflows
+   * @param {Object<string,Object<string,number>>} spectra - Sample spectra matrix.
+   * @param {Object<string,Object<string,number>>} signatures - Reference signature matrix.
+   * @param {Object} [options] - Workflow options.
+   * @param {number} [options.exposureThreshold=0] - Relative exposure cutoff.
+   * @param {string} [options.exposureType="relative"] - Exposure scaling mode.
+   * @param {boolean} [options.renormalize=true] - Renormalize after thresholding.
+   * @param {string[]} [options.expectedContexts=null] - Expected mutation contexts.
+   * @param {Object} [options.mutationBurdenOptions={}] - Mutation-burden QC options.
+   * @param {Object} [options.parameters={}] - Additional report/provenance parameters.
+   * @param {string} [options.reportFormat="object"] - "object", "json", or "html".
+   * @returns {Promise<Object>} Exposures, provenance, validation, QC, and report objects.
+   */
   async function analyzeSpectraWithSignatures(
     spectra,
     signatures,
@@ -3921,6 +4033,21 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     };
   }
 
+  /**
+   * Runs de novo NMF extraction and returns extraction, comparison, QC, provenance, and a report.
+   *
+   * @function extractSignaturesFromSpectra
+   * @memberof workflows
+   * @param {Object<string,Object<string,number>>} spectra - Sample spectra matrix.
+   * @param {Object} [options] - Workflow options.
+   * @param {Object<string,Object<string,number>>} [options.referenceSignatures=null] - Optional reference catalog for matching.
+   * @param {Object} [options.nmfOptions={}] - Options passed to extractSignaturesNMF.
+   * @param {string[]} [options.expectedContexts=null] - Expected mutation contexts.
+   * @param {Object} [options.mutationBurdenOptions={}] - Mutation-burden QC options.
+   * @param {Object} [options.parameters={}] - Additional report/provenance parameters.
+   * @param {string} [options.reportFormat="object"] - "object", "json", or "html".
+   * @returns {Object} Provenance, extraction, optional comparison, validation, QC, and report objects.
+   */
   function extractSignaturesFromSpectra(
     spectra,
     {
@@ -3956,6 +4083,24 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     };
   }
 
+  /**
+   * Converts MAF rows to spectra, then optionally fits known signatures and assembles QC/report outputs.
+   *
+   * @async
+   * @function analyzeMafFiles
+   * @memberof workflows
+   * @param {Object[]|Object[][]} mafFiles - MAF rows or nested MAF row arrays.
+   * @param {Object<string,Object<string,number>>} [signatures=null] - Optional reference signatures for fitting.
+   * @param {Object} [options] - Workflow options.
+   * @param {string} [options.groupBy="project_code"] - MAF field used to group spectra.
+   * @param {number} [options.batchSize=100] - Conversion batch size.
+   * @param {string} [options.genome="hg19"] - Reference genome.
+   * @param {boolean} [options.tcga=false] - Whether to apply TCGA-specific conversion behavior.
+   * @param {string[]} [options.expectedContexts=null] - Expected mutation contexts.
+   * @param {string} [options.reportFormat="object"] - "object", "json", or "html".
+   * @param {Object} [options.fitting={}] - Options passed to analyzeSpectraWithSignatures when signatures are supplied.
+   * @returns {Promise<Object>} Spectra-only QC/report output or full signature-fitting workflow output.
+   */
   async function analyzeMafFiles(
     mafFiles,
     signatures = null,

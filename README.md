@@ -96,6 +96,16 @@ The provenance object includes the SDK name, SDK version, import URL, generation
 
 mSigSDK includes pure helper namespaces for validation, QC, de novo signature extraction, interoperability, and analysis reporting. These functions return structured objects first so they can be used in Observable notebooks, browser apps, or downstream scripts.
 
+The focused notebooks in `notebooks/` exercise the current public SDK surface:
+
+- `mSigSDK.validation`: context helpers, matrix normalization, spectra/signature/exposure validation, and MAF-row validation.
+- `mSigSDK.qc`: mutation burden, missing-context summaries, NNLS fitting helpers, residuals, reconstruction error, bootstrap uncertainty, and threshold sensitivity.
+- `mSigSDK.qcPlots`: mutation-burden, reconstruction-error, residual-spectrum, bootstrap-interval, and threshold-sensitivity plots.
+- `mSigSDK.signatureExtraction`: browser NMF extraction, rank selection, Web Worker extraction, matrix conversion, and reference matching.
+- `mSigSDK.signatureExtractionPlots`: extracted profile, exposure heatmap, and rank-diagnostic plots.
+- `mSigSDK.io`: generic TSV export/import plus SigProfiler and COSMIC matrix round trips.
+- `mSigSDK.reports`, `mSigSDK.provenance`, and `mSigSDK.workflows`: structured reports, reproducibility metadata, and high-level signature-fitting or NMF workflows.
+
 ### QC and Uncertainty
 
 ```javascript
