@@ -1,0 +1,184 @@
+<!doctype html>
+<notebook theme="air">
+  <title>mSigSDK uncertainty and thresholds</title>
+
+  <script type="text/markdown">
+    # Bootstrap and Threshold Sensitivity
+
+    This notebook isolates uncertainty analysis. It loads a small real cohort, fits selected COSMIC signatures, bootstraps one sample, and then sweeps exposure thresholds across the cohort.
+
+    Use this notebook when you are testing bootstrap intervals, selection frequency, or threshold-sensitivity behavior.
+  </script>
+
+  <script type="module" pinned id="1">
+    const uncSdkUrl = "http://127.0.0.1:8080/main.js?v=2026-05-11-focused-uncertainty";
+    const { mSigSDK } = await import(uncSdkUrl);
+
+    display({
+      importedFrom: uncSdkUrl,
+      name: mSigSDK.name,
+      version: mSigSDK.version,
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## Settings and Data
+
+    Keep the defaults small while developing visualizations. Increase `uncBootstrapIterations` only when you want smoother intervals, and edit `uncThresholdGrid` to test the thresholds used in your analysis plan.
+  </script>
+
+  <script type="module" pinned id="2">
+    const uncContexts = mSigSDK.validation.getExpectedContexts({
+      profile: "SBS",
+      matrix: 96,
+    });
+    const uncStudy = "PCAWG";
+    const uncGenomeDataType = "WGS";
+    const uncCancerType = "Lung-AdenoCA";
+    const uncMutationType = "SBS";
+    const uncMatrixSize = 96;
+    const uncSignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
+    const uncSampleLimit = 6;
+    const uncExposureThreshold = 0.01;
+    const uncBootstrapIterations = 40;
+    const uncThresholdGrid = [0, 0.005, 0.01, 0.03, 0.05, 0.1];
+    const uncPreferredSignatureNames = [
+      "SBS1",
+      "SBS2",
+      "SBS4",
+      "SBS5",
+      "SBS13",
+      "SBS17a",
+      "SBS17b",
+      "SBS18",
+      "SBS40",
+    ];
+
+    const [uncRawSpectrumRows, uncRawSignatureRows] = await Promise.all([
+      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+        uncStudy,
+        null,
+        uncGenomeDataType,
+        uncCancerType,
+        uncMutationType,
+        uncMatrixSize
+      ),
+      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
+        uncGenomeDataType,
+        uncSignatureSetName,
+        uncMutationType,
+        uncMatrixSize,
+        10000
+      ),
+    ]);
+
+    const uncSpectrumRows = Array.isArray(uncRawSpectrumRows)
+      ? uncRawSpectrumRows.flat()
+      : [];
+    const uncSignatureRows = Array.isArray(uncRawSignatureRows)
+      ? uncRawSignatureRows.flat()
+      : [];
+    const uncAllGroupedSpectra =
+      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(uncSpectrumRows);
+    const uncAllReferenceSignatures =
+      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
+        uncSignatureRows,
+        "signatureName"
+      );
+    const uncAllBurden = mSigSDK.qc.summarizeMutationBurden(
+      uncAllGroupedSpectra,
+      { expectedContexts: uncContexts }
+    );
+    const uncSelectedSampleNames = uncAllBurden.samples
+      .filter((sample) => sample.totalMutations > 0)
+      .sort((a, b) => b.totalMutations - a.totalMutations)
+      .slice(0, uncSampleLimit)
+      .map((sample) => sample.sample);
+    const uncGroupedSpectra = Object.fromEntries(
+      uncSelectedSampleNames.map((sample) => [sample, uncAllGroupedSpectra[sample]])
+    );
+    const uncSelectedSignatureNames = uncPreferredSignatureNames
+      .filter((signature) => uncAllReferenceSignatures[signature])
+      .slice(0, 8);
+    const uncReferenceSignatures = Object.fromEntries(
+      uncSelectedSignatureNames.map((signature) => [
+        signature,
+        uncAllReferenceSignatures[signature],
+      ])
+    );
+    const uncBootstrapSample = uncSelectedSampleNames[0];
+
+    display({
+      samples: uncSelectedSampleNames,
+      signatures: uncSelectedSignatureNames,
+      bootstrapSample: uncBootstrapSample,
+      bootstrapIterations: uncBootstrapIterations,
+      thresholdGrid: uncThresholdGrid,
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## Run Bootstrap and Threshold Sweep
+
+    Bootstrap resampling asks whether one sample's fitted exposures are stable. Threshold sensitivity asks whether cohort-level reconstruction metrics change when tiny exposure calls are zeroed out.
+  </script>
+
+  <script type="module" pinned id="3">
+    const uncBootstrapResult = await mSigSDK.qc.bootstrapSignatureFit(
+      uncReferenceSignatures,
+      uncGroupedSpectra[uncBootstrapSample],
+      {
+        iterations: uncBootstrapIterations,
+        confidenceLevel: 0.95,
+        exposureThreshold: uncExposureThreshold,
+        seed: 42,
+        contexts: uncContexts,
+      }
+    );
+    const uncThresholdSensitivityResult = await mSigSDK.qc.runThresholdSensitivity(
+      uncReferenceSignatures,
+      uncGroupedSpectra,
+      {
+        thresholds: uncThresholdGrid,
+        contexts: uncContexts,
+      }
+    );
+
+    display({
+      bootstrapSummary: uncBootstrapResult.signatures,
+      thresholdRuns: uncThresholdSensitivityResult.runs,
+    });
+  </script>
+
+  <script type="text/markdown">
+    ## Bootstrap Exposure Uncertainty
+
+    The plot shows bootstrap draws, confidence intervals, mean exposures, and selection frequencies. Stable signatures have narrow intervals and high selection frequency.
+  </script>
+
+  <script type="module" pinned id="4">
+    const uncBootstrapDiv = document.createElement("div");
+    uncBootstrapDiv.style.width = "100%";
+    await mSigSDK.qcPlots.plotBootstrapConfidenceIntervals(
+      uncBootstrapDiv,
+      uncBootstrapResult
+    );
+    display(uncBootstrapDiv);
+  </script>
+
+  <script type="text/markdown">
+    ## Threshold Stability
+
+    The atlas compares every threshold against the baseline threshold. Large drift means that the fitted interpretation depends strongly on the threshold choice.
+  </script>
+
+  <script type="module" pinned id="5">
+    const uncThresholdDiv = document.createElement("div");
+    uncThresholdDiv.style.width = "100%";
+    await mSigSDK.qcPlots.plotThresholdSensitivity(
+      uncThresholdDiv,
+      uncThresholdSensitivityResult
+    );
+    display(uncThresholdDiv);
+  </script>
+</notebook>

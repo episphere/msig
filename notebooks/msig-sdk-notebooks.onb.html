@@ -1,0 +1,21 @@
+<!doctype html>
+<notebook theme="air">
+  <title>mSigSDK focused notebooks</title>
+
+  <script type="text/markdown">
+    # mSigSDK focused notebooks
+
+    The original all-in-one walkthrough is useful as a complete integration test, but it is too much work for one Observable runtime. Use these smaller notebooks when you want to test or teach one analysis lane at a time.
+
+    - [Known-signature QC](./msig-sdk-qc-walkthrough.onb.html): load real spectra, fit selected COSMIC signatures, check burden, reconstruction, and residuals.
+    - [Bootstrap and threshold sensitivity](./msig-sdk-uncertainty-thresholds.onb.html): stress-test one fitted sample with bootstrap intervals and threshold sweeps.
+    - [NMF extraction](./msig-sdk-nmf-extraction.onb.html): run browser-sized de novo NMF, inspect extracted profiles, exposures, and rank diagnostics.
+    - [Export and reporting](./msig-sdk-export-report.onb.html): test SigProfiler-style export, structured reports, provenance, and the high-level workflow helper.
+
+    Keep the local SDK server running while you use them:
+
+    ```bash
+    npm run serve:observable
+    ```
+  </script>
+</notebook>

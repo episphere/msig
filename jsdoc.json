@@ -7,7 +7,13 @@
       "./mSigSDKScripts/machineLearning.js",
       "./mSigSDKScripts/mutationalSpectrum.js",
       "./main.js",
-      "./mSigSDKScripts/userData.js"
+      "./mSigSDKScripts/userData.js",
+      "./mSigSDKScripts/validation.js",
+      "./mSigSDKScripts/qc.js",
+      "./mSigSDKScripts/signatureExtraction.js",
+      "./mSigSDKScripts/io.js",
+      "./mSigSDKScripts/reports.js",
+      "./mSigSDKScripts/workflows.js"
     ],
     "includePattern": ".*\\.js$",
     "excludePattern": "(^|\\/|\\\\)_"
