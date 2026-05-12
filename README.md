@@ -149,11 +149,18 @@ NMF plot helpers are available under `mSigSDK.signatureExtractionPlots`. Extract
 
 The SDK includes focused Observable Kit notebooks for browser testing without loading every analysis into one runtime:
 
-- `msig-sdk-notebooks.onb.html`: index of focused notebooks.
-- `msig-sdk-qc-walkthrough.onb.html`: known-signature fitting QC.
-- `msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals and threshold sensitivity.
-- `msig-sdk-nmf-extraction.onb.html`: browser-sized NMF extraction and rank diagnostics.
-- `msig-sdk-export-report.onb.html`: import/export, reports, provenance, and workflow helpers.
+- `notebooks/msig-sdk-notebooks.onb.html`: index of focused notebooks.
+- `notebooks/msig-sdk-qc-walkthrough.onb.html`: known-signature fitting QC.
+- `notebooks/msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals and threshold sensitivity.
+- `notebooks/msig-sdk-nmf-extraction.onb.html`: browser-sized NMF extraction and rank diagnostics.
+- `notebooks/msig-sdk-export-report.onb.html`: import/export, reports, provenance, and workflow helpers.
+
+### Project and Manuscript Notes
+
+- `docs/project/MEMORY.md`: durable project context, priorities, and development notes.
+- `docs/manuscript/TODO.md`: manuscript revision checklist.
+- `docs/manuscript/REVISION_PACKAGE.md`: manuscript-ready abstract, figure plans, tables, and draft section language.
+- `docs/manuscript/BENCHMARK_PROTOCOL.md`: benchmark protocol for manuscript runtime and memory reporting.
 
 ### Validation, Interop, and Reports
 
