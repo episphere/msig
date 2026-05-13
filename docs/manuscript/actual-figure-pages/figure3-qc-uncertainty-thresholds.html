@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Figure 3. Quality control, uncertainty, and threshold robustness</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 28px;
+      background: #ffffff;
+      color: #172033;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 26px;
+      line-height: 1.2;
+    }
+    .subtitle {
+      margin: 0 0 20px 0;
+      color: #55606f;
+      font-size: 14px;
+      line-height: 1.45;
+      max-width: 1180px;
+    }
+    .status {
+      padding: 10px 12px;
+      border: 1px solid #c8d1dc;
+      border-radius: 6px;
+      color: #44515f;
+      background: #f7f9fc;
+      margin-bottom: 18px;
+      max-width: 1180px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+    .panel {
+      border: 1px solid #c8d1dc;
+      border-radius: 6px;
+      padding: 12px;
+      background: #ffffff;
+      min-height: 360px;
+    }
+    .wide {
+      grid-column: 1 / -1;
+    }
+    .panel-title {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #172033;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid #c8d1dc;
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #eef2f7;
+    }
+    .msig-download-btn,
+    .modebar,
+    .modebar-container {
+      display: none !important;
+    }
+    @media print {
+      body { padding: 10px; }
+      .panel { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Figure 3. Quality control, uncertainty, and threshold robustness</h1>
+  <p class="subtitle">Actual mSigSDK QC and uncertainty plots: mutation burden flags, bootstrap confidence intervals, and threshold sensitivity for known-signature fitting.</p>
+  <div id="status" class="status">Loading mSigSDK and figure data...</div>
+  <div class="grid">
+
+    <section class="panel wide"><p class="panel-title">A. Mutation burden QC</p><div id="fig3Burden"></div></section>
+    <section class="panel wide"><p class="panel-title">B. Bootstrap exposure confidence intervals</p><div id="fig3Bootstrap"></div></section>
+    <section class="panel wide"><p class="panel-title">C. Threshold sensitivity atlas</p><div id="fig3Threshold"></div></section>
+    <section class="panel wide"><p class="panel-title">D. Controlled low-burden stress test</p><div id="fig3LowBurden"></div></section>
+  </div>
+  <script type="module">
+
+const status = document.getElementById("status");
+function setStatus(message) {
+  status.textContent = message;
+  if (String(message).startsWith("Rendered ")) {
+    status.setAttribute("hidden", "");
+  } else {
+    status.removeAttribute("hidden");
+  }
+}
+function panelError(id, error) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.innerHTML = "<p style='color:#b42318'>Could not render panel: " + String(error.message || error) + "</p>";
+  }
+}
+function subsetObject(object, names) {
+  return Object.fromEntries(names.map((name) => [name, object[name]]).filter(([, value]) => value));
+}
+function signatureSubset(allReferenceSignatures, names, fallbackCount = 8) {
+  const selected = names.filter((name) => allReferenceSignatures[name]);
+  const finalNames = selected.length ? selected : Object.keys(allReferenceSignatures).slice(0, fallbackCount);
+  return subsetObject(allReferenceSignatures, finalNames);
+}
+function rowsToTable(id, headers, rows) {
+  const table = document.createElement("table");
+  table.innerHTML =
+    "<thead><tr>" + headers.map((header) => "<th>" + header + "</th>").join("") + "</tr></thead>" +
+    "<tbody>" + rows.map((row) => "<tr>" + row.map((cell) => "<td>" + cell + "</td>").join("") + "</tr>").join("") + "</tbody>";
+  document.getElementById(id).appendChild(table);
+}
+async function loadSdk() {
+  const sdkUrl = new URL("../../../main.js", import.meta.url).href;
+  const { mSigSDK } = await import(sdkUrl + "?v=manuscript-real-figures");
+  return mSigSDK;
+}
+async function loadPCAWGLungData(mSigSDK) {
+  const contexts = mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 });
+  const study = "PCAWG";
+  const genomeDataType = "WGS";
+  const cancerType = "Lung-AdenoCA";
+  const mutationType = "SBS";
+  const matrixSize = 96;
+  const signatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
+  const [rawSpectrumRows, rawSignatureRows] = await Promise.all([
+    mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(study, null, genomeDataType, cancerType, mutationType, matrixSize),
+    mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(genomeDataType, signatureSetName, mutationType, matrixSize, 10000),
+  ]);
+  const spectrumRows = Array.isArray(rawSpectrumRows) ? rawSpectrumRows.flat() : [];
+  const signatureRows = Array.isArray(rawSignatureRows) ? rawSignatureRows.flat() : [];
+  const groupedSpectra = mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(spectrumRows);
+  const referenceSignatures = mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(signatureRows, "signatureName");
+  const burden = mSigSDK.qc.summarizeMutationBurden(groupedSpectra, { expectedContexts: contexts });
+  const sampleNames = burden.samples
+    .filter((sample) => sample.totalMutations > 0)
+    .sort((a, b) => b.totalMutations - a.totalMutations)
+    .map((sample) => sample.sample);
+  return { contexts, study, genomeDataType, cancerType, mutationType, matrixSize, signatureSetName, groupedSpectra, referenceSignatures, burden, sampleNames };
+}
+
+try {
+  const mSigSDK = await loadSdk();
+  const data = await loadPCAWGLungData(mSigSDK);
+  const selected = data.sampleNames.slice(0, 10);
+  const spectra = subsetObject(data.groupedSpectra, selected);
+  const preferred = ["SBS1", "SBS2", "SBS4", "SBS5", "SBS13", "SBS17a", "SBS17b", "SBS18", "SBS40"];
+  const signatures = signatureSubset(data.referenceSignatures, preferred, 9);
+  const burden = mSigSDK.qc.summarizeMutationBurden(spectra, {
+    expectedContexts: data.contexts,
+    lowBurdenThreshold: 100,
+    lowBurdenThresholdMode: "fixed",
+  });
+  await mSigSDK.qcPlots.plotMutationBurdenSummary(document.getElementById("fig3Burden"), burden);
+  const bootstrapSample = selected[0];
+  const bootstrap = await mSigSDK.qc.bootstrapSignatureFit(signatures, spectra[bootstrapSample], {
+    iterations: 80,
+    confidenceLevel: 0.95,
+    exposureThreshold: 0.01,
+    seed: 42,
+    contexts: data.contexts,
+  });
+  await mSigSDK.qcPlots.plotBootstrapConfidenceIntervals(document.getElementById("fig3Bootstrap"), bootstrap);
+  const threshold = await mSigSDK.qc.runThresholdSensitivity(signatures, spectra, {
+    thresholds: [0, 0.005, 0.01, 0.03, 0.05, 0.1],
+    contexts: data.contexts,
+  });
+  await mSigSDK.qcPlots.plotThresholdSensitivity(document.getElementById("fig3Threshold"), threshold);
+  const lowBurden = {"generatedAt":"2026-05-12T23:08:28.637Z","rows":[{"burden":50,"samples":8,"lowBurdenFlagged":8,"averageCosineSimilarity":0.6314528468855005,"averageRmse":0.013649989991396338,"averageActiveSignatures":3.625,"averageBootstrapCiWidth":0.4383909002226586,"thresholdCosineRange":0.000674413244768246},{"burden":100,"samples":8,"lowBurdenFlagged":0,"averageCosineSimilarity":0.7484046712957333,"averageRmse":0.009759058200456645,"averageActiveSignatures":3.75,"averageBootstrapCiWidth":0.35104192265088263,"thresholdCosineRange":0.0006902968871429493},{"burden":250,"samples":8,"lowBurdenFlagged":0,"averageCosineSimilarity":0.8641382686276262,"averageRmse":0.006277935139258227,"averageActiveSignatures":3.875,"averageBootstrapCiWidth":0.2493581322508019,"thresholdCosineRange":0.00008074805712054989},{"burden":500,"samples":8,"lowBurdenFlagged":0,"averageCosineSimilarity":0.9257117264499201,"averageRmse":0.004401089517239831,"averageActiveSignatures":4,"averageBootstrapCiWidth":0.17836872934745673,"thresholdCosineRange":0},{"burden":1000,"samples":8,"lowBurdenFlagged":0,"averageCosineSimilarity":0.9569091336864577,"averageRmse":0.0032547837611074477,"averageActiveSignatures":4,"averageBootstrapCiWidth":0.12148366032062811,"thresholdCosineRange":0}]};
+  rowsToTable("fig3LowBurden",
+    ["Mutations/sample", "Samples", "Mean cosine", "Mean RMSE", "Mean bootstrap CI width"],
+    lowBurden.rows.map((row) => [
+      row.burden,
+      row.samples,
+      row.averageCosineSimilarity.toFixed(3),
+      row.averageRmse.toFixed(4),
+      row.averageBootstrapCiWidth.toFixed(3),
+    ])
+  );
+  setStatus("Rendered QC and uncertainty panels for " + selected.length + " samples; bootstrap sample: " + bootstrapSample + ".");
+} catch (error) {
+  console.error(error);
+  setStatus("Figure rendering failed: " + error.message);
+}
+  </script>
+</body>
+</html>

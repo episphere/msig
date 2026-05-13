@@ -6,6 +6,7 @@
 
 This SDK allows researchers to analyze patient-specific genomic data without downloading sensitive information, providing a secure and private computational environment. With **mSigSDK**, researchers can:
 - Visualize and compare mutational signatures.
+- Run burden-aware fitting and discovery workflows with trust classifications, caveats, and next recommended actions.
 - Perform dimensionality reduction, hierarchical clustering, and more.
 - Extend functionality to other mutation signature ecosystems such as SIGNAL or COSMIC.
 
@@ -16,6 +17,7 @@ This SDK allows researchers to analyze patient-specific genomic data without dow
 - **In-Browser Computation**: All analyses are performed client-side using the user's computational resources.
 - **Modular Design**: Adheres to ECMAScript ES6 standards, enabling easy integration and extension.
 - **Visualizations**: Supports multiple interactive visualizations via Plotly and AMCharts.
+- **Research Guidance**: Provides burden-aware analysis advice, fit-trust scoring, signature ambiguity checks, and catalog-sufficiency warnings.
 - **APIs**: Seamlessly integrates with mSigPortal's REST APIs to fetch mutational signature data and metadata.
 - **Data Privacy**: No data is sent to external servers; all operations are secure and local.
 - **Extensibility**: Designed for interoperability with future APIs and datasets.
@@ -100,11 +102,65 @@ The focused notebooks in `notebooks/` exercise the current public SDK surface:
 
 - `mSigSDK.validation`: context helpers, matrix normalization, spectra/signature/exposure validation, and MAF-row validation.
 - `mSigSDK.qc`: mutation burden, missing-context summaries, NNLS fitting helpers, residuals, reconstruction error, bootstrap uncertainty, and threshold sensitivity.
-- `mSigSDK.qcPlots`: mutation-burden, reconstruction-error, residual-spectrum, bootstrap-interval, and threshold-sensitivity plots.
+- `mSigSDK.qcPlots`: mutation-burden, reconstruction-error, residual-spectrum, fit-trust dashboard, cohort group-comparison, panel evidence-matrix, bootstrap-interval, and threshold-sensitivity plots.
 - `mSigSDK.signatureExtraction`: browser NMF extraction, rank selection, Web Worker extraction, matrix conversion, and reference matching.
 - `mSigSDK.signatureExtractionPlots`: extracted profile, exposure heatmap, and rank-diagnostic plots.
 - `mSigSDK.io`: generic TSV export/import plus SigProfiler and COSMIC matrix round trips.
 - `mSigSDK.reports`, `mSigSDK.provenance`, and `mSigSDK.workflows`: structured reports, reproducibility metadata, and high-level signature-fitting or NMF workflows.
+- `mSigSDK.advisor`: burden-aware strategy recommendations, signature ambiguity scoring, catalog-sufficiency checks, composite fit-trust scores, metadata-stratified exposure comparisons, and panel/WES detectability estimates.
+- `mSigSDK.pipelines`: opinionated `runSingleSampleFit`, `runCohortFit`, `runDiscoveryWorkflow`, `runSubgroupDiscoveryWorkflow`, `runPanelWorkflow`, and `runLocalizedMutagenesisAnalysis` entry points.
+
+### Trustworthy Workflow Entry Points
+
+```javascript
+const result = await mSigSDK.pipelines.runSingleSampleFit(
+  {
+    sampleName: "tumor_001",
+    spectrum: sampleSpectrum,
+    signatures: referenceSignatures,
+  },
+  {
+    exposureThreshold: 0.01,
+    bootstrapIterations: 100,
+    thresholds: [0, 0.01, 0.03, 0.05, 0.1],
+  }
+);
+
+console.log(result.trust.samples[0].classification);
+console.log(result.recommendedActions);
+```
+
+Every opinionated pipeline returns a versioned result object with `validation`, `advisor`, `fit` or `extraction`, `trust`, `warnings`, `recommendedActions`, and `publicationFigures` fields. This lets browser apps expose safe defaults while still allowing advanced users to inspect the low-level matrices and QC objects.
+
+v0.3 expands the cohort and panel paths:
+
+```javascript
+const cohort = await mSigSDK.pipelines.runCohortFit(
+  {
+    spectra: groupedSpectra,
+    signatures: referenceSignatures,
+    metadata: sampleMetadata,
+  },
+  {
+    groupKey: "diagnosis",
+    comparison: { permutationIterations: 1000 },
+    runSubgroupDiscovery: true,
+  }
+);
+
+const panel = await mSigSDK.pipelines.runPanelWorkflow(
+  {
+    spectra: panelSpectra,
+    signatures: referenceSignatures,
+    callableOpportunities,
+  },
+  {
+    minAssessableMutations: 30,
+  }
+);
+```
+
+The cohort workflow can now return subgroup extraction/refitting summaries and metadata-stratified exposure comparisons. The panel/WES workflow returns opportunity normalization status, signature-specific detectability curves, evidence tiers, and an evidence summary.
 
 ### QC and Uncertainty
 

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Figure 4. Exploratory browser-side NMF extraction</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 28px;
+      background: #ffffff;
+      color: #172033;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 26px;
+      line-height: 1.2;
+    }
+    .subtitle {
+      margin: 0 0 20px 0;
+      color: #55606f;
+      font-size: 14px;
+      line-height: 1.45;
+      max-width: 1180px;
+    }
+    .status {
+      padding: 10px 12px;
+      border: 1px solid #c8d1dc;
+      border-radius: 6px;
+      color: #44515f;
+      background: #f7f9fc;
+      margin-bottom: 18px;
+      max-width: 1180px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+    .panel {
+      border: 1px solid #c8d1dc;
+      border-radius: 6px;
+      padding: 12px;
+      background: #ffffff;
+      min-height: 360px;
+    }
+    .wide {
+      grid-column: 1 / -1;
+    }
+    .panel-title {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #172033;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid #c8d1dc;
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #eef2f7;
+    }
+    .msig-download-btn,
+    .modebar,
+    .modebar-container {
+      display: none !important;
+    }
+    @media print {
+      body { padding: 10px; }
+      .panel { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Figure 4. Exploratory browser-side NMF extraction</h1>
+  <p class="subtitle">Actual mSigSDK NMF workflow: extracted SBS96 profile plots, sample exposure heatmap, rank diagnostics, and reference-signature matching.</p>
+  <div id="status" class="status">Loading mSigSDK and figure data...</div>
+  <div class="grid">
+
+    <section class="panel wide"><p class="panel-title">A. Extracted SBS96 signature profiles</p><div id="fig4Profiles"></div></section>
+    <section class="panel"><p class="panel-title">B. NMF exposure heatmap</p><div id="fig4Exposure"></div></section>
+    <section class="panel"><p class="panel-title">C. NMF rank diagnostics</p><div id="fig4Rank"></div></section>
+    <section class="panel wide"><p class="panel-title">D. Top reference-signature matches</p><div id="fig4Matches"></div></section>
+  </div>
+  <script type="module">
+
+const status = document.getElementById("status");
+function setStatus(message) {
+  status.textContent = message;
+  if (String(message).startsWith("Rendered ")) {
+    status.setAttribute("hidden", "");
+  } else {
+    status.removeAttribute("hidden");
+  }
+}
+function panelError(id, error) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.innerHTML = "<p style='color:#b42318'>Could not render panel: " + String(error.message || error) + "</p>";
+  }
+}
+function subsetObject(object, names) {
+  return Object.fromEntries(names.map((name) => [name, object[name]]).filter(([, value]) => value));
+}
+function signatureSubset(allReferenceSignatures, names, fallbackCount = 8) {
+  const selected = names.filter((name) => allReferenceSignatures[name]);
+  const finalNames = selected.length ? selected : Object.keys(allReferenceSignatures).slice(0, fallbackCount);
+  return subsetObject(allReferenceSignatures, finalNames);
+}
+function rowsToTable(id, headers, rows) {
+  const table = document.createElement("table");
+  table.innerHTML =
+    "<thead><tr>" + headers.map((header) => "<th>" + header + "</th>").join("") + "</tr></thead>" +
+    "<tbody>" + rows.map((row) => "<tr>" + row.map((cell) => "<td>" + cell + "</td>").join("") + "</tr>").join("") + "</tbody>";
+  document.getElementById(id).appendChild(table);
+}
+async function loadSdk() {
+  const sdkUrl = new URL("../../../main.js", import.meta.url).href;
+  const { mSigSDK } = await import(sdkUrl + "?v=manuscript-real-figures");
+  return mSigSDK;
+}
+async function loadPCAWGLungData(mSigSDK) {
+  const contexts = mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 });
+  const study = "PCAWG";
+  const genomeDataType = "WGS";
+  const cancerType = "Lung-AdenoCA";
+  const mutationType = "SBS";
+  const matrixSize = 96;
+  const signatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
+  const [rawSpectrumRows, rawSignatureRows] = await Promise.all([
+    mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(study, null, genomeDataType, cancerType, mutationType, matrixSize),
+    mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(genomeDataType, signatureSetName, mutationType, matrixSize, 10000),
+  ]);
+  const spectrumRows = Array.isArray(rawSpectrumRows) ? rawSpectrumRows.flat() : [];
+  const signatureRows = Array.isArray(rawSignatureRows) ? rawSignatureRows.flat() : [];
+  const groupedSpectra = mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(spectrumRows);
+  const referenceSignatures = mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(signatureRows, "signatureName");
+  const burden = mSigSDK.qc.summarizeMutationBurden(groupedSpectra, { expectedContexts: contexts });
+  const sampleNames = burden.samples
+    .filter((sample) => sample.totalMutations > 0)
+    .sort((a, b) => b.totalMutations - a.totalMutations)
+    .map((sample) => sample.sample);
+  return { contexts, study, genomeDataType, cancerType, mutationType, matrixSize, signatureSetName, groupedSpectra, referenceSignatures, burden, sampleNames };
+}
+
+try {
+  const mSigSDK = await loadSdk();
+  const data = await loadPCAWGLungData(mSigSDK);
+  const selected = data.sampleNames.slice(0, 8);
+  const spectra = subsetObject(data.groupedSpectra, selected);
+  const nmf = mSigSDK.signatureExtraction.extractSignaturesNMF(spectra, {
+    rank: 3,
+    nRuns: 4,
+    maxIterations: 180,
+    tolerance: 1e-5,
+    seed: 123,
+    contexts: data.contexts,
+    signaturePrefix: "NMF",
+  });
+  const rankSelection = mSigSDK.signatureExtraction.selectNMFRank(spectra, {
+    ranks: [2, 3, 4],
+    nRuns: 2,
+    maxIterations: 120,
+    seed: 456,
+    contexts: data.contexts,
+  });
+  const matches = mSigSDK.signatureExtraction.compareExtractedToReference(nmf.signatures, data.referenceSignatures, {
+    contexts: data.contexts,
+    topN: 3,
+  });
+  await mSigSDK.signatureExtractionPlots.plotNMFSignatureProfiles(document.getElementById("fig4Profiles"), nmf);
+  await mSigSDK.signatureExtractionPlots.plotNMFExposureHeatmap(document.getElementById("fig4Exposure"), nmf, { relative: true });
+await mSigSDK.signatureExtractionPlots.plotNMFRankSelection(document.getElementById("fig4Rank"), rankSelection);
+  rowsToTable("fig4Matches",
+    ["Extracted signature", "Best reference match", "Cosine similarity", "Second match", "Third match"],
+    matches.map((row) => [
+      row.signatureName,
+      row.matches[0]?.referenceName || "NA",
+      row.matches[0] ? row.matches[0].cosineSimilarity.toFixed(3) : "NA",
+      row.matches[1] ? row.matches[1].referenceName + " (" + row.matches[1].cosineSimilarity.toFixed(3) + ")" : "NA",
+      row.matches[2] ? row.matches[2].referenceName + " (" + row.matches[2].cosineSimilarity.toFixed(3) + ")" : "NA",
+    ])
+  );
+  setStatus("Rendered exploratory NMF for " + selected.length + " high-burden samples; selected rank: " + nmf.rank + ".");
+} catch (error) {
+  console.error(error);
+  setStatus("Figure rendering failed: " + error.message);
+}
+  </script>
+</body>
+</html>

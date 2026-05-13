@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-05-12T23:08:28.637Z",
+  "rows": [
+    {
+      "burden": 50,
+      "samples": 8,
+      "lowBurdenFlagged": 8,
+      "averageCosineSimilarity": 0.6314528468855005,
+      "averageRmse": 0.013649989991396338,
+      "averageActiveSignatures": 3.625,
+      "averageBootstrapCiWidth": 0.4383909002226586,
+      "thresholdCosineRange": 0.000674413244768246
+    },
+    {
+      "burden": 100,
+      "samples": 8,
+      "lowBurdenFlagged": 0,
+      "averageCosineSimilarity": 0.7484046712957333,
+      "averageRmse": 0.009759058200456645,
+      "averageActiveSignatures": 3.75,
+      "averageBootstrapCiWidth": 0.35104192265088263,
+      "thresholdCosineRange": 0.0006902968871429493
+    },
+    {
+      "burden": 250,
+      "samples": 8,
+      "lowBurdenFlagged": 0,
+      "averageCosineSimilarity": 0.8641382686276262,
+      "averageRmse": 0.006277935139258227,
+      "averageActiveSignatures": 3.875,
+      "averageBootstrapCiWidth": 0.2493581322508019,
+      "thresholdCosineRange": 0.00008074805712054989
+    },
+    {
+      "burden": 500,
+      "samples": 8,
+      "lowBurdenFlagged": 0,
+      "averageCosineSimilarity": 0.9257117264499201,
+      "averageRmse": 0.004401089517239831,
+      "averageActiveSignatures": 4,
+      "averageBootstrapCiWidth": 0.17836872934745673,
+      "thresholdCosineRange": 0
+    },
+    {
+      "burden": 1000,
+      "samples": 8,
+      "lowBurdenFlagged": 0,
+      "averageCosineSimilarity": 0.9569091336864577,
+      "averageRmse": 0.0032547837611074477,
+      "averageActiveSignatures": 4,
+      "averageBootstrapCiWidth": 0.12148366032062811,
+      "thresholdCosineRange": 0
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "msig",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Browser-first JavaScript SDK for mutational signature analysis with mSigPortal data, plotting, and researcher workflow helpers.",
   "type": "module",
   "module": "./main.js",
@@ -17,8 +17,12 @@
   "scripts": {
     "docs": "jsdoc -c jsdoc.json",
     "serve:observable": "node scripts/serve-observable-sdk.mjs",
+    "smoke:guidance": "node scripts/smoke-guidance.mjs",
     "benchmark:manuscript": "node scripts/benchmark-manuscript.mjs",
-    "figures:manuscript": "node scripts/generate-manuscript-figures.mjs"
+    "figures:manuscript": "node scripts/generate-manuscript-figures.mjs",
+    "assets:manuscript": "node scripts/generate-manuscript-assets.mjs",
+    "google-assets:manuscript": "node scripts/generate-manuscript-v03-assets.mjs",
+    "v03-assets:manuscript": "node scripts/generate-manuscript-v03-assets.mjs"
   },
   "repository": {
     "type": "git",

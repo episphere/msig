@@ -28,7 +28,7 @@
     <rect x="135" y="330" width="230" height="82" rx="14" fill="#2F80ED12" stroke="#2F80ED80" stroke-width="2"/>
           <circle cx="163" cy="369" r="13" fill="#2F80ED"/>
           <text x="187" y="360" fill="#182033" font-family="Inter, Helvetica, Arial, sans-serif" font-size="20" font-weight="850">Input spectra</text>
-          <text x="187" y="389" fill="#667085" font-family="Inter, Helvetica, Arial, sans-serif" font-size="16" font-weight="400">SBS96 contexts × samples</text>
+          <text x="187" y="389" fill="#667085" font-family="Inter, Helvetica, Arial, sans-serif" font-size="16" font-weight="400">SBS96 contexts x samples</text>
           <line x1="370" y1="371" x2="420" y2="371" stroke="#2F80ED" stroke-width="4" marker-end="url(#arrowBlue)"/>
 <rect x="440" y="330" width="230" height="82" rx="14" fill="#F2994A12" stroke="#F2994A80" stroke-width="2"/>
           <circle cx="468" cy="369" r="13" fill="#F2994A"/>
@@ -91,7 +91,7 @@
 <rect x="761.6041666666666" y="665.2041656580184" width="2.2604166666666665" height="54.79583434198158" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="765.2645833333333" y="682.4436996703379" width="2.2604166666666665" height="37.55630032966216" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="768.925" y="668.3476316269182" width="2.2604166666666665" height="51.65236837308182" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
-<rect x="772.5854166666667" y="677.913636700763" width="2.2604166666666665" height="42.08636329923696" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
+<rect x="772.5854166666667" y="677.913636700763" width="2.2604166666666665" height="42.08636329923695" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="776.2458333333333" y="671.9367092165289" width="2.2604166666666665" height="48.063290783471075" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="779.90625" y="673.7366228371952" width="2.2604166666666665" height="46.263377162804794" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="783.5666666666666" y="675.9366698181373" width="2.2604166666666665" height="44.06333018186272" rx="0" fill="#2ca02c" stroke="none" stroke-width="2" opacity="0.9"/>
@@ -187,7 +187,7 @@
 <rect x="757.94375" y="779.5040217095815" width="2.2604166666666665" height="60.49597829041847" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="761.6041666666666" y="777.6034414211897" width="2.2604166666666665" height="62.396558578810335" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="765.2645833333333" y="786.5996055433333" width="2.2604166666666665" height="53.40039445666678" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
-<rect x="768.925" y="804.7665485674122" width="2.2604166666666665" height="35.233451432587806" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
+<rect x="768.925" y="804.7665485674122" width="2.2604166666666665" height="35.2334514325878" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="772.5854166666667" y="828.6188386326301" width="2.2604166666666665" height="11.381161367369936" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="776.2458333333333" y="815.2197224489007" width="2.2604166666666665" height="24.78027755109934" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="779.90625" y="793.9381294124222" width="2.2604166666666665" height="46.06187058757783" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
@@ -281,7 +281,7 @@
 <rect x="821.9625" y="876.538846959569" width="1.4270833333333333" height="28.461153040430958" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="824.7895833333333" y="891.8906037535265" width="1.4270833333333333" height="13.10939624647348" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="827.6166666666667" y="892.7888748995144" width="1.4270833333333333" height="12.211125100485543" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
-<rect x="830.44375" y="877.3165738743953" width="1.4270833333333333" height="27.683426125604708" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
+<rect x="830.44375" y="877.3165738743953" width="1.4270833333333333" height="27.6834261256047" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="833.2708333333334" y="864.9688112624933" width="1.4270833333333333" height="40.031188737506646" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="836.0979166666667" y="857.4026051671601" width="1.4270833333333333" height="47.59739483283993" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>
 <rect x="838.925" y="855.6333088040116" width="1.4270833333333333" height="49.36669119598841" rx="0" fill="#1f77b4" stroke="none" stroke-width="2" opacity="0.9"/>

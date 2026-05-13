@@ -511,7 +511,7 @@ function figure3() {
   ${text("NMF workflow", 130, 223, { size: 28, weight: 850 })}
   ${card(90, 255, 1620, 205, "From spectra to extracted signatures", `
     ${[
-      ["Input spectra", "SBS96 contexts × samples", COLORS.blue],
+      ["Input spectra", "SBS96 contexts x samples", COLORS.blue],
       ["Candidate ranks", "k = 2, 3, 4, ...", COLORS.orange],
       ["Repeated NMF", "multiple seeds per rank", COLORS.purple],
       ["Rank review", "error + cosine", COLORS.teal],

@@ -24,8 +24,8 @@ Status note: items marked complete here have been completed as manuscript-ready 
 - [x] Add an execution-locus table showing which capabilities run locally and which depend on mSigPortal or TCGA APIs. Added to `docs/manuscript/REVISION_PACKAGE.md`.
 - [x] Explain that mSigSDK uses public APIs for reference/cohort data and local browser computation for user-supplied spectra, fitting, QC, bootstrap, threshold sensitivity, NMF, and reporting. Added to draft abstract, methods, and execution-locus table.
 - [x] Discuss browser computation limits honestly, especially for NMF and bootstrap workflows. Added to draft abstract, Figure 3 caption, and Discussion language.
-- [ ] Add runtime and memory benchmarks for fitting, plotting, bootstrap, threshold sensitivity, and NMF. Benchmark protocol and compute harness added; full manuscript numbers still need to be collected.
-- [ ] Add at least one example or discussion relevant to low-mutation-count and rare-cancer settings.
+- [ ] Add runtime and memory benchmarks for fitting, plotting, bootstrap, threshold sensitivity, and NMF. Node.js core-compute benchmark results have been generated in `docs/manuscript/benchmark-results.md`; browser rendering and browser heap measurements still need to be collected.
+- [ ] Add at least one example or discussion relevant to low-mutation-count and rare-cancer settings. A controlled low-burden stress test has been generated in `docs/manuscript/low-burden-stress-test.json` and `docs/manuscript/tables/tableS3-low-burden-stress-test.md`; a real rare-cancer cohort remains preferred for final submission.
 - [x] Avoid unsupported "AI benchmarking" claims unless actual AI/ML benchmark workflows are shown. Added to revision guidance.
 - [x] Clarify that reused mSigPortal/COSMIC-style plots are intentional for domain consistency, not a claim of novel visualization algorithms. Added to draft abstract, methods, and Discussion.
 
@@ -83,11 +83,11 @@ Status note: items marked complete here have been completed as manuscript-ready 
 
 ## Benchmarking
 
-- [ ] Benchmark 10, 100, 500, and 1000 samples by 96 SBS contexts. Protocol and script added; full run still pending.
-- [ ] Measure NNLS fitting time. Supported by `npm run benchmark:manuscript`; full run still pending.
-- [ ] Measure bootstrap runtime at 100 and 500 iterations. Supported by `npm run benchmark:manuscript`; full run still pending.
-- [ ] Measure threshold sensitivity runtime across 5 to 10 thresholds. Supported by `npm run benchmark:manuscript`; full run still pending.
-- [ ] Measure NMF runtime across small and moderate sample counts. Supported by `npm run benchmark:manuscript`; full run still pending.
+- [x] Benchmark 10, 100, 500, and 1000 samples by 96 SBS contexts. Results generated in `docs/manuscript/benchmark-results.md`.
+- [x] Measure NNLS fitting time. Results generated in `docs/manuscript/benchmark-results.md`.
+- [x] Measure bootstrap runtime at 100 and 500 iterations. Results generated in `docs/manuscript/benchmark-results.md`.
+- [x] Measure threshold sensitivity runtime across 5 to 10 thresholds. Results generated in `docs/manuscript/benchmark-results.md`.
+- [x] Measure NMF runtime across small and moderate sample counts. Results generated in `docs/manuscript/benchmark-results.md`.
 - [ ] Measure plotting/rendering time.
 - [ ] Measure approximate browser memory usage. Protocol added; browser measurements still pending.
 - [x] Report hardware, browser, SDK version, and dataset dimensions. Reporting template added to `docs/manuscript/BENCHMARK_PROTOCOL.md`.
@@ -106,5 +106,5 @@ Status note: items marked complete here have been completed as manuscript-ready 
 - [x] Add a table of SDK namespaces and major functions. Draft Table S1 added to `docs/manuscript/REVISION_PACKAGE.md`.
 - [x] Add links to focused Observable notebooks. Supplementary plan added; notebook list also exists in `docs/project/MEMORY.md`.
 - [x] Add a report/provenance object example. Draft example added to `docs/manuscript/REVISION_PACKAGE.md`.
-- [ ] Add benchmark data and browser/runtime details.
+- [ ] Add benchmark data and browser/runtime details. Core Node.js compute benchmark data are now generated; browser rendering benchmark details remain pending.
 - [x] Add examples showing import/export compatibility with SigProfiler/COSMIC-style matrices. Draft example added to `docs/manuscript/REVISION_PACKAGE.md`.

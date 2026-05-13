@@ -9,7 +9,7 @@ import * as am5themes_Animated from "https://cdn.jsdelivr.net/npm/@amcharts/amch
 
 const SDK_FALLBACK_BASE_URL = "https://episphere.github.io/msig/";
 const SDK_NAME = "mSigSDK";
-const SDK_VERSION = "0.1.0";
+const SDK_VERSION = "0.3.0";
 const SDK_REPOSITORY_URL = "https://github.com/episphere/msig";
 const SDK_IMPORT_URL = import.meta.url;
 const SCIENTIFIC_COLORS = {
@@ -79,6 +79,7 @@ const sdkModuleSpecs = [
   ["io", "mSigSDKScripts/io.js"],
   ["reports", "mSigSDKScripts/reports.js"],
   ["workflows", "mSigSDKScripts/workflows.js"],
+  ["guidance", "mSigSDKScripts/guidance.js"],
 ];
 
 const sdkModuleResults = await Promise.allSettled(
@@ -133,6 +134,7 @@ const signatureExtractionModule = getLoadedModule(26);
 const ioModule = getLoadedModule(27);
 const reportsModule = getLoadedModule(28);
 const workflowsModule = getLoadedModule(29);
+const guidanceModule = getLoadedModule(30);
 const preprocessData = machineLearningModule.preprocessData || missingDependency("preprocessData");
 const kFoldCV = machineLearningModule.kFoldCV || missingDependency("kFoldCV");
 
@@ -240,6 +242,22 @@ const {
   createSignatureFitAnalysis,
 } = workflowsModule;
 
+const {
+  WARNING_CODES = {},
+  compareSignatureExposures = missingDependency("compareSignatureExposures"),
+  computeFitTrust = missingDependency("computeFitTrust"),
+  computeSignatureAmbiguity = missingDependency("computeSignatureAmbiguity"),
+  detectOutOfReferenceSignal = missingDependency("detectOutOfReferenceSignal"),
+  estimateSignatureDetectability = missingDependency("estimateSignatureDetectability"),
+  recommendAnalysisStrategy = missingDependency("recommendAnalysisStrategy"),
+  runCohortFit = missingDependency("runCohortFit"),
+  runDiscoveryWorkflow = missingDependency("runDiscoveryWorkflow"),
+  runLocalizedMutagenesisAnalysis = missingDependency("runLocalizedMutagenesisAnalysis"),
+  runPanelWorkflow = missingDependency("runPanelWorkflow"),
+  runSingleSampleFit = missingDependency("runSingleSampleFit"),
+  runSubgroupDiscoveryWorkflow = missingDependency("runSubgroupDiscoveryWorkflow"),
+} = guidanceModule;
+
 // import * as mSigPortalPlotting from "./index.js";
 
 const mSigSDK = (function () {
@@ -297,6 +315,14 @@ const mSigSDK = (function () {
 
   /**
    * @namespace workflows
+   */
+
+  /**
+   * @namespace advisor
+   */
+
+  /**
+   * @namespace pipelines
    */
 
 
@@ -474,6 +500,10 @@ const mSigSDK = (function () {
     }
 
     return Number(value.toFixed(digits));
+  }
+
+  function uniqueStringsForPlot(values) {
+    return [...new Set(values.filter((value) => value !== undefined && value !== null).map(String))];
   }
 
   function resolvePlotContainer(target, createIfMissing = true) {
@@ -1876,7 +1906,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       am5hierarchy.ForceDirected.new(root, {
         singleBranchOnly: false,
         downDepth: 2,
-        initialDepth: 0,
+        initialDepth: 2,
         valueField: "totalMutationCount",
         categoryField: "name",
         childDataField: "children",
@@ -2840,6 +2870,510 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     return { data: rows, thresholds: { cosineReferenceLines: referenceLines } };
   }
 
+  /**
+   * Renders the composite fit-trust result returned by mSigSDK.advisor.computeFitTrust.
+   *
+   * @async
+   * @function plotFitTrustDashboard
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} trustResult - Result from mSigSDK.advisor.computeFitTrust.
+   * @returns {Promise<Object|Element>} Render metadata or an error element.
+   */
+  async function plotFitTrustDashboard(divID, trustResult) {
+    const samples = [...(trustResult.samples || [])].sort(
+      (a, b) => a.score - b.score
+    );
+    if (samples.length === 0) {
+      return renderPlotError(divID, "No fit trust data available.");
+    }
+
+    const components = [
+      "burden",
+      "reconstruction",
+      "residual",
+      "bootstrap",
+      "threshold",
+      "ambiguity",
+      "catalog",
+    ];
+    const classLabel = {
+      high_confidence: "High",
+      moderate_confidence: "Moderate",
+      low_confidence: "Low",
+      not_assessable: "Not assessable",
+    };
+    const classColor = {
+      high_confidence: SCIENTIFIC_COLORS.green,
+      moderate_confidence: SCIENTIFIC_COLORS.blue,
+      low_confidence: SCIENTIFIC_COLORS.orange,
+      not_assessable: SCIENTIFIC_COLORS.vermillion,
+    };
+    const rowHeight = 34;
+    const width = 1060;
+    const margin = { top: 30, right: 32, bottom: 64, left: 150 };
+    const scoreWidth = 420;
+    const heatGap = 54;
+    const heatCellWidth = 64;
+    const heatWidth = components.length * heatCellWidth;
+    const innerHeight = Math.max(270, samples.length * rowHeight);
+    const height = innerHeight + margin.top + margin.bottom;
+    const meanScore = trustResult.summary?.meanTrustScore;
+
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title: "Fit trust dashboard",
+      subtitle:
+        "Composite confidence classification combines burden, reconstruction, residuals, bootstrap stability, threshold sensitivity, catalog ambiguity, and catalog sufficiency.",
+      badges: [
+        {
+          label: "Samples",
+          value: String(samples.length),
+        },
+        {
+          label: "Mean score",
+          value: Number.isFinite(meanScore)
+            ? formatPlotNumber(meanScore, 1)
+            : "NA",
+        },
+      ],
+    });
+    const svg = appendResponsiveSvg(chart, width, height, "Fit trust dashboard");
+    const y = d3
+      .scaleBand()
+      .domain(samples.map((sample) => sample.sample))
+      .range([0, innerHeight])
+      .padding(0.22);
+    const x = d3.scaleLinear().domain([0, 100]).range([0, scoreWidth]);
+    const heatColor = d3
+      .scaleLinear()
+      .domain([0, 0.5, 1])
+      .range([SCIENTIFIC_COLORS.vermillion, "#f8fafc", SCIENTIFIC_COLORS.green]);
+    const scorePlot = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+    const heatPlot = svg
+      .append("g")
+      .attr(
+        "transform",
+        `translate(${margin.left + scoreWidth + heatGap},${margin.top})`
+      );
+
+    scorePlot
+      .append("g")
+      .attr("stroke", SCIENTIFIC_COLORS.lightGray)
+      .attr("stroke-opacity", 0.9)
+      .call(d3.axisBottom(x).ticks(5).tickSize(innerHeight).tickFormat(""))
+      .call((axis) => axis.select(".domain").remove());
+    scorePlot
+      .append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(d3.axisBottom(x).ticks(5))
+      .call(styleD3Axis);
+    scorePlot
+      .append("g")
+      .call(d3.axisLeft(y).tickSize(0))
+      .call(styleD3Axis)
+      .select(".domain")
+      .remove();
+
+    [40, 60, 80].forEach((cutoff) => {
+      scorePlot
+        .append("line")
+        .attr("x1", x(cutoff))
+        .attr("x2", x(cutoff))
+        .attr("y1", 0)
+        .attr("y2", innerHeight)
+        .attr("stroke", "#94a3b8")
+        .attr("stroke-dasharray", "4 4");
+    });
+
+    scorePlot
+      .selectAll("rect.msig-trust-score")
+      .data(samples)
+      .join("rect")
+      .attr("class", "msig-trust-score")
+      .attr("x", 0)
+      .attr("y", (sample) => y(sample.sample))
+      .attr("width", (sample) => x(sample.score))
+      .attr("height", y.bandwidth())
+      .attr("rx", 4)
+      .attr("fill", (sample) => classColor[sample.classification] || SCIENTIFIC_COLORS.gray)
+      .attr("opacity", 0.88)
+      .on("mousemove", (event, sample) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Sample", sample.sample],
+            ["Trust score", `${sample.score}/100`],
+            ["Class", classLabel[sample.classification] || sample.classification],
+            ["Burden class", sample.metrics?.burdenClass || "NA"],
+            ["Cosine", formatPlotNumber(sample.metrics?.cosineSimilarity, 4)],
+            ["Unexplained", d3.format(".1%")(sample.metrics?.unexplainedFraction || 0)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    scorePlot
+      .selectAll("text.msig-trust-score-label")
+      .data(samples)
+      .join("text")
+      .attr("class", "msig-trust-score-label")
+      .attr("x", (sample) => (sample.score >= 18 ? x(sample.score) - 8 : x(sample.score) + 7))
+      .attr("y", (sample) => y(sample.sample) + y.bandwidth() / 2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", (sample) => (sample.score >= 18 ? "end" : "start"))
+      .attr("fill", (sample) => (sample.score >= 18 ? "#ffffff" : SCIENTIFIC_COLORS.darkGray))
+      .attr("font", "700 11px Arial, sans-serif")
+      .text((sample) => sample.score);
+
+    const heatRows = samples.flatMap((sample) =>
+      components.map((component) => ({
+        sample: sample.sample,
+        classification: sample.classification,
+        component,
+        value: sample.componentScores?.[component] ?? 0,
+      }))
+    );
+    heatPlot
+      .selectAll("rect.msig-trust-component")
+      .data(heatRows)
+      .join("rect")
+      .attr("class", "msig-trust-component")
+      .attr("x", (row) => components.indexOf(row.component) * heatCellWidth)
+      .attr("y", (row) => y(row.sample))
+      .attr("width", heatCellWidth - 4)
+      .attr("height", y.bandwidth())
+      .attr("rx", 4)
+      .attr("fill", (row) => heatColor(row.value))
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 1)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Sample", row.sample],
+            ["Component", row.component],
+            ["Score", d3.format(".0%")(row.value)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    heatPlot
+      .selectAll("text.msig-trust-component-label")
+      .data(heatRows)
+      .join("text")
+      .attr("class", "msig-trust-component-label")
+      .attr("x", (row) => components.indexOf(row.component) * heatCellWidth + heatCellWidth / 2 - 2)
+      .attr("y", (row) => y(row.sample) + y.bandwidth() / 2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", "middle")
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .attr("font", "700 9px Arial, sans-serif")
+      .text((row) => d3.format(".0%")(row.value));
+    heatPlot
+      .selectAll("text.msig-trust-component-header")
+      .data(components)
+      .join("text")
+      .attr("class", "msig-trust-component-header")
+      .attr("x", (component) => components.indexOf(component) * heatCellWidth + heatCellWidth / 2 - 2)
+      .attr("y", -8)
+      .attr("text-anchor", "middle")
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .attr("font", "700 10px Arial, sans-serif")
+      .text((component) => component.slice(0, 4));
+
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + scoreWidth / 2)
+      .attr("y", height - 14)
+      .attr("text-anchor", "middle")
+      .text("Composite trust score");
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + scoreWidth + heatGap + heatWidth / 2)
+      .attr("y", height - 14)
+      .attr("text-anchor", "middle")
+      .text("Component scores");
+
+    return { data: samples, components };
+  }
+
+  /**
+   * Renders metadata-stratified fitted exposure differences.
+   *
+   * @async
+   * @function plotCohortGroupComparison
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} comparisonResult - Result from mSigSDK.advisor.compareSignatureExposures.
+   * @returns {Promise<Object|Element>} Render metadata or an error element.
+   */
+  async function plotCohortGroupComparison(divID, comparisonResult) {
+    const rows = [
+      ...(comparisonResult.topSignals?.length
+        ? comparisonResult.topSignals
+        : comparisonResult.comparisons || []),
+    ]
+      .filter((row) => Number.isFinite(row.meanDifference))
+      .slice(0, 18)
+      .reverse();
+
+    if (rows.length === 0) {
+      return renderPlotError(divID, "No cohort group comparison data available.");
+    }
+
+    const maxDifference = Math.max(
+      ...rows.map((row) => Math.abs(row.meanDifference)),
+      0.01
+    );
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title: "Group exposure comparison",
+      subtitle:
+        "Fitted exposure differences are shown as comparison group minus reference group. Large effects should be interpreted with burden and trust diagnostics.",
+      badges: [
+        { label: "Group key", value: comparisonResult.groupKey || "group" },
+        { label: "Reference", value: comparisonResult.referenceGroup || "NA" },
+      ],
+    });
+    const width = 980;
+    const rowHeight = 32;
+    const margin = { top: 30, right: 150, bottom: 56, left: 172 };
+    const innerHeight = Math.max(280, rows.length * rowHeight);
+    const height = innerHeight + margin.top + margin.bottom;
+    const svg = appendResponsiveSvg(chart, width, height, "Cohort exposure comparison");
+    const x = d3
+      .scaleLinear()
+      .domain([-maxDifference * 1.15, maxDifference * 1.15])
+      .nice()
+      .range([0, width - margin.left - margin.right]);
+    const y = d3
+      .scaleBand()
+      .domain(rows.map((row) => `${row.signatureName} ${row.comparisonGroup}`))
+      .range([0, innerHeight])
+      .padding(0.24);
+    const plot = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    plot
+      .append("g")
+      .attr("stroke", SCIENTIFIC_COLORS.lightGray)
+      .attr("stroke-opacity", 0.9)
+      .call(d3.axisBottom(x).ticks(7).tickSize(innerHeight).tickFormat(""))
+      .call((axis) => axis.select(".domain").remove());
+    plot
+      .append("line")
+      .attr("x1", x(0))
+      .attr("x2", x(0))
+      .attr("y1", 0)
+      .attr("y2", innerHeight)
+      .attr("stroke", SCIENTIFIC_COLORS.darkGray)
+      .attr("stroke-width", 1.4);
+    plot
+      .append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(d3.axisBottom(x).ticks(7).tickFormat(d3.format(".2f")))
+      .call(styleD3Axis);
+    plot
+      .append("g")
+      .call(d3.axisLeft(y).tickSize(0))
+      .call(styleD3Axis)
+      .select(".domain")
+      .remove();
+
+    plot
+      .selectAll("rect.msig-group-diff")
+      .data(rows)
+      .join("rect")
+      .attr("class", "msig-group-diff")
+      .attr("x", (row) => Math.min(x(0), x(row.meanDifference)))
+      .attr("y", (row) => y(`${row.signatureName} ${row.comparisonGroup}`))
+      .attr("width", (row) => Math.abs(x(row.meanDifference) - x(0)))
+      .attr("height", y.bandwidth())
+      .attr("rx", 4)
+      .attr("fill", (row) =>
+        row.meanDifference >= 0 ? SCIENTIFIC_COLORS.blue : SCIENTIFIC_COLORS.orange
+      )
+      .attr("opacity", 0.84)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Signature", row.signatureName],
+            ["Reference group", row.referenceGroup],
+            ["Comparison group", row.comparisonGroup],
+            ["Mean difference", formatPlotNumber(row.meanDifference, 4)],
+            ["Effect size", formatPlotNumber(row.effectSize, 3)],
+            ["p-value", row.pValue === null ? "not run" : formatPlotNumber(row.pValue, 4)],
+            ["q-value", row.qValue === null ? "not run" : formatPlotNumber(row.qValue, 4)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    plot
+      .selectAll("text.msig-group-diff-label")
+      .data(rows)
+      .join("text")
+      .attr("class", "msig-group-diff-label")
+      .attr("x", (row) =>
+        row.meanDifference >= 0
+          ? x(row.meanDifference) + 7
+          : x(row.meanDifference) - 7
+      )
+      .attr("y", (row) => y(`${row.signatureName} ${row.comparisonGroup}`) + y.bandwidth() / 2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", (row) => (row.meanDifference >= 0 ? "start" : "end"))
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .attr("font", "700 10px Arial, sans-serif")
+      .text((row) => formatPlotNumber(row.meanDifference, 3));
+
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + (width - margin.left - margin.right) / 2)
+      .attr("y", height - 14)
+      .attr("text-anchor", "middle")
+      .text("Mean exposure difference");
+
+    return { data: rows };
+  }
+
+  /**
+   * Renders panel/WES evidence calls as a sample-by-signature matrix.
+   *
+   * @async
+   * @function plotPanelEvidenceMatrix
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} panelResultOrEvidenceCalls - runPanelWorkflow result or evidenceCalls object.
+   * @returns {Promise<Object|Element>} Render metadata or an error element.
+   */
+  async function plotPanelEvidenceMatrix(divID, panelResultOrEvidenceCalls) {
+    const evidenceCalls =
+      panelResultOrEvidenceCalls.evidenceCalls || panelResultOrEvidenceCalls;
+    const rows = Object.entries(evidenceCalls || {}).flatMap(([sample, calls]) =>
+      (calls || []).map((call) => ({ sample, ...call }))
+    );
+
+    if (rows.length === 0) {
+      return renderPlotError(divID, "No panel evidence calls available.");
+    }
+
+    const sampleNames = uniqueStringsForPlot(rows.map((row) => row.sample));
+    const signatureNames = uniqueStringsForPlot(rows.map((row) => row.signatureName));
+    const tierColor = {
+      strong_evidence: SCIENTIFIC_COLORS.green,
+      weak_evidence: SCIENTIFIC_COLORS.blue,
+      not_detected: "#f1f5f9",
+      not_assessable: SCIENTIFIC_COLORS.orange,
+    };
+    const tierLabel = {
+      strong_evidence: "Strong",
+      weak_evidence: "Weak",
+      not_detected: "Not detected",
+      not_assessable: "Not assessable",
+    };
+    const width = Math.max(860, 170 + signatureNames.length * 86);
+    const rowHeight = 36;
+    const margin = { top: 76, right: 34, bottom: 62, left: 150 };
+    const innerHeight = Math.max(260, sampleNames.length * rowHeight);
+    const height = innerHeight + margin.top + margin.bottom;
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title: "Panel/WES evidence matrix",
+      subtitle:
+        "Evidence tiers combine fitted exposure, sample burden, trust classification, and signature-specific detectability.",
+      badges: [
+        { label: "Samples", value: String(sampleNames.length) },
+        { label: "Signatures", value: String(signatureNames.length) },
+      ],
+    });
+    const svg = appendResponsiveSvg(chart, width, height, "Panel evidence matrix");
+    const x = d3
+      .scaleBand()
+      .domain(signatureNames)
+      .range([0, width - margin.left - margin.right])
+      .padding(0.08);
+    const y = d3
+      .scaleBand()
+      .domain(sampleNames)
+      .range([0, innerHeight])
+      .padding(0.08);
+    const plot = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    plot
+      .append("g")
+      .attr("transform", `translate(0,-8)`)
+      .call(d3.axisTop(x).tickSize(0))
+      .call(styleD3Axis)
+      .selectAll("text")
+      .attr("transform", "rotate(-35)")
+      .attr("text-anchor", "start")
+      .attr("dx", "0.35em")
+      .attr("dy", "-0.2em");
+    plot
+      .append("g")
+      .call(d3.axisLeft(y).tickSize(0))
+      .call(styleD3Axis)
+      .select(".domain")
+      .remove();
+
+    plot
+      .selectAll("rect.msig-panel-evidence")
+      .data(rows)
+      .join("rect")
+      .attr("class", "msig-panel-evidence")
+      .attr("x", (row) => x(row.signatureName))
+      .attr("y", (row) => y(row.sample))
+      .attr("width", x.bandwidth())
+      .attr("height", y.bandwidth())
+      .attr("rx", 4)
+      .attr("fill", (row) => tierColor[row.tier] || SCIENTIFIC_COLORS.gray)
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 1.2)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Sample", row.sample],
+            ["Signature", row.signatureName],
+            ["Tier", tierLabel[row.tier] || row.tier],
+            ["Exposure", d3.format(".1%")(row.exposure || 0)],
+            ["Mutations", row.totalMutations],
+            [
+              "Detectability",
+              Number.isFinite(row.detectabilityConfidence)
+                ? d3.format(".0%")(row.detectabilityConfidence)
+                : "NA",
+            ],
+            ["Trust", row.trustClass || "NA"],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    plot
+      .selectAll("text.msig-panel-evidence-label")
+      .data(rows)
+      .join("text")
+      .attr("class", "msig-panel-evidence-label")
+      .attr("x", (row) => x(row.signatureName) + x.bandwidth() / 2)
+      .attr("y", (row) => y(row.sample) + y.bandwidth() / 2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", "middle")
+      .attr("fill", (row) =>
+        row.tier === "not_detected" ? SCIENTIFIC_COLORS.gray : "#ffffff"
+      )
+      .attr("font", "700 10px Arial, sans-serif")
+      .text((row) =>
+        row.tier === "not_detected" ? "" : d3.format(".0%")(row.exposure || 0)
+      );
+
+    return { data: rows, samples: sampleNames, signatures: signatureNames };
+  }
+
   function spectrumRecordToProfileRows(record, sample, contexts = null) {
     const entries =
       contexts && contexts.length
@@ -3149,10 +3683,19 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       .data(rows)
       .join("text")
       .attr("class", "msig-bootstrap-selection-label")
-      .attr("x", (row) => Math.min(selectionX(row.selectionFrequency) + 5, selectionWidth))
+      .attr("x", (row) =>
+        row.selectionFrequency >= 0.75
+          ? selectionX(row.selectionFrequency) - 8
+          : selectionX(row.selectionFrequency) + 5
+      )
       .attr("y", (row) => y(row.signatureName) + y.bandwidth() / 2)
       .attr("dy", "0.35em")
-      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .attr("text-anchor", (row) =>
+        row.selectionFrequency >= 0.75 ? "end" : "start"
+      )
+      .attr("fill", (row) =>
+        row.selectionFrequency >= 0.75 ? "#ffffff" : SCIENTIFIC_COLORS.darkGray
+      )
       .attr("font", "700 10px Arial, sans-serif")
       .text((row) => d3.format(".0%")(row.selectionFrequency));
 
@@ -3314,8 +3857,8 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       ],
     });
 
-    const width = 1040;
-    const margin = { top: 28, right: 235, bottom: 52, left: 82 };
+    const width = 1120;
+    const margin = { top: 28, right: 245, bottom: 52, left: 126 };
     const topHeight = 285;
     const heatTop = topHeight + 76;
     const heatHeight = 128;
@@ -4265,8 +4808,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
 
   const qcPlots = {
     plotBootstrapConfidenceIntervals,
+    plotCohortGroupComparison,
+    plotFitTrustDashboard,
     plotFitResiduals,
     plotMutationBurdenSummary,
+    plotPanelEvidenceMatrix,
     plotReconstructionError,
     plotThresholdSensitivity,
   };
@@ -4306,12 +4852,37 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     downloadAnalysisReport,
   };
 
+  const advisor = {
+    WARNING_CODES,
+    compareSignatureExposures,
+    computeFitTrust,
+    computeSignatureAmbiguity,
+    detectOutOfReferenceSignal,
+    estimateSignatureDetectability,
+    recommendAnalysisStrategy,
+  };
+
+  const pipelines = {
+    runCohortFit,
+    runDiscoveryWorkflow,
+    runLocalizedMutagenesisAnalysis,
+    runPanelWorkflow,
+    runSingleSampleFit,
+    runSubgroupDiscoveryWorkflow,
+  };
+
   const workflows = {
     analyzeMafFiles,
     analyzeSpectraWithSignatures,
     createNMFAnalysis,
     createSignatureFitAnalysis,
     extractSignaturesFromSpectra,
+    runCohortFit,
+    runDiscoveryWorkflow,
+    runLocalizedMutagenesisAnalysis,
+    runPanelWorkflow,
+    runSingleSampleFit,
+    runSubgroupDiscoveryWorkflow,
   };
 
   const provenance = {
@@ -4338,6 +4909,8 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     signatureExtractionPlots,
     io,
     reports,
+    advisor,
+    pipelines,
     workflows,
     provenance,
   };

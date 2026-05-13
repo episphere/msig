@@ -10,6 +10,14 @@ import {
   summarizeMissingContexts,
   summarizeMutationBurden,
 } from "../mSigSDKScripts/qc.js";
+import {
+  computeFitTrust,
+  estimateSignatureDetectability,
+  recommendAnalysisStrategy,
+  runCohortFit,
+  runPanelWorkflow,
+  runSubgroupDiscoveryWorkflow,
+} from "../mSigSDKScripts/guidance.js";
 import { extractSignaturesNMF, selectNMFRank } from "../mSigSDKScripts/signatureExtraction.js";
 import { getExpectedContexts } from "../mSigSDKScripts/validation.js";
 
@@ -336,6 +344,140 @@ async function runNMFScenario({ sampleCount, quick }) {
   return rows;
 }
 
+function createMetadata(spectra) {
+  return Object.fromEntries(
+    Object.keys(spectra).map((sampleName, index) => [
+      sampleName,
+      {
+        comparisonGroup: index % 2 === 0 ? "group_A" : "group_B",
+      },
+    ])
+  );
+}
+
+function createCallableOpportunities(contexts) {
+  return Object.fromEntries(
+    contexts.map((context, index) => [context, index % 3 === 0 ? 1 : 0.4])
+  );
+}
+
+async function runGuidanceScenario({ sampleCount, quick }) {
+  const signatureCount = 12;
+  const burden = quick ? 200 : 500;
+  const { contexts, signatures, spectra } = createBenchmarkData({
+    sampleCount,
+    signatureCount,
+    burden,
+    seed: 12000 + sampleCount,
+  });
+  const metadata = createMetadata(spectra);
+  const baseScenario = {
+    samples: sampleCount,
+    contexts: contexts.length,
+    signatures: signatureCount,
+    iterations: "",
+    thresholds: "",
+    ranks: "",
+  };
+  const rows = [];
+
+  const advisor = await measure("v03_analysis_advisor", baseScenario, () =>
+    recommendAnalysisStrategy(spectra, {
+      expectedContexts: contexts,
+      lowBurdenThreshold: 100,
+    })
+  );
+  rows.push(advisor.row);
+
+  const exposures = await fitSpectraWithNNLS(signatures, spectra, {
+    contexts,
+    exposureThreshold: 0.01,
+    exposureType: "relative",
+    renormalize: true,
+  });
+
+  const trust = await measure("v03_fit_trust_framework", baseScenario, () =>
+    computeFitTrust({
+      signatures,
+      spectra,
+      exposures,
+      contexts,
+    })
+  );
+  rows.push(trust.row);
+
+  const detectability = await measure("v03_signature_detectability", baseScenario, () =>
+    estimateSignatureDetectability(signatures, { contexts })
+  );
+  rows.push(detectability.row);
+
+  const cohort = await measure("v03_cohort_fit_pipeline", baseScenario, () =>
+    runCohortFit(
+      { spectra, signatures, metadata },
+      {
+        contexts,
+        groupKey: "comparisonGroup",
+        comparison: { minGroupSize: 1, permutationIterations: quick ? 0 : 25 },
+        runBootstrap: false,
+        runThresholdSensitivity: false,
+        runSubgroupDiscovery: false,
+      }
+    )
+  );
+  rows.push(cohort.row);
+
+  const panel = await measure("v03_panel_workflow", baseScenario, () =>
+    runPanelWorkflow(
+      {
+        spectra,
+        signatures,
+        callableOpportunities: createCallableOpportunities(contexts),
+      },
+      {
+        contexts,
+        runBootstrap: false,
+        runThresholdSensitivity: false,
+        runSubgroupDiscovery: false,
+      }
+    )
+  );
+  rows.push(panel.row);
+
+  if (sampleCount <= 25) {
+    const subgroupSamples = Object.keys(spectra).slice(0, Math.min(sampleCount, 12));
+    const subgroup = await measure(
+      "v03_subgroup_discovery",
+      { ...baseScenario, samples: subgroupSamples.length, iterations: quick ? 50 : 75, ranks: [2] },
+      () =>
+        runSubgroupDiscoveryWorkflow(
+          {
+            spectra: Object.fromEntries(
+              subgroupSamples.map((sampleName) => [sampleName, spectra[sampleName]])
+            ),
+            signatures,
+            subgroups: [
+              {
+                clusterId: "benchmark_subgroup",
+                samples: subgroupSamples,
+              },
+            ],
+          },
+          {
+            contexts,
+            rank: 2,
+            nRuns: quick ? 2 : 3,
+            maxIterations: quick ? 50 : 75,
+            minSubgroupSamples: 5,
+            minMedianBurden: 100,
+          }
+        )
+    );
+    rows.push(subgroup.row);
+  }
+
+  return rows;
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const sampleCounts = options.quick ? [10, 25] : [10, 100, 500, 1000];
@@ -348,6 +490,10 @@ async function main() {
 
   for (const sampleCount of nmfSampleCounts) {
     rows.push(...(await runNMFScenario({ sampleCount, quick: options.quick })));
+  }
+
+  for (const sampleCount of options.quick ? [10] : [10, 100]) {
+    rows.push(...(await runGuidanceScenario({ sampleCount, quick: options.quick })));
   }
 
   const payload = {
