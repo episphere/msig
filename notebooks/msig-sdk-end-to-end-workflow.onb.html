@@ -1,0 +1,261 @@
+<!doctype html>
+<notebook theme="air">
+  <title>mSigSDK end-to-end workflow</title>
+
+  <script type="text/markdown">
+    # End-to-end workflow
+
+    This notebook follows one compact analysis from local spectra through validation, known-signature fitting, fit-quality evidence, uncertainty checks, report/provenance output, and external-tool interoperability. It is the fastest way to see how the SDK pieces fit together in a reusable project workflow.
+  </script>
+
+  <script type="module" pinned id="1">
+    const workflowSdkUrl = new URL("../main.js?v=2026-05-14-end-to-end", location.href).href;
+    const { mSigSDK } = await import(workflowSdkUrl);
+    const {
+      crossToolSummary,
+      demoMetadata,
+      demoSignatures,
+      demoSpectra,
+      sbs96Contexts,
+    } = await import("./msig-notebook-fixtures.js");
+    const {
+      bootstrapRows,
+      exposureRows,
+      metrics,
+      reconstructionRows,
+      table,
+      thresholdRows,
+    } = mSigSDK.presentation;
+
+    const workflowContexts = sbs96Contexts();
+    const workflowSpectra = demoSpectra();
+    const workflowSignatures = demoSignatures();
+    const workflowMetadata = demoMetadata;
+    const workflowParameters = {
+      exposureThreshold: 0.01,
+      lowBurdenThreshold: 100,
+      thresholdGrid: [0, 0.01, 0.03, 0.05],
+      bootstrapIterations: 25,
+      catalog: "demo SBS96 catalog",
+    };
+
+    display(metrics([
+      { label: "Samples", value: Object.keys(workflowSpectra).length },
+      { label: "Signatures", value: Object.keys(workflowSignatures).length },
+      { label: "Matrix", value: "SBS96" },
+      { label: "Workflow", value: "local spectra to report" },
+    ]));
+  </script>
+
+  <script type="text/markdown">
+    ## Adapt this notebook
+
+    Replace the local spectra and signature catalog with project-specific inputs. Keep the validation, burden, reconstruction, residual, uncertainty, warning, report, and export cells so the adapted workflow keeps a complete evidence trail.
+  </script>
+
+  <script type="module" pinned id="2">
+    display(table(
+      [
+        { step: "Input spectra", replaceWith: "Local SBS96 count matrix keyed by sample and context" },
+        { step: "Signature catalog", replaceWith: "COSMIC, SBS subset, or project-specific reference matrix" },
+        { step: "Metadata", replaceWith: "Sample group, assay, cohort, or covariate table" },
+        { step: "Thresholds", replaceWith: "Study-specific burden and exposure floors" },
+        { step: "Exports", replaceWith: "TSV/CSV/JSON files committed with the analysis record" },
+      ],
+      [
+        { key: "step", label: "Notebook step" },
+        { key: "replaceWith", label: "Project-specific replacement" },
+      ]
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Run the cohort workflow
+
+    The high-level workflow returns exposure estimates, reconstruction metrics, fit-quality evidence, warnings, recommended actions, report fields, and figure descriptors.
+  </script>
+
+  <script type="module" pinned id="3">
+    const workflowAnalysis = await mSigSDK.workflows.runCohortFit(
+      {
+        spectra: workflowSpectra,
+        signatures: workflowSignatures,
+        metadata: workflowMetadata,
+      },
+      {
+        contexts: workflowContexts,
+        groupKey: "group",
+        exposureThreshold: workflowParameters.exposureThreshold,
+        lowBurdenThreshold: workflowParameters.lowBurdenThreshold,
+        thresholds: workflowParameters.thresholdGrid,
+        runBootstrap: false,
+        runThresholdSensitivity: true,
+        reportFormat: "object",
+      }
+    );
+
+    display(metrics([
+      { label: "Warnings", value: workflowAnalysis.warnings.length },
+      { label: "Actions", value: workflowAnalysis.recommendedActions.length },
+      { label: "Figures", value: workflowAnalysis.publicationFigures.length },
+      { label: "Report fields", value: Object.keys(workflowAnalysis.report || {}).length },
+    ]));
+    display(table(
+      reconstructionRows(workflowAnalysis.fit.reconstructionError),
+      [
+        { key: "sample", label: "Sample" },
+        { key: "cosineSimilarity", label: "Cosine similarity" },
+        { key: "rmse", label: "RMSE" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(table(
+      exposureRows(workflowAnalysis.fit.exposures, { minExposure: 0, topN: 12 }),
+      [
+        { key: "sample", label: "Sample" },
+        { key: "signature", label: "Signature" },
+        { key: "exposure", label: "Relative exposure" },
+      ],
+      { maxRows: 12 }
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Check uncertainty and threshold dependence
+
+    Bootstrap intervals and threshold sweeps answer a different question than fitted exposure size: whether the fitted exposure is stable enough to report without excessive caveats.
+  </script>
+
+  <script type="module" pinned id="4">
+    const workflowBootstrapSample = "local_high_smoking_like";
+    const workflowBootstrap = await mSigSDK.qc.bootstrapSignatureFit(
+      workflowSignatures,
+      workflowSpectra[workflowBootstrapSample],
+      {
+        contexts: workflowContexts,
+        iterations: workflowParameters.bootstrapIterations,
+        seed: 14,
+        exposureThreshold: workflowParameters.exposureThreshold,
+      }
+    );
+    const workflowThresholdSensitivity = await mSigSDK.qc.runThresholdSensitivity(
+      workflowSignatures,
+      workflowSpectra,
+      {
+        contexts: workflowContexts,
+        thresholds: workflowParameters.thresholdGrid,
+      }
+    );
+
+    display(table(
+      bootstrapRows(workflowBootstrap, { topN: 8 }),
+      [
+        { key: "signature", label: "Signature" },
+        { key: "mean", label: "Mean exposure" },
+        { key: "lower95", label: "Lower CI" },
+        { key: "upper95", label: "Upper CI" },
+        { key: "selectionFrequency", label: "Selection frequency" },
+      ]
+    ));
+    display(table(
+      thresholdRows(workflowThresholdSensitivity),
+      [
+        { key: "threshold", label: "Threshold" },
+        { key: "averageCosineSimilarity", label: "Mean cosine" },
+        { key: "averageRmse", label: "Mean RMSE" },
+        { key: "averageActiveSignatures", label: "Mean active signatures" },
+      ]
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Interoperability and report bundle
+
+    mSigSDK outputs should remain portable. The same spectra and signatures can be exported as common matrices, packaged as a report object, and compared with cached external-tool evidence.
+  </script>
+
+  <script type="module" pinned id="5">
+    const workflowPreparedSpa = mSigSDK.adapters.sigProfilerAssignment.prepareInput(
+      { spectra: workflowSpectra, signatures: workflowSignatures },
+      { contexts: workflowContexts, genomeBuild: "GRCh37" }
+    );
+    const workflowPreparedExtractor = mSigSDK.adapters.sigProfilerExtractor.prepareInput(
+      { spectra: workflowSpectra },
+      {
+        contexts: workflowContexts,
+        minimumSignatures: 2,
+        maximumSignatures: 4,
+        nmfReplicates: 100,
+      }
+    );
+
+    display(table(
+      crossToolSummary,
+      [
+        { key: "tool", label: "Tool" },
+        { key: "samples", label: "Samples" },
+        { key: "meanExposureCosineVsMsigSDK", label: "Mean exposure cosine vs mSigSDK" },
+        { key: "topSignatureAgreementCount", label: "Top-signature agreements" },
+        { key: "topSignatureMismatchCount", label: "Top-signature mismatches" },
+      ]
+    ));
+    display(table(
+      [
+        ...workflowPreparedSpa.files.map((file) => ({
+          path: file.path,
+          role: "SigProfilerAssignment input",
+          bytes: file.text.length,
+        })),
+        ...workflowPreparedExtractor.files.map((file) => ({
+          path: file.path,
+          role: "SigProfilerExtractor input",
+          bytes: file.text.length,
+        })),
+      ],
+      [
+        { key: "path", label: "File" },
+        { key: "role", label: "Role" },
+        { key: "bytes", label: "Characters" },
+      ]
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Save the analysis record
+  </script>
+
+  <script type="module" pinned id="6">
+    display(downloadMany([
+      {
+        filename: "end_to_end_spectra.tsv",
+        text: spectraMatrixToTsv(workflowSpectra, workflowContexts),
+        label: "Download spectra TSV",
+      },
+      {
+        filename: "end_to_end_exposures.csv",
+        text: rowsToCsv(exposureRows(workflowAnalysis.fit.exposures, { minExposure: 0, topN: 100 })),
+        label: "Download exposures CSV",
+      },
+      {
+        filename: "end_to_end_workflow_report.json",
+        type: "json",
+        value: {
+          workflowParameters,
+          validation: workflowAnalysis.validation,
+          fitQualityEvidence: workflowAnalysis.fitQualityEvidence,
+          warnings: workflowAnalysis.warnings,
+          recommendedActions: workflowAnalysis.recommendedActions,
+          thresholdSensitivity: workflowThresholdSensitivity,
+          bootstrap: workflowBootstrap,
+          crossToolSummary,
+          report: workflowAnalysis.report,
+          handoff: {
+            sigProfilerAssignment: workflowPreparedSpa.manifest || workflowPreparedSpa,
+            sigProfilerExtractor: workflowPreparedExtractor.manifest || workflowPreparedExtractor,
+          },
+        },
+        label: "Download report JSON",
+      },
+    ]));
+  </script>
+</notebook>
