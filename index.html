@@ -1,602 +1,835 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="mSigSDK examples, notebook workflows, and browser-first JavaScript APIs for mutational signature analysis."
+    />
+    <meta property="og:title" content="mSigSDK" />
+    <meta
+      property="og:description"
+      content="Run focused mSigSDK examples, inspect notebook code, and import the SDK directly from GitHub Pages."
+    />
+    <meta property="twitter:card" content="summary_large_image" />
+    <title>mSigSDK examples and reviewer resources</title>
+    <style>
+      :root {
+        --bg: #f7f8f4;
+        --surface: #ffffff;
+        --surface-alt: #eef3ee;
+        --ink: #17201d;
+        --muted: #5f6d67;
+        --rule: #d8ded8;
+        --teal: #147d7f;
+        --green: #2d6a4f;
+        --coral: #b85c38;
+        --gold: #9b6a1d;
+        --code-bg: #101614;
+        --code-ink: #e8f1ed;
+        --shadow: 0 18px 55px rgba(23, 32, 29, 0.09);
+      }
 
-<head>
-  <title>mSigSDK</title>
-  <meta property="og:title" content="mSigSDK" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta charset="utf-8" />
-  <meta property="twitter:card" content="summary_large_image" />
+      * {
+        box-sizing: border-box;
+      }
 
-  <style data-tag="reset-style-sheet">
-    html {
-      line-height: 1.15;
-    }
+      html {
+        scroll-behavior: smooth;
+      }
 
-    body {
-      margin: 0;
-    }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        line-height: 1.55;
+      }
 
-    * {
-      box-sizing: border-box;
-      border-width: 0;
-      border-style: solid;
-    }
+      a {
+        color: inherit;
+      }
 
-    p,
-    li,
-    ul,
-    pre,
-    div,
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6,
-    figure,
-    blockquote,
-    figcaption {
-      margin: 0;
-      padding: 0;
-    }
+      img {
+        display: block;
+        max-width: 100%;
+      }
 
-    button {
-      background-color: transparent;
-    }
+      code,
+      pre {
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      }
 
-    button,
-    input,
-    optgroup,
-    select,
-    textarea {
-      font-family: inherit;
-      font-size: 100%;
-      line-height: 1.15;
-      margin: 0;
-    }
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 1px solid rgba(216, 222, 216, 0.9);
+        background: rgba(247, 248, 244, 0.94);
+        backdrop-filter: blur(14px);
+      }
 
-    button,
-    select {
-      text-transform: none;
-    }
+      .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        width: min(1180px, calc(100% - 36px));
+        margin: 0 auto;
+        padding: 14px 0;
+      }
 
-    button,
-    [type="button"],
-    [type="reset"],
-    [type="submit"] {
-      -webkit-appearance: button;
-    }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink);
+        font-weight: 750;
+        text-decoration: none;
+      }
 
-    button::-moz-focus-inner,
-    [type="button"]::-moz-focus-inner,
-    [type="reset"]::-moz-focus-inner,
-    [type="submit"]::-moz-focus-inner {
-      border-style: none;
-      padding: 0;
-    }
+      .brand-mark {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 14px;
+        letter-spacing: 0;
+      }
 
-    button:-moz-focus,
-    [type="button"]:-moz-focus,
-    [type="reset"]:-moz-focus,
-    [type="submit"]:-moz-focus {
-      outline: 1px dotted ButtonText;
-    }
+      .nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 14px;
+        color: var(--muted);
+        font-size: 14px;
+      }
 
-    a {
-      color: inherit;
-      text-decoration: inherit;
-    }
+      .nav-links a {
+        text-decoration: none;
+      }
 
-    input {
-      padding: 2px 4px;
-    }
+      .nav-links a:hover {
+        color: var(--ink);
+      }
 
-    img {
-      display: block;
-    }
+      main {
+        width: min(1180px, calc(100% - 36px));
+        margin: 0 auto;
+      }
 
-    html {
-      scroll-behavior: smooth
-    }
-  </style>
-  <style data-tag="default-style-sheet">
-    html {
-      font-family: Raleway;
-      font-size: 18px;
-    }
+      .intro {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
+        gap: 28px;
+        align-items: stretch;
+        padding: 42px 0 28px;
+      }
 
-    body {
-      font-weight: 400;
-      font-style: normal;
-      text-decoration: none;
-      text-transform: none;
-      letter-spacing: normal;
-      line-height: 1.55;
-      color: var(--dl-color-gray-black);
-      background-color: var(--dl-color-gray-white);
+      .intro-copy {
+        display: flex;
+        min-height: 420px;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 30px;
+        border-left: 5px solid var(--teal);
+        padding: 8px 0 8px 26px;
+      }
 
-    }
-  </style>
-  <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&amp;display=swap"
-    data-tag="font" />
-  <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&amp;display=swap"
-    data-tag="font" />
-  <style>
-    html {
-      scroll-behavior: smooth;
-    }
-  </style>
-  <link rel="stylesheet" href="./styles/style.css" />
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--green);
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
 
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-  <script>hljs.highlightAll();</script>
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        letter-spacing: 0;
+        line-height: 1.08;
+      }
 
-</head>
+      h1 {
+        max-width: 820px;
+        font-size: clamp(38px, 5vw, 72px);
+      }
 
-<body>
-  <div>
-    <link href="./styles/home.css" rel="stylesheet" />
+      .lede {
+        max-width: 740px;
+        margin: 20px 0 0;
+        color: var(--muted);
+        font-size: clamp(18px, 2vw, 22px);
+      }
 
-    <div class="home-container">
-      <div data-role="Header" class="home-navbar-container">
-        <div class="home-navbar">
-          <div class="home-left-side">
-            <img alt="image" src="./images/OIG.jpeg" class="home-image" />
-            <div data-role="BurgerMenu" class="home-burger-menu">
-              <svg viewBox="0 0 1024 1024" class="home-icon">
-                <path d="M128 256h768v86h-768v-86zM128 554v-84h768v84h-768zM128 768v-86h768v86h-768z"></path>
-              </svg>
-            </div>
-            <div class="home-links-container">
-              <a href="https://github.com/episphere/msig" target="_blank" rel="noreferrer noopener"
-                class="home-link Anchor">
-                GitHub
-              </a>
-              <a href="https://github.com/episphere/msig" target="_blank" rel="noreferrer noopener"
-                class="home-link01 Anchor">
-                Issues
-              </a>
-              <a href="https://observablehq.com/@aaronge-2020/signatures" target="_blank"
-                rel="noreferrer noopener" class="home-link02 Anchor">
-                Notebooks
-              </a>
-              <a href="./out/index.html" target="_blank" rel="noreferrer noopener" class="home-link04 Anchor">
-                Docs
-              </a>
-            </div>
+      .action-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--ink);
+        border-radius: 8px;
+        padding: 10px 15px;
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 750;
+        text-decoration: none;
+      }
+
+      .button.primary {
+        border-color: var(--teal);
+        background: var(--teal);
+        color: #fff;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+
+      .live-panel {
+        display: flex;
+        min-height: 420px;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 18px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .panel-image {
+        height: 154px;
+        border-bottom: 1px solid var(--rule);
+        background: #fff;
+        object-fit: cover;
+        object-position: center;
+        width: 100%;
+      }
+
+      .panel-body {
+        padding: 22px;
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin: 18px 0;
+      }
+
+      .status-box {
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--surface-alt);
+      }
+
+      .status-box span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .status-box strong {
+        display: block;
+        margin-top: 2px;
+        font-size: 16px;
+      }
+
+      .code-block {
+        margin: 0;
+        overflow-x: auto;
+        border-radius: 8px;
+        background: var(--code-bg);
+        color: var(--code-ink);
+        padding: 16px;
+        font-size: 13px;
+      }
+
+      .section {
+        padding: 44px 0;
+        border-top: 1px solid var(--rule);
+      }
+
+      .section-header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 22px;
+      }
+
+      .section-header h2 {
+        font-size: clamp(26px, 3vw, 40px);
+      }
+
+      .section-header p {
+        max-width: 650px;
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .notebook-grid {
+        display: grid;
+        gap: 24px;
+      }
+
+      .notebook-group {
+        display: grid;
+        gap: 12px;
+      }
+
+      .notebook-group h3 {
+        color: var(--green);
+        font-size: 13px;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .notebook-group-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .notebook-card,
+      .resource-card,
+      .review-card {
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+
+      .notebook-card {
+        display: flex;
+        min-height: 100%;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .notebook-card img {
+        height: 124px;
+        width: 100%;
+        border-bottom: 1px solid var(--rule);
+        background: #fff;
+        object-fit: cover;
+      }
+
+      .notebook-card .body,
+      .resource-card,
+      .review-card {
+        padding: 18px;
+      }
+
+      .notebook-card h3,
+      .resource-card h3,
+      .review-card h3 {
+        font-size: 18px;
+      }
+
+      .notebook-card p,
+      .resource-card p,
+      .review-card p {
+        margin: 9px 0 16px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .card-link {
+        color: var(--teal);
+        font-size: 14px;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .resource-grid,
+      .review-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .namespace-list {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin: 16px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .namespace-list li {
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--surface-alt);
+        padding: 9px 10px;
+        color: var(--green);
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        font-size: 12px;
+      }
+
+      .two-column {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .steps {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .steps li {
+        border-left: 4px solid var(--gold);
+        background: var(--surface);
+        padding: 14px 16px;
+      }
+
+      .steps strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .steps span {
+        color: var(--muted);
+      }
+
+      footer {
+        border-top: 1px solid var(--rule);
+        color: var(--muted);
+        font-size: 14px;
+        padding: 24px 0 36px;
+      }
+
+      footer a {
+        color: var(--teal);
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      @media (max-width: 960px) {
+        .intro,
+        .two-column {
+          grid-template-columns: 1fr;
+        }
+
+        .notebook-group-grid,
+        .resource-grid,
+        .review-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .namespace-list {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        .nav {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .intro-copy,
+        .live-panel {
+          min-height: auto;
+        }
+
+        .section-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .notebook-group-grid,
+        .resource-grid,
+        .review-grid,
+        .status-grid,
+        .namespace-list {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="brand" href="./">
+          <span class="brand-mark">mS</span>
+          <span>mSigSDK</span>
+        </a>
+        <div class="nav-links">
+          <a href="#notebooks">Runnable notebooks</a>
+          <a href="#api">SDK API</a>
+          <a href="#reviewers">Reviewer checks</a>
+          <a href="https://github.com/episphere/msig">GitHub</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div class="intro-copy">
+          <div>
+            <p class="eyebrow">Browser-first mutational signature analysis</p>
+            <h1 id="page-title">Run the SDK, inspect the code, and reproduce the examples.</h1>
+            <p class="lede">
+              mSigSDK is a JavaScript module for mutational signature data access,
+              validation, fitting, QC, uncertainty analysis, exploratory NMF,
+              reports, and browser-rendered figures. This page is a working
+              entry point for reviewers and new users, not a brochure.
+            </p>
           </div>
-          <div class="home-right-side">
-            <a href="https://observablehq.com/@aaronge-2020/signatures" target="_blank" rel="noreferrer noopener"
-              class="home-cta-btn Anchor button">
-              TRY THE DEMO
-            </a>
+          <div class="action-row" aria-label="Primary actions">
+            <a class="button primary" href="./notebooks/viewer.html">Open notebook gallery</a>
+            <a class="button" href="./main.js">View SDK source</a>
+            <a class="button" href="https://github.com/episphere/msig">Clone on GitHub</a>
           </div>
-          <div data-role="MobileMenu" class="home-mobile-menu">
-            <div class="home-container1">
-              <img alt="image" src="./images/OIG.jpeg" class="home-image1" />
-              <div data-role="CloseMobileMenu" class="home-close-menu">
-                <svg viewBox="0 0 1024 1024" class="home-icon02">
-                  <path
-                    d="M810 274l-238 238 238 238-60 60-238-238-238 238-60-60 238-238-238-238 60-60 238 238 238-238z">
-                  </path>
-                </svg>
+        </div>
+
+        <aside class="live-panel" aria-label="Live SDK import check">
+          <img
+            class="panel-image"
+            src="./images/Mutational%20Burden.png"
+            alt="Example mutation burden visualization rendered by mSigSDK"
+          />
+          <div class="panel-body">
+            <p class="eyebrow">Live module check</p>
+            <h2>Import the hosted SDK</h2>
+            <div class="status-grid" aria-live="polite">
+              <div class="status-box">
+                <span>Status</span>
+                <strong id="sdk-status">Loading</strong>
+              </div>
+              <div class="status-box">
+                <span>Version</span>
+                <strong id="sdk-version">...</strong>
+              </div>
+              <div class="status-box">
+                <span>Namespaces</span>
+                <strong id="sdk-namespace-count">...</strong>
               </div>
             </div>
-            <div class="home-links-container1">
-              <a href="https://github.com/episphere/msig" target="_blank" rel="noreferrer noopener"
-                class="home-link05 Anchor">
-                GitHub
-              </a>
-              <a href="https://github.com/episphere/msig" target="_blank" rel="noreferrer noopener"
-                class="home-link06 Anchor">
-                Issues
-              </a>
-              <a href="https://observablehq.com/@aaronge-2020/signature-Fitting" target="_blank"
-                rel="noreferrer noopener" class="home-link07 Anchor">
-                Notebooks
-              </a>
-              <a href="./out/index.html" target="_blank" rel="noreferrer noopener" class="home-link09 Anchor">
-                Docs
-              </a>
-            </div>
+            <pre class="code-block"><code>const { mSigSDK } = await import(
+  "https://episphere.github.io/msig/main.js"
+);
+
+console.log(mSigSDK.version);</code></pre>
           </div>
-        </div>
-      </div>
-      <div id="resources" class="home-hero">
-        <div class="home-content-container">
-          <div class="home-hero-text">
-            <h1 class="home-heading">
-              Portable Mutational Signature Analytics
-            </h1>
-            <span class="home-text">
-              The mSigSDK enables you to have access to a powerful mutational signature
-              analysis platform in any JavaScript environment using only a single line
-              of code. The mSigSDK is lightweight, portable, easy-to-use, and does not
-              require any downloads or installations.
-            </span>
-            <a href="https://observablehq.com/@aaronge-2020/signatures" target="_blank" rel="noreferrer noopener"
-              class="home-cta-btn1 Anchor button">
-              START NOW
-            </a>
+        </aside>
+      </section>
+
+      <section id="notebooks" class="section" aria-labelledby="notebooks-heading">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Executable examples</p>
+            <h2 id="notebooks-heading">Focused notebooks hosted with the site</h2>
+            <p>
+              Each notebook opens in a static GitHub Pages runner. Users can read the
+              narrative, see the JavaScript cells, edit code in the browser, and rerun
+              the notebook against the hosted SDK. The gallery follows a researcher
+              workflow from orientation and input setup through fitting, reliability
+              checks, reporting, interoperability, and advanced workflows.
+            </p>
           </div>
-        </div>
-      </div>
-      <div id="inspiration" class="home-features">
-        <div class="home-heading-container1">
-          <h2 class="home-text14 Section-Heading">Core Features</h2>
+          <a class="button" href="./notebooks/viewer.html">Browse all notebooks</a>
         </div>
 
-        <div class="slider">
-          <!-- slide 1 -->
-          <div class="slide">
-            <img src="./images/Mutational Burden.png" alt="Mutational Burden" />
-          </div>
+        <div class="notebook-grid" id="notebook-grid">
+          <article class="notebook-card">
+            <img src="./images/Mutational%20Burden.png" alt="Mutation burden plot preview" />
+            <div class="body">
+              <h3>Known-signature QC</h3>
+              <p>Load count-scale mSigPortal spectra, fit COSMIC signatures, and inspect burden, reconstruction, and residuals.</p>
+              <a class="card-link" href="./notebooks/viewer.html?notebook=msig-sdk-qc-walkthrough.onb.html">Run notebook</a>
+            </div>
+          </article>
 
-          <!-- slide 2 -->
-          <div class="slide">
-            <img src="./images/signatureComparison.png" alt="Signature Comparison" />
-          </div>
+          <article class="notebook-card">
+            <img src="./images/mSigPortal.png" alt="mSigPortal resource preview" />
+            <div class="body">
+              <h3>Resource portability</h3>
+              <p>Discover mSigPortal and TCGA/GDC resources, convert them into SDK matrices, export files, and attach provenance.</p>
+              <a class="card-link" href="./notebooks/viewer.html?notebook=msig-sdk-resource-portability.onb.html">Run notebook</a>
+            </div>
+          </article>
 
-          <!-- slide 3 -->
-          <div class="slide">
-            <img src="./images/Indel Comparison.png" alt="Indel Comparison" />
-          </div>
+          <article class="notebook-card">
+            <img src="./images/CosineSimilarityHeatmap.png" alt="Heatmap preview" />
+            <div class="body">
+              <h3>Uncertainty thresholds</h3>
+              <p>Run bootstrap intervals and threshold sweeps on higher-burden spectra to see which fitted exposures remain stable.</p>
+              <a class="card-link" href="./notebooks/viewer.html?notebook=msig-sdk-uncertainty-thresholds.onb.html">Run notebook</a>
+            </div>
+          </article>
 
-          <!-- slide 4 -->
-          <div class="slide">
-            <img src="./images/Signature Association.png" alt="Signature Association" />
-          </div>
+          <article class="notebook-card">
+            <img src="./images/signatureComparison.png" alt="Signature profile comparison preview" />
+            <div class="body">
+              <h3>NMF extraction</h3>
+              <p>Try browser-sized de novo extraction, reference matching, exposure heatmaps, and rank diagnostics.</p>
+              <a class="card-link" href="./notebooks/viewer.html?notebook=msig-sdk-nmf-extraction.onb.html">Run notebook</a>
+            </div>
+          </article>
 
-          <!-- slide 5 -->
-          <div class="slide">
-            <img src="./images/CosineSimilarityHeatmap.png" alt="Cosine Similarity Heatmap" />
-          </div>
+          <article class="notebook-card">
+            <img src="./images/datasetSummary.png" alt="Dataset summary preview" />
+            <div class="body">
+              <h3>Export and reports</h3>
+              <p>Exercise SigProfiler-style matrix I/O, provenance, structured reports, and workflow helpers with low-burden flags included.</p>
+              <a class="card-link" href="./notebooks/viewer.html?notebook=msig-sdk-export-report.onb.html">Run notebook</a>
+            </div>
+          </article>
+        </div>
+      </section>
 
-          <!-- slide 6 -->
-          <div class="slide">
-            <img src="./images/datasetSummary.png" alt="Dataset Summary" />
+      <section id="api" class="section" aria-labelledby="api-heading">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">SDK surface</p>
+            <h2 id="api-heading">What users can call directly</h2>
+            <p>
+              The public entry point is <code>main.js</code>. These namespaces are
+              exposed as ordinary ES module exports and are used by the notebooks.
+            </p>
           </div>
-          <!-- slide 7 -->
-          <div class="slide">
-            <img src="./images/Prevalence of Signatures.png" alt="Prevalence of Signatures" />
-          </div>
-          <!-- slide 8 -->
-          <div class="slide">
-            <img src="./images/ForceDirectedTree.png" alt="Force Directed Tree" />
-          </div>
-          <!-- Control buttons -->
-          <button class="btn btn-next"> > </button>
-          <button class="btn btn-prev">
-            < </button>
+          <a class="button" href="./main.js">Open main.js</a>
         </div>
 
-        <div class="home-cards-container">
-          <div class="home-features-card">
-            <div class="home-icon-container">
-              <svg viewBox="0 0 1024 1024" class="home-icon04">
-                <path
-                  d="M533.333 234.667c-11.776 0-21.333 9.557-21.333 21.333s9.557 21.333 21.333 21.333c46.208 0 83.797 37.589 83.797 83.797 0 11.776 9.557 21.333 21.333 21.333s21.333-9.557 21.333-21.333c0-69.717-56.747-126.464-126.464-126.464z">
-                </path>
-                <path
-                  d="M533.333 42.667c-176.469 0-320 143.531-320 320 0 63.403 18.773 124.672 54.357 177.707 0.981 2.005 2.091 3.925 3.413 5.76 77.867 111.189 91.563 146.347 91.563 179.2v128c0 23.552 19.115 42.667 42.667 42.667h85.333c0 11.093 4.693 22.187 12.373 30.293 8.107 7.68 19.2 12.373 30.293 12.373 11.093 0 22.187-4.693 30.293-12.373 7.68-8.107 12.373-19.2 12.373-30.293h85.333c23.552 0 42.667-19.115 42.667-42.667v-128c0-33.365 13.611-68.693 90.965-179.157 38.187-54.4 58.368-117.845 58.368-183.509 0-176.469-143.531-320-320-320zM618.667 810.667h-170.667v-42.667h170.667v42.667zM725.12 497.195c-62.549 89.301-91.435 140.331-101.76 185.472h-47.36v-85.333c0-23.552-19.115-42.667-42.667-42.667s-42.667 19.115-42.667 42.667v85.333h-47.488c-10.24-43.947-38.315-93.867-98.389-180.053-0.939-1.877-2.048-3.712-3.285-5.504-28.032-39.851-42.837-86.357-42.837-134.443 0-129.408 105.259-234.667 234.667-234.667s234.667 105.259 234.667 234.667c0 48.043-14.805 94.549-42.88 134.528z">
-                </path>
-              </svg>
-            </div>
-            <div class="home-text-container">
-              <a href="https://observablehq.com/@aaronge-2020/msigportal-integration-msigsdk-data-apis" target="_blank"
-                rel="noreferrer noopener" class="home-heading1 Card-Heading">
-                mSigPortal APIs
-              </a>
-              <span class="home-text15">
-                <span>
-                  mSigSDK allows developers to have programmatic access to the
-                  data APIs and interactive visualizations of
-                  mSigPortal.&nbsp;
-                </span>
-                <br />
-              </span>
-            </div>
-          </div>
-          <div class="home-features-card1">
-            <div class="home-icon-container1">
-              <svg viewBox="0 0 1024 1024" class="home-icon07">
-                <path
-                  d="M533.333 234.667c-11.776 0-21.333 9.557-21.333 21.333s9.557 21.333 21.333 21.333c46.208 0 83.797 37.589 83.797 83.797 0 11.776 9.557 21.333 21.333 21.333s21.333-9.557 21.333-21.333c0-69.717-56.747-126.464-126.464-126.464z">
-                </path>
-                <path
-                  d="M533.333 42.667c-176.469 0-320 143.531-320 320 0 63.403 18.773 124.672 54.357 177.707 0.981 2.005 2.091 3.925 3.413 5.76 77.867 111.189 91.563 146.347 91.563 179.2v128c0 23.552 19.115 42.667 42.667 42.667h85.333c0 11.093 4.693 22.187 12.373 30.293 8.107 7.68 19.2 12.373 30.293 12.373 11.093 0 22.187-4.693 30.293-12.373 7.68-8.107 12.373-19.2 12.373-30.293h85.333c23.552 0 42.667-19.115 42.667-42.667v-128c0-33.365 13.611-68.693 90.965-179.157 38.187-54.4 58.368-117.845 58.368-183.509 0-176.469-143.531-320-320-320zM618.667 810.667h-170.667v-42.667h170.667v42.667zM725.12 497.195c-62.549 89.301-91.435 140.331-101.76 185.472h-47.36v-85.333c0-23.552-19.115-42.667-42.667-42.667s-42.667 19.115-42.667 42.667v85.333h-47.488c-10.24-43.947-38.315-93.867-98.389-180.053-0.939-1.877-2.048-3.712-3.285-5.504-28.032-39.851-42.837-86.357-42.837-134.443 0-129.408 105.259-234.667 234.667-234.667s234.667 105.259 234.667 234.667c0 48.043-14.805 94.549-42.88 134.528z">
-                </path>
-              </svg>
-            </div>
-            <div class="home-text-container1">
-              <a href="https://observablehq.com/@aaronge-2020/custom-data-msigsdk" target="_blank"
-                rel="noreferrer noopener" class="home-heading2">
-                Custom Data
-              </a>
-              <span class="home-text15">
-                <span>
-                  The mSigSDK allows users to analyze their own mutation signature data by performing computations
-                  entirely in the user's browser.
-                </span>
-                <br />
-              </span>
-            </div>
-          </div>
-          <div class="home-features-card2">
-            <div class="home-icon-container2">
-              <svg viewBox="0 0 1024 1024" class="home-icon10">
-                <path
-                  d="M533.333 234.667c-11.776 0-21.333 9.557-21.333 21.333s9.557 21.333 21.333 21.333c46.208 0 83.797 37.589 83.797 83.797 0 11.776 9.557 21.333 21.333 21.333s21.333-9.557 21.333-21.333c0-69.717-56.747-126.464-126.464-126.464z">
-                </path>
-                <path
-                  d="M533.333 42.667c-176.469 0-320 143.531-320 320 0 63.403 18.773 124.672 54.357 177.707 0.981 2.005 2.091 3.925 3.413 5.76 77.867 111.189 91.563 146.347 91.563 179.2v128c0 23.552 19.115 42.667 42.667 42.667h85.333c0 11.093 4.693 22.187 12.373 30.293 8.107 7.68 19.2 12.373 30.293 12.373 11.093 0 22.187-4.693 30.293-12.373 7.68-8.107 12.373-19.2 12.373-30.293h85.333c23.552 0 42.667-19.115 42.667-42.667v-128c0-33.365 13.611-68.693 90.965-179.157 38.187-54.4 58.368-117.845 58.368-183.509 0-176.469-143.531-320-320-320zM618.667 810.667h-170.667v-42.667h170.667v42.667zM725.12 497.195c-62.549 89.301-91.435 140.331-101.76 185.472h-47.36v-85.333c0-23.552-19.115-42.667-42.667-42.667s-42.667 19.115-42.667 42.667v85.333h-47.488c-10.24-43.947-38.315-93.867-98.389-180.053-0.939-1.877-2.048-3.712-3.285-5.504-28.032-39.851-42.837-86.357-42.837-134.443 0-129.408 105.259-234.667 234.667-234.667s234.667 105.259 234.667 234.667c0 48.043-14.805 94.549-42.88 134.528z">
-                </path>
-              </svg>
-            </div>
-            <div class="home-text-container2">
-              <a href="https://observablehq.com/@aaronge-2020/tcga-integration" target="_blank"
-                rel="noreferrer noopener" class="home-heading3 Card-Heading">
-                TCGA Integration
-              </a>
-              <span class="home-text15">
-                mSigSDK allows developers to have programmatic access to TCGA
-                data APIs.
-              </span>
-            </div>
-          </div>
-          <div class="home-features-card3">
-            <div class="home-icon-container3">
-              <svg viewBox="0 0 1024 1024" class="home-icon13">
-                <path
-                  d="M533.333 234.667c-11.776 0-21.333 9.557-21.333 21.333s9.557 21.333 21.333 21.333c46.208 0 83.797 37.589 83.797 83.797 0 11.776 9.557 21.333 21.333 21.333s21.333-9.557 21.333-21.333c0-69.717-56.747-126.464-126.464-126.464z">
-                </path>
-                <path
-                  d="M533.333 42.667c-176.469 0-320 143.531-320 320 0 63.403 18.773 124.672 54.357 177.707 0.981 2.005 2.091 3.925 3.413 5.76 77.867 111.189 91.563 146.347 91.563 179.2v128c0 23.552 19.115 42.667 42.667 42.667h85.333c0 11.093 4.693 22.187 12.373 30.293 8.107 7.68 19.2 12.373 30.293 12.373 11.093 0 22.187-4.693 30.293-12.373 7.68-8.107 12.373-19.2 12.373-30.293h85.333c23.552 0 42.667-19.115 42.667-42.667v-128c0-33.365 13.611-68.693 90.965-179.157 38.187-54.4 58.368-117.845 58.368-183.509 0-176.469-143.531-320-320-320zM618.667 810.667h-170.667v-42.667h170.667v42.667zM725.12 497.195c-62.549 89.301-91.435 140.331-101.76 185.472h-47.36v-85.333c0-23.552-19.115-42.667-42.667-42.667s-42.667 19.115-42.667 42.667v85.333h-47.488c-10.24-43.947-38.315-93.867-98.389-180.053-0.939-1.877-2.048-3.712-3.285-5.504-28.032-39.851-42.837-86.357-42.837-134.443 0-129.408 105.259-234.667 234.667-234.667s234.667 105.259 234.667 234.667c0 48.043-14.805 94.549-42.88 134.528z">
-                </path>
-              </svg>
-            </div>
-            <div class="home-text-container3">
-              <a href="https://observablehq.com/@aaronge-2020/msigportal-integration-msigsdk-visualizations"
-                target="_blank" rel="noreferrer noopener" class="home-heading4 Card-Heading">
-                Interactive Visualizations
-              </a>
-              <span class="home-text15 Card-Text">
-                mSigSDK allows users to generate over thirty
-                different graphs for the visual analytics of mutational
-                signature data
-              </span>
-            </div>
-          </div>
-          <div class="home-features-card4">
-            <div class="home-icon-container4">
-              <svg viewBox="0 0 1024 1024" class="home-icon16">
-                <path
-                  d="M533.333 234.667c-11.776 0-21.333 9.557-21.333 21.333s9.557 21.333 21.333 21.333c46.208 0 83.797 37.589 83.797 83.797 0 11.776 9.557 21.333 21.333 21.333s21.333-9.557 21.333-21.333c0-69.717-56.747-126.464-126.464-126.464z">
-                </path>
-                <path
-                  d="M533.333 42.667c-176.469 0-320 143.531-320 320 0 63.403 18.773 124.672 54.357 177.707 0.981 2.005 2.091 3.925 3.413 5.76 77.867 111.189 91.563 146.347 91.563 179.2v128c0 23.552 19.115 42.667 42.667 42.667h85.333c0 11.093 4.693 22.187 12.373 30.293 8.107 7.68 19.2 12.373 30.293 12.373 11.093 0 22.187-4.693 30.293-12.373 7.68-8.107 12.373-19.2 12.373-30.293h85.333c23.552 0 42.667-19.115 42.667-42.667v-128c0-33.365 13.611-68.693 90.965-179.157 38.187-54.4 58.368-117.845 58.368-183.509 0-176.469-143.531-320-320-320zM618.667 810.667h-170.667v-42.667h170.667v42.667zM725.12 497.195c-62.549 89.301-91.435 140.331-101.76 185.472h-47.36v-85.333c0-23.552-19.115-42.667-42.667-42.667s-42.667 19.115-42.667 42.667v85.333h-47.488c-10.24-43.947-38.315-93.867-98.389-180.053-0.939-1.877-2.048-3.712-3.285-5.504-28.032-39.851-42.837-86.357-42.837-134.443 0-129.408 105.259-234.667 234.667-234.667s234.667 105.259 234.667 234.667c0 48.043-14.805 94.549-42.88 134.528z">
-                </path>
-              </svg>
-            </div>
-            <div class="home-text-container4">
-              <a href="https://observablehq.com/@aaronge-2020/miscellaneous-features-msigsdk" target="_blank"
-                rel="noreferrer noopener" class="home-heading5 Card-Heading">
-                Signature Fitting
-              </a>
-              <span class="home-text15 Card-Text">
-                mSigSDK has an original implementation of the non-negative
-                least squares algorithms to allow for in-browser computation
-                of signature exposures.&nbsp;
-              </span>
-            </div>
-          </div>
-          <div class="home-features-card5">
-            <div class="home-icon-container5">
-              <svg viewBox="0 0 1024 1024" class="home-icon19">
-                <path
-                  d="M533.333 234.667c-11.776 0-21.333 9.557-21.333 21.333s9.557 21.333 21.333 21.333c46.208 0 83.797 37.589 83.797 83.797 0 11.776 9.557 21.333 21.333 21.333s21.333-9.557 21.333-21.333c0-69.717-56.747-126.464-126.464-126.464z">
-                </path>
-                <path
-                  d="M533.333 42.667c-176.469 0-320 143.531-320 320 0 63.403 18.773 124.672 54.357 177.707 0.981 2.005 2.091 3.925 3.413 5.76 77.867 111.189 91.563 146.347 91.563 179.2v128c0 23.552 19.115 42.667 42.667 42.667h85.333c0 11.093 4.693 22.187 12.373 30.293 8.107 7.68 19.2 12.373 30.293 12.373 11.093 0 22.187-4.693 30.293-12.373 7.68-8.107 12.373-19.2 12.373-30.293h85.333c23.552 0 42.667-19.115 42.667-42.667v-128c0-33.365 13.611-68.693 90.965-179.157 38.187-54.4 58.368-117.845 58.368-183.509 0-176.469-143.531-320-320-320zM618.667 810.667h-170.667v-42.667h170.667v42.667zM725.12 497.195c-62.549 89.301-91.435 140.331-101.76 185.472h-47.36v-85.333c0-23.552-19.115-42.667-42.667-42.667s-42.667 19.115-42.667 42.667v85.333h-47.488c-10.24-43.947-38.315-93.867-98.389-180.053-0.939-1.877-2.048-3.712-3.285-5.504-28.032-39.851-42.837-86.357-42.837-134.443 0-129.408 105.259-234.667 234.667-234.667s234.667 105.259 234.667 234.667c0 48.043-14.805 94.549-42.88 134.528z">
-                </path>
-              </svg>
-            </div>
-            <div class="home-text-container5">
-              <a href="https://observablehq.com/@aaronge-2020/machine-learning-benchmarking" target="_blank"
-                rel="noreferrer noopener" class="home-heading6 Card-Heading">
-                AI Benchmarking
-              </a>
-              <span class="home-text15 Card-Text">
-                mSigSDK automates benchmarking by allowing for the automatic
-                training and fitting of mutational signature data to machine
-                learning models
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="process" class="home-tutorial">
-        <div class="home-heading-container">
-          <h1 class="home-text01 Section-Heading">Try It Out</h1>
-          <span class="home-text02">
-            Try using the SDK in your browser's developer console
-          </span>
-        </div>
-
-        <img src="./images/the-developer-tools-optio-2d9d9b7c0ac96.png" width="75%" height="550px" />
-        <ul class="list">
-          <li class="list-item">
-            <span>
-              <span>
-                1) Navigate to any website that has not blocked module loading
-                (i.e.&nbsp;
-              </span>
-              <a href="https://dceg.cancer.gov/" target="_blank" rel="noreferrer noopener" class="home-link10">
-                https://dceg.cancer.gov/)
-              </a>
-            </span>
-          </li>
-          <li class="list-item">
-            <span>
-              2) Use Fn + F12 to open your browser's developer console&nbsp;
-            </span>
-          </li>
-          <li class="list-item">
-            <span>
-              <span>3) Fetch the SDK by typing the following code into the console</span>
-              <pre><code>mSigSDK = (await import("https://episphere.github.io/msig/main.js")).mSigSDK</code></pre>
-
-            </span>
-            </span>
-          </li>
-          <li class="list-item">
-            <span>
-              <span>4) Fetch some data from mSigPortal by typing the following code into the console:</span>
-              <pre><code>data = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData()</code></pre>
-            </span>
-          </li>
+        <ul class="namespace-list" id="namespace-list">
+          <li>mSigPortal</li>
+          <li>TCGA</li>
+          <li>validation</li>
+          <li>qc</li>
+          <li>qcPlots</li>
+          <li>signatureFitting</li>
+          <li>signatureExtraction</li>
+          <li>signatureExtractionPlots</li>
+          <li>io</li>
+          <li>reports</li>
+          <li>workflows</li>
+          <li>provenance</li>
+          <li>advisor</li>
+          <li>pipelines</li>
         </ul>
-      </div>
+      </section>
 
-      <div id="process" class="home-tutorial1">
-        <div class="home-heading-container2">
-          <h1 class="home-text25 Section-Heading">Getting Started</h1>
-          <span class="home-text26 Section-Text">
-            Explore the features of mSigSDK&nbsp;
-          </span>
-        </div>
-        <iframe src="https://www.youtube.com/embed/hl0yapiSnvw" title="mSigSDK" class="home-iframe"></iframe>
-      </div>
-      <div id="process" class="home-services">
-        <div class="home-heading-container3">
-          <h1 class="home-text27 Section-Heading">Primary Data Sources</h1>
-          <span class="home-text28 Section-Text">
-            Explore the resources supported by mSigSDK&nbsp;
-          </span>
-        </div>
-        <div class="home-cards-container1">
-          <div class="home-service-card">
-            <h3 class="home-text29 Card-Heading">mSigPortal</h3>
-            <span class="home-text30">
-              mSigPortal, a web-based tool for exploring and analyzing
-              mutational signatures in cancer. It provides various modules for
-              users to perform different tasks related to mutational
-              signatures
-            </span>
-            <a href="https://analysistools-dev.cancer.gov/mutational-signatures/#/about" target="_blank"
-              rel="noreferrer noopener" class="home-link11 Anchor">
-              Learn more
-            </a>
+      <section id="reviewers" class="section" aria-labelledby="reviewers-heading">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Reviewer path</p>
+            <h2 id="reviewers-heading">Fast checks without local setup</h2>
+            <p>
+              The examples are designed to make the implementation auditable from the
+              browser while keeping heavier development workflows available in Git.
+            </p>
           </div>
-          <div class="home-service-card">
-            <h3 class="home-text29 Card-Heading">Upload Your Own Data</h3>
-            <span class="home-text30">
-              <span>
-                The mSigSDK allows users to analyze their own mutation signature data by performing computations
-                entirely in the user's browser.
-              </span>
-              <br />
+        </div>
 
-              <br />
-            </span>
-            <a href="https://observablehq.com/@aaronge-2020/custom-data-msigsdk" target="_blank" rel="noreferrer noopener" class="home-link12 Anchor">
-              Learn more
-            </a>
-          </div>
-          <div class="home-service-card">
-            <h3 class="home-text29 Card-Heading">TCGA</h3>
-            <span class="home-text30">
-              The GDC Data Portal is a robust data-driven platform that allows
-              cancer&nbsp;researchers and bioinformaticians to search and
-              download cancer data for analysis.
-            </span>
-            <a href="https://portal.gdc.cancer.gov/" target="_blank" rel="noreferrer noopener"
-              class="home-link13 Anchor">
-              Learn more
-            </a>
-          </div>
+        <div class="review-grid">
+          <article class="review-card">
+            <h3>1. Verify importability</h3>
+            <p>The live check above imports the same module URL that public users can import in their own pages.</p>
+            <a class="card-link" href="./main.js">Inspect source</a>
+          </article>
+          <article class="review-card">
+            <h3>2. Run focused workflows</h3>
+            <p>Notebook cells are shown inline and can be edited before rerunning the full example.</p>
+            <a class="card-link" href="./notebooks/viewer.html">Open examples</a>
+          </article>
+          <article class="review-card">
+            <h3>3. Clone for reproducibility</h3>
+            <p>The same notebooks live in source control as plain HTML, so diffs and review are transparent.</p>
+            <a class="card-link" href="https://github.com/episphere/msig/tree/main/notebooks">View notebook files</a>
+          </article>
         </div>
-      </div>
-      <div class="home-get-in-touch">
-        <h2 class="home-text39 Section-Heading">Get in touch</h2>
-        <div class="home-content-container1">
-          <div class="home-form-container">
-            <span class="home-heading7 BigCard-Heading">
-              Send us a message
-            </span>
-            <input type="text" required="true" placeholder="Name" class="home-name input" />
-            <input type="text" required="true" placeholder="E-mail" class="home-email input" />
-            <textarea placeholder="Your Message" class="home-message textarea"></textarea>
-            <button class="home-cta-btn2 Anchor button">SEND</button>
-          </div>
-          <div class="home-locations-container">
-            <div class="home-location-1">
-              <span class="home-heading8">Shady Grove, Maryland</span>
-              <div class="home-adress">
-                <svg viewBox="0 0 1024 1024" class="home-icon22">
-                  <path
-                    d="M512 0c-176.732 0-320 143.268-320 320 0 320 320 704 320 704s320-384 320-704c0-176.732-143.27-320-320-320zM512 512c-106.040 0-192-85.96-192-192s85.96-192 192-192 192 85.96 192 192-85.96 192-192 192z">
-                  </path>
-                </svg>
-                <span>9609 Medical Center Dr, Rockville, MD 20850</span>
-              </div>
-              <div class="home-email1">
-                <svg viewBox="0 0 1024 1024" class="home-icon24">
-                  <path
-                    d="M854 342v-86l-342 214-342-214v86l342 212zM854 170q34 0 59 26t25 60v512q0 34-25 60t-59 26h-684q-34 0-59-26t-25-60v-512q0-34 25-60t59-26h684z">
-                  </path>
-                </svg>
-                <span>age1@som.umaryland.edu</span>
-              </div>
-              <div class="home-phone">
-                <svg viewBox="0 0 804.5714285714286 1024" class="home-icon26">
-                  <path
-                    d="M804.571 708.571c0 20.571-9.143 60.571-17.714 79.429-12 28-44 46.286-69.714 60.571-33.714 18.286-68 29.143-106.286 29.143-53.143 0-101.143-21.714-149.714-39.429-34.857-12.571-68.571-28-100-47.429-97.143-60-214.286-177.143-274.286-274.286-19.429-31.429-34.857-65.143-47.429-100-17.714-48.571-39.429-96.571-39.429-149.714 0-38.286 10.857-72.571 29.143-106.286 14.286-25.714 32.571-57.714 60.571-69.714 18.857-8.571 58.857-17.714 79.429-17.714 4 0 8 0 12 1.714 12 4 24.571 32 30.286 43.429 18.286 32.571 36 65.714 54.857 97.714 9.143 14.857 26.286 33.143 26.286 50.857 0 34.857-103.429 85.714-103.429 116.571 0 15.429 14.286 35.429 22.286 49.143 57.714 104 129.714 176 233.714 233.714 13.714 8 33.714 22.286 49.143 22.286 30.857 0 81.714-103.429 116.571-103.429 17.714 0 36 17.143 50.857 26.286 32 18.857 65.143 36.571 97.714 54.857 11.429 5.714 39.429 18.286 43.429 30.286 1.714 4 1.714 8 1.714 12z">
-                  </path>
-                </svg>
-                <span>(800) 422-6237</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="home-section-separator"></div>
-      <div class="home-footer-container">
-        <div class="home-footer">
-          <div class="home-social-links">
-            <svg viewBox="0 0 950.8571428571428 1024" class="home-icon28">
-              <path
-                d="M925.714 233.143c-25.143 36.571-56.571 69.143-92.571 95.429 0.571 8 0.571 16 0.571 24 0 244-185.714 525.143-525.143 525.143-104.571 0-201.714-30.286-283.429-82.857 14.857 1.714 29.143 2.286 44.571 2.286 86.286 0 165.714-29.143 229.143-78.857-81.143-1.714-149.143-54.857-172.571-128 11.429 1.714 22.857 2.857 34.857 2.857 16.571 0 33.143-2.286 48.571-6.286-84.571-17.143-148-91.429-148-181.143v-2.286c24.571 13.714 53.143 22.286 83.429 23.429-49.714-33.143-82.286-89.714-82.286-153.714 0-34.286 9.143-65.714 25.143-93.143 90.857 112 227.429 185.143 380.571 193.143-2.857-13.714-4.571-28-4.571-42.286 0-101.714 82.286-184.571 184.571-184.571 53.143 0 101.143 22.286 134.857 58.286 41.714-8 81.714-23.429 117.143-44.571-13.714 42.857-42.857 78.857-81.143 101.714 37.143-4 73.143-14.286 106.286-28.571z">
-              </path>
-            </svg><svg viewBox="0 0 877.7142857142857 1024" class="home-icon30">
-              <path
-                d="M713.143 73.143c90.857 0 164.571 73.714 164.571 164.571v548.571c0 90.857-73.714 164.571-164.571 164.571h-107.429v-340h113.714l17.143-132.571h-130.857v-84.571c0-38.286 10.286-64 65.714-64l69.714-0.571v-118.286c-12-1.714-53.714-5.143-101.714-5.143-101.143 0-170.857 61.714-170.857 174.857v97.714h-114.286v132.571h114.286v340h-304c-90.857 0-164.571-73.714-164.571-164.571v-548.571c0-90.857 73.714-164.571 164.571-164.571h548.571z">
-              </path>
-            </svg><svg viewBox="0 0 877.7142857142857 1024" class="home-icon32">
-              <path
-                d="M585.143 512c0-80.571-65.714-146.286-146.286-146.286s-146.286 65.714-146.286 146.286 65.714 146.286 146.286 146.286 146.286-65.714 146.286-146.286zM664 512c0 124.571-100.571 225.143-225.143 225.143s-225.143-100.571-225.143-225.143 100.571-225.143 225.143-225.143 225.143 100.571 225.143 225.143zM725.714 277.714c0 29.143-23.429 52.571-52.571 52.571s-52.571-23.429-52.571-52.571 23.429-52.571 52.571-52.571 52.571 23.429 52.571 52.571zM438.857 152c-64 0-201.143-5.143-258.857 17.714-20 8-34.857 17.714-50.286 33.143s-25.143 30.286-33.143 50.286c-22.857 57.714-17.714 194.857-17.714 258.857s-5.143 201.143 17.714 258.857c8 20 17.714 34.857 33.143 50.286s30.286 25.143 50.286 33.143c57.714 22.857 194.857 17.714 258.857 17.714s201.143 5.143 258.857-17.714c20-8 34.857-17.714 50.286-33.143s25.143-30.286 33.143-50.286c22.857-57.714 17.714-194.857 17.714-258.857s5.143-201.143-17.714-258.857c-8-20-17.714-34.857-33.143-50.286s-30.286-25.143-50.286-33.143c-57.714-22.857-194.857-17.714-258.857-17.714zM877.714 512c0 60.571 0.571 120.571-2.857 181.143-3.429 70.286-19.429 132.571-70.857 184s-113.714 67.429-184 70.857c-60.571 3.429-120.571 2.857-181.143 2.857s-120.571 0.571-181.143-2.857c-70.286-3.429-132.571-19.429-184-70.857s-67.429-113.714-70.857-184c-3.429-60.571-2.857-120.571-2.857-181.143s-0.571-120.571 2.857-181.143c3.429-70.286 19.429-132.571 70.857-184s113.714-67.429 184-70.857c60.571-3.429 120.571-2.857 181.143-2.857s120.571-0.571 181.143 2.857c70.286 3.429 132.571 19.429 184 70.857s67.429 113.714 70.857 184c3.429 60.571 2.857 120.571 2.857 181.143z">
-              </path>
-            </svg>
-          </div>
-          <div class="home-copyright-container">
-            <svg viewBox="0 0 1024 1024" class="home-icon34">
-              <path
-                d="M512 854q140 0 241-101t101-241-101-241-241-101-241 101-101 241 101 241 241 101zM512 86q176 0 301 125t125 301-125 301-301 125-301-125-125-301 125-301 301-125zM506 390q-80 0-80 116v12q0 116 80 116 30 0 50-17t20-43h76q0 50-44 88-42 36-102 36-80 0-122-48t-42-132v-12q0-82 40-128 48-54 124-54 66 0 104 38 42 42 42 98h-76q0-14-6-26-10-20-14-24-20-20-50-20z">
-              </path>
-            </svg>
-            <span class="Anchor">Copyright, 2021</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <script src="https://unpkg.com/@teleporthq/teleport-custom-scripts"></script>
-  <script src="./scripts/controls.js"></script>
+      </section>
 
-</body>
+      <section class="section" aria-labelledby="local-heading">
+        <div class="two-column">
+          <div>
+            <p class="eyebrow">Local development</p>
+            <h2 id="local-heading">Run the same site from a clone</h2>
+            <p class="lede">
+              Reviewers can use the hosted notebooks immediately. Developers can clone
+              the repository and run the local server to test unmerged changes.
+            </p>
+          </div>
+          <div>
+            <ol class="steps">
+              <li>
+                <strong>Clone the repository</strong>
+                <span><code>git clone https://github.com/episphere/msig.git</code></span>
+              </li>
+              <li>
+                <strong>Start the local static server</strong>
+                <span><code>npm run serve:observable</code></span>
+              </li>
+              <li>
+                <strong>Open the notebook gallery</strong>
+                <span><code>http://127.0.0.1:8080/notebooks/viewer.html</code></span>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </section>
 
+      <section class="section" aria-labelledby="resources-heading">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Resources</p>
+            <h2 id="resources-heading">Source, documentation, and issues</h2>
+          </div>
+        </div>
+        <div class="resource-grid">
+          <article class="resource-card">
+            <h3>Repository</h3>
+            <p>Browse implementation history, file issues, or open pull requests.</p>
+            <a class="card-link" href="https://github.com/episphere/msig">github.com/episphere/msig</a>
+          </article>
+          <article class="resource-card">
+            <h3>Notebook source</h3>
+            <p>Review the plain HTML notebook files that power the hosted examples.</p>
+            <a class="card-link" href="https://github.com/episphere/msig/tree/main/notebooks">GitHub notebooks folder</a>
+          </article>
+          <article class="resource-card">
+            <h3>mSigPortal</h3>
+            <p>Public mutational signature resources used by the data-access examples.</p>
+            <a class="card-link" href="https://analysistools.cancer.gov/mutational-signatures/">Open mSigPortal</a>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <main>
+        mSigSDK is maintained in the
+        <a href="https://github.com/episphere/msig">episphere/msig</a>
+        repository. Hosted examples import <code>./main.js</code> from this
+        GitHub Pages site.
+      </main>
+    </footer>
+
+    <script type="module">
+      const status = document.getElementById("sdk-status");
+      const version = document.getElementById("sdk-version");
+      const namespaceCount = document.getElementById("sdk-namespace-count");
+      const notebookGrid = document.getElementById("notebook-grid");
+
+      function renderNotebookCards(notebooks) {
+        if (!notebookGrid || !Array.isArray(notebooks) || notebooks.length === 0) {
+          return;
+        }
+
+        const groups = [];
+        const groupMap = new Map();
+        notebooks.forEach((entry) => {
+          const key = entry.workflowGroup || "advanced";
+          if (!groupMap.has(key)) {
+            const group = {
+              key,
+              label: entry.workflowGroupLabel || key,
+              entries: [],
+            };
+            groupMap.set(key, group);
+            groups.push(group);
+          }
+          groupMap.get(key).entries.push(entry);
+        });
+
+        notebookGrid.replaceChildren(
+          ...groups.map((group) => {
+            const section = document.createElement("section");
+            section.className = "notebook-group";
+            const groupHeading = document.createElement("h3");
+            groupHeading.textContent = group.label;
+            const groupGrid = document.createElement("div");
+            groupGrid.className = "notebook-group-grid";
+
+            group.entries.forEach((entry) => {
+            const article = document.createElement("article");
+            article.className = "notebook-card";
+
+            const image = document.createElement("img");
+            image.src = entry.image || "images/mSigPortal.png";
+            image.alt = `${entry.title || "mSigSDK notebook"} preview`;
+            image.loading = "lazy";
+
+            const body = document.createElement("div");
+            body.className = "body";
+            const heading = document.createElement("h3");
+            heading.textContent = entry.title || entry.file;
+            const summary = document.createElement("p");
+            summary.textContent = entry.summary || "Runnable mSigSDK notebook.";
+            const link = document.createElement("a");
+            link.className = "card-link";
+            link.href = `./notebooks/viewer.html?notebook=${encodeURIComponent(
+              entry.file
+            )}`;
+            link.textContent = "Run notebook";
+
+            body.append(heading, summary, link);
+            article.append(image, body);
+              groupGrid.append(article);
+            });
+
+            section.append(groupHeading, groupGrid);
+            return section;
+          })
+        );
+      }
+
+      try {
+        const manifestResponse = await fetch("./notebooks/notebooks.json", {
+          cache: "no-store",
+        });
+        if (manifestResponse.ok) {
+          const manifest = await manifestResponse.json();
+          renderNotebookCards(manifest.notebooks);
+        }
+      } catch (error) {
+        console.warn("Using embedded notebook cards.", error);
+      }
+
+      try {
+        const { mSigSDK } = await import("./main.js");
+        const namespaces = Object.keys(mSigSDK || {}).filter(
+          (key) => key !== "name" && key !== "version"
+        );
+        status.textContent = "Ready";
+        version.textContent = mSigSDK.version || "available";
+        namespaceCount.textContent = String(namespaces.length);
+      } catch (error) {
+        status.textContent = "Import failed";
+        version.textContent = "n/a";
+        namespaceCount.textContent = "n/a";
+        console.error(error);
+      }
+    </script>
+  </body>
 </html>

@@ -1,13 +1,17 @@
 import {
   compareSignatureExposures,
   computeSignatureAmbiguity,
-  estimateSignatureDetectability,
   recommendAnalysisStrategy,
   runCohortFit,
+  runCohortFitLite,
+  runDiscoveryWorkflowLite,
   runLocalizedMutagenesisAnalysis,
   runPanelWorkflow,
+  runPanelWorkflowLite,
   runSingleSampleFit,
+  runSingleSampleFitLite,
   runSubgroupDiscoveryWorkflow,
+  summarizeRestrictedAssayEvidence,
 } from "../mSigSDKScripts/guidance.js";
 import { getExpectedContexts } from "../mSigSDKScripts/validation.js";
 
@@ -66,7 +70,9 @@ const metadata = {
 
 const advisor = recommendAnalysisStrategy(spectra, { expectedContexts: contexts });
 const ambiguity = computeSignatureAmbiguity(signatures, { contexts });
-const detectability = estimateSignatureDetectability(signatures, { contexts });
+const restrictedAssayEvidence = summarizeRestrictedAssayEvidence(signatures, {
+  contexts,
+});
 const single = await runSingleSampleFit(
   {
     sampleName: "sample_1",
@@ -79,6 +85,14 @@ const single = await runSingleSampleFit(
     runThresholdSensitivity: false,
   }
 );
+const singleLite = await runSingleSampleFitLite(
+  {
+    sampleName: "sample_1",
+    spectrum: spectra.sample_1,
+    signatures,
+  },
+  { expectedContexts: contexts }
+);
 const cohort = await runCohortFit(
   { spectra, signatures, metadata },
   {
@@ -88,6 +102,10 @@ const cohort = await runCohortFit(
     runBootstrap: false,
     runThresholdSensitivity: false,
   }
+);
+const cohortLite = await runCohortFitLite(
+  { spectra, signatures, metadata },
+  { expectedContexts: contexts }
 );
 const comparison = compareSignatureExposures(cohort.fit.exposures, metadata, {
   groupKey: "status",
@@ -122,6 +140,19 @@ const panel = await runPanelWorkflow(
     runThresholdSensitivity: false,
   }
 );
+const panelLite = await runPanelWorkflowLite(
+  { spectra, signatures },
+  { expectedContexts: contexts }
+);
+const discoveryLite = runDiscoveryWorkflowLite(
+  { spectra: subgroupSpectra, referenceSignatures: signatures },
+  {
+    expectedContexts: contexts,
+    rank: 2,
+    nRuns: 2,
+    maxIterations: 50,
+  }
+);
 const localized = runLocalizedMutagenesisAnalysis(
   [
     { chromosome: "1", position: 1000, context: "T[C>T]A" },
@@ -139,14 +170,28 @@ if (advisor.samples.length !== 2) {
 if (ambiguity.catalogSummary.signatureCount !== 3) {
   throw new Error("Ambiguity summary did not include all signatures.");
 }
-if (detectability.signatures.length !== 3) {
-  throw new Error("Detectability summary did not include all signatures.");
+if (restrictedAssayEvidence.signatures.length !== 3) {
+  throw new Error("Restricted-assay evidence summary did not include all signatures.");
 }
-if (!single.trust.samples[0]?.classification) {
-  throw new Error("Single-sample workflow did not return a trust classification.");
+if (!single.fitQualityEvidence.samples[0]?.reportingMode) {
+  throw new Error("Single-sample workflow did not return a fit-quality reporting mode.");
+}
+if (
+  singleLite.parameters?.workflow !== "runSingleSampleFit" ||
+  !singleLite.qc?.mutationBurden ||
+  !Array.isArray(singleLite.warnings)
+) {
+  throw new Error("Single-sample lite workflow did not return the shared result frame.");
 }
 if (cohort.subgroups.length === 0) {
   throw new Error("Cohort workflow did not return subgroup guidance.");
+}
+if (
+  cohortLite.parameters?.workflow !== "runCohortFit" ||
+  cohortLite.subgroupDiscoveryStatus !== "not_requested" ||
+  !cohortLite.qc?.subgroups
+) {
+  throw new Error("Cohort lite workflow did not return the shared result frame.");
 }
 if (!cohort.groupComparison?.comparisons?.length || !comparison.comparisons.length) {
   throw new Error("Cohort comparison workflow did not return comparisons.");
@@ -154,27 +199,56 @@ if (!cohort.groupComparison?.comparisons?.length || !comparison.comparisons.leng
 if (subgroup.summary.extractedSubgroupCount !== 1) {
   throw new Error("Subgroup discovery workflow did not extract the synthetic subgroup.");
 }
+if (subgroup.experimentalStatus?.state !== "experimental") {
+  throw new Error("Subgroup discovery workflow did not return experimental status metadata.");
+}
 if (!panel.evidenceCalls.sample_1?.length) {
   throw new Error("Panel workflow did not return evidence calls.");
 }
-if (!panel.detectability?.signatures?.length || !panel.evidenceSummary?.callCount) {
-  throw new Error("Panel workflow did not return detectability and evidence summary.");
+if (!panel.restrictedAssayEvidenceSummary?.signatures?.length || !panel.evidenceSummary?.callCount) {
+  throw new Error("Panel workflow did not return restricted-assay evidence and evidence summary.");
+}
+if (
+  panelLite.parameters?.workflow !== "runPanelWorkflow" ||
+  !panelLite.panel?.evidenceSummary ||
+  !panelLite.panel?.restrictedAssayEvidenceSummary ||
+  !panelLite.qc?.evidenceSummary
+) {
+  throw new Error("Panel lite workflow did not return the shared result frame.");
+}
+if (
+  discoveryLite.parameters?.workflow !== "runDiscoveryWorkflow" ||
+  !discoveryLite.qc?.mutationBurden ||
+  !discoveryLite.discovery?.productionHandoffRecommendation
+) {
+  throw new Error("Discovery lite workflow did not return the shared result frame.");
 }
 if (localized.foci.length === 0) {
   throw new Error("Localized workflow did not detect the synthetic focus.");
+}
+if (localized.experimentalStatus?.state !== "experimental") {
+  throw new Error("Localized workflow did not return experimental status metadata.");
+}
+if (!localized.localized?.foci || !localized.localized?.nullModelSpecification) {
+  throw new Error("Localized workflow did not return the nested localized result block.");
 }
 
 console.log(
   JSON.stringify(
     {
       advisorRecommendation: advisor.cohort.primaryRecommendation,
-      singleTrust: single.trust.samples[0].classification,
+      singleReportingMode: single.fitQualityEvidence.samples[0].reportingMode,
+      singleLiteReportingMode: singleLite.fitQualityEvidence.samples[0].reportingMode,
       cohortSubgroups: cohort.subgroups.length,
       cohortComparisons: cohort.groupComparison.comparisons.length,
+      cohortLiteStatus: cohortLite.subgroupDiscoveryStatus,
       subgroupExtractions: subgroup.summary.extractedSubgroupCount,
       panelEvidenceTiers: [
         ...new Set(panel.evidenceCalls.sample_1.map((call) => call.tier)),
       ],
+      panelLiteEvidenceCalls: panelLite.panel.evidenceSummary.callCount,
+      discoveryLiteStatus: discoveryLite.extractionStatus,
+      discoveryLiteCriterion: discoveryLite.rankSelectionCriterion,
       localizedFoci: localized.foci.length,
     },
     null,

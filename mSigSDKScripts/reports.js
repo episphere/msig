@@ -29,6 +29,39 @@ function summarizeObject(value) {
   return value;
 }
 
+const FAIR_REFERENCE = {
+  key: "Wilkinson2016FAIR",
+  citation:
+    "Wilkinson MD, Dumontier M, Aalbersberg IJ, et al. The FAIR Guiding Principles for scientific data management and stewardship. Sci Data. 2016.",
+  doi: "10.1038/sdata.2016.18",
+  url: "https://doi.org/10.1038/sdata.2016.18",
+};
+
+function collectReferences(value, seen = new Set()) {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+
+  const references = [];
+  if (Array.isArray(value.references)) {
+    for (const reference of value.references) {
+      const key = reference?.doi || reference?.url || reference?.key || JSON.stringify(reference);
+      if (!seen.has(key)) {
+        seen.add(key);
+        references.push(reference);
+      }
+    }
+  }
+
+  for (const child of Object.values(value)) {
+    if (child && typeof child === "object") {
+      references.push(...collectReferences(child, seen));
+    }
+  }
+
+  return references;
+}
+
 /**
  * Builds a structured analysis report from validation, QC, extraction, and provenance objects.
  *
@@ -46,6 +79,10 @@ function summarizeObject(value) {
  * @param {Object} [reportInput.provenance=null] - Provenance record.
  * @param {string[]} [reportInput.citations=[]] - Citations to include.
  * @param {string|string[]} [reportInput.notes=[]] - Free-text report notes.
+ * @param {string} [reportInput.workflowRole=null] - Optional workflow role label.
+ * @param {string} [reportInput.scopeStatement=null] - Optional interpretation scope statement.
+ * @param {Object} [reportInput.methodBasis=null] - Optional method-basis metadata.
+ * @param {string[]} [reportInput.primaryInterpretationFields=[]] - Primary fields for downstream interpretation.
  * @param {Object} [options] - Output options.
  * @param {string} [options.format="object"] - "object", "json", or "html".
  * @returns {Object|string} Structured report object, JSON string, or HTML string.
@@ -70,13 +107,32 @@ function createAnalysisReport(
     provenance = null,
     citations = [],
     notes = [],
+    workflowRole = null,
+    scopeStatement = null,
+    methodBasis = null,
+    primaryInterpretationFields = [],
+    reproducibilityStatement = null,
   } = {},
   { format = "object" } = {}
 ) {
+  const collectedCitations = [
+    ...citations,
+    ...collectReferences({ methodBasis, validation, qc, extraction, provenance }),
+    FAIR_REFERENCE,
+  ];
+  const deduplicatedCitations = collectReferences({ references: collectedCitations });
   const report = {
+    schemaVersion: "msig.report.v0.3",
     title,
     summary,
     generatedAt: new Date().toISOString(),
+    workflowRole,
+    scopeStatement,
+    methodBasis,
+    primaryInterpretationFields,
+    reproducibilityStatement:
+      reproducibilityStatement ||
+      "This report records SDK version, parameters, method-basis citations, and available provenance fields in support of FAIR-style reuse. Remote catalogs, genome APIs, and user-supplied reference data should be pinned for long-term reproducibility.",
     parameters,
     validation,
     qc,
@@ -84,7 +140,7 @@ function createAnalysisReport(
     exposures: summarizeObject(exposures),
     extraction,
     provenance,
-    citations,
+    citations: deduplicatedCitations,
     notes: Array.isArray(notes) ? notes : [notes],
   };
 
@@ -114,13 +170,22 @@ function createAnalysisReportHTML(report) {
     ["Validation", report.validation],
     ["QC", report.qc],
     ["Signature Extraction", report.extraction],
+    ["Method Basis", report.methodBasis],
+    ["Primary Interpretation Fields", report.primaryInterpretationFields],
+    ["Reproducibility", report.reproducibilityStatement],
     ["Provenance", report.provenance],
     ["Citations", report.citations],
     ["Notes", report.notes],
   ];
 
   const sectionHtml = sections
-    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .filter(
+      ([, value]) =>
+        value !== null &&
+        value !== undefined &&
+        value !== "" &&
+        (!Array.isArray(value) || value.length > 0)
+    )
     .map(([heading, value]) => {
       const body =
         typeof value === "string"

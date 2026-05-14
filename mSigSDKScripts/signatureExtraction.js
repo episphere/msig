@@ -129,6 +129,55 @@ function calculateRunMetrics(x, w, h) {
   };
 }
 
+function summarizeRunMetric(run) {
+  return {
+    run: run.run,
+    seed: run.seed,
+    iterations: run.iterations,
+    converged: run.converged,
+    reconstructionError: run.reconstructionError,
+    averageSampleCosineSimilarity: run.averageSampleCosineSimilarity,
+  };
+}
+
+function buildNMFResult({
+  rank,
+  matrixInput,
+  bestRun,
+  runs,
+  signaturePrefix = "NMF",
+}) {
+  const signatures = matrixToSignatureObject(
+    bestRun.w,
+    matrixInput.contexts,
+    signaturePrefix
+  );
+  const exposures = matrixToExposureObject(
+    bestRun.h,
+    matrixInput.sampleNames,
+    signaturePrefix
+  );
+  const reconstruction = matrixMultiply(bestRun.w, bestRun.h);
+
+  return {
+    rank,
+    contexts: matrixInput.contexts,
+    sampleNames: matrixInput.sampleNames,
+    signatures,
+    exposures,
+    reconstruction,
+    reconstructionError: bestRun.reconstructionError,
+    averageSampleCosineSimilarity: bestRun.averageSampleCosineSimilarity,
+    iterations: bestRun.iterations,
+    converged: bestRun.converged,
+    bestRun: {
+      run: bestRun.run,
+      seed: bestRun.seed,
+    },
+    runMetrics: runs.map(summarizeRunMetric),
+  };
+}
+
 function runNMF(x, { rank, maxIterations, tolerance, seed }) {
   const random = seededRandom(seed);
   const contextCount = x.length;
@@ -188,6 +237,312 @@ function runNMF(x, { rank, maxIterations, tolerance, seed }) {
     converged,
     ...metrics,
   };
+}
+
+function clampDistance(value) {
+  if (!Number.isFinite(value)) {
+    return 1;
+  }
+  return Math.max(0, Math.min(2, value));
+}
+
+function pairwiseValues(matrix) {
+  const values = [];
+  for (let i = 0; i < matrix.length; i++) {
+    for (let j = i + 1; j < matrix.length; j++) {
+      values.push(matrix[i][j]);
+    }
+  }
+  return values;
+}
+
+function pearsonCorrelation(a, b) {
+  const pairs = a
+    .map((value, index) => [value, b[index]])
+    .filter(
+      ([x, y]) =>
+        Number.isFinite(x) &&
+        Number.isFinite(y)
+    );
+
+  if (pairs.length < 2) {
+    return null;
+  }
+
+  const meanA =
+    pairs.reduce((total, [value]) => total + value, 0) / pairs.length;
+  const meanB =
+    pairs.reduce((total, [, value]) => total + value, 0) / pairs.length;
+  let numerator = 0;
+  let denominatorA = 0;
+  let denominatorB = 0;
+
+  for (const [valueA, valueB] of pairs) {
+    const centeredA = valueA - meanA;
+    const centeredB = valueB - meanB;
+    numerator += centeredA * centeredB;
+    denominatorA += centeredA * centeredA;
+    denominatorB += centeredB * centeredB;
+  }
+
+  const denominator = Math.sqrt(denominatorA * denominatorB);
+  return denominator <= EPSILON ? null : numerator / denominator;
+}
+
+function sampleCosineDistanceMatrix(x) {
+  const sampleVectors = transpose(x);
+  const sampleCount = sampleVectors.length;
+  const distances = Array.from({ length: sampleCount }, () =>
+    Array(sampleCount).fill(0)
+  );
+
+  for (let i = 0; i < sampleCount; i++) {
+    for (let j = i + 1; j < sampleCount; j++) {
+      const distance = clampDistance(
+        1 - vectorCosine(sampleVectors[i], sampleVectors[j])
+      );
+      distances[i][j] = distance;
+      distances[j][i] = distance;
+    }
+  }
+
+  return distances;
+}
+
+function averageClusterDistance(clusterA, clusterB, distanceMatrix) {
+  let total = 0;
+  let count = 0;
+
+  for (const sampleA of clusterA.members) {
+    for (const sampleB of clusterB.members) {
+      total += distanceMatrix[sampleA][sampleB];
+      count += 1;
+    }
+  }
+
+  return count === 0 ? Infinity : total / count;
+}
+
+function copheneticDistanceMatrix(distanceMatrix) {
+  const sampleCount = distanceMatrix.length;
+  const cophenetic = Array.from({ length: sampleCount }, () =>
+    Array(sampleCount).fill(0)
+  );
+  let clusters = Array.from({ length: sampleCount }, (_, index) => ({
+    members: [index],
+  }));
+
+  while (clusters.length > 1) {
+    let bestI = 0;
+    let bestJ = 1;
+    let bestDistance = Infinity;
+
+    for (let i = 0; i < clusters.length; i++) {
+      for (let j = i + 1; j < clusters.length; j++) {
+        const distance = averageClusterDistance(
+          clusters[i],
+          clusters[j],
+          distanceMatrix
+        );
+        if (distance < bestDistance) {
+          bestI = i;
+          bestJ = j;
+          bestDistance = distance;
+        }
+      }
+    }
+
+    const clusterA = clusters[bestI];
+    const clusterB = clusters[bestJ];
+    for (const sampleA of clusterA.members) {
+      for (const sampleB of clusterB.members) {
+        cophenetic[sampleA][sampleB] = bestDistance;
+        cophenetic[sampleB][sampleA] = bestDistance;
+      }
+    }
+
+    const merged = {
+      members: [...clusterA.members, ...clusterB.members],
+    };
+    clusters = clusters.filter((_, index) => index !== bestI && index !== bestJ);
+    clusters.push(merged);
+  }
+
+  return cophenetic;
+}
+
+function assignSamplesToComponents(h) {
+  const sampleCount = h[0]?.length || 0;
+  const assignments = [];
+
+  for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+    let bestComponent = 0;
+    let bestValue = -Infinity;
+
+    for (let componentIndex = 0; componentIndex < h.length; componentIndex++) {
+      const value = h[componentIndex][sampleIndex] || 0;
+      if (value > bestValue) {
+        bestComponent = componentIndex;
+        bestValue = value;
+      }
+    }
+
+    assignments.push(bestComponent);
+  }
+
+  return assignments;
+}
+
+function buildConsensusMatrix(assignmentsByRun, sampleCount) {
+  const consensus = Array.from({ length: sampleCount }, (_, rowIndex) =>
+    Array.from({ length: sampleCount }, (_, columnIndex) =>
+      rowIndex === columnIndex ? 1 : 0
+    )
+  );
+
+  if (assignmentsByRun.length === 0) {
+    return consensus;
+  }
+
+  for (const assignments of assignmentsByRun) {
+    for (let i = 0; i < sampleCount; i++) {
+      for (let j = i + 1; j < sampleCount; j++) {
+        if (assignments[i] === assignments[j]) {
+          consensus[i][j] += 1;
+          consensus[j][i] += 1;
+        }
+      }
+    }
+  }
+
+  for (let i = 0; i < sampleCount; i++) {
+    for (let j = i + 1; j < sampleCount; j++) {
+      consensus[i][j] /= assignmentsByRun.length;
+      consensus[j][i] = consensus[i][j];
+    }
+  }
+
+  return consensus;
+}
+
+function averageSilhouetteScore(assignments, distanceMatrix) {
+  const sampleCount = assignments.length;
+  if (sampleCount < 2) {
+    return null;
+  }
+
+  const scores = assignments.map((cluster, sampleIndex) => {
+    const sameCluster = assignments
+      .map((candidateCluster, candidateIndex) => ({
+        candidateCluster,
+        candidateIndex,
+      }))
+      .filter(
+        (candidate) =>
+          candidate.candidateCluster === cluster &&
+          candidate.candidateIndex !== sampleIndex
+      )
+      .map((candidate) => distanceMatrix[sampleIndex][candidate.candidateIndex]);
+    const otherClusters = [...new Set(assignments)]
+      .filter((candidateCluster) => candidateCluster !== cluster)
+      .map((candidateCluster) =>
+        assignments
+          .map((assignedCluster, candidateIndex) => ({
+            assignedCluster,
+            candidateIndex,
+          }))
+          .filter((candidate) => candidate.assignedCluster === candidateCluster)
+          .map((candidate) => distanceMatrix[sampleIndex][candidate.candidateIndex])
+      )
+      .filter((distances) => distances.length > 0);
+
+    if (sameCluster.length === 0 || otherClusters.length === 0) {
+      return 0;
+    }
+
+    const a =
+      sameCluster.reduce((total, distance) => total + distance, 0) /
+      sameCluster.length;
+    const b = Math.min(
+      ...otherClusters.map(
+        (distances) =>
+          distances.reduce((total, distance) => total + distance, 0) /
+          distances.length
+      )
+    );
+    const denominator = Math.max(a, b);
+    return denominator <= EPSILON ? 0 : (b - a) / denominator;
+  });
+
+  return scores.reduce((total, score) => total + score, 0) / scores.length;
+}
+
+function normalizeRankSelectionCriterion(criterion) {
+  const normalized = String(criterion || "reconstruction_error")
+    .trim()
+    .toLowerCase()
+    .replace(/[-\s]+/g, "_");
+
+  if (
+    [
+      "reconstruction",
+      "reconstructionerror",
+      "reconstruction_error",
+      "lowest_reconstruction_error",
+      "lowest_reconstruction_error_across_rank_grid",
+    ].includes(normalized)
+  ) {
+    return "reconstruction_error";
+  }
+  if (["cophenetic", "copheneticcorrelation", "cophenetic_correlation"].includes(normalized)) {
+    return "cophenetic";
+  }
+  if (
+    [
+      "silhouette",
+      "silhouettescore",
+      "silhouette_score",
+      "average_silhouette",
+    ].includes(normalized)
+  ) {
+    return "silhouette";
+  }
+
+  throw new Error(
+    `Unsupported rankSelectionCriterion "${criterion}". Use reconstruction_error, cophenetic, or silhouette.`
+  );
+}
+
+function getRankCriterionValue(run, criterion) {
+  if (criterion === "cophenetic") {
+    return run.copheneticCorrelation;
+  }
+  if (criterion === "silhouette") {
+    return run.averageSilhouette;
+  }
+  return run.reconstructionError;
+}
+
+function rankCriterionDirection(criterion) {
+  return criterion === "reconstruction_error" ? "minimize" : "maximize";
+}
+
+function compareRankSelectionRuns(currentBest, candidate, criterion) {
+  const direction = rankCriterionDirection(criterion);
+  const bestValue = getRankCriterionValue(currentBest, criterion);
+  const candidateValue = getRankCriterionValue(candidate, criterion);
+
+  if (!Number.isFinite(candidateValue)) {
+    return currentBest;
+  }
+  if (!Number.isFinite(bestValue)) {
+    return candidate;
+  }
+
+  if (direction === "minimize") {
+    return candidateValue < bestValue ? candidate : currentBest;
+  }
+  return candidateValue > bestValue ? candidate : currentBest;
 }
 
 /**
@@ -252,55 +607,17 @@ function extractSignaturesNMF(
   const bestRun = runs.reduce((best, run) =>
     run.reconstructionError < best.reconstructionError ? run : best
   );
-  const signatures = matrixToSignatureObject(
-    bestRun.w,
-    matrixInput.contexts,
-    signaturePrefix
-  );
-  const exposures = matrixToExposureObject(
-    bestRun.h,
-    matrixInput.sampleNames,
-    signaturePrefix
-  );
-  const reconstruction = matrixMultiply(bestRun.w, bestRun.h);
-
-  return {
+  return buildNMFResult({
     rank,
-    contexts: matrixInput.contexts,
-    sampleNames: matrixInput.sampleNames,
-    signatures,
-    exposures,
-    reconstruction,
-    reconstructionError: bestRun.reconstructionError,
-    averageSampleCosineSimilarity: bestRun.averageSampleCosineSimilarity,
-    iterations: bestRun.iterations,
-    converged: bestRun.converged,
-    bestRun: {
-      run: bestRun.run,
-      seed: bestRun.seed,
-    },
-    runMetrics: runs.map(
-      ({
-        run,
-        seed: runSeed,
-        iterations,
-        converged,
-        reconstructionError,
-        averageSampleCosineSimilarity,
-      }) => ({
-        run,
-        seed: runSeed,
-        iterations,
-        converged,
-        reconstructionError,
-        averageSampleCosineSimilarity,
-      })
-    ),
-  };
+    matrixInput,
+    bestRun,
+    runs,
+    signaturePrefix,
+  });
 }
 
 /**
- * Runs NMF across a rank grid and recommends the lowest reconstruction-error rank.
+ * Runs NMF across a rank grid and recommends a rank using the requested criterion.
  *
  * @function selectNMFRank
  * @memberof signatureExtraction
@@ -311,6 +628,7 @@ function extractSignaturesNMF(
  * @param {number} [options.tolerance=1e-5] - Convergence tolerance.
  * @param {number} [options.nRuns=10] - Random starts per rank.
  * @param {number} [options.seed=123] - Base seed.
+ * @param {string} [options.rankSelectionCriterion="reconstruction_error"] - Criterion used to select rank: "reconstruction_error", "cophenetic", or "silhouette".
  * @param {string[]} [options.contexts=null] - Context order to use.
  * @param {string[]} [options.sampleNames=null] - Sample order to use.
  * @returns {Object} Candidate runs, embedded NMF results, and recommended rank.
@@ -323,36 +641,104 @@ function selectNMFRank(
     tolerance = 1e-5,
     nRuns = 10,
     seed = 123,
+    rankSelectionCriterion = "reconstruction_error",
     contexts = null,
     sampleNames = null,
   } = {}
 ) {
+  const criterion = normalizeRankSelectionCriterion(rankSelectionCriterion);
+  const matrixInput = spectraToMatrix(spectra, { contexts, sampleNames });
+  const x = matrixInput.matrix;
+  const originalCosineDistanceMatrix = sampleCosineDistanceMatrix(x);
+  const originalCosineDistances = pairwiseValues(originalCosineDistanceMatrix);
   const runs = ranks.map((rank, index) => {
-    const result = extractSignaturesNMF(spectra, {
+    const rankRuns = [];
+
+    for (let runIndex = 0; runIndex < nRuns; runIndex++) {
+      const runSeed = seed + index * 1000 + runIndex;
+      const run = runNMF(x, {
+        rank,
+        maxIterations,
+        tolerance,
+        seed: runSeed,
+      });
+      rankRuns.push({
+        run: runIndex + 1,
+        seed: runSeed,
+        iterations: run.iterations,
+        converged: run.converged,
+        reconstructionError: run.reconstructionError,
+        averageSampleCosineSimilarity: run.averageSampleCosineSimilarity,
+        w: run.w,
+        h: run.h,
+      });
+    }
+
+    const bestRun = rankRuns.reduce((best, run) =>
+      run.reconstructionError < best.reconstructionError ? run : best
+    );
+    const assignmentsByRun = rankRuns.map((run) =>
+      assignSamplesToComponents(run.h)
+    );
+    const consensusMatrix = buildConsensusMatrix(
+      assignmentsByRun,
+      matrixInput.sampleNames.length
+    );
+    const consensusDistanceMatrix = consensusMatrix.map((row) =>
+      row.map((value) => 1 - value)
+    );
+    const copheneticDistances = pairwiseValues(
+      copheneticDistanceMatrix(consensusDistanceMatrix)
+    );
+    const silhouetteScores = assignmentsByRun.map((assignments) =>
+      averageSilhouetteScore(assignments, originalCosineDistanceMatrix)
+    );
+    const finiteSilhouetteScores = silhouetteScores.filter(Number.isFinite);
+    const averageSilhouette =
+      finiteSilhouetteScores.length === 0
+        ? null
+        : finiteSilhouetteScores.reduce((total, value) => total + value, 0) /
+          finiteSilhouetteScores.length;
+    const result = buildNMFResult({
       rank,
-      maxIterations,
-      tolerance,
-      nRuns,
-      seed: seed + index * 1000,
-      contexts,
-      sampleNames,
+      matrixInput,
+      bestRun,
+      runs: rankRuns,
     });
+    const copheneticCorrelation = pearsonCorrelation(
+      copheneticDistances,
+      originalCosineDistances
+    );
 
     return {
       rank,
       reconstructionError: result.reconstructionError,
       averageSampleCosineSimilarity: result.averageSampleCosineSimilarity,
+      copheneticCorrelation,
+      averageSilhouette,
+      silhouetteScores,
+      consensusMatrix,
       converged: result.converged,
       iterations: result.iterations,
+      criterionValue:
+        criterion === "cophenetic"
+          ? copheneticCorrelation
+          : criterion === "silhouette"
+            ? averageSilhouette
+            : result.reconstructionError,
       result,
     };
   });
   const recommended = runs.reduce((best, run) =>
-    run.reconstructionError < best.reconstructionError ? run : best
+    compareRankSelectionRuns(best, run, criterion)
   );
 
   return {
     ranks,
+    rankSelectionCriterion: criterion,
+    criterionDirection: rankCriterionDirection(criterion),
+    criterionUsed: criterion,
+    criterionValue: getRankCriterionValue(recommended, criterion),
     recommendedRank: recommended.rank,
     runs,
   };

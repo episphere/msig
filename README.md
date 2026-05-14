@@ -2,25 +2,30 @@
 
 ## Overview
 
-**mSigSDK** is a JavaScript Software Development Kit (SDK) designed to facilitate mutational signature analysis entirely within a web browser. Built to support research workflows involving mutational data, it interacts with APIs from [mSigPortal](https://analysistools.cancer.gov/mutational-signatures/) and adheres to modern web standards, ensuring compatibility, scalability, and privacy.
+**mSigSDK** is a JavaScript Software Development Kit (SDK) designed to support portable mutational-signature workflows in browser and local JavaScript environments. It retrieves public resources through APIs from [mSigPortal](https://analysistools.cancer.gov/mutational-signatures/) and performs selected validation, fitting, QC, reporting, and visualization steps on user-supplied spectra in the client runtime.
 
-This SDK allows researchers to analyze patient-specific genomic data without downloading sensitive information, providing a secure and private computational environment. With **mSigSDK**, researchers can:
-- Visualize and compare mutational signatures.
-- Run burden-aware fitting and discovery workflows with trust classifications, caveats, and next recommended actions.
-- Perform dimensionality reduction, hierarchical clustering, and more.
-- Extend functionality to other mutation signature ecosystems such as SIGNAL or COSMIC.
+With **mSigSDK**, researchers can:
+- Retrieve public mSigPortal resources and convert them into SDK-ready matrices.
+- Import local spectra or MAF-like rows for client-side validation, fitting, QC, and reporting.
+- Run burden-aware fitting and exploratory discovery workflows with QC evidence, caveats, and next recommended actions.
+- Exchange spectra, signatures, and exposures with SigProfiler-style, COSMIC-style, and MuSiCal-compatible tabular formats.
+- Launch optional browser-Pyodide adapters for matrix-mode SigProfilerAssignment and MuSiCal-compatible refit review when the required Python packages are available.
+- Prepare matched handoff bundles for SigProfilerAssignment, SigProfilerExtractor, deconstructSigs, and MuSiCal from the same spectra and signature catalog.
+- Generate portable reports with provenance metadata and JSON Schema validation.
 
 ---
 
 ## Features
 
-- **In-Browser Computation**: All analyses are performed client-side using the user's computational resources.
+- **Client-Side Computation**: User-supplied spectra can be validated, fitted, assessed, and visualized client-side after import.
 - **Modular Design**: Adheres to ECMAScript ES6 standards, enabling easy integration and extension.
-- **Visualizations**: Supports multiple interactive visualizations via Plotly and AMCharts.
-- **Research Guidance**: Provides burden-aware analysis advice, fit-trust scoring, signature ambiguity checks, and catalog-sufficiency warnings.
+- **Visualizations**: Supports mSigPortal-style profile plots, D3 QC/workflow panels, and selected Plotly/AMCharts visualizations.
+- **Research Guidance**: Provides validated burden-aware strategy advice, fit-quality evidence, signature ambiguity checks, and catalog-sufficiency warnings.
 - **APIs**: Seamlessly integrates with mSigPortal's REST APIs to fetch mutational signature data and metadata.
-- **Data Privacy**: No data is sent to external servers; all operations are secure and local.
-- **Extensibility**: Designed for interoperability with future APIs and datasets.
+- **Data Boundary**: Public reference data are retrieved through APIs; user-supplied spectra can remain local for supported client-side workflows.
+- **Interoperability**: Supports SigProfiler-style spectra, COSMIC-style signatures, MuSiCal input/output helpers, and report JSON Schema validation.
+- **External Tool Adapters**: Provides an optional Pyodide worker runner, a SigProfilerAssignment matrix-mode adapter, SigProfilerExtractor and deconstructSigs handoff adapters, MuSiCal refit adapters, and a multi-tool interoperability bundle with explicit runtime provenance.
+- **Offline Context Path**: MAF conversion can use row-supplied contexts, caller-supplied lookup tables, or bundled smoke-test lookup assets for hg19, hg38, and T2T-CHM13.
 
 ---
 
@@ -34,9 +39,16 @@ This is all you need to do to run mSigSDK. You don't need to install anything:
    ```javascript
    mSigSDK = (await import("https://episphere.github.io/msig/main.js")).mSigSDK
    ```
-4. Fetch some data from mSigPortal by typing the following code into the console:
+4. Fetch count-scale example spectra from mSigPortal by typing the following code into the console:
    ```javascript
-   data = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData()
+   data = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+     "PCAWG",
+     ["SP50611", "SP50406"],
+     "WGS",
+     "Lung-AdenoCA",
+     "SBS",
+     96
+   )
    ```
 
 ---
@@ -57,11 +69,37 @@ The published package entry is `main.js`, and the current SDK version is exposed
 mSigSDK.version
 ```
 
+## Start Here
+
+New projects should begin with the small stable surface under `mSigSDK.workflows`. These calls keep the first-use path compact while still returning the same validation, QC, warning, recommended-action, and provenance fields used by the full pipelines.
+
+```javascript
+const fit = await mSigSDK.workflows.runSingleSampleFit({
+  sampleName: "tumor_001",
+  spectrum: sampleSpectrum,
+  signatures: referenceSignatures,
+});
+
+console.log(fit.fitQualityEvidence.samples[0].reportingMode);
+console.log(fit.recommendedActions);
+```
+
+The primary entry points are:
+
+- `mSigSDK.workflows.analyzeMafFiles(...)` for MAF-to-spectrum conversion with optional fitting.
+- `mSigSDK.workflows.runSingleSampleFit(...)` for one sample and one signature catalog.
+- `mSigSDK.workflows.runCohortFit(...)` for a spectra matrix and optional metadata.
+- `mSigSDK.workflows.runPanelWorkflow(...)` for panel/WES review with opportunity metadata.
+
+Use `mSigSDK.pipelines` for the full computational API, `mSigSDK.workflows.*Lite` for reduced-option convenience wrappers, and `mSigSDK.experimental` for exploratory workflows that are not validated for manuscript-grade use.
+
 ---
 
 ## Interactive Examples
 
-The canonical interactive recipes live in the Observable notebook: [mSigSDK / Aaron Ge](https://observablehq.com/@aaronge-2020/signatures). Use that notebook for live workflows, plots, and browser-first examples. The repo README keeps the stable SDK entry points and reproducibility helpers so example code does not drift in two places.
+The canonical interactive recipes now live with the GitHub Pages site: [mSigSDK runnable notebooks](https://episphere.github.io/msig/notebooks/viewer.html). These notebooks use curated count-scale PCAWG WGS examples, show the JavaScript cells inline, and can be edited and rerun in the browser. The resource-portability notebook demonstrates how mSigPortal and TCGA/GDC resources become validated SDK matrices, portable TSV files, and provenance-backed analysis objects.
+
+Notebook cards and the runner menu are generated from `notebooks/notebooks.json`. When adding a new `*.onb.html` notebook, run `npm run notebooks:manifest` so it appears automatically on the website and in the runner.
 
 ---
 
@@ -102,18 +140,115 @@ The focused notebooks in `notebooks/` exercise the current public SDK surface:
 
 - `mSigSDK.validation`: context helpers, matrix normalization, spectra/signature/exposure validation, and MAF-row validation.
 - `mSigSDK.qc`: mutation burden, missing-context summaries, NNLS fitting helpers, residuals, reconstruction error, bootstrap uncertainty, and threshold sensitivity.
-- `mSigSDK.qcPlots`: mutation-burden, reconstruction-error, residual-spectrum, fit-trust dashboard, cohort group-comparison, panel evidence-matrix, bootstrap-interval, and threshold-sensitivity plots.
-- `mSigSDK.signatureExtraction`: browser NMF extraction, rank selection, Web Worker extraction, matrix conversion, and reference matching.
+- `mSigSDK.qcPlots`: mutation-burden, reconstruction-error, residual-spectrum, fit-quality evidence dashboard, cohort group-comparison, panel evidence-matrix, bootstrap-interval, and threshold-sensitivity plots.
+- `mSigSDK.signatureExtraction`: browser NMF extraction, rank selection by reconstruction error, cophenetic correlation, or silhouette, Web Worker extraction, matrix conversion, and reference matching.
 - `mSigSDK.signatureExtractionPlots`: extracted profile, exposure heatmap, and rank-diagnostic plots.
-- `mSigSDK.io`: generic TSV export/import plus SigProfiler and COSMIC matrix round trips.
+- `mSigSDK.io`: generic TSV export/import plus SigProfiler, COSMIC, and MuSiCal matrix round trips.
+- `mSigSDK.runners`: optional Pyodide Web Worker execution for browser-side Python packages, including `runners.pyodide.runPython(code, { inputs })`.
+- `mSigSDK.adapters`: SigProfilerAssignment, SigProfilerExtractor, deconstructSigs, and MuSiCal adapters that prepare canonical files, execute optional runtimes where supported, parse compatible output tables, and return provenance-rich outputs.
 - `mSigSDK.reports`, `mSigSDK.provenance`, and `mSigSDK.workflows`: structured reports, reproducibility metadata, and high-level signature-fitting or NMF workflows.
-- `mSigSDK.advisor`: burden-aware strategy recommendations, signature ambiguity scoring, catalog-sufficiency checks, composite fit-trust scores, metadata-stratified exposure comparisons, and panel/WES detectability estimates.
-- `mSigSDK.pipelines`: opinionated `runSingleSampleFit`, `runCohortFit`, `runDiscoveryWorkflow`, `runSubgroupDiscoveryWorkflow`, `runPanelWorkflow`, and `runLocalizedMutagenesisAnalysis` entry points.
+- `mSigSDK.presentation`: reusable browser output helpers for metric cards, tables, notes, expandable object details, and compact rows derived from common SDK result objects.
+- `mSigSDK.advisor`: validated burden-aware strategy recommendations, signature ambiguity screening, catalog-sufficiency checks, and fit-quality evidence reports, plus experimental group-comparison and restricted-assay evidence summaries that warn on use.
+- `mSigSDK.quickstart`: compact aliases for the beginner-facing workflow wrappers.
+- `mSigSDK.pipelines`: full computational `runSingleSampleFit`, `runCohortFit`, `runDiscoveryWorkflow`, and `runPanelWorkflow` entry points.
+- `mSigSDK.experimental`: localized-mutagenesis and subgroup-discovery pipelines reserved for future validation.
 
-### Trustworthy Workflow Entry Points
+### Optional External Tool Adapters
+
+The adapter layer keeps established Python and R/Python ecosystem methods separate from the validated JavaScript core. Browser deployments can use `mSigSDK.runners.pyodide` to run compatible Python packages in a Web Worker, while local or server workflows can reuse the same prepared input files.
+
+For direct Python snippets, use the JavaScript-first runner API:
 
 ```javascript
-const result = await mSigSDK.pipelines.runSingleSampleFit(
+const py = await mSigSDK.runners.pyodide.runPython(
+  "import json\ninputs = json.loads(MSIG_INPUT_JSON)\njson.dumps({'n': len(inputs['samples'])})",
+  { inputs: { samples: Object.keys(spectra) } }
+);
+
+console.log(py.result);
+```
+
+```javascript
+const prepared = mSigSDK.adapters.sigProfilerAssignment.prepareInput(
+  { spectra, signatures },
+  { contexts: mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 }) }
+);
+
+console.log(prepared.files.map((file) => file.path));
+```
+
+The same spectra and signature catalog can be bundled for multiple established tools:
+
+```javascript
+const bundle = mSigSDK.adapters.createInteroperabilityBundle(
+  { spectra, signatures },
+  { contexts: mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 }) }
+);
+
+console.log(Object.keys(bundle.tools));
+// sigProfilerAssignment, sigProfilerExtractor, deconstructSigs, musical
+```
+
+SigProfilerAssignment matrix-mode execution is available through the Pyodide runner:
+
+```javascript
+const assignment = await mSigSDK.adapters.sigProfilerAssignment.run(
+  { spectra, signatures },
+  {
+    genomeBuild: "GRCh37",
+    cosmicVersion: 3.5,
+    cpu: 1
+  }
+);
+
+console.log(assignment.exposures);
+console.log(assignment.provenance);
+```
+
+SigProfilerExtractor and deconstructSigs are supported as handoff adapters. The SDK prepares matrix-mode files and executable Python or R snippets, and it can parse common output tables back into SDK matrices.
+
+```javascript
+const extractorInput = mSigSDK.adapters.sigProfilerExtractor.prepareInput(
+  { spectra },
+  { minimumSignatures: 2, maximumSignatures: 6 }
+);
+
+const deconstructInput = mSigSDK.adapters.deconstructSigs.prepareInput(
+  { spectra, signatures },
+  { signatureCutoff: 0.01 }
+);
+```
+
+MuSiCal support has two paths. The default path runs a browser-native sparse NNLS comparator on MuSiCal-compatible matrices. Package execution is available with `runtime: "pyodide"` when a Pyodide-compatible MuSiCal wheel or preloaded worker environment is supplied.
+
+```javascript
+const sparseRefit = await mSigSDK.adapters.musical.runRefit(
+  { spectra, signatures },
+  { threshold: 0.001 }
+);
+
+const musicalPackageRun = await mSigSDK.adapters.musical.runRefit(
+  { spectra, signatures },
+  {
+    runtime: "pyodide",
+    micropipPackages: ["https://example.org/wheels/MuSiCal-1.0.0-py3-none-any.whl"]
+  }
+);
+```
+
+### Workflow Entry Points
+
+```javascript
+const result = await mSigSDK.workflows.runSingleSampleFit(
+  {
+    sampleName: "tumor_001",
+    spectrum: sampleSpectrum,
+    signatures: referenceSignatures,
+  },
+  { exposureThreshold: 0.01 }
+);
+
+const fullResult = await mSigSDK.pipelines.runSingleSampleFit(
   {
     sampleName: "tumor_001",
     spectrum: sampleSpectrum,
@@ -126,11 +261,11 @@ const result = await mSigSDK.pipelines.runSingleSampleFit(
   }
 );
 
-console.log(result.trust.samples[0].classification);
+console.log(result.fitQualityEvidence.samples[0].reportingMode);
 console.log(result.recommendedActions);
 ```
 
-Every opinionated pipeline returns a versioned result object with `validation`, `advisor`, `fit` or `extraction`, `trust`, `warnings`, `recommendedActions`, and `publicationFigures` fields. This lets browser apps expose safe defaults while still allowing advanced users to inspect the low-level matrices and QC objects.
+Every stable pipeline returns a versioned result object with a shared top-level frame: `schemaVersion`, `workflow`, `workflowRole`, `scopeStatement`, `methodBasis`, `primaryInterpretationFields`, `parameters`, `validation`, `qc`, `fit` or `extraction` or `panel`, `warnings`, `recommendedActions`, `publicationFigures`, and `provenance`. Core pipeline-specific details live in nested objects such as `panel` or `discovery`; experimental localized-mutagenesis output uses a `localized` block.
 
 v0.3 expands the cohort and panel paths:
 
@@ -144,7 +279,6 @@ const cohort = await mSigSDK.pipelines.runCohortFit(
   {
     groupKey: "diagnosis",
     comparison: { permutationIterations: 1000 },
-    runSubgroupDiscovery: true,
   }
 );
 
@@ -160,7 +294,7 @@ const panel = await mSigSDK.pipelines.runPanelWorkflow(
 );
 ```
 
-The cohort workflow can now return subgroup extraction/refitting summaries and metadata-stratified exposure comparisons. The panel/WES workflow returns opportunity normalization status, signature-specific detectability curves, evidence tiers, and an evidence summary.
+The cohort workflow returns sample-level refits, fit-quality evidence, and metadata-stratified exposure comparisons. The panel/WES workflow returns opportunity normalization status, signature-specific restricted-assay evidence, evidence tiers, and an evidence summary. Subgroup extraction and localized-mutagenesis pipelines live under `mSigSDK.experimental` and emit console warnings because they are not part of the manuscript-validated advisor surface.
 
 ### QC and Uncertainty
 
@@ -168,6 +302,10 @@ The cohort workflow can now return subgroup extraction/refitting summaries and m
 const burden = mSigSDK.qc.summarizeMutationBurden(groupedSpectra, {
   lowBurdenThresholdMode: "fixed", // "fixed", "quantile", or "none"
   lowBurdenThreshold: 100,
+});
+const selectedSamples = mSigSDK.qc.selectSamplesByMutationBurden(burden, {
+  minTotalMutations: 1000,
+  limit: 8,
 });
 const missing = mSigSDK.qc.summarizeMissingContexts(groupedSpectra, {
   expectedContexts: mSigSDK.validation.getExpectedContexts({
@@ -201,6 +339,13 @@ const nmf = mSigSDK.signatureExtraction.extractSignaturesNMF(groupedSpectra, {
   seed: 123,
 });
 
+const rankSelection = mSigSDK.signatureExtraction.selectNMFRank(groupedSpectra, {
+  ranks: [2, 3, 4, 5],
+  rankSelectionCriterion: "cophenetic", // "reconstruction_error", "cophenetic", or "silhouette"
+  nRuns: 10,
+  seed: 123,
+});
+
 const matches = mSigSDK.signatureExtraction.compareExtractedToReference(
   nmf.signatures,
   referenceSignatures
@@ -215,18 +360,39 @@ NMF plot helpers are available under `mSigSDK.signatureExtractionPlots`. Extract
 
 The SDK includes focused Observable Kit notebooks for browser testing without loading every analysis into one runtime:
 
+- Hosted notebook gallery: <https://episphere.github.io/msig/notebooks/viewer.html>
 - `notebooks/msig-sdk-notebooks.onb.html`: index of focused notebooks.
 - `notebooks/msig-sdk-qc-walkthrough.onb.html`: known-signature fitting QC.
 - `notebooks/msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals and threshold sensitivity.
 - `notebooks/msig-sdk-nmf-extraction.onb.html`: browser-sized NMF extraction and rank diagnostics.
 - `notebooks/msig-sdk-export-report.onb.html`: import/export, reports, provenance, and workflow helpers.
+- `notebooks/msig-sdk-resource-portability.onb.html`: mSigPortal, TCGA/GDC, matrix portability, and provenance.
+
+The notebooks use `mSigSDK.presentation` rather than notebook-local display code, so the same compact metric cards, tables, notes, and expandable object summaries can be reused in other browser applications:
+
+```javascript
+const { mSigSDK } = await import("https://episphere.github.io/msig/main.js");
+const rows = mSigSDK.presentation.reconstructionRows(reconstruction);
+
+document.body.append(
+  mSigSDK.presentation.table(rows, [
+    { key: "sample", label: "Sample" },
+    { key: "cosineSimilarity", label: "Cosine similarity" },
+    { key: "rmse", label: "RMSE" },
+  ])
+);
+```
 
 ### Project and Manuscript Notes
 
+- `docs/MSIGSDK_FEATURE_REFERENCE.md`: source-grounded public API feature reference.
 - `docs/project/MEMORY.md`: durable project context, priorities, and development notes.
-- `docs/manuscript/TODO.md`: manuscript revision checklist.
-- `docs/manuscript/REVISION_PACKAGE.md`: manuscript-ready abstract, figure plans, tables, and draft section language.
-- `docs/manuscript/BENCHMARK_PROTOCOL.md`: benchmark protocol for manuscript runtime and memory reporting.
+- `docs/manuscript/manuscript/`: current manuscript drafts.
+- `docs/manuscript/google-doc-tables/`: manuscript-ready HTML tables.
+- `docs/manuscript/actual-figure-pages/`: reproducible HTML figure pages and screenshots.
+- `docs/manuscript/experiments/`: dated reproducibility packages for benchmark and manuscript analyses.
+- `examples/maf/`: local example MAF and BED files for import and panel-downsampling workflows.
+- `schemas/msig.report.v0.3/report.schema.json`: JSON Schema for `createAnalysisReport` outputs.
 
 ### Validation, Interop, and Reports
 

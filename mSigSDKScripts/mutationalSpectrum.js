@@ -114,6 +114,136 @@ const normalizeChromosome = (chromosome) => {
   return chromosomeName === "MT" ? "M" : chromosomeName;
 };
 
+function normalizeGenomeBuild(genome) {
+  const value = String(genome || "hg19").trim().toLowerCase();
+  if (["grch37", "hg19"].includes(value)) {
+    return "hg19";
+  }
+  if (["grch38", "hg38"].includes(value)) {
+    return "hg38";
+  }
+  if (["t2t", "t2t-chm13", "chm13", "chm13v2.0", "hs1"].includes(value)) {
+    return "t2t-chm13";
+  }
+  return value;
+}
+
+function lookupContextValue(value) {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value && typeof value === "object") {
+    return value.sequence || value.trinucleotide || value.context || value.dna || null;
+  }
+  return null;
+}
+
+function getRowSuppliedContext(row) {
+  return lookupContextValue(
+    row.trinucleotide_context ||
+      row.trinucleotide ||
+      row.sequence_context ||
+      row.context_sequence ||
+      row.context
+  );
+}
+
+function normalizeMafInputRows(data, groupBy) {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+
+  if (data.every(Array.isArray)) {
+    return data;
+  }
+
+  const normalizedGroupBy = String(groupBy || "project_code").toLowerCase();
+  const groups = new Map();
+
+  data
+    .filter((row) => row && typeof row === "object" && !Array.isArray(row))
+    .forEach((row, index) => {
+      const lowerRow = Object.fromEntries(
+        Object.entries(row).map(([key, value]) => [
+          String(key).toLowerCase(),
+          value,
+        ])
+      );
+      const groupValue =
+        lowerRow[normalizedGroupBy] ||
+        row[groupBy] ||
+        row.project_code ||
+        row.sample ||
+        row.sample_id ||
+        `sample_${index + 1}`;
+      const groupKey = String(groupValue);
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
+      }
+      groups.get(groupKey).push(row);
+    });
+
+  return [...groups.values()];
+}
+
+function lookupOfflineContext(table, chromosomeNumber, startPosition) {
+  if (!table) {
+    return null;
+  }
+
+  const chromosome = normalizeChromosome(chromosomeNumber);
+  const position = String(startPosition);
+  const lookup = table.lookup || table.contexts || table;
+  const candidateKeys = [
+    `${chromosome}:${position}`,
+    `chr${chromosome}:${position}`,
+    `${chromosome}_${position}`,
+    `chr${chromosome}_${position}`,
+  ];
+
+  for (const key of candidateKeys) {
+    const direct = lookupContextValue(lookup?.[key]);
+    if (direct) {
+      return direct;
+    }
+  }
+
+  const chromosomeLookup =
+    lookup?.[chromosome] || lookup?.[`chr${chromosome}`] || table.chromosomes?.[chromosome] || table.chromosomes?.[`chr${chromosome}`];
+  return lookupContextValue(chromosomeLookup?.[position]);
+}
+
+async function loadBundledContextLookupTable(genome) {
+  const genomeKey = normalizeGenomeBuild(genome);
+  const assetUrl = new URL(
+    `./assets/context/${genomeKey}.trinucleotide-contexts.json`,
+    import.meta.url
+  );
+
+  if (assetUrl.protocol === "file:") {
+    try {
+      const { readFile } = await import("node:fs/promises");
+      return JSON.parse(await readFile(assetUrl, "utf8"));
+    } catch (_error) {
+      // Browser runtimes do not expose node:fs; fall through to fetch.
+    }
+  }
+
+  if (typeof fetch !== "function") {
+    throw new Error(
+      "Bundled offline context tables require fetch support. Pass contextLookupTable directly in this runtime."
+    );
+  }
+
+  const response = await fetch(assetUrl);
+  if (!response.ok) {
+    throw new Error(
+      `Offline context table for ${genomeKey} was not found at ${assetUrl.href}.`
+    );
+  }
+  return response.json();
+}
+
 /**
  * Converts input mutational data into a mutational spectrum matrix grouped by a specified field.
  *
@@ -125,12 +255,15 @@ const normalizeChromosome = (chromosome) => {
  * @async
  * @function convertMatrix
  * @memberof userData
- * @param {Array<Array<Object>>} data - Array of patient-level mutational data. Each patient's data is represented 
- * as an array of objects, where each object contains mutational details (e.g., chromosome, position, mutation type).
+ * @param {Array<Object>|Array<Array<Object>>} data - Flat MAF-like rows or nested patient-level mutational data.
+ * Each row contains mutational details (e.g., chromosome, position, mutation type).
  * @param {string} [group_by="Center"] - Field to group data by (e.g., "Center" or "sample_id"). This field should exist in the input data.
  * @param {number} [batch_size=100] - Number of mutations to process in parallel batches. Adjust this for memory management.
  * @param {string} [genome="hg19"] - Reference genome build. Defaults to "hg19" unless specified in the data.
  * @param {boolean} [tcga=false] - Flag indicating whether the input data is in TCGA format. If true, expects TCGA-specific fields.
+ * @param {Object} [options={}] - Context lookup options.
+ * @param {boolean} [options.offline=false] - Use row-supplied or lookup-table contexts instead of the UCSC sequence API.
+ * @param {Object} [options.contextLookupTable=null] - Position-indexed trinucleotide lookup table.
  * @returns {Promise<Object>} - A promise resolving to an object where each key is a group (e.g., "CNIC"),
  * and each value is a mutational spectrum object. The mutational spectrum object contains trinucleotide contexts as keys (e.g., "A[C>A]A") and counts as values.
  *
@@ -170,12 +303,20 @@ async function convertMatrix(
   group_by = "project_code",
   batch_size = 100,
   genome = "hg19",
-  tcga = false
+  tcga = false,
+  options = {}
 ) {
   const mutationalSpectra = {};
   group_by = group_by.toLowerCase();
+  const contextOptions =
+    typeof options === "boolean" ? { offline: options } : options || {};
+  let offlineContextLookupTable = contextOptions.contextLookupTable || null;
 
-  for (let patient of data) {
+  if (contextOptions.offline && !offlineContextLookupTable) {
+    offlineContextLookupTable = await loadBundledContextLookupTable(genome);
+  }
+
+  for (let patient of normalizeMafInputRows(data, group_by)) {
     // Convert all keys to lowercase for consistency
     patient = patient.map((row) =>
       Object.fromEntries(
@@ -229,8 +370,16 @@ async function convertMatrix(
         continue; // Skip this iteration if any value is missing. This is usually due to the chromosomeNumber being a sex chromosome
       }
 
+      const rowSuppliedContext = getRowSuppliedContext(patient[i]);
+
       // Get the trinucleotide context for this mutation
-      let promise = getMutationalContext(chromosomeNumber, genome, parseInt(position))
+      let promise = Promise.resolve(
+        rowSuppliedContext ||
+          getMutationalContext(chromosomeNumber, genome, parseInt(position), {
+            offline: Boolean(contextOptions.offline),
+            contextLookupTable: offlineContextLookupTable,
+          })
+      )
         .then((sequence) => {
           if (sequence === undefined) {
             console.log(`Undefined sequence for chromosome ${chromosomeNumber}, genome ${genome}, position ${position}`);
@@ -271,7 +420,26 @@ async function convertMatrix(
   return mutationalSpectra;
 }
 
-async function getMutationalContext(chromosomeNumber, genome, startPosition) {
+async function getMutationalContext(
+  chromosomeNumber,
+  genome,
+  startPosition,
+  { offline = false, contextLookupTable = null } = {}
+) {
+  if (offline) {
+    const sequence = lookupOfflineContext(
+      contextLookupTable,
+      chromosomeNumber,
+      startPosition
+    );
+    if (!sequence) {
+      throw new Error(
+        `No offline trinucleotide context for ${normalizeGenomeBuild(genome)} chromosome ${chromosomeNumber} position ${startPosition}.`
+      );
+    }
+    return sequence;
+  }
+
   const chrName = String(chromosomeNumber);
   const startByte = startPosition - 2;
   const endByte = startPosition;

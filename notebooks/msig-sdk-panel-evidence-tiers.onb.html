@@ -1,0 +1,93 @@
+<!doctype html>
+<notebook theme="air">
+  <title>mSigSDK panel evidence tiers</title>
+
+  <script type="text/markdown">
+    # Panel and WES evidence tiers
+
+    This notebook demonstrates `workflows.runPanelWorkflow`, including callable-opportunity metadata, evidence tiers, assessability reasons, and the distinction between `not_assessable` and `not_detected_within_review_settings`.
+  </script>
+
+  <script type="module" pinned id="1">
+    const panelSdkUrl = new URL("../main.js?v=2026-05-14-panel-workflow", location.href).href;
+    const { mSigSDK } = await import(panelSdkUrl);
+    const { metrics, table } = mSigSDK.presentation;
+    const panelContexts = mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 });
+    const zeroRecord = () => Object.fromEntries(panelContexts.map((context) => [context, 0]));
+
+    const panelSpectra = {
+      panel_high: { ...zeroRecord(), "A[C>A]A": 80, "T[C>T]T": 30, "G[C>G]G": 10 },
+      panel_low: { ...zeroRecord(), "A[C>A]A": 12, "T[C>T]T": 4, "G[C>G]G": 1 },
+    };
+    const panelSignatures = {
+      SBS_panel_A: { ...zeroRecord(), "A[C>A]A": 0.70, "T[C>T]T": 0.25, "G[C>G]G": 0.05 },
+      SBS_panel_B: { ...zeroRecord(), "A[C>A]A": 0.05, "T[C>T]T": 0.20, "G[C>G]G": 0.75 },
+    };
+    const callableOpportunities = Object.fromEntries(panelContexts.map((context) => [context, 1]));
+    callableOpportunities["G[C>G]G"] = 0;
+
+    const panelResult = await mSigSDK.workflows.runPanelWorkflow(
+      { spectra: panelSpectra, signatures: panelSignatures, callableOpportunities },
+      {
+        expectedContexts: panelContexts,
+        runBootstrap: false,
+        runThresholdSensitivity: false,
+        minAssessableMutations: 30,
+        limitedSupportExposureThreshold: 0.05,
+        higherSupportExposureThreshold: 0.20,
+        genomeBuild: "GRCh37",
+      }
+    );
+
+    display(metrics([
+      { label: "Workflow", value: panelResult.workflow },
+      { label: "Samples", value: Object.keys(panelResult.panel.evidenceCalls).length },
+      { label: "Evidence calls", value: panelResult.panel.evidenceSummary.callCount },
+      { label: "Warnings", value: panelResult.warnings.length },
+    ]));
+  </script>
+
+  <script type="text/markdown">
+    ## 1. Evidence matrix
+
+    The heatmap displays one tier per sample-signature pair. `not_assessable` marks insufficient burden or callable territory; it is not evidence that a signature is absent.
+  </script>
+
+  <script type="module" pinned id="2">
+    const panelMatrixDiv = document.createElement("div");
+    panelMatrixDiv.style.width = "100%";
+    display(panelMatrixDiv);
+    await mSigSDK.qcPlots.plotPanelEvidenceMatrix(panelMatrixDiv, panelResult);
+  </script>
+
+  <script type="text/markdown">
+    ## 2. Per-sample evidence table
+
+    Each row keeps the fitted exposure, tier, assessability class, and reason fields together so panel review can distinguish a low fitted exposure from a non-assessable call.
+  </script>
+
+  <script type="module" pinned id="3">
+    const panelRows = Object.entries(panelResult.panel.evidenceCalls).flatMap(
+      ([sample, calls]) =>
+        calls.map((call) => ({
+          sample,
+          signature: call.signatureName,
+          exposure: call.exposure,
+          tier: call.tier,
+          assessability: call.assessabilityClass,
+          reasons: call.assessabilityReasons.join("; "),
+        }))
+    );
+    display(table(
+      panelRows,
+      [
+        { key: "sample", label: "Sample" },
+        { key: "signature", label: "Signature" },
+        { key: "exposure", label: "Exposure" },
+        { key: "tier", label: "Tier" },
+        { key: "assessability", label: "Assessability" },
+        { key: "reasons", label: "Reasons" },
+      ]
+    ));
+  </script>
+</notebook>

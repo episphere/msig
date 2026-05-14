@@ -1,0 +1,190 @@
+<!doctype html>
+<notebook theme="air">
+  <title>mSigSDK bring your own spectra</title>
+
+  <script type="text/markdown">
+    # Bring your own spectra
+
+    This notebook starts from a local SBS96 count matrix and does not fetch public spectra. Use this pattern when spectra are generated in another pipeline, stored in a private project, or pasted from a local matrix export.
+  </script>
+
+  <script type="module" pinned id="1">
+    const localSdkUrl = new URL("../main.js?v=2026-05-14-local-spectra", location.href).href;
+    const { mSigSDK } = await import(localSdkUrl);
+    const {
+      demoMetadata,
+      demoSignatures,
+      demoSpectra,
+      sbs96Contexts,
+    } = await import("./msig-notebook-fixtures.js");
+    const { exposureRows, metrics, reconstructionRows, table } = mSigSDK.presentation;
+
+    const localContexts = sbs96Contexts();
+    const localSpectra = demoSpectra();
+    const localSignatures = demoSignatures();
+    const localMetadata = demoMetadata;
+    const localMutationBurdenThreshold = 100;
+    const localExposureThreshold = 0.01;
+
+    display(metrics([
+      { label: "Input source", value: "Local spectra object" },
+      { label: "Samples", value: Object.keys(localSpectra).length },
+      { label: "Signatures", value: Object.keys(localSignatures).length },
+      { label: "Matrix", value: "SBS96" },
+    ]));
+  </script>
+
+  <script type="text/markdown">
+    ## Adapt this notebook
+
+    Replace `localSpectra` with an object keyed by sample name and mutation context. Keep the context list, validation, mutation-burden review, reconstruction metrics, warnings, recommended actions, report, and download cells. Replace `localSignatures` with the catalog used by the project, and record the catalog version in the report parameters.
+  </script>
+
+  <script type="module" pinned id="2">
+    display(table(
+      [
+        { field: "Spectra", value: "{ sample: { 'A[C>A]A': count, ... } }" },
+        { field: "Signatures", value: "{ signature: { 'A[C>A]A': proportion, ... } }" },
+        { field: "Metadata", value: "Array of sample-level records with a sample column" },
+        { field: "Minimum checks", value: "validateSpectra, summarizeMutationBurden, reconstruction error, residual review" },
+        { field: "Outputs to save", value: "spectra TSV, exposures CSV, QC JSON, report JSON, provenance JSON" },
+      ],
+      [
+        { key: "field", label: "Project item" },
+        { key: "value", label: "Required shape or action" },
+      ]
+    ));
+    display(details("Local spectra template", {
+      localSpectra,
+      localSignatures,
+      localMetadata,
+    }));
+  </script>
+
+  <script type="text/markdown">
+    ## Validate and fit
+
+    The cohort workflow keeps validation, fitting, QC evidence, warnings, recommended actions, and report fields together. Low-burden samples remain in the object so they can be reviewed rather than silently dropped.
+  </script>
+
+  <script type="module" pinned id="3">
+    const localAnalysis = await mSigSDK.workflows.runCohortFit(
+      {
+        spectra: localSpectra,
+        signatures: localSignatures,
+        metadata: localMetadata,
+      },
+      {
+        contexts: localContexts,
+        groupKey: "group",
+        exposureThreshold: localExposureThreshold,
+        lowBurdenThreshold: localMutationBurdenThreshold,
+        runBootstrap: false,
+        runThresholdSensitivity: true,
+        reportFormat: "object",
+      }
+    );
+
+    display(metrics([
+      { label: "Workflow", value: localAnalysis.workflow },
+      { label: "Warnings", value: localAnalysis.warnings.length },
+      { label: "Recommended actions", value: localAnalysis.recommendedActions.length },
+      { label: "Report fields", value: Object.keys(localAnalysis.report || {}).length },
+    ]));
+    display(table(
+      reconstructionRows(localAnalysis.fit.reconstructionError),
+      [
+        { key: "sample", label: "Sample" },
+        { key: "cosineSimilarity", label: "Cosine similarity" },
+        { key: "rmse", label: "RMSE" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(table(
+      exposureRows(localAnalysis.fit.exposures, { minExposure: 0, topN: 12 }),
+      [
+        { key: "sample", label: "Sample" },
+        { key: "signature", label: "Signature" },
+        { key: "exposure", label: "Relative exposure" },
+      ],
+      { maxRows: 12 }
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Evidence, warnings, and actions
+
+    Interpretation should use the structured evidence fields rather than exposure values alone.
+  </script>
+
+  <script type="module" pinned id="4">
+    display(table(
+      warningRows(localAnalysis.warnings),
+      [
+        { key: "code", label: "Warning code" },
+        { key: "message", label: "Message" },
+        { key: "resolution", label: "Resolution" },
+      ],
+      { maxRows: 10 }
+    ));
+    display(table(
+      (localAnalysis.recommendedActions || []).map((action) => ({ action })),
+      [{ key: "action", label: "Recommended action" }],
+      { maxRows: 10 }
+    ));
+    display(table(
+      publicationFigureRows(localAnalysis.publicationFigures),
+      [
+        { key: "id", label: "Figure id" },
+        { key: "title", label: "Title" },
+        { key: "renderer", label: "Renderer" },
+        { key: "dataFields", label: "Data fields" },
+      ],
+      { maxRows: 10 }
+    ));
+    display(details("Fit-quality evidence", localAnalysis.fitQualityEvidence, { open: true }));
+  </script>
+
+  <script type="text/markdown">
+    ## Export reproducibility files
+
+    The minimum reusable bundle includes the local spectra, fitted exposures, QC/report objects, provenance, and the parameters used for fitting.
+  </script>
+
+  <script type="module" pinned id="5">
+    const localExposureCsv = rowsToCsv(
+      exposureRows(localAnalysis.fit.exposures, { minExposure: 0, topN: 100 }),
+      [
+        { key: "sample", label: "sample" },
+        { key: "signature", label: "signature" },
+        { key: "exposure", label: "relative_exposure" },
+      ]
+    );
+    display(downloadMany([
+      {
+        filename: "local_sbs96_spectra.tsv",
+        text: spectraMatrixToTsv(localSpectra, localContexts),
+        label: "Download spectra TSV",
+      },
+      {
+        filename: "local_signature_exposures.csv",
+        text: localExposureCsv,
+        label: "Download exposures CSV",
+      },
+      {
+        filename: "local_msig_qc_report.json",
+        type: "json",
+        value: {
+          validation: localAnalysis.validation,
+          fitQualityEvidence: localAnalysis.fitQualityEvidence,
+          warnings: localAnalysis.warnings,
+          recommendedActions: localAnalysis.recommendedActions,
+          report: localAnalysis.report,
+          provenance: localAnalysis.provenance,
+          parameters: localAnalysis.parameters,
+        },
+        label: "Download report JSON",
+      },
+    ]));
+  </script>
+</notebook>

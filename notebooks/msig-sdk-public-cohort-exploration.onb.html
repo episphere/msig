@@ -1,0 +1,109 @@
+<!doctype html>
+<notebook theme="air">
+  <title>mSigSDK public cohort exploration</title>
+
+  <script type="text/markdown">
+    # Public cohort exploration before exposure fitting
+
+    This notebook uses public PCAWG Lung-AdenoCA SBS96 spectra to inspect mutation burden and similarity structure before any signature exposure interpretation.
+  </script>
+
+  <script type="module" pinned id="1">
+    const cohortSdkUrl = new URL("../main.js?v=2026-05-14-public-cohort", location.href).href;
+    const { mSigSDK } = await import(cohortSdkUrl);
+    const { burdenSampleRows, metrics, table } = mSigSDK.presentation;
+    const cohortContexts = mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 });
+    const cohortSamples = [
+      "SP53810",
+      "SP55142",
+      "SP55235",
+      "SP54113",
+      "SP50611",
+      "SP50592",
+      "SP50406",
+      "SP55004",
+    ];
+
+    const cohortRows = (await mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+      "PCAWG",
+      cohortSamples,
+      "WGS",
+      "Lung-AdenoCA",
+      "SBS",
+      96
+    )).flat();
+    const cohortSpectra =
+      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(cohortRows);
+    const cohortBurden = mSigSDK.qc.summarizeMutationBurden(cohortSpectra, {
+      expectedContexts: cohortContexts,
+      lowBurdenThreshold: 500,
+    });
+
+    display(metrics([
+      { label: "Study", value: "PCAWG" },
+      { label: "Cancer type", value: "Lung-AdenoCA" },
+      { label: "Samples", value: Object.keys(cohortSpectra).length },
+      { label: "Matrix", value: "SBS96" },
+    ]));
+    display(table(
+      burdenSampleRows(cohortBurden).slice(0, 8),
+      [
+        { key: "sample", label: "Sample" },
+        { key: "totalMutations", label: "Mutations" },
+        { key: "burdenClass", label: "Burden class" },
+        { key: "warningCodes", label: "Warnings" },
+      ]
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## 1. Burden and similarity structure
+
+    The burden plot identifies low-information spectra. The cosine-similarity heatmap shows whether samples form obvious spectrum-level groups before fitted exposures are introduced.
+  </script>
+
+  <script type="module" pinned id="2">
+    const cohortBurdenDiv = document.createElement("div");
+    cohortBurdenDiv.style.width = "100%";
+    display(cohortBurdenDiv);
+    await mSigSDK.qcPlots.plotMutationBurdenSummary(cohortBurdenDiv, cohortBurden);
+
+    const cohortHeatmapDiv = document.createElement("div");
+    cohortHeatmapDiv.style.width = "100%";
+    display(cohortHeatmapDiv);
+    await mSigSDK.mSigPortal.mSigPortalPlots.plotCosineSimilarityHeatMap(
+      cohortSpectra,
+      "PCAWG",
+      "WGS",
+      "Lung-AdenoCA",
+      cohortHeatmapDiv,
+      true,
+      "Viridis",
+      false
+    );
+  </script>
+
+  <script type="text/markdown">
+    ## 2. Reusable matrix object
+
+    The same `cohortSpectra` object can be passed into validation, fitting, panel downsampling, NMF, or export helpers without another reshape step.
+  </script>
+
+  <script type="module" pinned id="3">
+    const cohortValidation = mSigSDK.validation.validateSpectra(cohortSpectra, {
+      expectedContexts: cohortContexts,
+    });
+    display(table(
+      [
+        { field: "Valid", value: cohortValidation.valid },
+        { field: "Issue count", value: cohortValidation.issues.length },
+        { field: "Sample count", value: cohortValidation.samples.length },
+        { field: "Context count", value: cohortValidation.contexts.length },
+      ],
+      [
+        { key: "field", label: "Validation field" },
+        { key: "value", label: "Value" },
+      ]
+    ));
+  </script>
+</notebook>

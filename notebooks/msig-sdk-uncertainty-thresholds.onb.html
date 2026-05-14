@@ -3,28 +3,49 @@
   <title>mSigSDK uncertainty and thresholds</title>
 
   <script type="text/markdown">
-    # Bootstrap and Threshold Sensitivity
+    # Bootstrap uncertainty and threshold sensitivity
 
-    This notebook isolates uncertainty analysis. It loads a small real cohort, fits selected COSMIC signatures, bootstraps one sample, and then sweeps exposure thresholds across the cohort.
+    Use this notebook after you understand the basic known-signature fitting workflow. It teaches two questions that come up immediately after fitting: are the estimated exposures stable, and do the conclusions depend on the exposure threshold?
 
-    Use this notebook when you are testing bootstrap intervals, selection frequency, or threshold-sensitivity behavior.
+    The code uses count-scale public mSigPortal spectra selected from moderate-to-high burden PCAWG WGS Lung-AdenoCA samples, but the same functions work with your own spectra and reference signatures. Replace the loading block with your own matrices, keep the bootstrap and threshold cells, and tune the iteration count and threshold grid for your analysis plan.
   </script>
 
   <script type="module" pinned id="1">
-    const uncSdkUrl = "http://127.0.0.1:8080/main.js?v=2026-05-11-focused-uncertainty";
+    const uncSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-uncertainty", location.href).href;
     const { mSigSDK } = await import(uncSdkUrl);
+    const {
+      bootstrapRows,
+      burdenSampleRows,
+      details,
+      metrics,
+      table,
+      thresholdRows,
+    } = mSigSDK.presentation;
 
-    display({
-      importedFrom: uncSdkUrl,
-      name: mSigSDK.name,
-      version: mSigSDK.version,
-    });
+    display(metrics([
+      { label: "SDK", value: mSigSDK.name },
+      { label: "Version", value: mSigSDK.version },
+      { label: "Question", value: "Are exposures stable?" },
+      { label: "Main namespace", value: "qc" },
+    ]));
+    display(table(
+      [
+        { functionName: "qc.bootstrapSignatureFit", reviewerValue: "Shows confidence intervals and selection frequency for one sample" },
+        { functionName: "qc.runThresholdSensitivity", reviewerValue: "Tests whether exposure conclusions depend on the reporting floor" },
+        { functionName: "qcPlots.*", reviewerValue: "Turns the returned objects into interpretable figures" },
+        { functionName: "presentation.*", reviewerValue: "Formats compact reviewer-facing evidence tables" },
+      ],
+      [
+        { key: "functionName", label: "Function" },
+        { key: "reviewerValue", label: "Why reviewers should care" },
+      ]
+    ));
   </script>
 
   <script type="text/markdown">
-    ## Settings and Data
+    ## 1. Set the analysis grid
 
-    Keep the defaults small while developing visualizations. Increase `uncBootstrapIterations` only when you want smoother intervals, and edit `uncThresholdGrid` to test the thresholds used in your analysis plan.
+    Bootstrap and threshold analyses can be expensive because they repeat fitting. Keep the defaults small while learning the API. Increase `uncBootstrapIterations` for smoother intervals, edit `uncThresholdGrid` to match the thresholds you plan to report, or replace `uncExampleSampleNames` with samples from your cohort.
   </script>
 
   <script type="module" pinned id="2">
@@ -38,7 +59,15 @@
     const uncMutationType = "SBS";
     const uncMatrixSize = 96;
     const uncSignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
-    const uncSampleLimit = 6;
+    const uncExampleSampleNames = [
+      "SP50611",
+      "SP53387",
+      "SP50827",
+      "SP52779",
+      "SP52667",
+      "SP52232",
+    ];
+    const uncSampleLimit = uncExampleSampleNames.length;
     const uncExposureThreshold = 0.01;
     const uncBootstrapIterations = 40;
     const uncThresholdGrid = [0, 0.005, 0.01, 0.03, 0.05, 0.1];
@@ -57,7 +86,7 @@
     const [uncRawSpectrumRows, uncRawSignatureRows] = await Promise.all([
       mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
         uncStudy,
-        null,
+        uncExampleSampleNames,
         uncGenomeDataType,
         uncCancerType,
         uncMutationType,
@@ -89,11 +118,17 @@
       uncAllGroupedSpectra,
       { expectedContexts: uncContexts }
     );
-    const uncSelectedSampleNames = uncAllBurden.samples
-      .filter((sample) => sample.totalMutations > 0)
-      .sort((a, b) => b.totalMutations - a.totalMutations)
-      .slice(0, uncSampleLimit)
-      .map((sample) => sample.sample);
+    const uncSelectedBurdenSamples = mSigSDK.qc.selectSamplesByMutationBurden(
+      uncAllBurden,
+      {
+        sampleNames: uncExampleSampleNames,
+        minTotalMutations: 1,
+        limit: uncSampleLimit,
+      }
+    );
+    const uncSelectedSampleNames = uncSelectedBurdenSamples.map(
+      (sample) => sample.sample
+    );
     const uncGroupedSpectra = Object.fromEntries(
       uncSelectedSampleNames.map((sample) => [sample, uncAllGroupedSpectra[sample]])
     );
@@ -106,21 +141,42 @@
         uncAllReferenceSignatures[signature],
       ])
     );
-    const uncBootstrapSample = uncSelectedSampleNames[0];
+    const uncBootstrapSample = uncSelectedSampleNames.includes("SP50611")
+      ? "SP50611"
+      : uncSelectedSampleNames[0];
 
-    display({
-      samples: uncSelectedSampleNames,
-      signatures: uncSelectedSignatureNames,
-      bootstrapSample: uncBootstrapSample,
-      bootstrapIterations: uncBootstrapIterations,
-      thresholdGrid: uncThresholdGrid,
-    });
+    display(metrics([
+      { label: "Samples", value: uncSelectedSampleNames.length },
+      { label: "Signatures", value: uncSelectedSignatureNames.length },
+      { label: "Bootstrap sample", value: uncBootstrapSample },
+      { label: "Bootstrap iterations", value: uncBootstrapIterations },
+      { label: "Thresholds tested", value: uncThresholdGrid.length },
+    ]));
+    display(table(
+      burdenSampleRows(uncAllBurden, uncSelectedSampleNames),
+      [
+        { key: "sample", label: "Selected sample" },
+        { key: "mutations", label: "Total mutations" },
+        { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
+      ],
+      { maxRows: 6 }
+    ));
+    display(table(
+      uncThresholdGrid.map((threshold) => ({
+        threshold,
+        meaning: threshold === 0 ? "Keep every fitted exposure" : `Zero exposures below ${threshold}`,
+      })),
+      [
+        { key: "threshold", label: "Exposure threshold" },
+        { key: "meaning", label: "Interpretation" },
+      ]
+    ));
   </script>
 
   <script type="text/markdown">
-    ## Run Bootstrap and Threshold Sweep
+    ## 2. Run bootstrap resampling and a threshold sweep
 
-    Bootstrap resampling asks whether one sample's fitted exposures are stable. Threshold sensitivity asks whether cohort-level reconstruction metrics change when tiny exposure calls are zeroed out.
+    Bootstrap resampling repeatedly perturbs one sample and refits exposures. Threshold sensitivity fits the cohort across a grid of exposure floors. Read the returned objects first; the plots in the next cells are wrappers around these data structures.
   </script>
 
   <script type="module" pinned id="3">
@@ -144,16 +200,44 @@
       }
     );
 
-    display({
-      bootstrapSummary: uncBootstrapResult.signatures,
-      thresholdRuns: uncThresholdSensitivityResult.runs,
-    });
+    const uncBootstrapRows = bootstrapRows(uncBootstrapResult, { topN: 8 });
+    const uncThresholdRows = thresholdRows(uncThresholdSensitivityResult);
+
+    display(metrics([
+      { label: "Bootstrap signatures", value: uncBootstrapResult.signatures.length },
+      { label: "Threshold runs", value: uncThresholdSensitivityResult.runs.length },
+      { label: "Confidence level", value: "95%" },
+      { label: "Seed", value: 42 },
+    ]));
+    display(table(
+      uncBootstrapRows,
+      [
+        { key: "signature", label: "Signature" },
+        { key: "mean", label: "Mean exposure" },
+        { key: "lower95", label: "Lower CI" },
+        { key: "upper95", label: "Upper CI" },
+        { key: "selectionFrequency", label: "Selection frequency" },
+      ]
+    ));
+    display(table(
+      uncThresholdRows,
+      [
+        { key: "threshold", label: "Threshold" },
+        { key: "averageCosineSimilarity", label: "Mean cosine" },
+        { key: "averageRmse", label: "Mean RMSE" },
+        { key: "averageActiveSignatures", label: "Mean active signatures" },
+      ]
+    ));
+    display(details("Full uncertainty result objects", {
+      bootstrap: uncBootstrapResult,
+      thresholdSensitivity: uncThresholdSensitivityResult,
+    }));
   </script>
 
   <script type="text/markdown">
-    ## Bootstrap Exposure Uncertainty
+    ## 3. Read bootstrap exposure uncertainty
 
-    The plot shows bootstrap draws, confidence intervals, mean exposures, and selection frequencies. Stable signatures have narrow intervals and high selection frequency.
+    The plot shows bootstrap draws, confidence intervals, mean exposures, and selection frequencies. Stable signatures have narrow intervals and high selection frequency. Wide intervals or low selection frequency suggest that a fitted exposure should be reported cautiously.
   </script>
 
   <script type="module" pinned id="4">
@@ -167,9 +251,9 @@
   </script>
 
   <script type="text/markdown">
-    ## Threshold Stability
+    ## 4. Check threshold stability
 
-    The atlas compares every threshold against the baseline threshold. Large drift means that the fitted interpretation depends strongly on the threshold choice.
+    The sensitivity plot compares every threshold against the baseline threshold. Large drift means the interpretation depends strongly on the threshold choice. In your own analyses, this is a useful place to document why you chose a reporting threshold.
   </script>
 
   <script type="module" pinned id="5">

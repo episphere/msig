@@ -18,6 +18,22 @@ function serializeDelimited(rows, delimiter = "\t") {
   return rows.map((row) => row.join(delimiter)).join("\n");
 }
 
+function normalizeExposureRecord(record) {
+  const total = Object.values(record).reduce(
+    (sum, value) => sum + (toFiniteNumber(value) || 0),
+    0
+  );
+  if (total <= 0) {
+    return record;
+  }
+  return Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [
+      key,
+      (toFiniteNumber(value) || 0) / total,
+    ])
+  );
+}
+
 /**
  * Serializes a row-oriented matrix object as tab-separated text.
  *
@@ -315,13 +331,180 @@ function importCOSMICSignatureMatrix(text, { delimiter = "\t" } = {}) {
   return signatures;
 }
 
+/**
+ * Exports spectra and optional signatures in MuSiCal-compatible tabular form.
+ *
+ * MuSiCal accepts mutation-type rows with sample or signature columns for count
+ * matrices and signature catalogs. This helper emits the same orientation used
+ * by SigProfiler/COSMIC TSV files, which is the safest interchange format for
+ * comparing SDK spectra, fitted exposures, and external MuSiCal results.
+ *
+ * @function exportMuSiCalInput
+ * @memberof io
+ * @param {Object} input - Matrices to export.
+ * @param {Object<string,Object<string,number>>} input.spectra - Sample spectra matrix.
+ * @param {Object<string,Object<string,number>>} [input.signatures=null] - Optional signature matrix.
+ * @param {Object} [options] - Export options.
+ * @param {string[]} [options.contexts=null] - Mutation-context row order.
+ * @param {string} [options.delimiter="\t"] - Column delimiter.
+ * @returns {Object} MuSiCal-compatible matrix text and manifest metadata.
+ */
+function exportMuSiCalInput(
+  { spectra, signatures = null },
+  { contexts = null, delimiter = "\t" } = {}
+) {
+  const normalizedSpectra = normalizeMatrixObject(spectra);
+  const normalizedSignatures = signatures
+    ? normalizeMatrixObject(signatures)
+    : null;
+  const contextNames =
+    contexts ||
+    getMatrixContexts({
+      ...normalizedSpectra,
+      ...(normalizedSignatures || {}),
+    });
+  const sampleNames = Object.keys(normalizedSpectra);
+  const spectraRows = [["MutationType", ...sampleNames]];
+
+  for (const context of contextNames) {
+    spectraRows.push([
+      context,
+      ...sampleNames.map((sampleName) => normalizedSpectra[sampleName][context] || 0),
+    ]);
+  }
+
+  const result = {
+    format: "MuSiCal-compatible MutationType-by-sample TSV",
+    spectra: serializeDelimited(spectraRows, delimiter),
+    manifest: {
+      spectraOrientation: "mutation_type_by_sample",
+      signatureOrientation: normalizedSignatures
+        ? "mutation_type_by_signature"
+        : null,
+      sampleCount: sampleNames.length,
+      signatureCount: normalizedSignatures
+        ? Object.keys(normalizedSignatures).length
+        : 0,
+      contextCount: contextNames.length,
+      delimiter,
+    },
+  };
+
+  if (normalizedSignatures) {
+    const signatureNames = Object.keys(normalizedSignatures);
+    const signatureRows = [["MutationType", ...signatureNames]];
+    for (const context of contextNames) {
+      signatureRows.push([
+        context,
+        ...signatureNames.map(
+          (signatureName) => normalizedSignatures[signatureName][context] || 0
+        ),
+      ]);
+    }
+    result.signatures = serializeDelimited(signatureRows, delimiter);
+  }
+
+  return result;
+}
+
+/**
+ * Imports MuSiCal exposure output into a sample-by-signature matrix.
+ *
+ * The parser accepts both common orientations: sample rows with signature
+ * columns, or signature rows with sample columns. Auto-detection is based on the
+ * leading header and first-column labels, with an explicit orientation override
+ * available for scripted workflows.
+ *
+ * @function importMuSiCalOutput
+ * @memberof io
+ * @param {string} text - Delimited MuSiCal exposure table.
+ * @param {Object} [options] - Import options.
+ * @param {string} [options.delimiter="\t"] - Column delimiter.
+ * @param {"auto"|"sample_by_signature"|"signature_by_sample"} [options.orientation="auto"] - Exposure table orientation.
+ * @param {boolean} [options.normalize=false] - Normalize exposures within each sample.
+ * @returns {Object<string,Object<string,number>>} Sample-by-signature exposure matrix.
+ */
+function importMuSiCalOutput(
+  text,
+  { delimiter = "\t", orientation = "auto", normalize = false } = {}
+) {
+  const rows = parseDelimited(text, delimiter);
+  if (rows.length === 0) {
+    return {};
+  }
+
+  const header = rows[0].map((value) => String(value || "").trim());
+  const firstHeader = header[0].toLowerCase();
+  const firstColumnValues = rows
+    .slice(1)
+    .map((row) => String(row[0] || "").trim())
+    .filter(Boolean);
+  const firstColumnLooksLikeSignatures =
+    firstColumnValues.length > 0 &&
+    firstColumnValues.every((value) => /^(SBS|DBS|ID|CN|SV|RS)\w*/i.test(value));
+  const resolvedOrientation =
+    orientation !== "auto"
+      ? orientation
+      : /^sample|sample_id|samples$/.test(firstHeader)
+        ? "sample_by_signature"
+        : /^signature|signature_name|signatures$/.test(firstHeader) ||
+            firstColumnLooksLikeSignatures
+          ? "signature_by_sample"
+          : "sample_by_signature";
+
+  const exposures = {};
+
+  if (resolvedOrientation === "signature_by_sample") {
+    const sampleNames = header.slice(1);
+    for (const sampleName of sampleNames) {
+      exposures[sampleName] = {};
+    }
+    for (const row of rows.slice(1)) {
+      const signatureName = row[0];
+      if (!signatureName) {
+        continue;
+      }
+      sampleNames.forEach((sampleName, index) => {
+        exposures[sampleName][signatureName] =
+          toFiniteNumber(row[index + 1]) || 0;
+      });
+    }
+  } else {
+    const signatureNames = header.slice(1);
+    for (const row of rows.slice(1)) {
+      const sampleName = row[0];
+      if (!sampleName) {
+        continue;
+      }
+      exposures[sampleName] = {};
+      signatureNames.forEach((signatureName, index) => {
+        exposures[sampleName][signatureName] =
+          toFiniteNumber(row[index + 1]) || 0;
+      });
+    }
+  }
+
+  if (!normalize) {
+    return exposures;
+  }
+
+  return Object.fromEntries(
+    Object.entries(exposures).map(([sample, exposureRecord]) => [
+      sample,
+      normalizeExposureRecord(exposureRecord),
+    ])
+  );
+}
+
 export {
   exposureMatrixToRows,
   exportCOSMICSignatureMatrix,
   exportMatrixTSV,
+  exportMuSiCalInput,
   exportSigProfilerMatrix,
   importCOSMICSignatureMatrix,
   importMatrixTSV,
+  importMuSiCalOutput,
   importSigProfilerMatrix,
   rowsToExposureMatrix,
   rowsToSampleSpectra,

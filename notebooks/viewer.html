@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Runnable mSigSDK Observable-style notebooks hosted on GitHub Pages."
+    />
+    <title>mSigSDK runnable notebooks</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css"
+    />
+    <link rel="stylesheet" href="./notebook-runner.css?v=2026-05-13-resources" />
+  </head>
+  <body>
+    <header class="runner-header">
+      <nav class="runner-nav" aria-label="Notebook navigation">
+        <a class="brand" href="../">
+          <span class="brand-mark">mS</span>
+          <span>mSigSDK</span>
+        </a>
+        <div class="runner-links">
+          <a href="../">Home</a>
+          <a href="../main.js">SDK source</a>
+          <a href="https://github.com/episphere/msig/tree/main/notebooks">Notebook source</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="runner-shell">
+      <aside class="notebook-sidebar" aria-label="Notebook list">
+        <p class="eyebrow">Runnable notebooks</p>
+        <h1>mSigSDK examples</h1>
+        <p>
+          Open a focused workflow, inspect every JavaScript cell in a CodeMirror
+          editor, edit the code, and rerun the notebook in this browser.
+        </p>
+        <div id="notebook-menu" class="notebook-menu"></div>
+        <div class="local-note">
+          <strong>Local testing</strong>
+          <span>Run <code>npm run serve:observable</code>, then open this page from localhost.</span>
+        </div>
+      </aside>
+
+      <section class="notebook-main" aria-live="polite">
+        <div class="notebook-toolbar">
+          <div>
+            <p class="eyebrow">Notebook runner</p>
+            <h2 id="notebook-title">Loading notebook</h2>
+          </div>
+          <div class="toolbar-actions">
+            <button id="run-button" type="button">Run notebook</button>
+            <button id="reset-button" type="button">Reset edits</button>
+            <a id="source-link" href="#" aria-label="Open notebook source file">Source</a>
+          </div>
+        </div>
+
+        <div id="runner-status" class="runner-status">Preparing notebook...</div>
+        <div id="notebook-root" class="notebook-root"></div>
+      </section>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+    <script type="module" src="./notebook-runner.js?v=2026-05-13-resources"></script>
+  </body>
+</html>

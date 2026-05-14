@@ -1,13 +1,18 @@
 # mSigSDK Documentation
 
-This directory holds project-facing documentation that is useful for development, manuscript revision, and reproducibility work.
+This directory holds project-facing documentation for SDK use, manuscript assets, and reproducible validation work.
 
 ## Contents
 
+- `MSIGSDK_FEATURE_REFERENCE.md`: source-grounded public API reference for mSigSDK 0.3.0, including the primary `workflows` happy path, lite wrappers, optional Pyodide runners, external-tool adapters, warning semantics, advisor validation scope, experimental namespace boundaries, and interpretation limits.
 - `project/MEMORY.md`: durable project context, design priorities, active SDK capabilities, notebook list, and development notes.
-- `manuscript/TODO.md`: manuscript revision checklist tied to the previous reviewer comments.
-- `manuscript/REVISION_PACKAGE.md`: draft abstract, execution-locus table, figure plans, captions, Methods/Results/Discussion text, and supplementary examples.
-- `manuscript/BENCHMARK_PROTOCOL.md`: compute and browser-rendering benchmark protocol for the revised manuscript.
-- `manuscript/figures/`: generated editable SVG drafts for the main manuscript figures.
+- `manuscript/manuscript/`: current manuscript drafts.
+- `manuscript/data/`: current benchmark, concordance, stress-test, and synthetic-validation outputs used by manuscript generators.
+- `manuscript/google-doc-tables/`: clean standalone HTML tables for copy/paste into Google Docs or Word.
+- `manuscript/actual-figure-pages/`: reproducible HTML figure pages, cached public data, and exported screenshots.
+- `manuscript/experiments/`: dated reproducibility packages following the project experiment standard.
+- `verification/`: lightweight SDK verification outputs for tool-interoperability checks outside the manuscript experiment folders.
+- `templates/`: static template fragments used by documentation and legacy API examples.
+- `../schemas/msig.report.v0.3/report.schema.json`: versioned JSON Schema for `createAnalysisReport` objects.
 
-The public SDK documentation for end users remains in the repository `README.md` and generated JSDoc output under `out/`. The generated reference includes the newer validation, QC/uncertainty, NMF extraction, import/export, reports, provenance, and workflow namespaces used by the Observable Kit notebooks in `notebooks/`.
+The public SDK documentation for end users remains in the repository `README.md`. Generated JSDoc output is no longer committed; run `npm run docs` to rebuild it locally under `out/`.

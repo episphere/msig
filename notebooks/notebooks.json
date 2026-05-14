@@ -1,0 +1,70 @@
+{
+  "notebooks": [
+    {
+      "file": "msig-sdk-notebooks.onb.html",
+      "title": "Notebook index",
+      "summary": "Start here for the SDK workflow map.",
+      "image": "images/mSigPortal.png"
+    },
+    {
+      "file": "msig-sdk-qc-walkthrough.onb.html",
+      "title": "Known-signature QC",
+      "summary": "Import, fetch, reshape, fit, and assess spectra.",
+      "image": "images/Mutational%20Burden.png"
+    },
+    {
+      "file": "msig-sdk-maf-fit-report.onb.html",
+      "title": "MAF to report",
+      "summary": "Convert MAF rows, fit signatures, inspect QC, and render report-ready outputs.",
+      "image": "images/Mutational%20Burden.png"
+    },
+    {
+      "file": "msig-sdk-public-cohort-exploration.onb.html",
+      "title": "Public cohort exploration",
+      "summary": "Fetch public spectra, review burden, and inspect similarity structure before fitting.",
+      "image": "images/CosineSimilarityHeatmap.png"
+    },
+    {
+      "file": "msig-sdk-resource-portability.onb.html",
+      "title": "Resource portability",
+      "summary": "Bridge mSigPortal, TCGA/GDC, matrices, and exports.",
+      "image": "images/mSigPortal.png"
+    },
+    {
+      "file": "msig-sdk-uncertainty-thresholds.onb.html",
+      "title": "Uncertainty thresholds",
+      "summary": "Quantify uncertainty and threshold dependence.",
+      "image": "images/CosineSimilarityHeatmap.png"
+    },
+    {
+      "file": "msig-sdk-nmf-extraction.onb.html",
+      "title": "NMF extraction",
+      "summary": "Run exploratory extraction without fixed signatures.",
+      "image": "images/signatureComparison.png"
+    },
+    {
+      "file": "msig-sdk-panel-evidence-tiers.onb.html",
+      "title": "Panel evidence tiers",
+      "summary": "Review panel and WES assessability, evidence tiers, and callable-territory limits.",
+      "image": "images/datasetSummary.png"
+    },
+    {
+      "file": "msig-sdk-multi-engine-comparison.onb.html",
+      "title": "Multi-engine comparison",
+      "summary": "Compare mSigSDK NNLS, SigProfilerAssignment via Pyodide, and MuSiCal-compatible refit.",
+      "image": "images/signatureComparison.png"
+    },
+    {
+      "file": "msig-sdk-export-report.onb.html",
+      "title": "Export and reports",
+      "summary": "Round-trip matrices and create reproducible reports.",
+      "image": "images/datasetSummary.png"
+    },
+    {
+      "file": "msig-sdk-experimental-sandbox.onb.html",
+      "title": "Experimental sandbox",
+      "summary": "Inspect explicitly experimental workflow outputs and scope statements.",
+      "image": "images/mSigPortal.png"
+    }
+  ]
+}

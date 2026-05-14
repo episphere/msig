@@ -8,7 +8,7 @@ This file records durable project context for future work on the mSigSDK codebas
 - Local path: `/Users/aaronge/Documents/GitHub/msig`
 - Main entry point: `main.js`
 - Public import target: `https://episphere.github.io/msig/main.js`
-- Current positioning: browser-native JavaScript SDK for mutational signature data access, visualization, fitting, QC, uncertainty analysis, reporting, and exploratory extraction.
+- Current positioning: browser-native JavaScript SDK for mutational signature data access, local spectra import, primary workflow wrappers, fitting, QC, uncertainty analysis, interoperability, optional external-tool adapters, provenance-aware reporting, panel review, and exploratory extraction.
 - Important production mSigPortal URL: `https://analysistools.cancer.gov/mutational-signatures/`
 - Old mSigPortal dev URL that should not be used in the manuscript: `https://analysistools-dev.cancer.gov/mutational-signatures/`
 
@@ -31,10 +31,13 @@ This file records durable project context for future work on the mSigSDK codebas
 - QC helpers for mutation burden, missing contexts, reconstruction error, residuals, zero-exposure handling, bootstrap intervals, and threshold sensitivity.
 - D3 QC plots for mutation burden, reconstruction error, bootstrap confidence intervals, and threshold sensitivity.
 - Residual and mutational spectrum plots reuse mSigPortal plotting components where possible.
-- Browser-side NMF extraction helpers, rank selection, Web Worker support, COSMIC/reference matching, and NMF visualization helpers.
-- Import/export helpers for SigProfiler/COSMIC-style matrices.
-- Report and provenance helpers.
-- High-level workflow helpers for analysis orchestration.
+- Browser-side NMF extraction helpers, rank selection by reconstruction error, cophenetic correlation, or silhouette, Web Worker support, COSMIC/reference matching, and NMF visualization helpers.
+- Import/export helpers for SigProfiler-style, COSMIC-style, MuSiCal-compatible, and generic TSV matrices.
+- Optional Pyodide Web Worker runner plus SigProfilerAssignment, SigProfilerExtractor, deconstructSigs, and MuSiCal-compatible adapters under `mSigSDK.runners` and `mSigSDK.adapters`.
+- Offline MAF context lookup support through row-supplied contexts, caller-supplied lookup tables, and bundled sparse smoke-test assets for hg19, hg38, and T2T-CHM13.
+- Report and provenance helpers, including JSON Schema validation for `createAnalysisReport`.
+- A small primary `mSigSDK.workflows` surface for MAF analysis, single-sample fitting, cohort fitting, and panel/WES review, plus `*Lite` wrappers and compact `mSigSDK.quickstart` aliases for reduced-option entry points.
+- High-level workflow helpers for analysis orchestration, with localized-mutagenesis and subgroup-discovery pipelines isolated under `mSigSDK.experimental`.
 
 ## Important SDK Namespaces
 
@@ -47,58 +50,55 @@ This file records durable project context for future work on the mSigSDK codebas
 - `mSigSDK.signatureExtraction`
 - `mSigSDK.signatureExtractionPlots`
 - `mSigSDK.io`
+- `mSigSDK.runners`
+- `mSigSDK.adapters`
 - `mSigSDK.reports`
+- `mSigSDK.advisor`
+- `mSigSDK.quickstart`
+- `mSigSDK.pipelines`
 - `mSigSDK.workflows`
+- `mSigSDK.experimental`
 - `mSigSDK.provenance`
+- `mSigSDK.presentation`
 
 ## Focused Observable Kit Notebooks
 
 - `notebooks/msig-sdk-notebooks.onb.html`: notebook index.
 - `notebooks/msig-sdk-qc-walkthrough.onb.html`: known-signature fitting and QC walkthrough.
+- `notebooks/msig-sdk-resource-portability.onb.html`: mSigPortal, TCGA/GDC, matrix portability, and provenance.
 - `notebooks/msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals and threshold sensitivity.
 - `notebooks/msig-sdk-nmf-extraction.onb.html`: browser-sized NMF extraction and rank diagnostics.
 - `notebooks/msig-sdk-export-report.onb.html`: import/export, reports, provenance, and workflow helpers.
 
-## Manuscript Revision Strategy
+## Manuscript Workspace
 
-- Reframe the paper away from broad "private computation" claims and toward specific SDK capabilities.
-- Directly address the previous reviewer critique that mSigSDK was only a visualization wrapper.
-- Add an execution-locus table showing which operations are local, which call mSigPortal/TCGA APIs, and what that means for privacy.
-- Update Figure 1 as an SDK architecture and privacy-boundary schematic.
-- Update Figure 2 as a known-signature fitting QC dashboard.
-- Add Figure 3 for browser-side exploratory NMF extraction.
-- Add benchmark data for runtime, rendering time, and memory usage.
-- Be explicit that browser-side NMF is exploratory and intended for moderate-sized datasets.
-- Avoid unsupported "AI benchmarking" claims unless the manuscript includes actual benchmark results.
-- Current manuscript revision assets live in `docs/manuscript/REVISION_PACKAGE.md`.
-- Current manuscript revision checklist lives in `docs/manuscript/TODO.md`.
-- Current benchmark protocol lives in `docs/manuscript/BENCHMARK_PROTOCOL.md`.
+- The manuscript frames mSigSDK as a portable browser-native workflow layer that complements established extraction and assignment tools rather than replacing them.
+- Validated advisor functions in the manuscript are `computeFitQualityEvidence`, `computeSignatureAmbiguity`, `detectOutOfReferenceSignal`, and `recommendAnalysisStrategy`.
+- Experimental advisor and pipeline functions remain available for descriptive review but are not part of the manuscript-validated claim set.
+- Current manuscript drafts live in `docs/manuscript/manuscript/`.
 - Core compute benchmark harness: `npm run benchmark:manuscript`.
-- Main figure drafts live in `docs/manuscript/figures/`.
-- Figure generator: `npm run figures:manuscript`.
+- Browser benchmark harness: `npm run benchmark:browser`.
+- Confusable-signature stress test: `npm run benchmark:confusable`.
+- Panel downsampling validation: `npm run validation:panel`.
+- Current manuscript tables live in `docs/manuscript/google-doc-tables/`.
+- Current reproducible figure pages live in `docs/manuscript/actual-figure-pages/`.
+- Current dated experiment packages live in `docs/manuscript/experiments/`.
+- Manuscript asset generator: `npm run assets:manuscript`.
+- Feature reference: `docs/MSIGSDK_FEATURE_REFERENCE.md`.
+- Tool interoperability verification: `npm run verify:tool-interoperability -- --timeout-ms=900000 --probe-sigprofilerassignment-run`.
 
-## Previous Reviewer Concerns To Address
+## Manuscript Evidence Covered
 
-- Broken mSigPortal dependency URL.
-- Ambiguous "previous work" citation in the abstract.
-- Concern that mSigSDK is only a wrapper around mSigPortal.
-- Concern that private computation claims were broader than the implementation.
-- Concern that de novo extraction was not feasible in the browser.
-- Lack of rare-cancer or low-mutation-count examples.
-- Lack of performance benchmarks and memory/rendering measurements.
-- Marketing-style FAIR/privacy language without enough implementation detail.
-
-## Suggested Manuscript Evidence
-
-- Architecture diagram with browser privacy boundary.
-- Workflow diagram showing mSigPortal/TCGA/public data versus local user data.
+- Architecture and browser boundary.
+- Public data retrieval, local spectra import, and provenance capture.
 - Known-signature fitting QC dashboard.
-- Bootstrap exposure uncertainty visualization.
-- Threshold sensitivity visualization.
+- Bootstrap exposure uncertainty and threshold sensitivity.
 - NMF rank diagnostics and extracted signature profiles.
-- Runtime and memory benchmark table.
-- Supplementary table of SDK namespaces and functions.
-- Observable notebook links as executable examples.
+- Synthetic burden validation and confusable-signature stress testing.
+- Cross-tool concordance against deconstructSigs, SigProfilerAssignment, MuSiCal, and independent R NNLS.
+- WGS-to-panel downsampling validation.
+- Browser and Node.js benchmark table.
+- JSON Schema and executable notebook examples.
 
 ## Development Notes
 
@@ -106,8 +106,9 @@ This file records durable project context for future work on the mSigSDK codebas
 - Use `apply_patch` for manual file edits.
 - Preserve user changes and avoid reverting unrelated work.
 - Run `node --check main.js` after editing `main.js`.
+- Run `npm run smoke:adapters` and `npm run verify:tool-interoperability -- --timeout-ms=900000 --probe-sigprofilerassignment-run` after editing `mSigSDKScripts/runners.js`, `mSigSDKScripts/adapters.js`, or external-tool adapter exports.
 - Run `node --check scripts/benchmark-manuscript.mjs` after editing the manuscript benchmark harness.
-- Run `node --check scripts/generate-manuscript-figures.mjs` after editing the manuscript figure generator.
+- Run `node --check scripts/generate-manuscript-v03-assets.mjs` after editing the manuscript asset generator.
 - Run `git diff --check` before finalizing docs/code changes.
 - Local Observable server command: `npm run serve:observable`.
 - Focused notebook index URL when the local server is running: `http://127.0.0.1:8080/notebooks/msig-sdk-notebooks.onb.html`.

@@ -22,7 +22,7 @@
 </head>
 <body>
   <h1>Figure 2. Local known-signature fitting and exposure interpretation</h1>
-  <p class="subtitle">Actual browser-local NNLS fitting of PCAWG Lung-AdenoCA spectra against selected COSMIC SBS96 signatures, with exposure, reconstruction, and residual panels.</p>
+  <p class="subtitle">Browser-local NNLS fitting of PCAWG Lung-AdenoCA spectra against selected COSMIC SBS96 signatures, with exposure, reconstruction, and residual panels.</p>
   <div id="status" class="status">Loading mSigSDK and figure data...</div>
   <div class="grid">
 
@@ -61,8 +61,16 @@ function median(values) {
   const sorted = [...values].sort((a, b) => a - b);
   return sorted[Math.floor(sorted.length / 2)] || 0;
 }
-function choosePanelContexts(contexts) {
-  return contexts.filter((_, index) => index % 4 === 0).slice(0, 24);
+function choosePanelContexts(contexts, spectra, size = 24) {
+  const totals = Object.fromEntries(contexts.map((context) => [context, 0]));
+  Object.values(spectra || {}).forEach((spectrum) => {
+    contexts.forEach((context) => {
+      totals[context] += Number(spectrum?.[context]) || 0;
+    });
+  });
+  return [...contexts]
+    .sort((a, b) => totals[b] - totals[a])
+    .slice(0, size);
 }
 function sumSpectrumValues(spectrum) {
   return Object.values(spectrum || {}).reduce((sum, value) => sum + (Number(value) || 0), 0);

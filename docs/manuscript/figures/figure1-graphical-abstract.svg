@@ -1,0 +1,188 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">mSigSDK graphical abstract</title>
+  <desc id="desc">mSigSDK uses selected mSigPortal resources through reusable JavaScript modules and reviews imported spectra in the client runtime. It validates spectra, fits known signatures, reports QC evidence, and produces reusable outputs.</desc>
+  <defs>
+    <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2 2 L10 6 L2 10 Z" fill="#0072B2"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2 2 L10 6 L2 10 Z" fill="#009E73"/>
+    </marker>
+    <marker id="arrowDark" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2 2 L10 6 L2 10 Z" fill="#1F2937"/>
+    </marker>
+    <linearGradient id="browserFill" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F8FAFC"/>
+    </linearGradient>
+    <style>
+      .page { fill: #F7FAFC; }
+      .sheet { fill: #FFFFFF; stroke: #E2E8F0; stroke-width: 2; rx: 28; ry: 28; }
+      .panel { fill: #FFFFFF; stroke: #CBD5E1; stroke-width: 2; rx: 22; ry: 22; }
+      .browser { fill: url(#browserFill); stroke: #0F172A; stroke-width: 2.4; rx: 24; ry: 24; }
+      .card { fill: #F8FAFC; stroke: #CBD5E1; stroke-width: 1.8; rx: 16; ry: 16; }
+      .title { font: 700 34px Arial, Helvetica, sans-serif; fill: #0F172A; }
+      .subtitle { font: 400 18px Arial, Helvetica, sans-serif; fill: #475569; }
+      .eyebrow { font: 700 13px Arial, Helvetica, sans-serif; letter-spacing: .6px; fill: #64748B; }
+      .h2 { font: 700 23px Arial, Helvetica, sans-serif; fill: #0F172A; }
+      .h3 { font: 700 17px Arial, Helvetica, sans-serif; fill: #0F172A; }
+      .body { font: 400 15px Arial, Helvetica, sans-serif; fill: #334155; }
+      .small { font: 400 13px Arial, Helvetica, sans-serif; fill: #475569; }
+      .tiny { font: 400 12px Arial, Helvetica, sans-serif; fill: #64748B; }
+      .codeLight { font: 700 14px Consolas, Monaco, monospace; fill: #E2E8F0; }
+      .blueFill { fill: #E8F3FA; stroke: #0072B2; stroke-width: 2; }
+      .greenFill { fill: #EAF7F2; stroke: #009E73; stroke-width: 2; }
+      .orangeFill { fill: #FFF4DF; stroke: #E69F00; stroke-width: 2; }
+      .purpleFill { fill: #F9EEF6; stroke: #CC79A7; stroke-width: 2; }
+      .flowBlue { fill: none; stroke: #0072B2; stroke-width: 5; marker-end: url(#arrowBlue); }
+      .flowGreen { fill: none; stroke: #009E73; stroke-width: 5; marker-end: url(#arrowGreen); }
+      .flowDark { fill: none; stroke: #1F2937; stroke-width: 5; marker-end: url(#arrowDark); }
+      .dash { fill: none; stroke: #94A3B8; stroke-width: 2.4; stroke-dasharray: 9 8; }
+    </style>
+  </defs>
+
+  <rect class="page" width="1600" height="900"/>
+  <rect class="sheet" x="42" y="42" width="1516" height="816"/>
+
+  <text x="90" y="98" class="title">mSigSDK: portable JavaScript SDK</text>
+  <text x="90" y="136" class="title">for mutational signature review</text>
+  <text x="90" y="174" class="subtitle">Selected portal resources plus local checking, fitting, and reporting after mutation catalogs have been created.</text>
+
+  <g id="inputs">
+    <rect class="panel" x="90" y="226" width="350" height="430"/>
+    <text x="124" y="270" class="eyebrow">INPUTS</text>
+    <text x="124" y="306" class="h2">Public data</text>
+    <text x="124" y="334" class="h2">+ local spectra</text>
+
+    <g transform="translate(124 366)">
+      <rect class="blueFill" width="272" height="100" rx="18"/>
+      <circle cx="32" cy="34" r="17" fill="#0072B2"/>
+      <path d="M24 34 h16 M32 26 v16" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+      <text x="64" y="34" class="h3">mSigPortal APIs</text>
+      <text x="64" y="62" class="small">Reference signatures</text>
+      <text x="64" y="82" class="small">Public cohorts + GDC helpers</text>
+    </g>
+
+    <g transform="translate(124 502)">
+      <rect class="greenFill" width="272" height="110" rx="18"/>
+      <rect x="22" y="30" width="34" height="52" rx="5" fill="#009E73"/>
+      <rect x="32" y="41" width="8" height="32" fill="#FFFFFF" opacity=".95"/>
+      <rect x="44" y="50" width="8" height="23" fill="#FFFFFF" opacity=".78"/>
+      <text x="64" y="35" class="h3">Imported spectra</text>
+      <text x="64" y="63" class="small">SBS96 matrix</text>
+      <text x="64" y="83" class="small">WGS, WES, panels</text>
+    </g>
+  </g>
+
+  <g id="runtime">
+    <rect class="browser" x="548" y="210" width="505" height="465"/>
+    <rect x="548" y="210" width="505" height="58" rx="24" fill="#0F172A"/>
+    <circle cx="586" cy="239" r="8" fill="#F87171"/>
+    <circle cx="613" cy="239" r="8" fill="#FBBF24"/>
+    <circle cx="640" cy="239" r="8" fill="#34D399"/>
+    <rect x="682" y="225" width="294" height="28" rx="14" fill="#1E293B"/>
+    <text x="705" y="244" class="codeLight">import { mSigSDK }</text>
+
+    <text x="592" y="311" class="eyebrow">CLIENT RUNTIME</text>
+    <text x="592" y="346" class="h2">mSigSDK review modules</text>
+
+    <g transform="translate(592 382)">
+      <rect class="card" width="182" height="88"/>
+      <circle cx="30" cy="31" r="13" fill="#0072B2"/>
+      <path d="M23 31 l5 5 l11 -13" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="58" y="35" class="h3">Validate</text>
+      <text x="24" y="64" class="small">Contexts</text>
+      <text x="96" y="64" class="small">Burden</text>
+    </g>
+
+    <g transform="translate(826 382)">
+      <rect class="card" width="182" height="88"/>
+      <path d="M24 56 h17 v-22 h17 v34 h17 v-48" fill="none" stroke="#009E73" stroke-width="6" stroke-linecap="round"/>
+      <text x="96" y="35" class="h3">Fit</text>
+      <text x="96" y="62" class="small">NNLS</text>
+      <text x="96" y="81" class="small">Thresholds</text>
+    </g>
+
+    <g transform="translate(592 505)">
+      <rect class="card" width="182" height="96"/>
+      <circle cx="32" cy="36" r="18" fill="#FFF4DF" stroke="#E69F00" stroke-width="3"/>
+      <path d="M32 24 v16" stroke="#E69F00" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="32" cy="50" r="2.8" fill="#E69F00"/>
+      <text x="64" y="35" class="h3">QC evidence</text>
+      <text x="24" y="69" class="small">Residuals</text>
+      <text x="96" y="69" class="small">Bootstrap</text>
+      <text x="24" y="88" class="small">Ambiguity</text>
+    </g>
+
+    <g transform="translate(826 505)">
+      <rect class="card" width="182" height="96"/>
+      <rect x="26" y="26" width="45" height="54" rx="6" fill="#F9EEF6" stroke="#CC79A7" stroke-width="3"/>
+      <line x1="36" y1="42" x2="62" y2="42" stroke="#CC79A7" stroke-width="3"/>
+      <line x1="36" y1="55" x2="62" y2="55" stroke="#CC79A7" stroke-width="3"/>
+      <line x1="36" y1="68" x2="53" y2="68" stroke="#CC79A7" stroke-width="3"/>
+      <text x="92" y="35" class="h3">Report</text>
+      <text x="92" y="62" class="small">Plots</text>
+      <text x="92" y="81" class="small">JSON</text>
+    </g>
+  </g>
+
+  <g id="outputs">
+    <rect class="panel" x="1165" y="226" width="345" height="430"/>
+    <text x="1199" y="270" class="eyebrow">OUTPUTS</text>
+    <text x="1199" y="306" class="h2">Reusable</text>
+    <text x="1199" y="334" class="h2">review outputs</text>
+
+    <g transform="translate(1199 356)">
+      <rect class="card" width="270" height="58"/>
+      <rect x="22" y="18" width="32" height="23" rx="3" fill="#0072B2"/>
+      <line x1="24" y1="47" x2="52" y2="47" stroke="#0072B2" stroke-width="4"/>
+      <text x="76" y="36" class="h3">Portal panel</text>
+    </g>
+
+    <g transform="translate(1199 433)">
+      <rect class="card" width="270" height="58"/>
+      <path d="M30 18 h28 l12 12 v18 h-40 z" fill="#EAF7F2" stroke="#009E73" stroke-width="3"/>
+      <path d="M58 18 v13 h12" fill="none" stroke="#009E73" stroke-width="3"/>
+      <text x="76" y="36" class="h3">HTML page</text>
+    </g>
+
+    <g transform="translate(1199 510)">
+      <rect class="card" width="270" height="58"/>
+      <rect x="25" y="17" width="40" height="26" rx="5" fill="#FFF4DF" stroke="#E69F00" stroke-width="3"/>
+      <line x1="33" y1="27" x2="56" y2="27" stroke="#E69F00" stroke-width="3"/>
+      <line x1="33" y1="36" x2="50" y2="36" stroke="#E69F00" stroke-width="3"/>
+      <text x="76" y="36" class="h3">Notebook</text>
+    </g>
+
+    <g transform="translate(1199 587)">
+      <rect class="card" width="270" height="58"/>
+      <path d="M27 42 C38 18 49 52 62 25" fill="none" stroke="#CC79A7" stroke-width="5" stroke-linecap="round"/>
+      <text x="76" y="36" class="h3">Manuscript files</text>
+    </g>
+  </g>
+
+  <path d="M440 414 C486 414 504 414 548 414" class="flowBlue"/>
+  <text x="458" y="391" class="small">API</text>
+  <path d="M440 557 C486 557 504 557 548 557" class="flowGreen"/>
+  <text x="458" y="534" class="small">local</text>
+  <path d="M1053 448 C1098 448 1122 448 1165 448" class="flowDark"/>
+  <text x="1083" y="425" class="small">reuse</text>
+
+  <line x1="500" y1="210" x2="500" y2="676" class="dash"/>
+  <text x="322" y="691" class="tiny">Public API boundary</text>
+
+  <g transform="translate(555 700)">
+    <rect width="498" height="66" rx="20" fill="#ECFDF5" stroke="#009E73" stroke-width="2"/>
+    <path d="M34 34 v-8 c0 -10 7 -17 17 -17 s17 7 17 17 v8" fill="none" stroke="#009E73" stroke-width="4" stroke-linecap="round"/>
+    <rect x="27" y="32" width="48" height="24" rx="7" fill="#009E73"/>
+    <circle cx="51" cy="44" r="3" fill="#FFFFFF"/>
+    <text x="98" y="33" class="h3">Imported spectra remain local</text>
+    <text x="98" y="55" class="small">after import into the client runtime</text>
+  </g>
+
+  <g transform="translate(90 796)">
+    <rect width="1420" height="52" rx="18" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.8"/>
+    <text x="28" y="24" class="body">Positioning: mSigPortal resources plus local review modules.</text>
+    <text x="28" y="43" class="small">Production extraction and comprehensive assignment remain the role of established signature tools.</text>
+  </g>
+</svg>

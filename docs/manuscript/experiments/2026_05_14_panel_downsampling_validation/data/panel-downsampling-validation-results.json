@@ -1,0 +1,305 @@
+{
+  "generatedAt": "2026-05-14T15:02:35.100Z",
+  "source": {
+    "snapshot": "C:\\Users\\aaron\\Documents\\GitHub\\msig\\docs\\manuscript\\actual-figure-pages\\data\\pcawg-lung-snapshot.json",
+    "study": "PCAWG",
+    "cancerType": "Lung-AdenoCA",
+    "sampleCount": 38
+  },
+  "selectedSignatures": [
+    "SBS1",
+    "SBS2",
+    "SBS4",
+    "SBS5",
+    "SBS13",
+    "SBS17a",
+    "SBS17b",
+    "SBS18",
+    "SBS40"
+  ],
+  "callableMaskSizes": [
+    24,
+    48,
+    72
+  ],
+  "panelBurdenLevels": [
+    25,
+    75,
+    200,
+    1000
+  ],
+  "thresholds": {
+    "fitExposureThreshold": 0.01,
+    "limitedSupportExposure": 0.05,
+    "higherSupportExposure": 0.2,
+    "minAssessableMutations": 30
+  },
+  "summaryByMask": [
+    {
+      "callableContextCount": 24,
+      "calls": 1368,
+      "tierAccuracy": 0.6286549707602339,
+      "meanPanelVsWgsExposureCosine": 0.813314554919165,
+      "medianPanelTotal": 137.5
+    },
+    {
+      "callableContextCount": 48,
+      "calls": 1368,
+      "tierAccuracy": 0.7412280701754386,
+      "meanPanelVsWgsExposureCosine": 0.8985358446150532,
+      "medianPanelTotal": 137.5
+    },
+    {
+      "callableContextCount": 72,
+      "calls": 1368,
+      "tierAccuracy": 0.8457602339181286,
+      "meanPanelVsWgsExposureCosine": 0.9586805143529057,
+      "medianPanelTotal": 137.5
+    }
+  ],
+  "summaryByExposureAndBurden": [
+    {
+      "callableContextCount": 24,
+      "truthExposureBin": "<0.05",
+      "panelBurdenBin": "<30",
+      "calls": 184,
+      "tierAccuracy": 1,
+      "meanPanelVsWgsExposureCosine": 0.8215039209355651,
+      "medianPanelTotal": 25
+    },
+    {
+      "callableContextCount": 24,
+      "truthExposureBin": "<0.05",
+      "panelBurdenBin": ">=150",
+      "calls": 368,
+      "tierAccuracy": 0.6983695652173914,
+      "meanPanelVsWgsExposureCosine": 0.8186437777858125,
+      "medianPanelTotal": 600
+    },
+    {
+      "callableContextCount": 24,
+      "truthExposureBin": "<0.05",
+      "panelBurdenBin": "30-<150",
+      "calls": 184,
+      "tierAccuracy": 0.6793478260869565,
+      "meanPanelVsWgsExposureCosine": 0.8181623768405116,
+      "medianPanelTotal": 75
+    },
+    {
+      "callableContextCount": 24,
+      "truthExposureBin": ">=0.20",
+      "panelBurdenBin": "<30",
+      "calls": 68,
+      "tierAccuracy": 1,
+      "meanPanelVsWgsExposureCosine": 0.7976863005939274,
+      "medianPanelTotal": 25
+    },
+    {
+      "callableContextCount": 24,
+      "truthExposureBin": ">=0.20",
+      "panelBurdenBin": ">=150",
+      "calls": 136,
+      "tierAccuracy": 0,
+      "meanPanelVsWgsExposureCosine": 0.7975851481859464,
+      "medianPanelTotal": 600
+    },
+    {
+      "callableContextCount": 24,
+      "truthExposureBin": ">=0.20",
+      "panelBurdenBin": "30-<150",
+      "calls": 68,
+      "tierAccuracy": 0,
+      "meanPanelVsWgsExposureCosine": 0.7966713084692648,
+      "medianPanelTotal": 75
+    },
+    {
+      "callableContextCount": 24,
+      "truthExposureBin": "0.05-<0.20",
+      "panelBurdenBin": "<30",
+      "calls": 90,
+      "tierAccuracy": 1,
+      "meanPanelVsWgsExposureCosine": 0.8079087753634648,
+      "medianPanelTotal": 25
+    },
+    {
+      "callableContextCount": 24,
+      "truthExposureBin": "0.05-<0.20",
+      "panelBurdenBin": ">=150",
+      "calls": 180,
+      "tierAccuracy": 0.5,
+      "meanPanelVsWgsExposureCosine": 0.8146140831173633,
+      "medianPanelTotal": 600
+    },
+    {
+      "callableContextCount": 24,
+      "truthExposureBin": "0.05-<0.20",
+      "panelBurdenBin": "30-<150",
+      "calls": 90,
+      "tierAccuracy": 0.5111111111111111,
+      "meanPanelVsWgsExposureCosine": 0.8158286644446398,
+      "medianPanelTotal": 75
+    },
+    {
+      "callableContextCount": 48,
+      "truthExposureBin": "<0.05",
+      "panelBurdenBin": "<30",
+      "calls": 184,
+      "tierAccuracy": 1,
+      "meanPanelVsWgsExposureCosine": 0.888432475857772,
+      "medianPanelTotal": 25
+    },
+    {
+      "callableContextCount": 48,
+      "truthExposureBin": "<0.05",
+      "panelBurdenBin": ">=150",
+      "calls": 368,
+      "tierAccuracy": 0.8097826086956522,
+      "meanPanelVsWgsExposureCosine": 0.908242383035851,
+      "medianPanelTotal": 600
+    },
+    {
+      "callableContextCount": 48,
+      "truthExposureBin": "<0.05",
+      "panelBurdenBin": "30-<150",
+      "calls": 184,
+      "tierAccuracy": 0.8043478260869565,
+      "meanPanelVsWgsExposureCosine": 0.896920523524638,
+      "medianPanelTotal": 75
+    },
+    {
+      "callableContextCount": 48,
+      "truthExposureBin": ">=0.20",
+      "panelBurdenBin": "<30",
+      "calls": 68,
+      "tierAccuracy": 1,
+      "meanPanelVsWgsExposureCosine": 0.8779362297898662,
+      "medianPanelTotal": 25
+    },
+    {
+      "callableContextCount": 48,
+      "truthExposureBin": ">=0.20",
+      "panelBurdenBin": ">=150",
+      "calls": 136,
+      "tierAccuracy": 0,
+      "meanPanelVsWgsExposureCosine": 0.9006817820590949,
+      "medianPanelTotal": 600
+    },
+    {
+      "callableContextCount": 48,
+      "truthExposureBin": ">=0.20",
+      "panelBurdenBin": "30-<150",
+      "calls": 68,
+      "tierAccuracy": 0,
+      "meanPanelVsWgsExposureCosine": 0.8890931568167761,
+      "medianPanelTotal": 75
+    },
+    {
+      "callableContextCount": 48,
+      "truthExposureBin": "0.05-<0.20",
+      "panelBurdenBin": "<30",
+      "calls": 90,
+      "tierAccuracy": 1,
+      "meanPanelVsWgsExposureCosine": 0.8867202608913225,
+      "medianPanelTotal": 25
+    },
+    {
+      "callableContextCount": 48,
+      "truthExposureBin": "0.05-<0.20",
+      "panelBurdenBin": ">=150",
+      "calls": 180,
+      "tierAccuracy": 0.8388888888888889,
+      "meanPanelVsWgsExposureCosine": 0.9101091713968453,
+      "medianPanelTotal": 600
+    },
+    {
+      "callableContextCount": 48,
+      "truthExposureBin": "0.05-<0.20",
+      "panelBurdenBin": "30-<150",
+      "calls": 90,
+      "tierAccuracy": 0.8333333333333334,
+      "meanPanelVsWgsExposureCosine": 0.8909299067655111,
+      "medianPanelTotal": 75
+    },
+    {
+      "callableContextCount": 72,
+      "truthExposureBin": "<0.05",
+      "panelBurdenBin": "<30",
+      "calls": 184,
+      "tierAccuracy": 1,
+      "meanPanelVsWgsExposureCosine": 0.8938550507479259,
+      "medianPanelTotal": 25
+    },
+    {
+      "callableContextCount": 72,
+      "truthExposureBin": "<0.05",
+      "panelBurdenBin": ">=150",
+      "calls": 368,
+      "tierAccuracy": 0.9211956521739131,
+      "meanPanelVsWgsExposureCosine": 0.9877165627358836,
+      "medianPanelTotal": 600
+    },
+    {
+      "callableContextCount": 72,
+      "truthExposureBin": "<0.05",
+      "panelBurdenBin": "30-<150",
+      "calls": 184,
+      "tierAccuracy": 0.9021739130434783,
+      "meanPanelVsWgsExposureCosine": 0.9792250704902641,
+      "medianPanelTotal": 75
+    },
+    {
+      "callableContextCount": 72,
+      "truthExposureBin": ">=0.20",
+      "panelBurdenBin": "<30",
+      "calls": 68,
+      "tierAccuracy": 1,
+      "meanPanelVsWgsExposureCosine": 0.8777373557589997,
+      "medianPanelTotal": 25
+    },
+    {
+      "callableContextCount": 72,
+      "truthExposureBin": ">=0.20",
+      "panelBurdenBin": ">=150",
+      "calls": 136,
+      "tierAccuracy": 0.4338235294117647,
+      "meanPanelVsWgsExposureCosine": 0.9860670134277124,
+      "medianPanelTotal": 600
+    },
+    {
+      "callableContextCount": 72,
+      "truthExposureBin": ">=0.20",
+      "panelBurdenBin": "30-<150",
+      "calls": 68,
+      "tierAccuracy": 0,
+      "meanPanelVsWgsExposureCosine": 0.9773328310447112,
+      "medianPanelTotal": 75
+    },
+    {
+      "callableContextCount": 72,
+      "truthExposureBin": "0.05-<0.20",
+      "panelBurdenBin": "<30",
+      "calls": 90,
+      "tierAccuracy": 1,
+      "meanPanelVsWgsExposureCosine": 0.8673822879061788,
+      "medianPanelTotal": 25
+    },
+    {
+      "callableContextCount": 72,
+      "truthExposureBin": "0.05-<0.20",
+      "panelBurdenBin": ">=150",
+      "calls": 180,
+      "tierAccuracy": 0.9555555555555556,
+      "meanPanelVsWgsExposureCosine": 0.9839544481036643,
+      "medianPanelTotal": 600
+    },
+    {
+      "callableContextCount": 72,
+      "truthExposureBin": "0.05-<0.20",
+      "panelBurdenBin": "30-<150",
+      "calls": 90,
+      "tierAccuracy": 0.8777777777777778,
+      "meanPanelVsWgsExposureCosine": 0.9769157015679125,
+      "medianPanelTotal": 75
+    }
+  ]
+}

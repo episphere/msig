@@ -5,6 +5,38 @@ import { fetchURLAndCache, groupBy } from "./utils.js";
 import { convertMatrix } from "./mutationalSpectrum.js";
 import * as pako from "https://cdn.jsdelivr.net/npm/pako/+esm";
 
+function parseTsvObjects(text) {
+  const lines = String(text || "")
+    .replaceAll("\r", "")
+    .split("\n")
+    .filter((line) => line.trim() !== "");
+  if (lines.length === 0) {
+    return [];
+  }
+
+  const header = lines[0].split("\t");
+  return lines.slice(1).map((line) => {
+    const values = line.split("\t");
+    return Object.fromEntries(
+      header.map((column, index) => [column, values[index] ?? ""])
+    );
+  });
+}
+
+function firstValue(row, candidates, fallback = "") {
+  for (const candidate of candidates) {
+    if (row[candidate] !== undefined && row[candidate] !== "") {
+      return row[candidate];
+    }
+  }
+  return fallback;
+}
+
+function daysToYears(value) {
+  const days = Number(value);
+  return Number.isFinite(days) ? Number((days / 365).toPrecision(3)) : null;
+}
+
 /**
  * Obtain projects by gene
  *
@@ -346,30 +378,48 @@ async function getMafInformationFromProjects(projects) {
             }
           );
           data = await data.text();
-          var table = data
-            .replaceAll("\r", "")
-            .split("\n")
-            .slice(1)
-            .map((e) => {
-              return e.split("\t");
-            });
+          var rows = parseTsvObjects(data);
           var files_ = [];
-          var count_files = table.map((e) => {
+          var count_files = rows.map((row) => {
+            var fileId = firstValue(row, ["file_id", "id"]);
             var files = {};
-            files["case_id"] = e[0];
-            files["ethnicity"] = e[1];
-            files["gender"] = e[2];
-            files["race"] = e[3];
-            files["year_of_birth"] = Number(e[4]);
-            files["age_at_diagnosis"] = Number(
-              (Number(e[5]) / 365).toPrecision(2)
+            files["case_id"] = firstValue(row, ["cases.0.case_id"]);
+            files["project_id"] = firstValue(row, [
+              "cases.0.project.project_id",
+            ]);
+            files["case_submitter_id"] = firstValue(row, [
+              "cases.0.submitter_id",
+            ]);
+            files["ethnicity"] = firstValue(row, [
+              "cases.0.demographic.ethnicity",
+            ]);
+            files["gender"] = firstValue(row, ["cases.0.demographic.gender"]);
+            files["race"] = firstValue(row, ["cases.0.demographic.race"]);
+            files["year_of_birth"] =
+              Number(firstValue(row, ["cases.0.demographic.year_of_birth"])) ||
+              null;
+            files["age_at_diagnosis"] = daysToYears(
+              firstValue(row, [
+                "cases.0.diagnoses.0.age_at_diagnosis",
+                "cases.0.diagnoses.1.age_at_diagnosis",
+              ])
             );
-            files["classification_of_tumor"] = e[6];
-            files["case_submitter_id"] = e[13];
-            files["file_id"] = e[14];
+            files["classification_of_tumor"] = firstValue(row, [
+              "cases.0.diagnoses.0.classification_of_tumor",
+              "cases.0.diagnoses.1.classification_of_tumor",
+            ]);
+            files["tissue_type"] = firstValue(row, [
+              "cases.0.samples.0.tissue_type",
+              "cases.0.samples.1.tissue_type",
+            ]);
+            files["tumor_descriptor"] = firstValue(row, [
+              "cases.0.samples.0.tumor_descriptor",
+              "cases.0.samples.1.tumor_descriptor",
+            ]);
+            files["file_id"] = fileId;
             files_.push(files);
-            return e[e.length - 1];
-          });
+            return fileId;
+          }).filter((fileId) => fileId);
           result[p]["maf_files"] = count_files;
           result[p]["samples_description"] = files_;
 

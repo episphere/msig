@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>mSigSDK deconstructSigs concordance</title>
+</head>
+<body>
+<p style="font-family:Arial, Helvetica, sans-serif;font-size:11pt;line-height:1.3;margin:0 0 6px 0;color:#111827"><strong>Independent NNLS check and deconstructSigs concordance.</strong> PCAWG Lung-AdenoCA SBS96 spectra were fitted with the same selected COSMIC SBS96 catalog.</p>
+<table style="border-collapse:collapse;width:100%;font-family:Arial, Helvetica, sans-serif;font-size:10.5pt;line-height:1.25;color:#1f2933">
+<thead><tr><th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">Comparison element</th><th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">Result</th><th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">Interpretation</th></tr></thead>
+<tbody>
+<tr><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Input spectra and catalog</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">38 cached PCAWG Lung-AdenoCA WGS SBS96 spectra; 9 selected COSMIC SBS96 signatures.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">The comparison used every cached spectrum available in the manuscript snapshot and the same selected catalog as the refitting example.</td></tr>
+<tr><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Exposure agreement</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Mean cosine 0.997; median 0.998; minimum 0.988.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">The two tools produced similar exposure vectors for most samples under matched inputs and cutoffs.</td></tr>
+<tr><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Independent NNLS solver check</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Mean cosine 1.000; minimum 1.000; maximum absolute exposure difference 4.79e-10.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK matched an independent nonnegative least-squares implementation to numerical precision.</td></tr>
+<tr><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Mean absolute exposure difference</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Mean 0.008; median 0.008.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">The remaining deconstructSigs differences reflect its normalized-weight iterative fitting and signature-screening procedure, especially among exchangeable signatures.</td></tr>
+<tr><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Reconstruction agreement</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Mean reconstruction cosine 0.982 for mSigSDK and 0.982 for deconstructSigs; mean absolute delta 0.000.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Both tools reconstructed the observed spectra to similar cosine similarity with the selected catalog.</td></tr>
+<tr><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Disagreement cases</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">0 of 38 samples had exposure cosine below 0.90; 2 had different top fitted signatures.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Disagreements are retained as review signals rather than suppressed; they motivate threshold and ambiguity checks.</td></tr>
+</tbody>
+</table>
+<p style="font-family:Arial, Helvetica, sans-serif;font-size:9.5pt;line-height:1.3;margin:6px 0 20px 0;color:#4b5563"><em>Note.</em> deconstructSigs and mSigSDK used the same sample-by-context matrix restricted to the same SBS96 contexts and the same nine-signature COSMIC SBS96 catalog used in the manuscript refitting example. Reconstruction metrics used spectra normalized to relative fractions. deconstructSigs used its default count-to-fraction preprocessing without genome-to-exome or exome-to-genome opportunity rescaling. All reported exposure vectors used a 1% relative-exposure cutoff followed by renormalization. An independent R nonnegative least-squares implementation was also run as a numerical solver check. deconstructSigs version 1.8.0 was run in R 4.1.1.</p>
+</body>
+</html>

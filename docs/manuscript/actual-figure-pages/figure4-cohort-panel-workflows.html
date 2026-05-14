@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Figure 4. Cohort and panel workflows introduced in mSigSDK v0.3</title>
+  <title>Figure 4. Cohort and panel workflows</title>
   <style>
     body { margin:0; padding:28px; background:#fff; color:#172033; font-family:Arial, Helvetica, sans-serif; }
     h1 { margin:0 0 8px 0; font-size:26px; line-height:1.2; }
@@ -21,14 +21,14 @@
   </style>
 </head>
 <body>
-  <h1>Figure 4. Cohort and panel workflows introduced in mSigSDK v0.3</h1>
-  <p class="subtitle">Actual v0.3 workflow outputs from PCAWG Lung-AdenoCA spectra: group exposure comparison, subgroup extraction/refit summary, panel/WES evidence matrix, and trust dashboard.</p>
+  <h1>Figure 4. Cohort and panel workflows</h1>
+  <p class="subtitle">mSigSDK v0.3 outputs from PCAWG Lung-AdenoCA spectra: group exposure comparison, subgroup extraction/refit summary, PCAWG-derived panel downsampling evidence matrix, and cohort fit-quality summary.</p>
   <div id="status" class="status">Loading mSigSDK and figure data...</div>
   <div class="grid">
 
     <section class="panel wide"><p class="panel-title">A. Metadata-stratified exposure comparison</p><div id="fig4Group"></div></section>
     <section class="panel wide"><p class="panel-title">B. Panel/WES evidence matrix</p><div id="fig4Panel"></div></section>
-    <section class="panel"><p class="panel-title">C. Cohort fit-trust dashboard</p><div id="fig4Trust"></div></section>
+    <section class="panel"><p class="panel-title">C. Cohort fit-quality summary</p><div id="fig4FitQuality"></div></section>
     <section class="panel"><p class="panel-title">D. Subgroup extraction and matched refitting summary</p><div id="fig4Subgroups"></div></section>
   </div>
   <script type="module">
@@ -61,8 +61,16 @@ function median(values) {
   const sorted = [...values].sort((a, b) => a - b);
   return sorted[Math.floor(sorted.length / 2)] || 0;
 }
-function choosePanelContexts(contexts) {
-  return contexts.filter((_, index) => index % 4 === 0).slice(0, 24);
+function choosePanelContexts(contexts, spectra, size = 24) {
+  const totals = Object.fromEntries(contexts.map((context) => [context, 0]));
+  Object.values(spectra || {}).forEach((spectrum) => {
+    contexts.forEach((context) => {
+      totals[context] += Number(spectrum?.[context]) || 0;
+    });
+  });
+  return [...contexts]
+    .sort((a, b) => totals[b] - totals[a])
+    .slice(0, size);
 }
 function sumSpectrumValues(spectrum) {
   return Object.values(spectrum || {}).reduce((sum, value) => sum + (Number(value) || 0), 0);
@@ -271,10 +279,17 @@ try {
     runSubgroupDiscovery: false,
   });
   await mSigSDK.qcPlots.plotCohortGroupComparison(document.getElementById("fig4Group"), cohort.groupComparison);
-  await mSigSDK.qcPlots.plotFitTrustDashboard(document.getElementById("fig4Trust"), cohort.trust);
-  const panelContexts = choosePanelContexts(data.contexts);
+  await mSigSDK.qcPlots.plotFitQualityEvidenceDashboard(document.getElementById("fig4FitQuality"), cohort.fitQualityEvidence);
+  const panelContexts = choosePanelContexts(data.contexts, spectra, 24);
   const callableOpportunities = Object.fromEntries(data.contexts.map((context) => [context, panelContexts.includes(context) ? 1 : 0]));
-  const panel = await mSigSDK.pipelines.runPanelWorkflow({ spectra, signatures, callableOpportunities }, {
+  const referenceOpportunities = Object.fromEntries(data.contexts.map((context) => [context, 1]));
+  const panelPairs = mSigSDK.userData.createWGStoPanelValidationPairs(spectra, callableOpportunities, {
+    contexts: data.contexts,
+    referenceOpportunities,
+    binaryMask: true,
+    roundCounts: true,
+  });
+  const panel = await mSigSDK.pipelines.runPanelWorkflow({ spectra: panelPairs.panelSpectra, signatures, callableOpportunities, referenceOpportunities }, {
     contexts: data.contexts,
     minAssessableMutations: 30,
     runBootstrap: false,
@@ -283,7 +298,7 @@ try {
   });
   await mSigSDK.qcPlots.plotPanelEvidenceMatrix(document.getElementById("fig4Panel"), panel);
   const subgroupSamples = selected.slice(0, 8);
-  const subgroup = await mSigSDK.pipelines.runSubgroupDiscoveryWorkflow({
+  const subgroup = await mSigSDK.experimental.runSubgroupDiscoveryWorkflow({
     spectra: subsetObject(spectra, subgroupSamples),
     signatures,
     subgroups: [{ clusterId: "high_burden_subset", samples: subgroupSamples }],

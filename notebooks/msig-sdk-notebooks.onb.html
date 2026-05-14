@@ -5,14 +5,57 @@
   <script type="text/markdown">
     # mSigSDK focused notebooks
 
-    The original all-in-one walkthrough is useful as a complete integration test, but it is too much work for one Observable runtime. Use these smaller notebooks when you want to test or teach one analysis lane at a time.
+    Start here for the SDK workflow map. The notebooks follow a single researcher path: understand the input shape, validate spectra, run the analysis, inspect warnings and evidence objects, then export the files needed to reproduce or adapt the workflow.
 
-    - [Known-signature QC](./msig-sdk-qc-walkthrough.onb.html): load real spectra, fit selected COSMIC signatures, check burden, reconstruction, and residuals.
-    - [Bootstrap and threshold sensitivity](./msig-sdk-uncertainty-thresholds.onb.html): stress-test one fitted sample with bootstrap intervals and threshold sweeps.
-    - [NMF extraction](./msig-sdk-nmf-extraction.onb.html): run browser-sized de novo NMF, inspect extracted profiles, exposures, and rank diagnostics.
-    - [Export and reporting](./msig-sdk-export-report.onb.html): test SigProfiler-style export, structured reports, provenance, and the high-level workflow helper.
+    ## Suggested execution order
 
-    Keep the local SDK server running while you use them:
+    1. [Public cohort exploration](./viewer.html?notebook=msig-sdk-public-cohort-exploration.onb.html)
+    2. [Known-signature QC](./viewer.html?notebook=msig-sdk-qc-walkthrough.onb.html)
+    3. [Uncertainty thresholds](./viewer.html?notebook=msig-sdk-uncertainty-thresholds.onb.html)
+    4. [Export and reports](./viewer.html?notebook=msig-sdk-export-report.onb.html)
+    5. [Resource portability](./viewer.html?notebook=msig-sdk-resource-portability.onb.html) or [MAF to report](./viewer.html?notebook=msig-sdk-maf-fit-report.onb.html)
+    6. [Panel evidence tiers](./viewer.html?notebook=msig-sdk-panel-evidence-tiers.onb.html), [NMF extraction](./viewer.html?notebook=msig-sdk-nmf-extraction.onb.html), or [Multi-engine comparison](./viewer.html?notebook=msig-sdk-multi-engine-comparison.onb.html)
+
+    ## Workflow stages
+
+    Orientation:
+
+    - [Notebook index](./viewer.html?notebook=msig-sdk-notebooks.onb.html)
+    - [End-to-end workflow](./viewer.html?notebook=msig-sdk-end-to-end-workflow.onb.html)
+    - [Public cohort exploration](./viewer.html?notebook=msig-sdk-public-cohort-exploration.onb.html)
+
+    Input and resource setup:
+
+    - [Resource portability](./viewer.html?notebook=msig-sdk-resource-portability.onb.html)
+    - [Bring your own spectra](./viewer.html?notebook=msig-sdk-bring-your-own-spectra.onb.html)
+    - [MAF to report](./viewer.html?notebook=msig-sdk-maf-fit-report.onb.html)
+
+    Core analysis:
+
+    - [Known-signature QC](./viewer.html?notebook=msig-sdk-qc-walkthrough.onb.html)
+    - [Cohort and panel workflow](./viewer.html?notebook=msig-sdk-cohort-panel-workflow.onb.html)
+    - [Panel evidence tiers](./viewer.html?notebook=msig-sdk-panel-evidence-tiers.onb.html)
+    - [NMF extraction](./viewer.html?notebook=msig-sdk-nmf-extraction.onb.html)
+
+    Reliability, reporting, and interoperability:
+
+    - [Uncertainty thresholds](./viewer.html?notebook=msig-sdk-uncertainty-thresholds.onb.html)
+    - [Export and reports](./viewer.html?notebook=msig-sdk-export-report.onb.html)
+    - [Multi-engine comparison](./viewer.html?notebook=msig-sdk-multi-engine-comparison.onb.html)
+
+    Advanced or experimental:
+
+    - [Experimental sandbox](./viewer.html?notebook=msig-sdk-experimental-sandbox.onb.html)
+
+    ## Inspect before trusting results
+
+    Check the SDK import path, data provenance, validation result, warning table, recommended actions, local computation boundary, report/provenance output, and any external-tool handoff. Plots should be read together with the returned JavaScript objects and thresholds that generated them.
+
+    ## Replace for a local project
+
+    Replace sample spectra, signature catalog, mutation-burden thresholds, exposure thresholds, metadata, panel opportunity masks, and report parameters. Keep the validation, burden, reconstruction, residual, uncertainty, warning, and export cells in place so the adapted notebook still produces a complete analysis record.
+
+    For local development, keep the SDK server running while you use the notebooks:
 
     ```bash
     npm run serve:observable

@@ -1,0 +1,3957 @@
+{
+  "generatedAt": "2026-05-14T15:01:33.379Z",
+  "repeats": 3,
+  "harness": "C:\\Users\\aaron\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\2026_05_14_browser_benchmark\\browser-benchmark-harness.html",
+  "results": [
+    {
+      "browserVersion": "148.0.7778.167",
+      "executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "generatedAt": "2026-05-14T15:01:33.363Z",
+      "startedAt": "2026-05-14T15:01:12.707Z",
+      "repeats": 3,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "browser": "chrome",
+      "rows": [
+        {
+          "id": "single_sample_wgs_review",
+          "useCase": "Single-sample WGS review",
+          "sequencing": "WGS",
+          "samples": 1,
+          "mutationsPerSample": 5000,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "validation_qc",
+          "repeats": 3,
+          "runtimeMedianMs": 0.29999999701976776,
+          "runtimeMinMs": 0.29999999701976776,
+          "runtimeMaxMs": 1.1000000014901161,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 1.1551599502563477,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 1.1000000014901161,
+              "heapBeforeMB": 1.1551599502563477,
+              "heapAfterMB": 1.1551599502563477,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 0.29999999701976776,
+              "heapBeforeMB": 1.1551599502563477,
+              "heapAfterMB": 1.1551599502563477,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 0.29999999701976776,
+              "heapBeforeMB": 1.1551599502563477,
+              "heapAfterMB": 1.1551599502563477,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "single_sample_wgs_review",
+          "useCase": "Single-sample WGS review",
+          "sequencing": "WGS",
+          "samples": 1,
+          "mutationsPerSample": 5000,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "nnls_fit",
+          "repeats": 3,
+          "runtimeMedianMs": 1.2000000029802322,
+          "runtimeMinMs": 1.1000000014901161,
+          "runtimeMaxMs": 5.5,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 1.1551599502563477,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 5.5,
+              "heapBeforeMB": 1.1551599502563477,
+              "heapAfterMB": 1.1551599502563477,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 1.2000000029802322,
+              "heapBeforeMB": 1.1551599502563477,
+              "heapAfterMB": 1.1551599502563477,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 1.1000000014901161,
+              "heapBeforeMB": 1.1551599502563477,
+              "heapAfterMB": 1.1551599502563477,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "single_sample_wgs_review",
+          "useCase": "Single-sample WGS review",
+          "sequencing": "WGS",
+          "samples": 1,
+          "mutationsPerSample": 5000,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "reconstruction_metrics",
+          "repeats": 3,
+          "runtimeMedianMs": 1.1000000014901161,
+          "runtimeMinMs": 0.8999999985098839,
+          "runtimeMaxMs": 2.0999999940395355,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 1.1551599502563477,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 2.0999999940395355,
+              "heapBeforeMB": 1.1551599502563477,
+              "heapAfterMB": 1.1551599502563477,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 1.1000000014901161,
+              "heapBeforeMB": 1.1551599502563477,
+              "heapAfterMB": 1.1551599502563477,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 0.8999999985098839,
+              "heapBeforeMB": 1.1551599502563477,
+              "heapAfterMB": 1.1551599502563477,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "single_sample_wgs_review",
+          "useCase": "Single-sample WGS review",
+          "sequencing": "WGS",
+          "samples": 1,
+          "mutationsPerSample": 5000,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": "",
+          "thresholds": [
+            0,
+            0.01,
+            0.03,
+            0.05,
+            0.1
+          ],
+          "ranks": "",
+          "operation": "threshold_sensitivity",
+          "repeats": 3,
+          "runtimeMedianMs": 3.600000001490116,
+          "runtimeMinMs": 3.2000000029802322,
+          "runtimeMaxMs": 4.199999995529652,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 1.1551599502563477,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 4.199999995529652,
+              "heapBeforeMB": 1.1551599502563477,
+              "heapAfterMB": 1.1551599502563477,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 3.2000000029802322,
+              "heapBeforeMB": 1.1551599502563477,
+              "heapAfterMB": 1.1551599502563477,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 3.600000001490116,
+              "heapBeforeMB": 1.1551599502563477,
+              "heapAfterMB": 2.550595283508301,
+              "heapDeltaMB": 1.3954353332519531,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "single_sample_wgs_review",
+          "useCase": "Single-sample WGS review",
+          "sequencing": "WGS",
+          "samples": 1,
+          "mutationsPerSample": 5000,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": 500,
+          "thresholds": "",
+          "ranks": "",
+          "operation": "bootstrap_one_sample",
+          "repeats": 3,
+          "runtimeMedianMs": 391.79999999701977,
+          "runtimeMinMs": 373.5,
+          "runtimeMaxMs": 470,
+          "heapDeltaMB": 2.292278289794922,
+          "heapAfterMB": 5.6819658279418945,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 470,
+              "heapBeforeMB": 2.550595283508301,
+              "heapAfterMB": 4.842873573303223,
+              "heapDeltaMB": 2.292278289794922,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 391.79999999701977,
+              "heapBeforeMB": 4.842873573303223,
+              "heapAfterMB": 5.6819658279418945,
+              "heapDeltaMB": 0.8390922546386719,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 373.5,
+              "heapBeforeMB": 5.6819658279418945,
+              "heapAfterMB": 8.928765296936035,
+              "heapDeltaMB": 3.2467994689941406,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "panel_wes_batch",
+          "useCase": "Small panel/WES batch",
+          "sequencing": "Panel/WES",
+          "samples": 24,
+          "mutationsPerSample": 80,
+          "contexts": 96,
+          "signatures": 12,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "validation_qc",
+          "repeats": 3,
+          "runtimeMedianMs": 0.8000000044703484,
+          "runtimeMinMs": 0.7000000029802322,
+          "runtimeMaxMs": 1,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 8.928765296936035,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 1,
+              "heapBeforeMB": 8.928765296936035,
+              "heapAfterMB": 8.928765296936035,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 0.8000000044703484,
+              "heapBeforeMB": 8.928765296936035,
+              "heapAfterMB": 8.928765296936035,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 0.7000000029802322,
+              "heapBeforeMB": 8.928765296936035,
+              "heapAfterMB": 8.928765296936035,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "panel_wes_batch",
+          "useCase": "Small panel/WES batch",
+          "sequencing": "Panel/WES",
+          "samples": 24,
+          "mutationsPerSample": 80,
+          "contexts": 96,
+          "signatures": 12,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "nnls_fit",
+          "repeats": 3,
+          "runtimeMedianMs": 0.8999999985098839,
+          "runtimeMinMs": 0.8999999985098839,
+          "runtimeMaxMs": 0.8999999985098839,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 8.928765296936035,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 0.8999999985098839,
+              "heapBeforeMB": 8.928765296936035,
+              "heapAfterMB": 8.928765296936035,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 0.8999999985098839,
+              "heapBeforeMB": 8.928765296936035,
+              "heapAfterMB": 8.928765296936035,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 0.8999999985098839,
+              "heapBeforeMB": 8.928765296936035,
+              "heapAfterMB": 8.928765296936035,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "panel_wes_batch",
+          "useCase": "Small panel/WES batch",
+          "sequencing": "Panel/WES",
+          "samples": 24,
+          "mutationsPerSample": 80,
+          "contexts": 96,
+          "signatures": 12,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "reconstruction_metrics",
+          "repeats": 3,
+          "runtimeMedianMs": 1.8000000044703484,
+          "runtimeMinMs": 1.3999999985098839,
+          "runtimeMaxMs": 1.8000000044703484,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 4.67830753326416,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 1.8000000044703484,
+              "heapBeforeMB": 8.928765296936035,
+              "heapAfterMB": 8.928765296936035,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 1.3999999985098839,
+              "heapBeforeMB": 4.67830753326416,
+              "heapAfterMB": 4.67830753326416,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 1.8000000044703484,
+              "heapBeforeMB": 4.67830753326416,
+              "heapAfterMB": 4.67830753326416,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "panel_wes_batch",
+          "useCase": "Small panel/WES batch",
+          "sequencing": "Panel/WES",
+          "samples": 24,
+          "mutationsPerSample": 80,
+          "contexts": 96,
+          "signatures": 12,
+          "iterations": "",
+          "thresholds": [
+            0,
+            0.01,
+            0.03,
+            0.05,
+            0.1
+          ],
+          "ranks": "",
+          "operation": "threshold_sensitivity",
+          "repeats": 3,
+          "runtimeMedianMs": 9,
+          "runtimeMinMs": 8.799999997019768,
+          "runtimeMaxMs": 9.5,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 4.67830753326416,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 9.5,
+              "heapBeforeMB": 4.67830753326416,
+              "heapAfterMB": 4.67830753326416,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 9,
+              "heapBeforeMB": 4.67830753326416,
+              "heapAfterMB": 4.67830753326416,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 8.799999997019768,
+              "heapBeforeMB": 4.67830753326416,
+              "heapAfterMB": 6.919262886047363,
+              "heapDeltaMB": 2.240955352783203,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "panel_wes_batch",
+          "useCase": "Small panel/WES batch",
+          "sequencing": "Panel/WES",
+          "samples": 24,
+          "mutationsPerSample": 80,
+          "contexts": 96,
+          "signatures": 12,
+          "iterations": 100,
+          "thresholds": "",
+          "ranks": "",
+          "operation": "bootstrap_one_sample",
+          "repeats": 3,
+          "runtimeMedianMs": 17,
+          "runtimeMinMs": 16.600000001490116,
+          "runtimeMaxMs": 17.200000002980232,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 6.919262886047363,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 17.200000002980232,
+              "heapBeforeMB": 6.919262886047363,
+              "heapAfterMB": 6.919262886047363,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 16.600000001490116,
+              "heapBeforeMB": 6.919262886047363,
+              "heapAfterMB": 6.919262886047363,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 17,
+              "heapBeforeMB": 6.919262886047363,
+              "heapAfterMB": 11.530091285705566,
+              "heapDeltaMB": 4.610828399658203,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "rare_cancer_cohort",
+          "useCase": "Rare-cancer cohort",
+          "sequencing": "WES/WGS",
+          "samples": 40,
+          "mutationsPerSample": 300,
+          "contexts": 96,
+          "signatures": 18,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "validation_qc",
+          "repeats": 3,
+          "runtimeMedianMs": 1.1000000014901161,
+          "runtimeMinMs": 1,
+          "runtimeMaxMs": 1.1000000014901161,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 11.530091285705566,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 1,
+              "heapBeforeMB": 11.530091285705566,
+              "heapAfterMB": 11.530091285705566,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 1.1000000014901161,
+              "heapBeforeMB": 11.530091285705566,
+              "heapAfterMB": 11.530091285705566,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 1.1000000014901161,
+              "heapBeforeMB": 11.530091285705566,
+              "heapAfterMB": 11.530091285705566,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "rare_cancer_cohort",
+          "useCase": "Rare-cancer cohort",
+          "sequencing": "WES/WGS",
+          "samples": 40,
+          "mutationsPerSample": 300,
+          "contexts": 96,
+          "signatures": 18,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "nnls_fit",
+          "repeats": 3,
+          "runtimeMedianMs": 3.100000001490116,
+          "runtimeMinMs": 3,
+          "runtimeMaxMs": 3.100000001490116,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 11.530091285705566,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 3.100000001490116,
+              "heapBeforeMB": 11.530091285705566,
+              "heapAfterMB": 11.530091285705566,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 3.100000001490116,
+              "heapBeforeMB": 11.530091285705566,
+              "heapAfterMB": 11.530091285705566,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 3,
+              "heapBeforeMB": 11.530091285705566,
+              "heapAfterMB": 11.530091285705566,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "rare_cancer_cohort",
+          "useCase": "Rare-cancer cohort",
+          "sequencing": "WES/WGS",
+          "samples": 40,
+          "mutationsPerSample": 300,
+          "contexts": 96,
+          "signatures": 18,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "reconstruction_metrics",
+          "repeats": 3,
+          "runtimeMedianMs": 2.899999998509884,
+          "runtimeMinMs": 2.5,
+          "runtimeMaxMs": 3.7000000029802322,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 8.53233814239502,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 2.899999998509884,
+              "heapBeforeMB": 8.53233814239502,
+              "heapAfterMB": 8.53233814239502,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 3.7000000029802322,
+              "heapBeforeMB": 8.53233814239502,
+              "heapAfterMB": 8.53233814239502,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 2.5,
+              "heapBeforeMB": 8.53233814239502,
+              "heapAfterMB": 8.53233814239502,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "rare_cancer_cohort",
+          "useCase": "Rare-cancer cohort",
+          "sequencing": "WES/WGS",
+          "samples": 40,
+          "mutationsPerSample": 300,
+          "contexts": 96,
+          "signatures": 18,
+          "iterations": "",
+          "thresholds": [
+            0,
+            0.01,
+            0.03,
+            0.05,
+            0.1
+          ],
+          "ranks": "",
+          "operation": "threshold_sensitivity",
+          "repeats": 3,
+          "runtimeMedianMs": 20.799999997019768,
+          "runtimeMinMs": 18.100000001490116,
+          "runtimeMaxMs": 22.899999998509884,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 4.578103065490723,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 22.899999998509884,
+              "heapBeforeMB": 8.53233814239502,
+              "heapAfterMB": 8.53233814239502,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 20.799999997019768,
+              "heapBeforeMB": 4.578103065490723,
+              "heapAfterMB": 4.578103065490723,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 18.100000001490116,
+              "heapBeforeMB": 4.578103065490723,
+              "heapAfterMB": 4.578103065490723,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "rare_cancer_cohort",
+          "useCase": "Rare-cancer cohort",
+          "sequencing": "WES/WGS",
+          "samples": 40,
+          "mutationsPerSample": 300,
+          "contexts": 96,
+          "signatures": 18,
+          "iterations": 100,
+          "thresholds": "",
+          "ranks": "",
+          "operation": "bootstrap_one_sample",
+          "repeats": 3,
+          "runtimeMedianMs": 26.899999998509884,
+          "runtimeMinMs": 26.899999998509884,
+          "runtimeMaxMs": 27,
+          "heapDeltaMB": 6.0128173828125,
+          "heapAfterMB": 10.590920448303223,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 26.899999998509884,
+              "heapBeforeMB": 4.578103065490723,
+              "heapAfterMB": 10.590920448303223,
+              "heapDeltaMB": 6.0128173828125,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 26.899999998509884,
+              "heapBeforeMB": 10.590920448303223,
+              "heapAfterMB": 10.590920448303223,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 27,
+              "heapBeforeMB": 10.590920448303223,
+              "heapAfterMB": 19.642003059387207,
+              "heapDeltaMB": 9.051082611083984,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "medium_research_cohort",
+          "useCase": "Medium research cohort",
+          "sequencing": "WGS/WES",
+          "samples": 120,
+          "mutationsPerSample": 1200,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "validation_qc",
+          "repeats": 3,
+          "runtimeMedianMs": 3.5999999940395355,
+          "runtimeMinMs": 3,
+          "runtimeMaxMs": 3.600000001490116,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 19.642003059387207,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 3,
+              "heapBeforeMB": 19.642003059387207,
+              "heapAfterMB": 19.642003059387207,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 3.600000001490116,
+              "heapBeforeMB": 19.642003059387207,
+              "heapAfterMB": 19.642003059387207,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 3.5999999940395355,
+              "heapBeforeMB": 19.642003059387207,
+              "heapAfterMB": 19.642003059387207,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "medium_research_cohort",
+          "useCase": "Medium research cohort",
+          "sequencing": "WGS/WES",
+          "samples": 120,
+          "mutationsPerSample": 1200,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "nnls_fit",
+          "repeats": 3,
+          "runtimeMedianMs": 24.19999999552965,
+          "runtimeMinMs": 22.700000002980232,
+          "runtimeMaxMs": 24.400000005960464,
+          "heapDeltaMB": -2.3036117553710938,
+          "heapAfterMB": 17.338391304016113,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 24.19999999552965,
+              "heapBeforeMB": 19.642003059387207,
+              "heapAfterMB": 17.338391304016113,
+              "heapDeltaMB": -2.3036117553710938,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 22.700000002980232,
+              "heapBeforeMB": 17.338391304016113,
+              "heapAfterMB": 17.338391304016113,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 24.400000005960464,
+              "heapBeforeMB": 17.338391304016113,
+              "heapAfterMB": 9.519131660461426,
+              "heapDeltaMB": -7.8192596435546875,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "medium_research_cohort",
+          "useCase": "Medium research cohort",
+          "sequencing": "WGS/WES",
+          "samples": 120,
+          "mutationsPerSample": 1200,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "reconstruction_metrics",
+          "repeats": 3,
+          "runtimeMedianMs": 16.100000001490116,
+          "runtimeMinMs": 15.800000004470348,
+          "runtimeMaxMs": 17.700000002980232,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 9.519131660461426,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 17.700000002980232,
+              "heapBeforeMB": 9.519131660461426,
+              "heapAfterMB": 9.519131660461426,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 16.100000001490116,
+              "heapBeforeMB": 9.519131660461426,
+              "heapAfterMB": 9.519131660461426,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 15.800000004470348,
+              "heapBeforeMB": 9.519131660461426,
+              "heapAfterMB": 16.306801795959473,
+              "heapDeltaMB": 6.787670135498047,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "medium_research_cohort",
+          "useCase": "Medium research cohort",
+          "sequencing": "WGS/WES",
+          "samples": 120,
+          "mutationsPerSample": 1200,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": "",
+          "thresholds": [
+            0,
+            0.01,
+            0.03,
+            0.05,
+            0.1
+          ],
+          "ranks": "",
+          "operation": "threshold_sensitivity",
+          "repeats": 3,
+          "runtimeMedianMs": 76.89999999850988,
+          "runtimeMinMs": 69.39999999850988,
+          "runtimeMaxMs": 86.40000000596046,
+          "heapDeltaMB": -1.7329864501953125,
+          "heapAfterMB": 26.05321979522705,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 86.40000000596046,
+              "heapBeforeMB": 16.306801795959473,
+              "heapAfterMB": 14.57381534576416,
+              "heapDeltaMB": -1.7329864501953125,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 76.89999999850988,
+              "heapBeforeMB": 14.57381534576416,
+              "heapAfterMB": 28.411553382873535,
+              "heapDeltaMB": 13.837738037109375,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 69.39999999850988,
+              "heapBeforeMB": 28.411553382873535,
+              "heapAfterMB": 26.05321979522705,
+              "heapDeltaMB": -2.3583335876464844,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "medium_research_cohort",
+          "useCase": "Medium research cohort",
+          "sequencing": "WGS/WES",
+          "samples": 120,
+          "mutationsPerSample": 1200,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": 100,
+          "thresholds": "",
+          "ranks": "",
+          "operation": "bootstrap_one_sample",
+          "repeats": 3,
+          "runtimeMedianMs": 47.100000001490116,
+          "runtimeMinMs": 46.20000000298023,
+          "runtimeMaxMs": 48.600000001490116,
+          "heapDeltaMB": -8.183494567871094,
+          "heapAfterMB": 17.869725227355957,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 46.20000000298023,
+              "heapBeforeMB": 26.05321979522705,
+              "heapAfterMB": 17.869725227355957,
+              "heapDeltaMB": -8.183494567871094,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 48.600000001490116,
+              "heapBeforeMB": 17.869725227355957,
+              "heapAfterMB": 9.54223346710205,
+              "heapDeltaMB": -8.327491760253906,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 47.100000001490116,
+              "heapBeforeMB": 9.54223346710205,
+              "heapAfterMB": 32.88342761993408,
+              "heapDeltaMB": 23.34119415283203,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "portal_review_cohort",
+          "useCase": "Portal-scale cohort review",
+          "sequencing": "WGS",
+          "samples": 300,
+          "mutationsPerSample": 1500,
+          "contexts": 96,
+          "signatures": 40,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "validation_qc",
+          "repeats": 3,
+          "runtimeMedianMs": 8.699999995529652,
+          "runtimeMinMs": 6.700000002980232,
+          "runtimeMaxMs": 9,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 6.993821144104004,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 8.699999995529652,
+              "heapBeforeMB": 32.88342761993408,
+              "heapAfterMB": 6.993821144104004,
+              "heapDeltaMB": -25.889606475830078,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 6.700000002980232,
+              "heapBeforeMB": 6.993821144104004,
+              "heapAfterMB": 6.993821144104004,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 9,
+              "heapBeforeMB": 6.993821144104004,
+              "heapAfterMB": 6.993821144104004,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "portal_review_cohort",
+          "useCase": "Portal-scale cohort review",
+          "sequencing": "WGS",
+          "samples": 300,
+          "mutationsPerSample": 1500,
+          "contexts": 96,
+          "signatures": 40,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "nnls_fit",
+          "repeats": 3,
+          "runtimeMedianMs": 298.8999999985099,
+          "runtimeMinMs": 294.19999999552965,
+          "runtimeMaxMs": 358.1000000014901,
+          "heapDeltaMB": 10.100994110107422,
+          "heapAfterMB": 24.773415565490723,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 294.19999999552965,
+              "heapBeforeMB": 6.993821144104004,
+              "heapAfterMB": 14.671826362609863,
+              "heapDeltaMB": 7.678005218505859,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 298.8999999985099,
+              "heapBeforeMB": 14.671826362609863,
+              "heapAfterMB": 24.773415565490723,
+              "heapDeltaMB": 10.10158920288086,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 358.1000000014901,
+              "heapBeforeMB": 24.773415565490723,
+              "heapAfterMB": 34.874409675598145,
+              "heapDeltaMB": 10.100994110107422,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "portal_review_cohort",
+          "useCase": "Portal-scale cohort review",
+          "sequencing": "WGS",
+          "samples": 300,
+          "mutationsPerSample": 1500,
+          "contexts": 96,
+          "signatures": 40,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "reconstruction_metrics",
+          "repeats": 3,
+          "runtimeMedianMs": 27.600000001490116,
+          "runtimeMinMs": 25.600000001490116,
+          "runtimeMaxMs": 33.70000000298023,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 25.356926918029785,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 25.600000001490116,
+              "heapBeforeMB": 34.874409675598145,
+              "heapAfterMB": 34.874409675598145,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 27.600000001490116,
+              "heapBeforeMB": 34.874409675598145,
+              "heapAfterMB": 25.356926918029785,
+              "heapDeltaMB": -9.51748275756836,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 33.70000000298023,
+              "heapBeforeMB": 25.356926918029785,
+              "heapAfterMB": 25.356926918029785,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "portal_review_cohort",
+          "useCase": "Portal-scale cohort review",
+          "sequencing": "WGS",
+          "samples": 300,
+          "mutationsPerSample": 1500,
+          "contexts": 96,
+          "signatures": 40,
+          "iterations": "",
+          "thresholds": [
+            0,
+            0.01,
+            0.03,
+            0.05,
+            0.1
+          ],
+          "ranks": "",
+          "operation": "threshold_sensitivity",
+          "repeats": 3,
+          "runtimeMedianMs": 443.70000000298023,
+          "runtimeMinMs": 424.3999999985099,
+          "runtimeMaxMs": 454.8999999985099,
+          "heapDeltaMB": 0.4977073669433594,
+          "heapAfterMB": 23.53727436065674,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 454.8999999985099,
+              "heapBeforeMB": 25.356926918029785,
+              "heapAfterMB": 23.031067848205566,
+              "heapDeltaMB": -2.3258590698242188,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 443.70000000298023,
+              "heapBeforeMB": 23.031067848205566,
+              "heapAfterMB": 23.53727436065674,
+              "heapDeltaMB": 0.5062065124511719,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 424.3999999985099,
+              "heapBeforeMB": 23.53727436065674,
+              "heapAfterMB": 24.034981727600098,
+              "heapDeltaMB": 0.4977073669433594,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "portal_review_cohort",
+          "useCase": "Portal-scale cohort review",
+          "sequencing": "WGS",
+          "samples": 300,
+          "mutationsPerSample": 1500,
+          "contexts": 96,
+          "signatures": 40,
+          "iterations": 100,
+          "thresholds": "",
+          "ranks": "",
+          "operation": "bootstrap_one_sample",
+          "repeats": 3,
+          "runtimeMedianMs": 124.70000000298023,
+          "runtimeMinMs": 123.5,
+          "runtimeMaxMs": 141.10000000149012,
+          "heapDeltaMB": -2.6536178588867188,
+          "heapAfterMB": 21.38136386871338,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 141.10000000149012,
+              "heapBeforeMB": 24.034981727600098,
+              "heapAfterMB": 21.38136386871338,
+              "heapDeltaMB": -2.6536178588867188,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 124.70000000298023,
+              "heapBeforeMB": 21.38136386871338,
+              "heapAfterMB": 10.845871925354004,
+              "heapDeltaMB": -10.535491943359375,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 123.5,
+              "heapBeforeMB": 10.845871925354004,
+              "heapAfterMB": 31.873024940490723,
+              "heapDeltaMB": 21.02715301513672,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "small_discovery_cohort",
+          "useCase": "Exploratory discovery cohort",
+          "sequencing": "WGS/WES",
+          "samples": 30,
+          "mutationsPerSample": 1200,
+          "contexts": 96,
+          "signatures": "",
+          "iterations": 75,
+          "thresholds": "",
+          "ranks": [
+            2,
+            3,
+            4
+          ],
+          "operation": "nmf_rank_selection",
+          "repeats": 3,
+          "runtimeMedianMs": 576,
+          "runtimeMinMs": 556.7000000029802,
+          "runtimeMaxMs": 611,
+          "heapDeltaMB": -4.744365692138672,
+          "heapAfterMB": 27.185124397277832,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 611,
+              "heapBeforeMB": 31.873024940490723,
+              "heapAfterMB": 31.929490089416504,
+              "heapDeltaMB": 0.05646514892578125,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 576,
+              "heapBeforeMB": 31.929490089416504,
+              "heapAfterMB": 27.185124397277832,
+              "heapDeltaMB": -4.744365692138672,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 556.7000000029802,
+              "heapBeforeMB": 27.185124397277832,
+              "heapAfterMB": 18.139622688293457,
+              "heapDeltaMB": -9.045501708984375,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "small_discovery_cohort",
+          "useCase": "Exploratory discovery cohort",
+          "sequencing": "WGS/WES",
+          "samples": 30,
+          "mutationsPerSample": 1200,
+          "contexts": 96,
+          "signatures": "",
+          "iterations": 75,
+          "thresholds": "",
+          "ranks": [
+            4
+          ],
+          "operation": "nmf_extract_recommended_rank",
+          "repeats": 3,
+          "runtimeMedianMs": 204.39999999850988,
+          "runtimeMinMs": 199.79999999701977,
+          "runtimeMaxMs": 204.80000000447035,
+          "heapDeltaMB": -12.089550018310547,
+          "heapAfterMB": 24.49777317047119,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 204.39999999850988,
+              "heapBeforeMB": 18.139622688293457,
+              "heapAfterMB": 36.58732318878174,
+              "heapDeltaMB": 18.44770050048828,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 204.80000000447035,
+              "heapBeforeMB": 36.58732318878174,
+              "heapAfterMB": 24.49777317047119,
+              "heapDeltaMB": -12.089550018310547,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 199.79999999701977,
+              "heapBeforeMB": 24.49777317047119,
+              "heapAfterMB": 10.918992042541504,
+              "heapDeltaMB": -13.578781127929688,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "medium_discovery_cohort",
+          "useCase": "Medium exploratory discovery cohort",
+          "sequencing": "WGS",
+          "samples": 80,
+          "mutationsPerSample": 1500,
+          "contexts": 96,
+          "signatures": "",
+          "iterations": 75,
+          "thresholds": "",
+          "ranks": [
+            2,
+            3,
+            4
+          ],
+          "operation": "nmf_rank_selection",
+          "repeats": 3,
+          "runtimeMedianMs": 2883.10000000149,
+          "runtimeMinMs": 2521.5,
+          "runtimeMaxMs": 2901,
+          "heapDeltaMB": -1.8707199096679688,
+          "heapAfterMB": 23.879612922668457,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 2521.5,
+              "heapBeforeMB": 10.918992042541504,
+              "heapAfterMB": 9.048272132873535,
+              "heapDeltaMB": -1.8707199096679688,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 2883.10000000149,
+              "heapBeforeMB": 9.048272132873535,
+              "heapAfterMB": 32.666165351867676,
+              "heapDeltaMB": 23.61789321899414,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 2901,
+              "heapBeforeMB": 32.666165351867676,
+              "heapAfterMB": 23.879612922668457,
+              "heapDeltaMB": -8.786552429199219,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "medium_discovery_cohort",
+          "useCase": "Medium exploratory discovery cohort",
+          "sequencing": "WGS",
+          "samples": 80,
+          "mutationsPerSample": 1500,
+          "contexts": 96,
+          "signatures": "",
+          "iterations": 75,
+          "thresholds": "",
+          "ranks": [
+            4
+          ],
+          "operation": "nmf_extract_recommended_rank",
+          "repeats": 3,
+          "runtimeMedianMs": 908.5999999940395,
+          "runtimeMinMs": 881.8999999985099,
+          "runtimeMaxMs": 954.1000000014901,
+          "heapDeltaMB": 2.467334747314453,
+          "heapAfterMB": 27.429749488830566,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 954.1000000014901,
+              "heapBeforeMB": 23.879612922668457,
+              "heapAfterMB": 26.34694766998291,
+              "heapDeltaMB": 2.467334747314453,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 881.8999999985099,
+              "heapBeforeMB": 26.34694766998291,
+              "heapAfterMB": 28.94069766998291,
+              "heapDeltaMB": 2.59375,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 908.5999999940395,
+              "heapBeforeMB": 28.94069766998291,
+              "heapAfterMB": 27.429749488830566,
+              "heapDeltaMB": -1.5109481811523438,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "panel_wes_batch",
+          "useCase": "Small panel/WES batch",
+          "sequencing": "Panel/WES",
+          "samples": 24,
+          "mutationsPerSample": 80,
+          "contexts": 96,
+          "signatures": 12,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "v03_analysis_advisor",
+          "repeats": 3,
+          "runtimeMedianMs": 3.100000001490116,
+          "runtimeMinMs": 2.899999998509884,
+          "runtimeMaxMs": 6.200000002980232,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 27.429749488830566,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 6.200000002980232,
+              "heapBeforeMB": 27.429749488830566,
+              "heapAfterMB": 27.429749488830566,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 3.100000001490116,
+              "heapBeforeMB": 27.429749488830566,
+              "heapAfterMB": 27.429749488830566,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 2.899999998509884,
+              "heapBeforeMB": 27.429749488830566,
+              "heapAfterMB": 27.429749488830566,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "panel_wes_batch",
+          "useCase": "Small panel/WES batch",
+          "sequencing": "Panel/WES",
+          "samples": 24,
+          "mutationsPerSample": 80,
+          "contexts": 96,
+          "signatures": 12,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "v03_fit_quality_evidence",
+          "repeats": 3,
+          "runtimeMedianMs": 9.5,
+          "runtimeMinMs": 9.099999994039536,
+          "runtimeMaxMs": 11.200000002980232,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 28.082947731018066,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 11.200000002980232,
+              "heapBeforeMB": 27.429749488830566,
+              "heapAfterMB": 27.429749488830566,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 9.099999994039536,
+              "heapBeforeMB": 28.082947731018066,
+              "heapAfterMB": 28.082947731018066,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 9.5,
+              "heapBeforeMB": 28.082947731018066,
+              "heapAfterMB": 28.082947731018066,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "panel_wes_batch",
+          "useCase": "Small panel/WES batch",
+          "sequencing": "Panel/WES",
+          "samples": 24,
+          "mutationsPerSample": 80,
+          "contexts": 96,
+          "signatures": 12,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "v03_restricted_assay_evidence",
+          "repeats": 3,
+          "runtimeMedianMs": 1.2999999970197678,
+          "runtimeMinMs": 1,
+          "runtimeMaxMs": 1.7999999970197678,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 28.082947731018066,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 1.7999999970197678,
+              "heapBeforeMB": 28.082947731018066,
+              "heapAfterMB": 28.082947731018066,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 1,
+              "heapBeforeMB": 28.082947731018066,
+              "heapAfterMB": 28.082947731018066,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 1.2999999970197678,
+              "heapBeforeMB": 28.082947731018066,
+              "heapAfterMB": 28.082947731018066,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "panel_wes_batch",
+          "useCase": "Small panel/WES batch",
+          "sequencing": "Panel/WES",
+          "samples": 24,
+          "mutationsPerSample": 80,
+          "contexts": 96,
+          "signatures": 12,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "v03_panel_workflow",
+          "repeats": 3,
+          "runtimeMedianMs": 21.600000001490116,
+          "runtimeMinMs": 21.400000005960464,
+          "runtimeMaxMs": 22.19999999552965,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 32.082825660705566,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 22.19999999552965,
+              "heapBeforeMB": 28.082947731018066,
+              "heapAfterMB": 32.082825660705566,
+              "heapDeltaMB": 3.9998779296875,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 21.600000001490116,
+              "heapBeforeMB": 32.082825660705566,
+              "heapAfterMB": 32.082825660705566,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 21.400000005960464,
+              "heapBeforeMB": 32.082825660705566,
+              "heapAfterMB": 22.458847999572754,
+              "heapDeltaMB": -9.623977661132812,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "rare_cancer_cohort",
+          "useCase": "Rare-cancer cohort",
+          "sequencing": "WES/WGS",
+          "samples": 40,
+          "mutationsPerSample": 300,
+          "contexts": 96,
+          "signatures": 18,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "v03_analysis_advisor",
+          "repeats": 3,
+          "runtimeMedianMs": 11.700000002980232,
+          "runtimeMinMs": 11.299999997019768,
+          "runtimeMaxMs": 14.399999998509884,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 22.458847999572754,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 11.299999997019768,
+              "heapBeforeMB": 22.458847999572754,
+              "heapAfterMB": 22.458847999572754,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 14.399999998509884,
+              "heapBeforeMB": 22.458847999572754,
+              "heapAfterMB": 22.458847999572754,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 11.700000002980232,
+              "heapBeforeMB": 22.458847999572754,
+              "heapAfterMB": 9.47695255279541,
+              "heapDeltaMB": -12.981895446777344,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "rare_cancer_cohort",
+          "useCase": "Rare-cancer cohort",
+          "sequencing": "WES/WGS",
+          "samples": 40,
+          "mutationsPerSample": 300,
+          "contexts": 96,
+          "signatures": 18,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "v03_fit_quality_evidence",
+          "repeats": 3,
+          "runtimeMedianMs": 21.30000000447035,
+          "runtimeMinMs": 19.700000002980232,
+          "runtimeMaxMs": 22.69999999552965,
+          "heapDeltaMB": 0,
+          "heapAfterMB": 35.88864994049072,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 22.69999999552965,
+              "heapBeforeMB": 9.47695255279541,
+              "heapAfterMB": 9.47695255279541,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 19.700000002980232,
+              "heapBeforeMB": 9.47695255279541,
+              "heapAfterMB": 35.88864994049072,
+              "heapDeltaMB": 26.411697387695312,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 21.30000000447035,
+              "heapBeforeMB": 35.88864994049072,
+              "heapAfterMB": 35.88864994049072,
+              "heapDeltaMB": 0,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "rare_cancer_cohort",
+          "useCase": "Rare-cancer cohort",
+          "sequencing": "WES/WGS",
+          "samples": 40,
+          "mutationsPerSample": 300,
+          "contexts": 96,
+          "signatures": 18,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "v03_cohort_fit_pipeline",
+          "repeats": 3,
+          "runtimeMedianMs": 49.20000000298023,
+          "runtimeMinMs": 46.100000001490116,
+          "runtimeMaxMs": 51.20000000298023,
+          "heapDeltaMB": -19.739940643310547,
+          "heapAfterMB": 16.148709297180176,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 51.20000000298023,
+              "heapBeforeMB": 35.88864994049072,
+              "heapAfterMB": 16.148709297180176,
+              "heapDeltaMB": -19.739940643310547,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 46.100000001490116,
+              "heapBeforeMB": 16.148709297180176,
+              "heapAfterMB": 27.94157123565674,
+              "heapDeltaMB": 11.792861938476562,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 49.20000000298023,
+              "heapBeforeMB": 27.94157123565674,
+              "heapAfterMB": 7.982357978820801,
+              "heapDeltaMB": -19.959213256835938,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "rare_cancer_cohort",
+          "useCase": "Rare-cancer cohort",
+          "sequencing": "WES/WGS",
+          "samples": 12,
+          "mutationsPerSample": 300,
+          "contexts": 96,
+          "signatures": 18,
+          "iterations": 75,
+          "thresholds": "",
+          "ranks": [
+            2
+          ],
+          "operation": "v03_subgroup_discovery",
+          "repeats": 3,
+          "runtimeMedianMs": 61.600000001490116,
+          "runtimeMinMs": 59.399999998509884,
+          "runtimeMaxMs": 77.20000000298023,
+          "heapDeltaMB": 6.471523284912109,
+          "heapAfterMB": 28.62239170074463,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 77.20000000298023,
+              "heapBeforeMB": 7.982357978820801,
+              "heapAfterMB": 28.62239170074463,
+              "heapDeltaMB": 20.640033721923828,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 61.600000001490116,
+              "heapBeforeMB": 28.62239170074463,
+              "heapAfterMB": 35.09391498565674,
+              "heapDeltaMB": 6.471523284912109,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 59.399999998509884,
+              "heapBeforeMB": 35.09391498565674,
+              "heapAfterMB": 12.2257661819458,
+              "heapDeltaMB": -22.868148803710938,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "medium_research_cohort",
+          "useCase": "Medium research cohort",
+          "sequencing": "WGS/WES",
+          "samples": 120,
+          "mutationsPerSample": 1200,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "v03_analysis_advisor",
+          "repeats": 3,
+          "runtimeMedianMs": 73.89999999850988,
+          "runtimeMinMs": 72.79999999701977,
+          "runtimeMaxMs": 75.39999999850988,
+          "heapDeltaMB": -0.174407958984375,
+          "heapAfterMB": 12.051358222961426,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 75.39999999850988,
+              "heapBeforeMB": 12.2257661819458,
+              "heapAfterMB": 12.051358222961426,
+              "heapDeltaMB": -0.174407958984375,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 73.89999999850988,
+              "heapBeforeMB": 12.051358222961426,
+              "heapAfterMB": 6.887677192687988,
+              "heapDeltaMB": -5.1636810302734375,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 72.79999999701977,
+              "heapBeforeMB": 6.887677192687988,
+              "heapAfterMB": 29.50085163116455,
+              "heapDeltaMB": 22.613174438476562,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "medium_research_cohort",
+          "useCase": "Medium research cohort",
+          "sequencing": "WGS/WES",
+          "samples": 120,
+          "mutationsPerSample": 1200,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "v03_fit_quality_evidence",
+          "repeats": 3,
+          "runtimeMedianMs": 61.30000000447035,
+          "runtimeMinMs": 59.5,
+          "runtimeMaxMs": 64.19999999552965,
+          "heapDeltaMB": 3.720478057861328,
+          "heapAfterMB": 16.38193988800049,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 64.19999999552965,
+              "heapBeforeMB": 29.50085163116455,
+              "heapAfterMB": 12.450181007385254,
+              "heapDeltaMB": -17.050670623779297,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 61.30000000447035,
+              "heapBeforeMB": 12.450181007385254,
+              "heapAfterMB": 16.38193988800049,
+              "heapDeltaMB": 3.9317588806152344,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 59.5,
+              "heapBeforeMB": 16.38193988800049,
+              "heapAfterMB": 20.102417945861816,
+              "heapDeltaMB": 3.720478057861328,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        },
+        {
+          "id": "medium_research_cohort",
+          "useCase": "Medium research cohort",
+          "sequencing": "WGS/WES",
+          "samples": 120,
+          "mutationsPerSample": 1200,
+          "contexts": 96,
+          "signatures": 24,
+          "iterations": "",
+          "thresholds": "",
+          "ranks": "",
+          "operation": "v03_cohort_fit_pipeline",
+          "repeats": 3,
+          "runtimeMedianMs": 253.70000000298023,
+          "runtimeMinMs": 252,
+          "runtimeMaxMs": 279.20000000298023,
+          "heapDeltaMB": 7.946430206298828,
+          "heapAfterMB": 21.82853412628174,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "runDetails": [
+            {
+              "runtimeMs": 279.20000000298023,
+              "heapBeforeMB": 20.102417945861816,
+              "heapAfterMB": 35.38892078399658,
+              "heapDeltaMB": 15.286502838134766,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 253.70000000298023,
+              "heapBeforeMB": 35.38892078399658,
+              "heapAfterMB": 13.88210391998291,
+              "heapDeltaMB": -21.506816864013672,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            },
+            {
+              "runtimeMs": 252,
+              "heapBeforeMB": 13.88210391998291,
+              "heapAfterMB": 21.82853412628174,
+              "heapDeltaMB": 7.946430206298828,
+              "memoryMethod": "performance.memory.usedJSHeapSize",
+              "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+            }
+          ]
+        }
+      ],
+      "status": "completed"
+    },
+    {
+      "browserVersion": "",
+      "executable": "firefox.exe",
+      "browser": "firefox",
+      "status": "launch_failed",
+      "error": "spawn firefox.exe ENOENT",
+      "rows": []
+    }
+  ],
+  "rows": [
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "single_sample_wgs_review",
+      "useCase": "Single-sample WGS review",
+      "sequencing": "WGS",
+      "samples": 1,
+      "mutationsPerSample": 5000,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "validation_qc",
+      "repeats": 3,
+      "runtimeMedianMs": 0.29999999701976776,
+      "runtimeMinMs": 0.29999999701976776,
+      "runtimeMaxMs": 1.1000000014901161,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 1.1551599502563477,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 1.1000000014901161,
+          "heapBeforeMB": 1.1551599502563477,
+          "heapAfterMB": 1.1551599502563477,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 0.29999999701976776,
+          "heapBeforeMB": 1.1551599502563477,
+          "heapAfterMB": 1.1551599502563477,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 0.29999999701976776,
+          "heapBeforeMB": 1.1551599502563477,
+          "heapAfterMB": 1.1551599502563477,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "single_sample_wgs_review",
+      "useCase": "Single-sample WGS review",
+      "sequencing": "WGS",
+      "samples": 1,
+      "mutationsPerSample": 5000,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "nnls_fit",
+      "repeats": 3,
+      "runtimeMedianMs": 1.2000000029802322,
+      "runtimeMinMs": 1.1000000014901161,
+      "runtimeMaxMs": 5.5,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 1.1551599502563477,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 5.5,
+          "heapBeforeMB": 1.1551599502563477,
+          "heapAfterMB": 1.1551599502563477,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 1.2000000029802322,
+          "heapBeforeMB": 1.1551599502563477,
+          "heapAfterMB": 1.1551599502563477,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 1.1000000014901161,
+          "heapBeforeMB": 1.1551599502563477,
+          "heapAfterMB": 1.1551599502563477,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "single_sample_wgs_review",
+      "useCase": "Single-sample WGS review",
+      "sequencing": "WGS",
+      "samples": 1,
+      "mutationsPerSample": 5000,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "reconstruction_metrics",
+      "repeats": 3,
+      "runtimeMedianMs": 1.1000000014901161,
+      "runtimeMinMs": 0.8999999985098839,
+      "runtimeMaxMs": 2.0999999940395355,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 1.1551599502563477,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 2.0999999940395355,
+          "heapBeforeMB": 1.1551599502563477,
+          "heapAfterMB": 1.1551599502563477,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 1.1000000014901161,
+          "heapBeforeMB": 1.1551599502563477,
+          "heapAfterMB": 1.1551599502563477,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 0.8999999985098839,
+          "heapBeforeMB": 1.1551599502563477,
+          "heapAfterMB": 1.1551599502563477,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "single_sample_wgs_review",
+      "useCase": "Single-sample WGS review",
+      "sequencing": "WGS",
+      "samples": 1,
+      "mutationsPerSample": 5000,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": "",
+      "thresholds": [
+        0,
+        0.01,
+        0.03,
+        0.05,
+        0.1
+      ],
+      "ranks": "",
+      "operation": "threshold_sensitivity",
+      "repeats": 3,
+      "runtimeMedianMs": 3.600000001490116,
+      "runtimeMinMs": 3.2000000029802322,
+      "runtimeMaxMs": 4.199999995529652,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 1.1551599502563477,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 4.199999995529652,
+          "heapBeforeMB": 1.1551599502563477,
+          "heapAfterMB": 1.1551599502563477,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 3.2000000029802322,
+          "heapBeforeMB": 1.1551599502563477,
+          "heapAfterMB": 1.1551599502563477,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 3.600000001490116,
+          "heapBeforeMB": 1.1551599502563477,
+          "heapAfterMB": 2.550595283508301,
+          "heapDeltaMB": 1.3954353332519531,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "single_sample_wgs_review",
+      "useCase": "Single-sample WGS review",
+      "sequencing": "WGS",
+      "samples": 1,
+      "mutationsPerSample": 5000,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": 500,
+      "thresholds": "",
+      "ranks": "",
+      "operation": "bootstrap_one_sample",
+      "repeats": 3,
+      "runtimeMedianMs": 391.79999999701977,
+      "runtimeMinMs": 373.5,
+      "runtimeMaxMs": 470,
+      "heapDeltaMB": 2.292278289794922,
+      "heapAfterMB": 5.6819658279418945,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 470,
+          "heapBeforeMB": 2.550595283508301,
+          "heapAfterMB": 4.842873573303223,
+          "heapDeltaMB": 2.292278289794922,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 391.79999999701977,
+          "heapBeforeMB": 4.842873573303223,
+          "heapAfterMB": 5.6819658279418945,
+          "heapDeltaMB": 0.8390922546386719,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 373.5,
+          "heapBeforeMB": 5.6819658279418945,
+          "heapAfterMB": 8.928765296936035,
+          "heapDeltaMB": 3.2467994689941406,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "panel_wes_batch",
+      "useCase": "Small panel/WES batch",
+      "sequencing": "Panel/WES",
+      "samples": 24,
+      "mutationsPerSample": 80,
+      "contexts": 96,
+      "signatures": 12,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "validation_qc",
+      "repeats": 3,
+      "runtimeMedianMs": 0.8000000044703484,
+      "runtimeMinMs": 0.7000000029802322,
+      "runtimeMaxMs": 1,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 8.928765296936035,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 1,
+          "heapBeforeMB": 8.928765296936035,
+          "heapAfterMB": 8.928765296936035,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 0.8000000044703484,
+          "heapBeforeMB": 8.928765296936035,
+          "heapAfterMB": 8.928765296936035,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 0.7000000029802322,
+          "heapBeforeMB": 8.928765296936035,
+          "heapAfterMB": 8.928765296936035,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "panel_wes_batch",
+      "useCase": "Small panel/WES batch",
+      "sequencing": "Panel/WES",
+      "samples": 24,
+      "mutationsPerSample": 80,
+      "contexts": 96,
+      "signatures": 12,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "nnls_fit",
+      "repeats": 3,
+      "runtimeMedianMs": 0.8999999985098839,
+      "runtimeMinMs": 0.8999999985098839,
+      "runtimeMaxMs": 0.8999999985098839,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 8.928765296936035,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 0.8999999985098839,
+          "heapBeforeMB": 8.928765296936035,
+          "heapAfterMB": 8.928765296936035,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 0.8999999985098839,
+          "heapBeforeMB": 8.928765296936035,
+          "heapAfterMB": 8.928765296936035,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 0.8999999985098839,
+          "heapBeforeMB": 8.928765296936035,
+          "heapAfterMB": 8.928765296936035,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "panel_wes_batch",
+      "useCase": "Small panel/WES batch",
+      "sequencing": "Panel/WES",
+      "samples": 24,
+      "mutationsPerSample": 80,
+      "contexts": 96,
+      "signatures": 12,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "reconstruction_metrics",
+      "repeats": 3,
+      "runtimeMedianMs": 1.8000000044703484,
+      "runtimeMinMs": 1.3999999985098839,
+      "runtimeMaxMs": 1.8000000044703484,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 4.67830753326416,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 1.8000000044703484,
+          "heapBeforeMB": 8.928765296936035,
+          "heapAfterMB": 8.928765296936035,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 1.3999999985098839,
+          "heapBeforeMB": 4.67830753326416,
+          "heapAfterMB": 4.67830753326416,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 1.8000000044703484,
+          "heapBeforeMB": 4.67830753326416,
+          "heapAfterMB": 4.67830753326416,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "panel_wes_batch",
+      "useCase": "Small panel/WES batch",
+      "sequencing": "Panel/WES",
+      "samples": 24,
+      "mutationsPerSample": 80,
+      "contexts": 96,
+      "signatures": 12,
+      "iterations": "",
+      "thresholds": [
+        0,
+        0.01,
+        0.03,
+        0.05,
+        0.1
+      ],
+      "ranks": "",
+      "operation": "threshold_sensitivity",
+      "repeats": 3,
+      "runtimeMedianMs": 9,
+      "runtimeMinMs": 8.799999997019768,
+      "runtimeMaxMs": 9.5,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 4.67830753326416,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 9.5,
+          "heapBeforeMB": 4.67830753326416,
+          "heapAfterMB": 4.67830753326416,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 9,
+          "heapBeforeMB": 4.67830753326416,
+          "heapAfterMB": 4.67830753326416,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 8.799999997019768,
+          "heapBeforeMB": 4.67830753326416,
+          "heapAfterMB": 6.919262886047363,
+          "heapDeltaMB": 2.240955352783203,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "panel_wes_batch",
+      "useCase": "Small panel/WES batch",
+      "sequencing": "Panel/WES",
+      "samples": 24,
+      "mutationsPerSample": 80,
+      "contexts": 96,
+      "signatures": 12,
+      "iterations": 100,
+      "thresholds": "",
+      "ranks": "",
+      "operation": "bootstrap_one_sample",
+      "repeats": 3,
+      "runtimeMedianMs": 17,
+      "runtimeMinMs": 16.600000001490116,
+      "runtimeMaxMs": 17.200000002980232,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 6.919262886047363,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 17.200000002980232,
+          "heapBeforeMB": 6.919262886047363,
+          "heapAfterMB": 6.919262886047363,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 16.600000001490116,
+          "heapBeforeMB": 6.919262886047363,
+          "heapAfterMB": 6.919262886047363,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 17,
+          "heapBeforeMB": 6.919262886047363,
+          "heapAfterMB": 11.530091285705566,
+          "heapDeltaMB": 4.610828399658203,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "rare_cancer_cohort",
+      "useCase": "Rare-cancer cohort",
+      "sequencing": "WES/WGS",
+      "samples": 40,
+      "mutationsPerSample": 300,
+      "contexts": 96,
+      "signatures": 18,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "validation_qc",
+      "repeats": 3,
+      "runtimeMedianMs": 1.1000000014901161,
+      "runtimeMinMs": 1,
+      "runtimeMaxMs": 1.1000000014901161,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 11.530091285705566,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 1,
+          "heapBeforeMB": 11.530091285705566,
+          "heapAfterMB": 11.530091285705566,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 1.1000000014901161,
+          "heapBeforeMB": 11.530091285705566,
+          "heapAfterMB": 11.530091285705566,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 1.1000000014901161,
+          "heapBeforeMB": 11.530091285705566,
+          "heapAfterMB": 11.530091285705566,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "rare_cancer_cohort",
+      "useCase": "Rare-cancer cohort",
+      "sequencing": "WES/WGS",
+      "samples": 40,
+      "mutationsPerSample": 300,
+      "contexts": 96,
+      "signatures": 18,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "nnls_fit",
+      "repeats": 3,
+      "runtimeMedianMs": 3.100000001490116,
+      "runtimeMinMs": 3,
+      "runtimeMaxMs": 3.100000001490116,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 11.530091285705566,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 3.100000001490116,
+          "heapBeforeMB": 11.530091285705566,
+          "heapAfterMB": 11.530091285705566,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 3.100000001490116,
+          "heapBeforeMB": 11.530091285705566,
+          "heapAfterMB": 11.530091285705566,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 3,
+          "heapBeforeMB": 11.530091285705566,
+          "heapAfterMB": 11.530091285705566,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "rare_cancer_cohort",
+      "useCase": "Rare-cancer cohort",
+      "sequencing": "WES/WGS",
+      "samples": 40,
+      "mutationsPerSample": 300,
+      "contexts": 96,
+      "signatures": 18,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "reconstruction_metrics",
+      "repeats": 3,
+      "runtimeMedianMs": 2.899999998509884,
+      "runtimeMinMs": 2.5,
+      "runtimeMaxMs": 3.7000000029802322,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 8.53233814239502,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 2.899999998509884,
+          "heapBeforeMB": 8.53233814239502,
+          "heapAfterMB": 8.53233814239502,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 3.7000000029802322,
+          "heapBeforeMB": 8.53233814239502,
+          "heapAfterMB": 8.53233814239502,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 2.5,
+          "heapBeforeMB": 8.53233814239502,
+          "heapAfterMB": 8.53233814239502,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "rare_cancer_cohort",
+      "useCase": "Rare-cancer cohort",
+      "sequencing": "WES/WGS",
+      "samples": 40,
+      "mutationsPerSample": 300,
+      "contexts": 96,
+      "signatures": 18,
+      "iterations": "",
+      "thresholds": [
+        0,
+        0.01,
+        0.03,
+        0.05,
+        0.1
+      ],
+      "ranks": "",
+      "operation": "threshold_sensitivity",
+      "repeats": 3,
+      "runtimeMedianMs": 20.799999997019768,
+      "runtimeMinMs": 18.100000001490116,
+      "runtimeMaxMs": 22.899999998509884,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 4.578103065490723,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 22.899999998509884,
+          "heapBeforeMB": 8.53233814239502,
+          "heapAfterMB": 8.53233814239502,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 20.799999997019768,
+          "heapBeforeMB": 4.578103065490723,
+          "heapAfterMB": 4.578103065490723,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 18.100000001490116,
+          "heapBeforeMB": 4.578103065490723,
+          "heapAfterMB": 4.578103065490723,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "rare_cancer_cohort",
+      "useCase": "Rare-cancer cohort",
+      "sequencing": "WES/WGS",
+      "samples": 40,
+      "mutationsPerSample": 300,
+      "contexts": 96,
+      "signatures": 18,
+      "iterations": 100,
+      "thresholds": "",
+      "ranks": "",
+      "operation": "bootstrap_one_sample",
+      "repeats": 3,
+      "runtimeMedianMs": 26.899999998509884,
+      "runtimeMinMs": 26.899999998509884,
+      "runtimeMaxMs": 27,
+      "heapDeltaMB": 6.0128173828125,
+      "heapAfterMB": 10.590920448303223,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 26.899999998509884,
+          "heapBeforeMB": 4.578103065490723,
+          "heapAfterMB": 10.590920448303223,
+          "heapDeltaMB": 6.0128173828125,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 26.899999998509884,
+          "heapBeforeMB": 10.590920448303223,
+          "heapAfterMB": 10.590920448303223,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 27,
+          "heapBeforeMB": 10.590920448303223,
+          "heapAfterMB": 19.642003059387207,
+          "heapDeltaMB": 9.051082611083984,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "medium_research_cohort",
+      "useCase": "Medium research cohort",
+      "sequencing": "WGS/WES",
+      "samples": 120,
+      "mutationsPerSample": 1200,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "validation_qc",
+      "repeats": 3,
+      "runtimeMedianMs": 3.5999999940395355,
+      "runtimeMinMs": 3,
+      "runtimeMaxMs": 3.600000001490116,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 19.642003059387207,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 3,
+          "heapBeforeMB": 19.642003059387207,
+          "heapAfterMB": 19.642003059387207,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 3.600000001490116,
+          "heapBeforeMB": 19.642003059387207,
+          "heapAfterMB": 19.642003059387207,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 3.5999999940395355,
+          "heapBeforeMB": 19.642003059387207,
+          "heapAfterMB": 19.642003059387207,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "medium_research_cohort",
+      "useCase": "Medium research cohort",
+      "sequencing": "WGS/WES",
+      "samples": 120,
+      "mutationsPerSample": 1200,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "nnls_fit",
+      "repeats": 3,
+      "runtimeMedianMs": 24.19999999552965,
+      "runtimeMinMs": 22.700000002980232,
+      "runtimeMaxMs": 24.400000005960464,
+      "heapDeltaMB": -2.3036117553710938,
+      "heapAfterMB": 17.338391304016113,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 24.19999999552965,
+          "heapBeforeMB": 19.642003059387207,
+          "heapAfterMB": 17.338391304016113,
+          "heapDeltaMB": -2.3036117553710938,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 22.700000002980232,
+          "heapBeforeMB": 17.338391304016113,
+          "heapAfterMB": 17.338391304016113,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 24.400000005960464,
+          "heapBeforeMB": 17.338391304016113,
+          "heapAfterMB": 9.519131660461426,
+          "heapDeltaMB": -7.8192596435546875,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "medium_research_cohort",
+      "useCase": "Medium research cohort",
+      "sequencing": "WGS/WES",
+      "samples": 120,
+      "mutationsPerSample": 1200,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "reconstruction_metrics",
+      "repeats": 3,
+      "runtimeMedianMs": 16.100000001490116,
+      "runtimeMinMs": 15.800000004470348,
+      "runtimeMaxMs": 17.700000002980232,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 9.519131660461426,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 17.700000002980232,
+          "heapBeforeMB": 9.519131660461426,
+          "heapAfterMB": 9.519131660461426,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 16.100000001490116,
+          "heapBeforeMB": 9.519131660461426,
+          "heapAfterMB": 9.519131660461426,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 15.800000004470348,
+          "heapBeforeMB": 9.519131660461426,
+          "heapAfterMB": 16.306801795959473,
+          "heapDeltaMB": 6.787670135498047,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "medium_research_cohort",
+      "useCase": "Medium research cohort",
+      "sequencing": "WGS/WES",
+      "samples": 120,
+      "mutationsPerSample": 1200,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": "",
+      "thresholds": [
+        0,
+        0.01,
+        0.03,
+        0.05,
+        0.1
+      ],
+      "ranks": "",
+      "operation": "threshold_sensitivity",
+      "repeats": 3,
+      "runtimeMedianMs": 76.89999999850988,
+      "runtimeMinMs": 69.39999999850988,
+      "runtimeMaxMs": 86.40000000596046,
+      "heapDeltaMB": -1.7329864501953125,
+      "heapAfterMB": 26.05321979522705,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 86.40000000596046,
+          "heapBeforeMB": 16.306801795959473,
+          "heapAfterMB": 14.57381534576416,
+          "heapDeltaMB": -1.7329864501953125,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 76.89999999850988,
+          "heapBeforeMB": 14.57381534576416,
+          "heapAfterMB": 28.411553382873535,
+          "heapDeltaMB": 13.837738037109375,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 69.39999999850988,
+          "heapBeforeMB": 28.411553382873535,
+          "heapAfterMB": 26.05321979522705,
+          "heapDeltaMB": -2.3583335876464844,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "medium_research_cohort",
+      "useCase": "Medium research cohort",
+      "sequencing": "WGS/WES",
+      "samples": 120,
+      "mutationsPerSample": 1200,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": 100,
+      "thresholds": "",
+      "ranks": "",
+      "operation": "bootstrap_one_sample",
+      "repeats": 3,
+      "runtimeMedianMs": 47.100000001490116,
+      "runtimeMinMs": 46.20000000298023,
+      "runtimeMaxMs": 48.600000001490116,
+      "heapDeltaMB": -8.183494567871094,
+      "heapAfterMB": 17.869725227355957,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 46.20000000298023,
+          "heapBeforeMB": 26.05321979522705,
+          "heapAfterMB": 17.869725227355957,
+          "heapDeltaMB": -8.183494567871094,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 48.600000001490116,
+          "heapBeforeMB": 17.869725227355957,
+          "heapAfterMB": 9.54223346710205,
+          "heapDeltaMB": -8.327491760253906,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 47.100000001490116,
+          "heapBeforeMB": 9.54223346710205,
+          "heapAfterMB": 32.88342761993408,
+          "heapDeltaMB": 23.34119415283203,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "portal_review_cohort",
+      "useCase": "Portal-scale cohort review",
+      "sequencing": "WGS",
+      "samples": 300,
+      "mutationsPerSample": 1500,
+      "contexts": 96,
+      "signatures": 40,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "validation_qc",
+      "repeats": 3,
+      "runtimeMedianMs": 8.699999995529652,
+      "runtimeMinMs": 6.700000002980232,
+      "runtimeMaxMs": 9,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 6.993821144104004,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 8.699999995529652,
+          "heapBeforeMB": 32.88342761993408,
+          "heapAfterMB": 6.993821144104004,
+          "heapDeltaMB": -25.889606475830078,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 6.700000002980232,
+          "heapBeforeMB": 6.993821144104004,
+          "heapAfterMB": 6.993821144104004,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 9,
+          "heapBeforeMB": 6.993821144104004,
+          "heapAfterMB": 6.993821144104004,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "portal_review_cohort",
+      "useCase": "Portal-scale cohort review",
+      "sequencing": "WGS",
+      "samples": 300,
+      "mutationsPerSample": 1500,
+      "contexts": 96,
+      "signatures": 40,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "nnls_fit",
+      "repeats": 3,
+      "runtimeMedianMs": 298.8999999985099,
+      "runtimeMinMs": 294.19999999552965,
+      "runtimeMaxMs": 358.1000000014901,
+      "heapDeltaMB": 10.100994110107422,
+      "heapAfterMB": 24.773415565490723,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 294.19999999552965,
+          "heapBeforeMB": 6.993821144104004,
+          "heapAfterMB": 14.671826362609863,
+          "heapDeltaMB": 7.678005218505859,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 298.8999999985099,
+          "heapBeforeMB": 14.671826362609863,
+          "heapAfterMB": 24.773415565490723,
+          "heapDeltaMB": 10.10158920288086,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 358.1000000014901,
+          "heapBeforeMB": 24.773415565490723,
+          "heapAfterMB": 34.874409675598145,
+          "heapDeltaMB": 10.100994110107422,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "portal_review_cohort",
+      "useCase": "Portal-scale cohort review",
+      "sequencing": "WGS",
+      "samples": 300,
+      "mutationsPerSample": 1500,
+      "contexts": 96,
+      "signatures": 40,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "reconstruction_metrics",
+      "repeats": 3,
+      "runtimeMedianMs": 27.600000001490116,
+      "runtimeMinMs": 25.600000001490116,
+      "runtimeMaxMs": 33.70000000298023,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 25.356926918029785,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 25.600000001490116,
+          "heapBeforeMB": 34.874409675598145,
+          "heapAfterMB": 34.874409675598145,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 27.600000001490116,
+          "heapBeforeMB": 34.874409675598145,
+          "heapAfterMB": 25.356926918029785,
+          "heapDeltaMB": -9.51748275756836,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 33.70000000298023,
+          "heapBeforeMB": 25.356926918029785,
+          "heapAfterMB": 25.356926918029785,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "portal_review_cohort",
+      "useCase": "Portal-scale cohort review",
+      "sequencing": "WGS",
+      "samples": 300,
+      "mutationsPerSample": 1500,
+      "contexts": 96,
+      "signatures": 40,
+      "iterations": "",
+      "thresholds": [
+        0,
+        0.01,
+        0.03,
+        0.05,
+        0.1
+      ],
+      "ranks": "",
+      "operation": "threshold_sensitivity",
+      "repeats": 3,
+      "runtimeMedianMs": 443.70000000298023,
+      "runtimeMinMs": 424.3999999985099,
+      "runtimeMaxMs": 454.8999999985099,
+      "heapDeltaMB": 0.4977073669433594,
+      "heapAfterMB": 23.53727436065674,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 454.8999999985099,
+          "heapBeforeMB": 25.356926918029785,
+          "heapAfterMB": 23.031067848205566,
+          "heapDeltaMB": -2.3258590698242188,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 443.70000000298023,
+          "heapBeforeMB": 23.031067848205566,
+          "heapAfterMB": 23.53727436065674,
+          "heapDeltaMB": 0.5062065124511719,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 424.3999999985099,
+          "heapBeforeMB": 23.53727436065674,
+          "heapAfterMB": 24.034981727600098,
+          "heapDeltaMB": 0.4977073669433594,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "portal_review_cohort",
+      "useCase": "Portal-scale cohort review",
+      "sequencing": "WGS",
+      "samples": 300,
+      "mutationsPerSample": 1500,
+      "contexts": 96,
+      "signatures": 40,
+      "iterations": 100,
+      "thresholds": "",
+      "ranks": "",
+      "operation": "bootstrap_one_sample",
+      "repeats": 3,
+      "runtimeMedianMs": 124.70000000298023,
+      "runtimeMinMs": 123.5,
+      "runtimeMaxMs": 141.10000000149012,
+      "heapDeltaMB": -2.6536178588867188,
+      "heapAfterMB": 21.38136386871338,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 141.10000000149012,
+          "heapBeforeMB": 24.034981727600098,
+          "heapAfterMB": 21.38136386871338,
+          "heapDeltaMB": -2.6536178588867188,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 124.70000000298023,
+          "heapBeforeMB": 21.38136386871338,
+          "heapAfterMB": 10.845871925354004,
+          "heapDeltaMB": -10.535491943359375,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 123.5,
+          "heapBeforeMB": 10.845871925354004,
+          "heapAfterMB": 31.873024940490723,
+          "heapDeltaMB": 21.02715301513672,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "small_discovery_cohort",
+      "useCase": "Exploratory discovery cohort",
+      "sequencing": "WGS/WES",
+      "samples": 30,
+      "mutationsPerSample": 1200,
+      "contexts": 96,
+      "signatures": "",
+      "iterations": 75,
+      "thresholds": "",
+      "ranks": [
+        2,
+        3,
+        4
+      ],
+      "operation": "nmf_rank_selection",
+      "repeats": 3,
+      "runtimeMedianMs": 576,
+      "runtimeMinMs": 556.7000000029802,
+      "runtimeMaxMs": 611,
+      "heapDeltaMB": -4.744365692138672,
+      "heapAfterMB": 27.185124397277832,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 611,
+          "heapBeforeMB": 31.873024940490723,
+          "heapAfterMB": 31.929490089416504,
+          "heapDeltaMB": 0.05646514892578125,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 576,
+          "heapBeforeMB": 31.929490089416504,
+          "heapAfterMB": 27.185124397277832,
+          "heapDeltaMB": -4.744365692138672,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 556.7000000029802,
+          "heapBeforeMB": 27.185124397277832,
+          "heapAfterMB": 18.139622688293457,
+          "heapDeltaMB": -9.045501708984375,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "small_discovery_cohort",
+      "useCase": "Exploratory discovery cohort",
+      "sequencing": "WGS/WES",
+      "samples": 30,
+      "mutationsPerSample": 1200,
+      "contexts": 96,
+      "signatures": "",
+      "iterations": 75,
+      "thresholds": "",
+      "ranks": [
+        4
+      ],
+      "operation": "nmf_extract_recommended_rank",
+      "repeats": 3,
+      "runtimeMedianMs": 204.39999999850988,
+      "runtimeMinMs": 199.79999999701977,
+      "runtimeMaxMs": 204.80000000447035,
+      "heapDeltaMB": -12.089550018310547,
+      "heapAfterMB": 24.49777317047119,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 204.39999999850988,
+          "heapBeforeMB": 18.139622688293457,
+          "heapAfterMB": 36.58732318878174,
+          "heapDeltaMB": 18.44770050048828,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 204.80000000447035,
+          "heapBeforeMB": 36.58732318878174,
+          "heapAfterMB": 24.49777317047119,
+          "heapDeltaMB": -12.089550018310547,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 199.79999999701977,
+          "heapBeforeMB": 24.49777317047119,
+          "heapAfterMB": 10.918992042541504,
+          "heapDeltaMB": -13.578781127929688,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "medium_discovery_cohort",
+      "useCase": "Medium exploratory discovery cohort",
+      "sequencing": "WGS",
+      "samples": 80,
+      "mutationsPerSample": 1500,
+      "contexts": 96,
+      "signatures": "",
+      "iterations": 75,
+      "thresholds": "",
+      "ranks": [
+        2,
+        3,
+        4
+      ],
+      "operation": "nmf_rank_selection",
+      "repeats": 3,
+      "runtimeMedianMs": 2883.10000000149,
+      "runtimeMinMs": 2521.5,
+      "runtimeMaxMs": 2901,
+      "heapDeltaMB": -1.8707199096679688,
+      "heapAfterMB": 23.879612922668457,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 2521.5,
+          "heapBeforeMB": 10.918992042541504,
+          "heapAfterMB": 9.048272132873535,
+          "heapDeltaMB": -1.8707199096679688,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 2883.10000000149,
+          "heapBeforeMB": 9.048272132873535,
+          "heapAfterMB": 32.666165351867676,
+          "heapDeltaMB": 23.61789321899414,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 2901,
+          "heapBeforeMB": 32.666165351867676,
+          "heapAfterMB": 23.879612922668457,
+          "heapDeltaMB": -8.786552429199219,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "medium_discovery_cohort",
+      "useCase": "Medium exploratory discovery cohort",
+      "sequencing": "WGS",
+      "samples": 80,
+      "mutationsPerSample": 1500,
+      "contexts": 96,
+      "signatures": "",
+      "iterations": 75,
+      "thresholds": "",
+      "ranks": [
+        4
+      ],
+      "operation": "nmf_extract_recommended_rank",
+      "repeats": 3,
+      "runtimeMedianMs": 908.5999999940395,
+      "runtimeMinMs": 881.8999999985099,
+      "runtimeMaxMs": 954.1000000014901,
+      "heapDeltaMB": 2.467334747314453,
+      "heapAfterMB": 27.429749488830566,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 954.1000000014901,
+          "heapBeforeMB": 23.879612922668457,
+          "heapAfterMB": 26.34694766998291,
+          "heapDeltaMB": 2.467334747314453,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 881.8999999985099,
+          "heapBeforeMB": 26.34694766998291,
+          "heapAfterMB": 28.94069766998291,
+          "heapDeltaMB": 2.59375,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 908.5999999940395,
+          "heapBeforeMB": 28.94069766998291,
+          "heapAfterMB": 27.429749488830566,
+          "heapDeltaMB": -1.5109481811523438,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "panel_wes_batch",
+      "useCase": "Small panel/WES batch",
+      "sequencing": "Panel/WES",
+      "samples": 24,
+      "mutationsPerSample": 80,
+      "contexts": 96,
+      "signatures": 12,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "v03_analysis_advisor",
+      "repeats": 3,
+      "runtimeMedianMs": 3.100000001490116,
+      "runtimeMinMs": 2.899999998509884,
+      "runtimeMaxMs": 6.200000002980232,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 27.429749488830566,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 6.200000002980232,
+          "heapBeforeMB": 27.429749488830566,
+          "heapAfterMB": 27.429749488830566,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 3.100000001490116,
+          "heapBeforeMB": 27.429749488830566,
+          "heapAfterMB": 27.429749488830566,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 2.899999998509884,
+          "heapBeforeMB": 27.429749488830566,
+          "heapAfterMB": 27.429749488830566,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "panel_wes_batch",
+      "useCase": "Small panel/WES batch",
+      "sequencing": "Panel/WES",
+      "samples": 24,
+      "mutationsPerSample": 80,
+      "contexts": 96,
+      "signatures": 12,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "v03_fit_quality_evidence",
+      "repeats": 3,
+      "runtimeMedianMs": 9.5,
+      "runtimeMinMs": 9.099999994039536,
+      "runtimeMaxMs": 11.200000002980232,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 28.082947731018066,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 11.200000002980232,
+          "heapBeforeMB": 27.429749488830566,
+          "heapAfterMB": 27.429749488830566,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 9.099999994039536,
+          "heapBeforeMB": 28.082947731018066,
+          "heapAfterMB": 28.082947731018066,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 9.5,
+          "heapBeforeMB": 28.082947731018066,
+          "heapAfterMB": 28.082947731018066,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "panel_wes_batch",
+      "useCase": "Small panel/WES batch",
+      "sequencing": "Panel/WES",
+      "samples": 24,
+      "mutationsPerSample": 80,
+      "contexts": 96,
+      "signatures": 12,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "v03_restricted_assay_evidence",
+      "repeats": 3,
+      "runtimeMedianMs": 1.2999999970197678,
+      "runtimeMinMs": 1,
+      "runtimeMaxMs": 1.7999999970197678,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 28.082947731018066,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 1.7999999970197678,
+          "heapBeforeMB": 28.082947731018066,
+          "heapAfterMB": 28.082947731018066,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 1,
+          "heapBeforeMB": 28.082947731018066,
+          "heapAfterMB": 28.082947731018066,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 1.2999999970197678,
+          "heapBeforeMB": 28.082947731018066,
+          "heapAfterMB": 28.082947731018066,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "panel_wes_batch",
+      "useCase": "Small panel/WES batch",
+      "sequencing": "Panel/WES",
+      "samples": 24,
+      "mutationsPerSample": 80,
+      "contexts": 96,
+      "signatures": 12,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "v03_panel_workflow",
+      "repeats": 3,
+      "runtimeMedianMs": 21.600000001490116,
+      "runtimeMinMs": 21.400000005960464,
+      "runtimeMaxMs": 22.19999999552965,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 32.082825660705566,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 22.19999999552965,
+          "heapBeforeMB": 28.082947731018066,
+          "heapAfterMB": 32.082825660705566,
+          "heapDeltaMB": 3.9998779296875,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 21.600000001490116,
+          "heapBeforeMB": 32.082825660705566,
+          "heapAfterMB": 32.082825660705566,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 21.400000005960464,
+          "heapBeforeMB": 32.082825660705566,
+          "heapAfterMB": 22.458847999572754,
+          "heapDeltaMB": -9.623977661132812,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "rare_cancer_cohort",
+      "useCase": "Rare-cancer cohort",
+      "sequencing": "WES/WGS",
+      "samples": 40,
+      "mutationsPerSample": 300,
+      "contexts": 96,
+      "signatures": 18,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "v03_analysis_advisor",
+      "repeats": 3,
+      "runtimeMedianMs": 11.700000002980232,
+      "runtimeMinMs": 11.299999997019768,
+      "runtimeMaxMs": 14.399999998509884,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 22.458847999572754,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 11.299999997019768,
+          "heapBeforeMB": 22.458847999572754,
+          "heapAfterMB": 22.458847999572754,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 14.399999998509884,
+          "heapBeforeMB": 22.458847999572754,
+          "heapAfterMB": 22.458847999572754,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 11.700000002980232,
+          "heapBeforeMB": 22.458847999572754,
+          "heapAfterMB": 9.47695255279541,
+          "heapDeltaMB": -12.981895446777344,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "rare_cancer_cohort",
+      "useCase": "Rare-cancer cohort",
+      "sequencing": "WES/WGS",
+      "samples": 40,
+      "mutationsPerSample": 300,
+      "contexts": 96,
+      "signatures": 18,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "v03_fit_quality_evidence",
+      "repeats": 3,
+      "runtimeMedianMs": 21.30000000447035,
+      "runtimeMinMs": 19.700000002980232,
+      "runtimeMaxMs": 22.69999999552965,
+      "heapDeltaMB": 0,
+      "heapAfterMB": 35.88864994049072,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 22.69999999552965,
+          "heapBeforeMB": 9.47695255279541,
+          "heapAfterMB": 9.47695255279541,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 19.700000002980232,
+          "heapBeforeMB": 9.47695255279541,
+          "heapAfterMB": 35.88864994049072,
+          "heapDeltaMB": 26.411697387695312,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 21.30000000447035,
+          "heapBeforeMB": 35.88864994049072,
+          "heapAfterMB": 35.88864994049072,
+          "heapDeltaMB": 0,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "rare_cancer_cohort",
+      "useCase": "Rare-cancer cohort",
+      "sequencing": "WES/WGS",
+      "samples": 40,
+      "mutationsPerSample": 300,
+      "contexts": 96,
+      "signatures": 18,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "v03_cohort_fit_pipeline",
+      "repeats": 3,
+      "runtimeMedianMs": 49.20000000298023,
+      "runtimeMinMs": 46.100000001490116,
+      "runtimeMaxMs": 51.20000000298023,
+      "heapDeltaMB": -19.739940643310547,
+      "heapAfterMB": 16.148709297180176,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 51.20000000298023,
+          "heapBeforeMB": 35.88864994049072,
+          "heapAfterMB": 16.148709297180176,
+          "heapDeltaMB": -19.739940643310547,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 46.100000001490116,
+          "heapBeforeMB": 16.148709297180176,
+          "heapAfterMB": 27.94157123565674,
+          "heapDeltaMB": 11.792861938476562,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 49.20000000298023,
+          "heapBeforeMB": 27.94157123565674,
+          "heapAfterMB": 7.982357978820801,
+          "heapDeltaMB": -19.959213256835938,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "rare_cancer_cohort",
+      "useCase": "Rare-cancer cohort",
+      "sequencing": "WES/WGS",
+      "samples": 12,
+      "mutationsPerSample": 300,
+      "contexts": 96,
+      "signatures": 18,
+      "iterations": 75,
+      "thresholds": "",
+      "ranks": [
+        2
+      ],
+      "operation": "v03_subgroup_discovery",
+      "repeats": 3,
+      "runtimeMedianMs": 61.600000001490116,
+      "runtimeMinMs": 59.399999998509884,
+      "runtimeMaxMs": 77.20000000298023,
+      "heapDeltaMB": 6.471523284912109,
+      "heapAfterMB": 28.62239170074463,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 77.20000000298023,
+          "heapBeforeMB": 7.982357978820801,
+          "heapAfterMB": 28.62239170074463,
+          "heapDeltaMB": 20.640033721923828,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 61.600000001490116,
+          "heapBeforeMB": 28.62239170074463,
+          "heapAfterMB": 35.09391498565674,
+          "heapDeltaMB": 6.471523284912109,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 59.399999998509884,
+          "heapBeforeMB": 35.09391498565674,
+          "heapAfterMB": 12.2257661819458,
+          "heapDeltaMB": -22.868148803710938,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "medium_research_cohort",
+      "useCase": "Medium research cohort",
+      "sequencing": "WGS/WES",
+      "samples": 120,
+      "mutationsPerSample": 1200,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "v03_analysis_advisor",
+      "repeats": 3,
+      "runtimeMedianMs": 73.89999999850988,
+      "runtimeMinMs": 72.79999999701977,
+      "runtimeMaxMs": 75.39999999850988,
+      "heapDeltaMB": -0.174407958984375,
+      "heapAfterMB": 12.051358222961426,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 75.39999999850988,
+          "heapBeforeMB": 12.2257661819458,
+          "heapAfterMB": 12.051358222961426,
+          "heapDeltaMB": -0.174407958984375,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 73.89999999850988,
+          "heapBeforeMB": 12.051358222961426,
+          "heapAfterMB": 6.887677192687988,
+          "heapDeltaMB": -5.1636810302734375,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 72.79999999701977,
+          "heapBeforeMB": 6.887677192687988,
+          "heapAfterMB": 29.50085163116455,
+          "heapDeltaMB": 22.613174438476562,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "medium_research_cohort",
+      "useCase": "Medium research cohort",
+      "sequencing": "WGS/WES",
+      "samples": 120,
+      "mutationsPerSample": 1200,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "v03_fit_quality_evidence",
+      "repeats": 3,
+      "runtimeMedianMs": 61.30000000447035,
+      "runtimeMinMs": 59.5,
+      "runtimeMaxMs": 64.19999999552965,
+      "heapDeltaMB": 3.720478057861328,
+      "heapAfterMB": 16.38193988800049,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 64.19999999552965,
+          "heapBeforeMB": 29.50085163116455,
+          "heapAfterMB": 12.450181007385254,
+          "heapDeltaMB": -17.050670623779297,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 61.30000000447035,
+          "heapBeforeMB": 12.450181007385254,
+          "heapAfterMB": 16.38193988800049,
+          "heapDeltaMB": 3.9317588806152344,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 59.5,
+          "heapBeforeMB": 16.38193988800049,
+          "heapAfterMB": 20.102417945861816,
+          "heapDeltaMB": 3.720478057861328,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    },
+    {
+      "browser": "chrome",
+      "browserVersion": "148.0.7778.167",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+      "status": "completed",
+      "id": "medium_research_cohort",
+      "useCase": "Medium research cohort",
+      "sequencing": "WGS/WES",
+      "samples": 120,
+      "mutationsPerSample": 1200,
+      "contexts": 96,
+      "signatures": 24,
+      "iterations": "",
+      "thresholds": "",
+      "ranks": "",
+      "operation": "v03_cohort_fit_pipeline",
+      "repeats": 3,
+      "runtimeMedianMs": 253.70000000298023,
+      "runtimeMinMs": 252,
+      "runtimeMaxMs": 279.20000000298023,
+      "heapDeltaMB": 7.946430206298828,
+      "heapAfterMB": 21.82853412628174,
+      "memoryMethod": "performance.memory.usedJSHeapSize",
+      "runDetails": [
+        {
+          "runtimeMs": 279.20000000298023,
+          "heapBeforeMB": 20.102417945861816,
+          "heapAfterMB": 35.38892078399658,
+          "heapDeltaMB": 15.286502838134766,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 253.70000000298023,
+          "heapBeforeMB": 35.38892078399658,
+          "heapAfterMB": 13.88210391998291,
+          "heapDeltaMB": -21.506816864013672,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        },
+        {
+          "runtimeMs": 252,
+          "heapBeforeMB": 13.88210391998291,
+          "heapAfterMB": 21.82853412628174,
+          "heapDeltaMB": 7.946430206298828,
+          "memoryMethod": "performance.memory.usedJSHeapSize",
+          "memoryBeforeMethod": "performance.memory.usedJSHeapSize"
+        }
+      ]
+    }
+  ]
+}

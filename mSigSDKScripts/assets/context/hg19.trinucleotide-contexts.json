@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "msig.trinucleotide-context-table.v0.3",
+  "genomeBuild": "hg19",
+  "referenceName": "GRCh37/hg19",
+  "coordinateSystem": "1-based inclusive variant positions",
+  "source": "UCSC Genome Browser API getData/sequence",
+  "generatedAt": "2026-05-14",
+  "coverage": "sparse smoke-test loci; pass a custom contextLookupTable for production offline MAF conversion",
+  "lookup": {
+    "1:1000000": {
+      "sequence": "GTG",
+      "chromosome": "1",
+      "position": 1000000,
+      "apiGenome": "hg19"
+    }
+  }
+}

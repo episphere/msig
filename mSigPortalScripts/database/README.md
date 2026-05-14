@@ -1,25 +1,23 @@
-# mSigPortal Database
+# mSigPortal Database Reference
 
-## Getting Started
+This folder documents the legacy mSigPortal database import layout. It is retained for portal-maintenance context and is not required for mSigSDK browser notebooks, manuscript benchmarks, or report-generation workflows.
 
-### Importing Data
-1. Ensure config.json exists and specifies a Postgres database configuration and s3 bucket/key prefix
-2. If starting from a clean database, run the createDatabase.js script
- - node createDatabase.js --schema schema.js
-3. Sync the msigportal Database/ folder from the s3 folder to a local folder (eg: data/)
-4. Copy over the scripts in the utils/ folder to the data folder
+## Import Workflow
+
+1. Ensure `config.json` exists and specifies a Postgres database configuration and S3 bucket/key prefix.
+2. If starting from a clean database, run `node createDatabase.js --schema schema.js`.
+3. Sync the mSigPortal `Database/` folder from S3 to a local folder such as `data/`.
+4. Copy the scripts in `utils/` to the data folder.
 5. Run the following scripts:
- - exportCombinedDatasets.sh
- - exportEtiology.sh
- - exportPublications.sh
-6. Sync the local Data folder to the s3 Database/ folder
+   - `exportCombinedDatasets.sh`
+   - `exportEtiology.sh`
+   - `exportPublications.sh`
+6. Sync the local `Data/` folder to the S3 `Database/` folder.
 7. Execute the startDatabaseImport.js script with the following arguments:
- - node startDatabaseImport.js --schema schema.js --sources sources.js --provider s3 s3://bucket-name/msigportal/Database
- - Optionally, we can execute the database import using local files:
- - node startDatabaseImport.js --schema schema.js --sources sources.js --provider local path/to/data/folder
+   - `node startDatabaseImport.js --schema schema.js --sources sources.js --provider s3 s3://bucket-name/msigportal/Database`
+   - Local-file alternative: `node startDatabaseImport.js --schema schema.js --sources sources.js --provider local path/to/data/folder`
 
-Notes:
-1. Sequencing Strategy/Dataset are used interchangably (eg: WES, WGS, etc)
+Note: sequencing strategy and dataset labels are used interchangeably in some source files, for example `WES` and `WGS`.
 
 ## Association
 

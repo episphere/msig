@@ -3,28 +3,54 @@
   <title>mSigSDK known-signature QC</title>
 
   <script type="text/markdown">
-    # Known-signature QC
+    # Known-signature fitting and QC
 
-    This notebook focuses on the standard quality-control loop for known-signature fitting: load real mSigPortal spectra, choose a small reference set, fit exposures with non-negative least squares, then inspect mutation burden, reconstruction quality, and residual spectra.
+    Use this notebook first if you are new to mSigSDK. It demonstrates the complete known-signature fitting workflow: import the SDK, define an SBS96 analysis, load count-scale public spectra and COSMIC reference signatures, reshape the API rows into SDK matrices, validate inputs, fit exposures, and inspect QC plots.
 
-    This is the fastest notebook to open when you are working on the core QC plotting functions.
+    To reuse the pattern with your own data, replace the mSigPortal spectrum-loading block with a JavaScript object whose keys are sample names and whose values are mutation-context counts. Keep the same validation, fitting, and QC cells so you can catch missing contexts, low burden, and poor reconstruction before interpreting exposures.
   </script>
 
   <script type="module" pinned id="1">
-    const qcSdkUrl = "http://127.0.0.1:8080/main.js?v=2026-05-11-focused-qc";
+    const qcSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-qc", location.href).href;
     const { mSigSDK } = await import(qcSdkUrl);
+    const {
+      burdenSampleRows,
+      details,
+      exposureRows,
+      formatNumber,
+      metrics,
+      reconstructionRows,
+      table,
+    } = mSigSDK.presentation;
 
-    display({
-      importedFrom: qcSdkUrl,
-      name: mSigSDK.name,
-      version: mSigSDK.version,
-    });
+    display(metrics([
+      { label: "SDK", value: mSigSDK.name },
+      { label: "Version", value: mSigSDK.version },
+      { label: "Import target", value: "../main.js" },
+      { label: "Workflow", value: "Known signatures" },
+    ]));
+    display(table(
+      [
+        { namespace: "mSigPortal", role: "Fetch public example spectra and signatures" },
+        { namespace: "validation", role: "Check matrix shape and missing contexts" },
+        { namespace: "signatureFitting", role: "Estimate relative signature exposures" },
+        { namespace: "qc", role: "Create burden, reconstruction, and residual objects" },
+        { namespace: "qcPlots", role: "Render reviewer-facing QC figures" },
+        { namespace: "presentation", role: "Create reusable metrics, tables, and object summaries" },
+      ],
+      [
+        { key: "namespace", label: "SDK namespace" },
+        { key: "role", label: "Used here for" },
+      ]
+    ));
   </script>
 
   <script type="text/markdown">
-    ## Settings and Real Data
+    ## 1. Choose the profile, example data, and fitting parameters
 
-    Change `qcMutationBurdenThreshold` to the burden cutoff you want to test. The threshold is passed directly into validation and the burden plot, so the visual marker and QC flags stay synchronized.
+    The first analysis decision is the mutation matrix. Here we use SBS96, so `getExpectedContexts` returns the 96 trinucleotide contexts used to check spectra and signatures. The mSigPortal calls fetch specific PCAWG WGS Lung-AdenoCA samples with real mutation counts, including high-burden and low-burden examples so the QC flags are visible. In your own project, replace `qcExampleSampleNames` with your local sample IDs or replace the fetch with your own spectra object.
+
+    Edit `qcSampleLimit`, `qcMutationBurdenThreshold`, or `qcPreferredSignatureNames`, then press Run notebook to see how the analysis changes.
   </script>
 
   <script type="module" pinned id="2">
@@ -38,8 +64,18 @@
     const qcMutationType = "SBS";
     const qcMatrixSize = 96;
     const qcSignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
-    const qcSampleLimit = 8;
-    const qcMutationBurdenThreshold = 100;
+    const qcExampleSampleNames = [
+      "SP53810",
+      "SP55142",
+      "SP55235",
+      "SP54113",
+      "SP50611",
+      "SP50592",
+      "SP50406",
+      "SP55004",
+    ];
+    const qcSampleLimit = qcExampleSampleNames.length;
+    const qcMutationBurdenThreshold = 5000;
     const qcExposureThreshold = 0.01;
     const qcPreferredSignatureNames = [
       "SBS1",
@@ -56,7 +92,7 @@
     const [qcRawSpectrumRows, qcRawSignatureRows] = await Promise.all([
       mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
         qcStudy,
-        null,
+        qcExampleSampleNames,
         qcGenomeDataType,
         qcCancerType,
         qcMutationType,
@@ -87,12 +123,20 @@
 
     const qcAllBurden = mSigSDK.qc.summarizeMutationBurden(qcAllGroupedSpectra, {
       expectedContexts: qcContexts,
+      lowBurdenThresholdMode: "fixed",
+      lowBurdenThreshold: qcMutationBurdenThreshold,
     });
-    const qcSelectedSampleNames = qcAllBurden.samples
-      .filter((sample) => sample.totalMutations > 0)
-      .sort((a, b) => b.totalMutations - a.totalMutations)
-      .slice(0, qcSampleLimit)
-      .map((sample) => sample.sample);
+    const qcSelectedBurdenSamples = mSigSDK.qc.selectSamplesByMutationBurden(
+      qcAllBurden,
+      {
+        sampleNames: qcExampleSampleNames,
+        minTotalMutations: 1,
+        limit: qcSampleLimit,
+      }
+    );
+    const qcSelectedSampleNames = qcSelectedBurdenSamples.map(
+      (sample) => sample.sample
+    );
     const qcGroupedSpectra = Object.fromEntries(
       qcSelectedSampleNames.map((sample) => [sample, qcAllGroupedSpectra[sample]])
     );
@@ -111,20 +155,36 @@
       ])
     );
 
-    display({
-      study: qcStudy,
-      cancerType: qcCancerType,
-      samples: qcSelectedSampleNames,
-      signatures: qcSelectedSignatureNames,
-      mutationBurdenThreshold: qcMutationBurdenThreshold,
-      exposureThreshold: qcExposureThreshold,
-    });
+    display(metrics([
+      { label: "Study", value: qcStudy },
+      { label: "Cancer type", value: qcCancerType },
+      { label: "Samples selected", value: qcSelectedSampleNames.length },
+      { label: "Reference signatures", value: qcSelectedSignatureNames.length },
+      { label: "Burden cutoff", value: qcMutationBurdenThreshold },
+      {
+        label: "Low-burden samples",
+        value: qcSelectedBurdenSamples.filter(
+          (sample) => sample.totalMutations < qcMutationBurdenThreshold
+        ).length,
+      },
+      { label: "Exposure floor", value: qcExposureThreshold },
+    ]));
+    display(table(
+      burdenSampleRows(qcAllBurden, qcSelectedSampleNames),
+      [
+        { key: "sample", label: "Selected sample" },
+        { key: "mutations", label: "Total mutations" },
+        { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
+        { key: "lowBurden", label: "Low burden flag" },
+      ],
+      { maxRows: 8 }
+    ));
   </script>
 
   <script type="text/markdown">
-    ## Validate, Fit, and Build QC Objects
+    ## 2. Validate, fit, and build QC objects
 
-    Validation checks the matrix contract before fitting. The fitting call then estimates relative exposures, and the QC calls generate the objects used by the plots below.
+    Validation is not optional boilerplate. It confirms that spectra and signatures share the expected contexts before fitting. The fitting call estimates relative exposures, and the QC functions return plain JavaScript objects that can be inspected, saved, or passed into plotting functions.
   </script>
 
   <script type="module" pinned id="3">
@@ -171,19 +231,47 @@
         .sort((a, b) => a.cosineSimilarity - b.cosineSimilarity)[0]?.sample ||
       qcSelectedSampleNames[0];
 
-    display({
-      spectraValid: qcSpectraValidation.valid,
-      signaturesValid: qcSignatureValidation.valid,
-      burden: qcBurden.overall,
-      residualSample: qcResidualSample,
-      reconstruction: qcReconstruction.samples,
+    const qcExposureRows = exposureRows(qcExposures, {
+      minExposure: 0,
+      topN: 10,
     });
+
+    display(metrics([
+      { label: "Spectra validation", value: qcSpectraValidation.valid ? "Pass" : "Review" },
+      { label: "Signature validation", value: qcSignatureValidation.valid ? "Pass" : "Review" },
+      { label: "Total mutations", value: formatNumber(qcBurden.overall.totalMutations) },
+      { label: "Residual sample", value: qcResidualSample },
+    ]));
+    display(table(
+      reconstructionRows(qcReconstruction),
+      [
+        { key: "sample", label: "Sample" },
+        { key: "cosineSimilarity", label: "Cosine similarity" },
+        { key: "rmse", label: "RMSE" },
+        { key: "normalizationMode", label: "Residual scale" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(table(
+      qcExposureRows,
+      [
+        { key: "sample", label: "Sample" },
+        { key: "signature", label: "Signature" },
+        { key: "exposure", label: "Relative exposure" },
+      ],
+      { maxRows: 10 }
+    ));
+    display(details("Validation and reconstruction objects", {
+      spectraValidation: qcSpectraValidation,
+      signatureValidation: qcSignatureValidation,
+      reconstruction: qcReconstruction,
+    }));
   </script>
 
   <script type="text/markdown">
-    ## Mutation Burden
+    ## 3. Check mutation burden
 
-    Samples below the dashed threshold marker are flagged as lower burden. This is a screening step, not a biological conclusion by itself.
+    Mutation burden affects how much information is available for fitting. Samples below the threshold marker should be interpreted cautiously, especially for weak or rare signatures. In your own workflow, set this threshold from your study design or assay characteristics rather than treating this example value as universal.
   </script>
 
   <script type="module" pinned id="4">
@@ -194,9 +282,9 @@
   </script>
 
   <script type="text/markdown">
-    ## Reconstruction Quality
+    ## 4. Inspect reconstruction quality
 
-    Cosine similarity measures profile-shape agreement; RMSE measures residual magnitude. Researchers usually inspect both.
+    Cosine similarity measures profile-shape agreement; RMSE measures residual magnitude on the relative-profile scale used for fitting. Inspect both because a fit can have good shape agreement while still leaving systematic residuals in specific mutation contexts. Use the mutation-burden table above for count totals.
   </script>
 
   <script type="module" pinned id="5">
@@ -210,9 +298,9 @@
   </script>
 
   <script type="text/markdown">
-    ## Residual Spectrum
+    ## 5. Inspect residual spectra
 
-    This uses the established mSigPortal SBS96 comparison plot. Positive residuals are underfit contexts; negative residuals are overfit contexts.
+    Residual plots show where the fitted signature mixture does not reconstruct the observed spectrum. Positive residuals are underfit contexts; negative residuals are overfit contexts. This is often where you identify missing reference signatures, context-specific artifacts, or samples that need a different analysis strategy.
   </script>
 
   <script type="module" pinned id="6">

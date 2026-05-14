@@ -1,28 +1,7 @@
-# Manuscript Figure Drafts
+# Manuscript Figures
 
-Generated SVG drafts for the revised mSigSDK software paper.
+This folder contains the central manuscript graphical abstract.
 
-## Files
+- `figure1-graphical-abstract.svg`: vector graphical abstract showing the mSigSDK contribution: public mSigPortal API access, local review of imported spectra in the client runtime, and reusable outputs for portals, notebooks, static review pages, and manuscript assets.
 
-- `figure1-architecture.svg`: SDK architecture, workflow layers, and browser privacy boundary.
-- `figure2-qc-dashboard.svg`: known-signature fitting QC and uncertainty dashboard.
-- `figure3-nmf-extraction.svg`: exploratory browser-side NMF workflow, rank diagnostics, extracted profiles, matching, and exposures.
-- `figure4-benchmark-low-burden.svg`: runtime scaling and controlled low-burden stress test.
-
-## Regenerate
-
-```bash
-npm run figures:manuscript
-```
-
-The generator is `scripts/generate-manuscript-figures.mjs`.
-
-## Notes For Manuscript Use
-
-- These are editable vector drafts intended for figure planning and manuscript revision.
-- Figure 1 is conceptual and can likely be used directly after visual polish and journal sizing.
-- Figures 2 and 3 use representative values to show the proposed visual structure. Before final submission, replace those values with the final example analysis, benchmark, or notebook-derived data that the manuscript reports.
-- Figure 4 combines generated benchmark results from `docs/manuscript/benchmark-results.json` with a controlled low-burden stress test from `docs/manuscript/low-burden-stress-test.json`.
-- The mutational spectrum panels intentionally mimic the familiar SBS96/COSMIC color grammar rather than inventing a new profile display.
-- Keep the figure captions synchronized with `docs/manuscript/REVISION_PACKAGE.md`.
-
+Analytic figure pages and screenshots are stored in `docs/manuscript/actual-figure-pages/`.

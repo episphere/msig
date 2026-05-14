@@ -1,1 +1,12 @@
-*.md
+node_modules/
+out/
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+docs/manuscript/experiments/*/data/sigprofilerassignment_output/
+*.log
+*.tmp
+.env

@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://episphere.github.io/msig/schemas/msig.report.v0.3/report.schema.json",
+  "title": "mSigSDK analysis report",
+  "description": "Structured report object returned by reports.createAnalysisReport in mSigSDK v0.3.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "title",
+    "summary",
+    "generatedAt",
+    "parameters",
+    "primaryInterpretationFields",
+    "reproducibilityStatement",
+    "citations",
+    "notes"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": {
+      "const": "msig.report.v0.3"
+    },
+    "title": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "workflowRole": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "scopeStatement": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "methodBasis": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "primaryInterpretationFields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reproducibilityStatement": {
+      "type": "string"
+    },
+    "parameters": {
+      "type": "object"
+    },
+    "validation": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "qc": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "signatures": {
+      "type": [
+        "object",
+        "string",
+        "number",
+        "boolean",
+        "null"
+      ]
+    },
+    "exposures": {
+      "type": [
+        "object",
+        "string",
+        "number",
+        "boolean",
+        "null"
+      ]
+    },
+    "extraction": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "provenance": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "citations": {
+      "type": "array",
+      "items": {
+        "type": [
+          "object",
+          "string"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "citation": {
+            "type": "string"
+          },
+          "doi": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

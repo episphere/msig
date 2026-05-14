@@ -1,0 +1,7 @@
+comparison_element,result,interpretation
+Input spectra and catalog,38 cached PCAWG Lung-AdenoCA WGS SBS96 spectra; 9 selected COSMIC SBS96 signatures.,The comparison used every cached spectrum available in the manuscript snapshot and the same selected catalog as the refitting example.
+Exposure agreement,Mean cosine 0.997; median 0.998; minimum 0.988.,The two tools produced similar exposure vectors for most samples under matched inputs and cutoffs.
+Independent NNLS solver check,Mean cosine 1.000; minimum 1.000; maximum absolute exposure difference 4.79e-10.,mSigSDK matched an independent nonnegative least-squares implementation to numerical precision.
+Mean absolute exposure difference,Mean 0.008; median 0.008.,"The remaining deconstructSigs differences reflect its normalized-weight iterative fitting and signature-screening procedure, especially among exchangeable signatures."
+Reconstruction agreement,Mean reconstruction cosine 0.982 for mSigSDK and 0.982 for deconstructSigs; mean absolute delta 0.000.,Both tools reconstructed the observed spectra to similar cosine similarity with the selected catalog.
+Disagreement cases,0 of 38 samples had exposure cosine below 0.90; 2 had different top fitted signatures.,Disagreements are retained as review signals rather than suppressed; they motivate threshold and ambiguity checks.

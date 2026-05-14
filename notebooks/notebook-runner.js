@@ -1,0 +1,922 @@
+const DEFAULT_NOTEBOOKS = [
+  {
+    file: "msig-sdk-notebooks.onb.html",
+    title: "Notebook index",
+    summary: "Start here for the SDK workflow map.",
+    workflowGroup: "orientation",
+    workflowGroupLabel: "Orientation",
+  },
+  {
+    file: "msig-sdk-end-to-end-workflow.onb.html",
+    title: "End-to-end workflow",
+    summary: "Follow one realistic analysis from input setup through QC, uncertainty, reports, and interoperability.",
+    workflowGroup: "orientation",
+    workflowGroupLabel: "Orientation",
+  },
+  {
+    file: "msig-sdk-public-cohort-exploration.onb.html",
+    title: "Public cohort exploration",
+    summary: "Fetch public spectra, review burden, and inspect similarity structure before fitting.",
+    workflowGroup: "orientation",
+    workflowGroupLabel: "Orientation",
+  },
+  {
+    file: "msig-sdk-resource-portability.onb.html",
+    title: "Resource portability",
+    summary: "Bridge mSigPortal, TCGA/GDC, matrices, and exports.",
+    workflowGroup: "input",
+    workflowGroupLabel: "Input and resource setup",
+  },
+  {
+    file: "msig-sdk-bring-your-own-spectra.onb.html",
+    title: "Bring your own spectra",
+    summary: "Start from a local SBS96 matrix, validate it, fit signatures, and export a reproducible report.",
+    workflowGroup: "input",
+    workflowGroupLabel: "Input and resource setup",
+  },
+  {
+    file: "msig-sdk-maf-fit-report.onb.html",
+    title: "MAF to report",
+    summary: "Convert MAF rows, fit signatures, inspect QC, and render report-ready outputs.",
+    workflowGroup: "input",
+    workflowGroupLabel: "Input and resource setup",
+  },
+  {
+    file: "msig-sdk-qc-walkthrough.onb.html",
+    title: "Known-signature QC",
+    summary: "Import, fetch, reshape, fit, and assess spectra.",
+    workflowGroup: "core",
+    workflowGroupLabel: "Core analysis",
+  },
+  {
+    file: "msig-sdk-nmf-extraction.onb.html",
+    title: "NMF extraction",
+    summary: "Run exploratory extraction without fixed signatures.",
+    workflowGroup: "core",
+    workflowGroupLabel: "Core analysis",
+  },
+  {
+    file: "msig-sdk-panel-evidence-tiers.onb.html",
+    title: "Panel evidence tiers",
+    summary: "Review panel and WES assessability, evidence tiers, and callable-territory limits.",
+    workflowGroup: "core",
+    workflowGroupLabel: "Core analysis",
+  },
+  {
+    file: "msig-sdk-cohort-panel-workflow.onb.html",
+    title: "Cohort and panel workflow",
+    summary: "Run cohort fitting and panel evidence review with metadata, assay territory, warnings, and report outputs.",
+    workflowGroup: "core",
+    workflowGroupLabel: "Core analysis",
+  },
+  {
+    file: "msig-sdk-uncertainty-thresholds.onb.html",
+    title: "Uncertainty thresholds",
+    summary: "Quantify uncertainty and threshold dependence.",
+    workflowGroup: "reliability",
+    workflowGroupLabel: "Reliability, reporting, and interoperability",
+  },
+  {
+    file: "msig-sdk-multi-engine-comparison.onb.html",
+    title: "Multi-engine comparison",
+    summary: "Review mSigSDK NNLS alongside cached and optional live external-tool comparison outputs.",
+    workflowGroup: "reliability",
+    workflowGroupLabel: "Reliability, reporting, and interoperability",
+  },
+  {
+    file: "msig-sdk-export-report.onb.html",
+    title: "Export and reports",
+    summary: "Round-trip matrices and create reproducible reports.",
+    workflowGroup: "reliability",
+    workflowGroupLabel: "Reliability, reporting, and interoperability",
+  },
+  {
+    file: "msig-sdk-experimental-sandbox.onb.html",
+    title: "Experimental sandbox",
+    summary: "Inspect explicitly experimental workflow outputs and scope statements.",
+    workflowGroup: "advanced",
+    workflowGroupLabel: "Advanced or experimental",
+  },
+];
+
+const state = {
+  activeNotebook: null,
+  notebooks: DEFAULT_NOTEBOOKS,
+  cells: [],
+  moduleCells: [],
+  activeModuleIndex: -1,
+  isRunning: false,
+};
+
+const menu = document.getElementById("notebook-menu");
+const root = document.getElementById("notebook-root");
+const title = document.getElementById("notebook-title");
+const status = document.getElementById("runner-status");
+const runButton = document.getElementById("run-button");
+const resetButton = document.getElementById("reset-button");
+const sourceLink = document.getElementById("source-link");
+
+function normalizeNotebookEntry(entry) {
+  return {
+    file: entry.file,
+    title: entry.title || entry.file,
+    summary: entry.summary || "Runnable mSigSDK notebook.",
+    image: entry.image || null,
+    workflowGroup: entry.workflowGroup || "advanced",
+    workflowGroupLabel: entry.workflowGroupLabel || "Advanced or experimental",
+  };
+}
+
+async function loadNotebookManifest() {
+  try {
+    const response = await fetch("./notebooks.json", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Notebook manifest returned ${response.status}`);
+    }
+    const manifest = await response.json();
+    const notebooks = Array.isArray(manifest?.notebooks)
+      ? manifest.notebooks
+          .filter((entry) => entry?.file?.endsWith(".onb.html"))
+          .map(normalizeNotebookEntry)
+      : [];
+    return notebooks.length ? notebooks : DEFAULT_NOTEBOOKS;
+  } catch (error) {
+    console.warn("Falling back to built-in notebook list.", error);
+    return DEFAULT_NOTEBOOKS;
+  }
+}
+
+function getRequestedNotebook() {
+  const params = new URLSearchParams(window.location.search);
+  const requested = params.get("notebook") || state.notebooks[0].file;
+  return (
+    state.notebooks.find((entry) => entry.file === requested) ||
+    state.notebooks[0]
+  );
+}
+
+function renderMenu(activeFile) {
+  const groups = [];
+  const groupMap = new Map();
+
+  state.notebooks.forEach((entry) => {
+    const key = entry.workflowGroup || "advanced";
+    if (!groupMap.has(key)) {
+      const group = {
+        key,
+        label: entry.workflowGroupLabel || key,
+        entries: [],
+      };
+      groupMap.set(key, group);
+      groups.push(group);
+    }
+    groupMap.get(key).entries.push(entry);
+  });
+
+  menu.replaceChildren(
+    ...groups.map((group) => {
+      const section = document.createElement("section");
+      section.className = "notebook-menu-group";
+      const heading = document.createElement("h2");
+      heading.textContent = group.label;
+      section.append(heading);
+      group.entries.forEach((entry) => {
+      const link = document.createElement("a");
+      link.href = `?notebook=${encodeURIComponent(entry.file)}`;
+      link.className = entry.file === activeFile ? "active" : "";
+      link.innerHTML = `${escapeHtml(entry.title)}<br><small>${escapeHtml(
+        entry.summary
+      )}</small>`;
+        section.append(link);
+      });
+      return section;
+    })
+  );
+}
+
+function setStatus(message, mode = "") {
+  status.textContent = message;
+  status.className = `runner-status ${mode}`.trim();
+}
+
+async function loadNotebook(entry) {
+  state.activeNotebook = entry;
+  state.cells = [];
+  state.moduleCells = [];
+  state.activeModuleIndex = -1;
+  title.textContent = entry.title;
+  sourceLink.href = `https://github.com/episphere/msig/blob/main/notebooks/${entry.file}`;
+  renderMenu(entry.file);
+  setStatus(`Loading ${entry.file}...`);
+
+  const response = await fetch(`./${entry.file}`, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Could not fetch notebook: ${response.status}`);
+  }
+
+  const html = await response.text();
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const notebookTitle = doc.querySelector("notebook > title")?.textContent?.trim();
+  if (notebookTitle) {
+    title.textContent = notebookTitle;
+  }
+
+  const scripts = [...doc.querySelectorAll("notebook > script")];
+  root.replaceChildren();
+
+  scripts.forEach((script) => {
+    const type = script.getAttribute("type") || "module";
+    const source = normalizeCellSource(script.textContent || "");
+    if (type === "text/markdown") {
+      const cell = document.createElement("article");
+      cell.className = "cell markdown";
+      cell.innerHTML = renderMarkdown(source);
+      root.append(cell);
+      state.cells.push({ type, source, element: cell });
+      return;
+    }
+
+    if (type === "module") {
+      const moduleIndex = state.moduleCells.length;
+      const cell = document.createElement("article");
+      cell.className = "cell code";
+
+      const header = document.createElement("div");
+      header.className = "code-cell-header";
+      const label = document.createElement("span");
+      label.textContent = `JavaScript cell ${moduleIndex + 1}`;
+      const dirtyBadge = document.createElement("span");
+      dirtyBadge.className = "dirty-badge";
+      dirtyBadge.textContent = "Edited, not run";
+      dirtyBadge.hidden = true;
+      const labelWrap = document.createElement("div");
+      labelWrap.className = "code-cell-label";
+      labelWrap.append(label, dirtyBadge);
+      const actions = document.createElement("div");
+      actions.className = "code-cell-actions";
+      const runCellButton = document.createElement("button");
+      runCellButton.type = "button";
+      runCellButton.textContent = "Run edits";
+      const resetCellButton = document.createElement("button");
+      resetCellButton.type = "button";
+      resetCellButton.textContent = "Reset cell";
+      actions.append(runCellButton, resetCellButton);
+      header.append(labelWrap, actions);
+
+      const editorHost = document.createElement("div");
+      editorHost.className = "code-editor-host";
+      editorHost.setAttribute("aria-label", `JavaScript cell ${moduleIndex + 1}`);
+
+      const output = document.createElement("div");
+      output.className = "cell-output";
+
+      cell.append(header, editorHost, output);
+      root.append(cell);
+
+      const cellState = {
+        type,
+        source,
+        element: cell,
+        editor: null,
+        output,
+        dirtyBadge,
+      };
+      const editor = createCodeEditor(
+        editorHost,
+        source,
+        () => markDirty(cellState),
+        runNotebook
+      );
+      cellState.editor = editor;
+      runCellButton.addEventListener("click", runNotebook);
+      resetCellButton.addEventListener("click", () => {
+        setEditorSource(editor, source);
+        markDirty(cellState);
+      });
+      state.cells.push(cellState);
+      state.moduleCells.push(cellState);
+    }
+  });
+
+  setStatus("Notebook loaded. Running cells...");
+  await runNotebook();
+}
+
+function normalizeCellSource(source) {
+  const normalized = source.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const lines = normalized.split("\n");
+  while (lines.length && lines[0].trim() === "") lines.shift();
+  while (lines.length && lines[lines.length - 1].trim() === "") lines.pop();
+  return lines.map((line) => line.replace(/^ {4}/, "")).join("\n");
+}
+
+async function runNotebook() {
+  if (state.isRunning) return;
+
+  clearOutputs();
+  state.activeModuleIndex = -1;
+
+  if (!state.moduleCells.length) {
+    setStatus("This notebook contains narrative cells only.", "ready");
+    return;
+  }
+
+  setStatus("Running notebook cells...");
+  state.isRunning = true;
+  runButton.disabled = true;
+
+  const displayFns = state.moduleCells.map((cell) => createDisplay(cell.output));
+  const source = state.moduleCells
+    .map((cell, index) => {
+      return [
+        `__helpers.setActive(${index});`,
+        `display = __displayFns[${index}];`,
+        getEditorSource(cell.editor),
+      ].join("\n");
+    })
+    .join("\n\n");
+
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const helpers = {
+    setActive(index) {
+      state.activeModuleIndex = index;
+    },
+    html,
+    md,
+    metrics,
+    table,
+    details,
+    note,
+    downloadJson,
+    downloadMany,
+    downloadText,
+    objectFieldRows,
+    publicationFigureRows,
+    rowsToCsv,
+    spectraMatrixToTsv,
+    warningRows,
+    formatNumber,
+    view(value) {
+      return value;
+    },
+  };
+
+  try {
+    const runner = new AsyncFunction(
+      "__displayFns",
+      "__helpers",
+      [
+        "const html = __helpers.html;",
+        "const md = __helpers.md;",
+        "const view = __helpers.view;",
+        "const downloadJson = __helpers.downloadJson;",
+        "const downloadMany = __helpers.downloadMany;",
+        "const downloadText = __helpers.downloadText;",
+        "const objectFieldRows = __helpers.objectFieldRows;",
+        "const publicationFigureRows = __helpers.publicationFigureRows;",
+        "const rowsToCsv = __helpers.rowsToCsv;",
+        "const spectraMatrixToTsv = __helpers.spectraMatrixToTsv;",
+        "const warningRows = __helpers.warningRows;",
+        "let display = __displayFns[0];",
+        source,
+      ].join("\n")
+    );
+    await runner(displayFns, helpers);
+    setStatus("Notebook finished successfully.", "ready");
+    markAllClean();
+  } catch (error) {
+    const target = state.moduleCells[state.activeModuleIndex]?.output;
+    if (target) {
+      renderError(target, error);
+    }
+    setStatus(error?.message || "Notebook failed.", "error");
+    console.error(error);
+  } finally {
+    state.isRunning = false;
+    runButton.disabled = false;
+  }
+}
+
+function clearOutputs() {
+  state.moduleCells.forEach((cell) => {
+    cell.output.replaceChildren();
+  });
+}
+
+function createDisplay(output) {
+  return (value) => {
+    appendValue(output, value);
+    return value;
+  };
+}
+
+function appendValue(output, value) {
+  if (value instanceof Error) {
+    renderError(output, value);
+    return;
+  }
+
+  if (value instanceof Node) {
+    output.append(value);
+    return;
+  }
+
+  if (value == null) {
+    output.append(document.createTextNode(String(value)));
+    return;
+  }
+
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    const pre = document.createElement("pre");
+    pre.className = "inspector";
+    pre.textContent = String(value);
+    output.append(pre);
+    return;
+  }
+
+  output.append(renderCompactObject(value));
+}
+
+function renderError(output, error) {
+  const pre = document.createElement("pre");
+  pre.className = "output-error";
+  pre.textContent = error?.stack || error?.message || String(error);
+  output.append(pre);
+}
+
+function stringify(value) {
+  const seen = new WeakSet();
+  return JSON.stringify(
+    value,
+    (key, item) => {
+      if (typeof item === "function") return `[Function ${item.name || "anonymous"}]`;
+      if (item instanceof Node) return `[${item.nodeName}]`;
+      if (typeof item === "object" && item !== null) {
+        if (seen.has(item)) return "[Circular]";
+        seen.add(item);
+      }
+      return item;
+    },
+    2
+  );
+}
+
+function html(strings, ...values) {
+  const template = document.createElement("template");
+  template.innerHTML = String.raw({ raw: strings }, ...values);
+  return template.content.cloneNode(true);
+}
+
+function md(strings, ...values) {
+  const fragment = document.createDocumentFragment();
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = renderMarkdown(String.raw({ raw: strings }, ...values));
+  fragment.append(...wrapper.childNodes);
+  return fragment;
+}
+
+function metrics(items) {
+  const grid = document.createElement("div");
+  grid.className = "output-metrics";
+
+  items.forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "output-metric";
+
+    const label = document.createElement("span");
+    label.textContent = item.label;
+    const value = document.createElement("strong");
+    value.textContent = item.value == null ? "n/a" : String(item.value);
+    card.append(label, value);
+
+    if (item.note) {
+      const noteText = document.createElement("small");
+      noteText.textContent = item.note;
+      card.append(noteText);
+    }
+
+    grid.append(card);
+  });
+
+  return grid;
+}
+
+function table(rows, columns = null, options = {}) {
+  const maxRows = Number.isFinite(options.maxRows) ? options.maxRows : 12;
+  const data = Array.isArray(rows) ? rows : [];
+  const wrapper = document.createElement("div");
+  wrapper.className = "output-table-wrap";
+
+  if (!data.length) {
+    wrapper.append(note("No rows to display."));
+    return wrapper;
+  }
+
+  const normalizedColumns =
+    columns ||
+    Object.keys(data[0]).map((key) => ({
+      key,
+      label: key,
+    }));
+  const tableElement = document.createElement("table");
+  tableElement.className = "output-table";
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  normalizedColumns.forEach((column) => {
+    const th = document.createElement("th");
+    th.textContent = typeof column === "string" ? column : column.label || column.key;
+    headerRow.append(th);
+  });
+  thead.append(headerRow);
+  tableElement.append(thead);
+
+  const tbody = document.createElement("tbody");
+  data.slice(0, maxRows).forEach((row) => {
+    const tr = document.createElement("tr");
+    normalizedColumns.forEach((column) => {
+      const key = typeof column === "string" ? column : column.key;
+      const formatter = typeof column === "object" ? column.format : null;
+      const td = document.createElement("td");
+      const value = row?.[key];
+      td.textContent = formatter ? formatter(value, row) : formatCell(value);
+      tr.append(td);
+    });
+    tbody.append(tr);
+  });
+  tableElement.append(tbody);
+  wrapper.append(tableElement);
+
+  if (data.length > maxRows) {
+    const caption = document.createElement("p");
+    caption.className = "output-caption";
+    caption.textContent = `Showing ${maxRows} of ${data.length} rows.`;
+    wrapper.append(caption);
+  }
+
+  return wrapper;
+}
+
+function details(label, value) {
+  const detailsElement = document.createElement("details");
+  detailsElement.className = "output-details";
+  const summary = document.createElement("summary");
+  summary.textContent = label;
+  const pre = document.createElement("pre");
+  pre.className = "inspector";
+  pre.textContent = typeof value === "string" ? value : stringify(value);
+  detailsElement.append(summary, pre);
+  return detailsElement;
+}
+
+function downloadText(filename, text, label = `Download ${filename}`) {
+  const link = document.createElement("a");
+  link.className = "download-link";
+  link.href = URL.createObjectURL(new Blob([String(text)], { type: "text/plain;charset=utf-8" }));
+  link.download = filename;
+  link.textContent = label;
+  return link;
+}
+
+function downloadJson(filename, value, label = `Download ${filename}`) {
+  const text = stringify(value);
+  const link = downloadText(filename, text, label);
+  link.href = URL.createObjectURL(
+    new Blob([text], { type: "application/json;charset=utf-8" })
+  );
+  return link;
+}
+
+function downloadMany(files) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "download-list";
+  files.forEach((file) => {
+    const link =
+      file.type === "json"
+        ? downloadJson(file.filename, file.value, file.label)
+        : downloadText(file.filename, file.text ?? file.value ?? "", file.label);
+    wrapper.append(link);
+  });
+  return wrapper;
+}
+
+function rowsToCsv(rows, columns = null) {
+  const data = Array.isArray(rows) ? rows : [];
+  if (!data.length) return "";
+  const normalizedColumns = columns || Object.keys(data[0]);
+  const keys = normalizedColumns.map((column) =>
+    typeof column === "string" ? column : column.key
+  );
+  const labels = normalizedColumns.map((column) =>
+    typeof column === "string" ? column : column.label || column.key
+  );
+  const escape = (value) => {
+    const text = value == null ? "" : String(value);
+    return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+  return [
+    labels.map(escape).join(","),
+    ...data.map((row) => keys.map((key) => escape(row?.[key])).join(",")),
+  ].join("\n");
+}
+
+function spectraMatrixToTsv(matrix, contexts = null) {
+  const samples = Object.keys(matrix || {});
+  const contextList =
+    contexts ||
+    [...new Set(samples.flatMap((sample) => Object.keys(matrix[sample] || {})))];
+  return [
+    ["MutationType", ...samples].join("\t"),
+    ...contextList.map((context) =>
+      [context, ...samples.map((sample) => matrix[sample]?.[context] ?? 0)].join("\t")
+    ),
+  ].join("\n");
+}
+
+function warningRows(warnings = []) {
+  return (Array.isArray(warnings) ? warnings : []).map((warning) => ({
+    code: warning.code || warning.warningCode || warning.status || "warning",
+    message: warning.message || warning.detail || String(warning),
+    resolution: warning.resolution || warning.recommendedAction || "",
+  }));
+}
+
+function objectFieldRows(object, fields = null) {
+  const keys = fields || Object.keys(object || {});
+  return keys.map((field) => {
+    const value = field.split(".").reduce((current, key) => current?.[key], object);
+    return {
+      field,
+      value: formatCell(value),
+    };
+  });
+}
+
+function publicationFigureRows(figures = []) {
+  return (Array.isArray(figures) ? figures : []).map((figure) => ({
+    id: figure.id,
+    title: figure.title,
+    renderer: figure.recommendedRenderer,
+    dataFields: (figure.dataFields || []).join(", "),
+  }));
+}
+
+function note(text, mode = "info") {
+  const element = document.createElement("p");
+  element.className = `output-note ${mode}`;
+  element.textContent = text;
+  return element;
+}
+
+function formatNumber(value, digits = 3) {
+  if (!Number.isFinite(value)) return "n/a";
+  if (Math.abs(value) >= 100) return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return value.toLocaleString(undefined, { maximumSignificantDigits: digits });
+}
+
+function formatCell(value) {
+  if (Number.isFinite(value)) return formatNumber(value);
+  if (value == null) return "";
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "object") return compactSummary(value);
+  return String(value);
+}
+
+function renderCompactObject(value) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "compact-object";
+  const pre = document.createElement("pre");
+  pre.className = "inspector compact";
+  pre.textContent = compactSummary(value);
+  wrapper.append(pre);
+  wrapper.append(details("Show full object", value));
+  return wrapper;
+}
+
+function compactSummary(value) {
+  if (Array.isArray(value)) {
+    return `Array(${value.length})`;
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value);
+    const shown = entries.slice(0, 8).map(([key, item]) => {
+      if (Array.isArray(item)) return `${key}: Array(${item.length})`;
+      if (item && typeof item === "object") return `${key}: Object(${Object.keys(item).length})`;
+      return `${key}: ${String(item)}`;
+    });
+    const suffix = entries.length > shown.length ? `\n... ${entries.length - shown.length} more keys` : "";
+    return shown.join("\n") + suffix;
+  }
+  return String(value);
+}
+
+function renderMarkdown(markdown) {
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  const parts = [];
+  let paragraph = [];
+  let list = [];
+  let fence = null;
+  let fenceLines = [];
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    parts.push(`<p>${inlineMarkdown(paragraph.join(" "))}</p>`);
+    paragraph = [];
+  };
+
+  const flushList = () => {
+    if (!list.length) return;
+    parts.push(`<ul>${list.map((item) => `<li>${inlineMarkdown(item)}</li>`).join("")}</ul>`);
+    list = [];
+  };
+
+  lines.forEach((line) => {
+    const fenceMatch = line.match(/^```(\w+)?\s*$/);
+    if (fenceMatch && fence === null) {
+      flushParagraph();
+      flushList();
+      fence = fenceMatch[1] || "";
+      fenceLines = [];
+      return;
+    }
+
+    if (line.trim() === "```" && fence !== null) {
+      parts.push(
+        `<pre><code${fence ? ` class="language-${escapeHtml(fence)}"` : ""}>${escapeHtml(
+          fenceLines.join("\n")
+        )}</code></pre>`
+      );
+      fence = null;
+      fenceLines = [];
+      return;
+    }
+
+    if (fence !== null) {
+      fenceLines.push(line);
+      return;
+    }
+
+    if (!line.trim()) {
+      flushParagraph();
+      flushList();
+      return;
+    }
+
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      flushList();
+      const level = heading[1].length;
+      parts.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
+      return;
+    }
+
+    const bullet = line.match(/^\s*[-*]\s+(.+)$/);
+    if (bullet) {
+      flushParagraph();
+      list.push(bullet[1]);
+      return;
+    }
+
+    paragraph.push(line.trim());
+  });
+
+  flushParagraph();
+  flushList();
+  return parts.join("\n");
+}
+
+function inlineMarkdown(text) {
+  return escapeHtml(text)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label, url) => {
+      const href = url.endsWith(".onb.html")
+        ? `?notebook=${encodeURIComponent(url.replace(/^\.\//, ""))}`
+        : url;
+      return `<a href="${escapeAttribute(href)}">${label}</a>`;
+    });
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function escapeAttribute(value) {
+  return String(value).replace(/"/g, "&quot;");
+}
+
+runButton.addEventListener("click", runNotebook);
+resetButton.addEventListener("click", async () => {
+  state.moduleCells.forEach((cell) => {
+    setEditorSource(cell.editor, cell.source);
+    markDirty(cell);
+  });
+  setStatus("Original code restored. Click Run notebook to apply the reset.");
+});
+
+async function initNotebookRunner() {
+  state.notebooks = await loadNotebookManifest();
+  await loadNotebook(getRequestedNotebook());
+}
+
+initNotebookRunner().catch((error) => {
+  setStatus(error?.message || "Could not load notebook.", "error");
+  console.error(error);
+});
+
+function createCodeEditor(parent, source, onChange, onRun) {
+  if (!window.CodeMirror) {
+    const textarea = document.createElement("textarea");
+    textarea.className = "code-editor fallback";
+    textarea.spellcheck = false;
+    textarea.value = source;
+    textarea.addEventListener("input", onChange);
+    textarea.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        onRun();
+      }
+    });
+    parent.append(textarea);
+    return { type: "textarea", textarea };
+  }
+
+  const editor = window.CodeMirror(parent, {
+    value: source,
+    mode: "javascript",
+    theme: "material-darker",
+    lineNumbers: true,
+    lineWrapping: true,
+    indentUnit: 2,
+    tabSize: 2,
+    indentWithTabs: false,
+    smartIndent: true,
+    autoCloseBrackets: true,
+    matchBrackets: true,
+    styleActiveLine: true,
+    viewportMargin: Infinity,
+    extraKeys: {
+      Tab(cm) {
+        if (cm.somethingSelected()) {
+          cm.indentSelection("add");
+        } else {
+          cm.replaceSelection("  ", "end");
+        }
+      },
+      "Shift-Tab"(cm) {
+        cm.indentSelection("subtract");
+      },
+      "Ctrl-Enter"() {
+        onRun();
+      },
+      "Cmd-Enter"() {
+        onRun();
+      },
+    },
+  });
+  editor.on("change", onChange);
+
+  return { type: "codemirror", editor };
+}
+
+function getEditorSource(editorState) {
+  if (editorState.type === "codemirror") {
+    return editorState.editor.getValue();
+  }
+  return editorState.textarea.value;
+}
+
+function setEditorSource(editorState, source) {
+  if (editorState.type === "codemirror") {
+    editorState.editor.setValue(source);
+    editorState.editor.refresh();
+    return;
+  }
+  editorState.textarea.value = source;
+}
+
+function markDirty(cell) {
+  cell.isDirty = true;
+  if (cell.dirtyBadge) {
+    cell.dirtyBadge.hidden = false;
+  }
+  if (!state.isRunning) {
+    setStatus(
+      "You have edited code that has not run yet. Click Run edits, Run notebook, or press Ctrl/Cmd+Enter."
+    );
+  }
+}
+
+function markAllClean() {
+  state.moduleCells.forEach((cell) => {
+    cell.isDirty = false;
+    if (cell.dirtyBadge) {
+      cell.dirtyBadge.hidden = true;
+    }
+  });
+}

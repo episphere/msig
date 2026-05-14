@@ -1,0 +1,60 @@
+<!doctype html>
+<notebook theme="air">
+  <title>mSigSDK experimental sandbox</title>
+
+  <script type="text/markdown">
+    # Experimental sandbox
+
+    Functions under `mSigSDK.experimental` are hypothesis-generating workflows. Their result objects include an experimental `scopeStatement`, `experimentalStatus`, warnings, and recommended actions so applications can keep them separate from the validated core.
+  </script>
+
+  <script type="module" pinned id="1">
+    const experimentalSdkUrl = new URL("../main.js?v=2026-05-14-experimental", location.href).href;
+    const { mSigSDK } = await import(experimentalSdkUrl);
+    const { metrics, table } = mSigSDK.presentation;
+
+    const localizedResult = mSigSDK.experimental.runLocalizedMutagenesisAnalysis(
+      [
+        { chromosome: "1", position: 1000, context: "T[C>T]A" },
+        { chromosome: "1", position: 1450, context: "T[C>G]T" },
+        { chromosome: "1", position: 1850, context: "T[C>T]T" },
+        { chromosome: "1", position: 2300, context: "A[C>A]A" },
+        { chromosome: "2", position: 900000, context: "G[C>A]A" },
+      ],
+      "GRCh37",
+      {
+        maxIntermutationDistance: 700,
+        minMutations: 3,
+        minBurdenForLocalizedAnalysis: 3,
+      }
+    );
+
+    display(metrics([
+      { label: "Namespace", value: "experimental" },
+      { label: "Workflow", value: localizedResult.workflow },
+      { label: "Validated for manuscript use", value: localizedResult.experimentalStatus.validatedForManuscriptUse },
+      { label: "Foci", value: localizedResult.localized.foci.length },
+    ]));
+  </script>
+
+  <script type="text/markdown">
+    ## Scope and recommended actions
+
+    The localized block nests the fields needed for exploratory review without placing the workflow in the default `pipelines` or `workflows` surface.
+  </script>
+
+  <script type="module" pinned id="2">
+    display(table(
+      [
+        { field: "scopeStatement", value: localizedResult.scopeStatement },
+        { field: "experimentalStatus.state", value: localizedResult.experimentalStatus.state },
+        { field: "analysisEligibility", value: JSON.stringify(localizedResult.localized.analysisEligibility) },
+        { field: "recommendedActions", value: localizedResult.recommendedActions.join(" ") },
+      ],
+      [
+        { key: "field", label: "Field" },
+        { key: "value", label: "Value" },
+      ]
+    ));
+  </script>
+</notebook>

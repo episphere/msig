@@ -1,4 +1,5 @@
 import {
+  QC_DEFAULTS,
   bootstrapSignatureFit,
   calculateFitResiduals,
   calculateReconstructionError,
@@ -34,6 +35,20 @@ import {
 } from "./validation.js";
 
 const RESULT_SCHEMA_VERSION = "msig.pipeline.v0.3";
+const EXPERIMENTAL_WARNING_STATE = new Set();
+
+function warnExperimentalAdvisorFunction(functionName) {
+  if (EXPERIMENTAL_WARNING_STATE.has(functionName)) {
+    return;
+  }
+  EXPERIMENTAL_WARNING_STATE.add(functionName);
+
+  if (typeof console !== "undefined" && typeof console.warn === "function") {
+    console.warn(
+      `${functionName} is experimental in mSigSDK v0.3. Results are descriptive review artifacts and are not part of the manuscript-validated advisor claim set.`
+    );
+  }
+}
 
 const WARNING_CODES = {
   CATALOG_INCOMPLETE_SUSPECTED: "CATALOG_INCOMPLETE_SUSPECTED",
@@ -55,6 +70,388 @@ const WARNING_CODES = {
   THRESHOLD_DEPENDENT: "THRESHOLD_DEPENDENT",
 };
 
+const WARNING_RESOLUTIONS = {
+  [WARNING_CODES.CATALOG_INCOMPLETE_SUSPECTED]:
+    "Inspect residual spectra, expand the reference catalog, and consider de novo extraction in an adequately powered cohort.",
+  [WARNING_CODES.EXTRACTION_NOT_RECOMMENDED]:
+    "Use known-signature refitting or collect a larger, higher-burden cohort before de novo extraction.",
+  [WARNING_CODES.FIT_UNSTABLE]:
+    "Increase bootstrap iterations, inspect interval widths, and report fitted exposures with uncertainty intervals.",
+  [WARNING_CODES.FLAT_SIGNATURE_RISK]:
+    "Treat flat-signature exposures as confusable and report ambiguity diagnostics.",
+  [WARNING_CODES.HETEROGENEOUS_COHORT]:
+    "Review subgroup structure before cohort-wide extraction or pooled interpretation.",
+  [WARNING_CODES.HIGH_RESIDUAL_STRUCTURE]:
+    "Run catalog-sufficiency screening and consider de novo extraction or a broader catalog.",
+  [WARNING_CODES.INCOMPLETE_CONTEXTS]:
+    "Regenerate the spectrum with the expected context basis before fitting.",
+  [WARNING_CODES.INSUFFICIENT_SIGNAL]:
+    "Do not interpret fine-grained exposures; collect more mutations or use a broader assay.",
+  [WARNING_CODES.LOW_BURDEN]:
+    "Interpret fitted exposures with caution and consult threshold sensitivity, bootstrap intervals, and the analysis strategy advisor.",
+  [WARNING_CODES.GROUP_IMBALANCE]:
+    "Treat group comparisons as exploratory and increase group size before inferential claims.",
+  [WARNING_CODES.METADATA_MISSING]:
+    "Provide complete sample metadata with at least two groups before running stratified comparisons.",
+  [WARNING_CODES.PANEL_LIMITED]:
+    "Use panel/WES evidence tiers and avoid interpreting non-detection as absence.",
+  [WARNING_CODES.PANEL_SIGNATURE_NOT_ASSESSABLE]:
+    "Report not assessable for this signature/sample setting or use a broader assay.",
+  [WARNING_CODES.REGIONAL_PROCESS_SUSPECTED]:
+    "Inspect rainfall plots, compare focal spectra to background, and treat context labels as hypothesis-generating.",
+  [WARNING_CODES.SIGNATURE_AMBIGUITY]:
+    "Inspect confounding neighbors and avoid overinterpreting individual confusable signatures.",
+  [WARNING_CODES.SUBGROUP_EXTRACTION_SKIPPED]:
+    "Run subgroup discovery explicitly only when subgroup sample count and mutation burden meet readiness thresholds.",
+  [WARNING_CODES.THRESHOLD_DEPENDENT]:
+    "Run bootstrap uncertainty if not already performed and report threshold-dependent calls with threshold-sensitivity context.",
+};
+
+const METHOD_BASIS = {
+  mutationBurden:
+    "Mutation count affects sampling noise and fitting accuracy. Default thresholds are configurable review settings.",
+  reconstructionResidual:
+    "Known-signature fitting is evaluated by reconstruction error, cosine similarity, and residual structure rather than by exposure values alone.",
+  signatureAmbiguity:
+    "High pairwise similarity, high entropy, and multiple nearby catalog neighbors can make fitted exposures exchangeable.",
+  catalogSufficiency:
+    "Residual structure can indicate that a supplied catalog may not explain all signal.",
+  bootstrapThreshold:
+    "Bootstrap resampling and threshold sensitivity summarize stability under resampling and exposure cutoffs.",
+  cohortStructure:
+    "Heterogeneous cohorts can produce misleading cohort-wide extraction or fitting results if not examined separately.",
+  panelEvidence:
+    "Panel and WES interpretations depend on mutation count, callable territory, and signature confusability.",
+};
+
+const LITERATURE_REFERENCES = {
+  koh2021: {
+    key: "Koh2021",
+    citation:
+      "Koh G, Degasperi A, Zou X, Momen S, Nik-Zainal S. Mutational signatures: emerging concepts, caveats and clinical applications. Nat Rev Cancer. 2021.",
+    doi: "10.1038/s41568-021-00377-7",
+    url: "https://doi.org/10.1038/s41568-021-00377-7",
+  },
+  degasperi2020: {
+    key: "Degasperi2020",
+    citation:
+      "Degasperi A, Amarante TD, Czarnecki J, et al. A practical framework and online tool for mutational signature analyses show intertissue variation and driver dependencies. Nat Cancer. 2020.",
+    doi: "10.1038/s43018-020-0027-5",
+    url: "https://doi.org/10.1038/s43018-020-0027-5",
+  },
+  alexandrov2013: {
+    key: "Alexandrov2013",
+    citation:
+      "Alexandrov LB, Nik-Zainal S, Wedge DC, et al. Signatures of mutational processes in human cancer. Nature. 2013.",
+    doi: "10.1038/nature12477",
+    url: "https://doi.org/10.1038/nature12477",
+  },
+  alexandrov2020: {
+    key: "Alexandrov2020",
+    citation:
+      "Alexandrov LB, Kim J, Haradhvala NJ, et al. The repertoire of mutational signatures in human cancer. Nature. 2020.",
+    doi: "10.1038/s41586-020-1943-3",
+    url: "https://doi.org/10.1038/s41586-020-1943-3",
+  },
+  medo2024: {
+    key: "Medo2024",
+    citation:
+      "Medo M, Ng CKY, Medova M. A comprehensive comparison of tools for fitting mutational signatures. Nat Commun. 2024.",
+    doi: "10.1038/s41467-024-53711-6",
+    url: "https://doi.org/10.1038/s41467-024-53711-6",
+  },
+  jin2024: {
+    key: "Jin2024",
+    citation:
+      "Jin H, Gulhan DC, Geiger B, et al. Accurate and sensitive mutational signature analysis with MuSiCal. Nat Genet. 2024.",
+    doi: "10.1038/s41588-024-01659-0",
+    url: "https://doi.org/10.1038/s41588-024-01659-0",
+  },
+  wu2023: {
+    key: "Wu2023",
+    citation:
+      "Wu AJ, Perera A, Kularatnarajah L, Korsakova A, Pitt JJ. Mutational signature assignment heterogeneity is widespread and can be addressed by ensemble approaches. Brief Bioinform. 2023.",
+    doi: "10.1093/bib/bbad331",
+    url: "https://doi.org/10.1093/bib/bbad331",
+  },
+  huang2018: {
+    key: "Huang2018",
+    citation:
+      "Huang X, Wojtowicz D, Przytycka TM. Detecting presence of mutational signatures in cancer with confidence. Bioinformatics. 2018.",
+    doi: "10.1093/bioinformatics/btx604",
+    url: "https://doi.org/10.1093/bioinformatics/btx604",
+  },
+  lawrence2021: {
+    key: "Lawrence2021",
+    citation:
+      "Lawrence L, Kunder CA, Fung E, Stehr H, Zehnder J. Performance characteristics of mutational signature analysis in targeted panel sequencing. Arch Pathol Lab Med. 2021.",
+    doi: "10.5858/arpa.2020-0536-OA",
+    url: "https://doi.org/10.5858/arpa.2020-0536-OA",
+  },
+  roberts2013: {
+    key: "Roberts2013",
+    citation:
+      "Roberts SA, Lawrence MS, Klimczak LJ, et al. An APOBEC cytidine deaminase mutagenesis pattern is widespread in human cancers. Nat Genet. 2013.",
+    doi: "10.1038/ng.2702",
+    url: "https://doi.org/10.1038/ng.2702",
+  },
+  petljak2022: {
+    key: "Petljak2022",
+    citation:
+      "Petljak M, Green AM, Maciejowski J, et al. Addressing the benefits of inhibiting APOBEC3-dependent mutagenesis in cancer. Nat Genet. 2022.",
+    doi: "10.1038/s41588-022-01196-8",
+    url: "https://doi.org/10.1038/s41588-022-01196-8",
+  },
+  senkin2021: {
+    key: "Senkin2021MSA",
+    citation:
+      "Senkin S. MSA: reproducible mutational signature attribution with confidence based on simulations. BMC Bioinformatics. 2021.",
+    doi: "10.1186/s12859-021-04450-8",
+    url: "https://doi.org/10.1186/s12859-021-04450-8",
+  },
+  islam2022: {
+    key: "Islam2022",
+    citation:
+      "Islam SMA, Diaz-Gay M, Wu Y, et al. Uncovering novel mutational signatures by de novo extraction with SigProfilerExtractor. Cell Genomics. 2022.",
+    doi: "10.1016/j.xgen.2022.100179",
+    url: "https://doi.org/10.1016/j.xgen.2022.100179",
+  },
+  wilkinson2016: {
+    key: "Wilkinson2016FAIR",
+    citation:
+      "Wilkinson MD, Dumontier M, Aalbersberg IJ, et al. The FAIR Guiding Principles for scientific data management and stewardship. Sci Data. 2016.",
+    doi: "10.1038/sdata.2016.18",
+    url: "https://doi.org/10.1038/sdata.2016.18",
+  },
+};
+
+const SCOPE_STATEMENTS = {
+  analysisAdvisor:
+    "Research-use advisory summary for precomputed spectra with configurable recommendations.",
+  signatureAmbiguity:
+    "Catalog-screening summary for potential signature confusability.",
+  catalogSufficiency:
+    "Residual-review summary for fitted spectra.",
+  fitQualityEvidence:
+    "Rule-based QC evidence summary for known-signature refitting. The primary interpretation field is reportingMode; no composite fit-quality score is returned.",
+  groupComparison:
+    "Metadata-stratified comparison of fitted exposures with group-size and effect-size summaries.",
+  restrictedAssayEvidence:
+    "Restricted-assay evidence summary for planning and panel/WES review.",
+  panel:
+    "Panel/WES review evidence summary for restricted genomic territory.",
+  localized:
+    "Experimental localized-mutation clustering summary. Results are descriptive review artifacts and are not validated for manuscript-grade use.",
+  singleSamplePipeline:
+    "High-level single-sample refitting workflow for research review.",
+  cohortPipeline:
+    "High-level cohort refitting workflow for research review.",
+  discoveryPipeline:
+    "High-level exploratory signature-discovery workflow.",
+  subgroupPipeline:
+    "Experimental subgroup-aware extraction and matched refitting workflow. Results are descriptive review artifacts and are not validated for manuscript-grade use.",
+};
+
+const SYNTHETIC_VALIDATION_ANCHORS = {
+  burden50: {
+    table: "Table 2 synthetic signature validation",
+    row: "50 mutations per sample",
+    exposureCosineMean: 0.912,
+    exposureCosine95CI: [0.882, 0.941],
+    reconstructionCosineMean: 0.884,
+    activeSignatureRecallMean: 0.938,
+    inactiveSignatureCallRateMean: 0.165,
+  },
+  burden100: {
+    table: "Table 2 synthetic signature validation",
+    row: "100 mutations per sample",
+    exposureCosineMean: 0.952,
+    reconstructionCosineMean: 0.93,
+    activeSignatureRecallMean: 0.979,
+    inactiveSignatureCallRateMean: 0.129,
+  },
+};
+
+const PANEL_TIER_RULE_DEFINITIONS = {
+  version: `${RESULT_SCHEMA_VERSION}.panelTierRules.v1`,
+  not_assessable: {
+    rule:
+      "Assigned when total mutations are below the configured minAssessableMutations or a supplied callable-opportunity map contains no callable contexts for the signature.",
+    interpretation:
+      "The assay/sample setting does not support a detection or non-detection statement for this signature.",
+  },
+  higher_review_support: {
+    rule:
+      "Assigned when exposure is at least the configured higherSupportExposureThreshold, the sample is assessable, and fit reporting mode is standard_qc_passed or report_with_caveats.",
+    interpretation:
+      "The fitted signal is review-supported within the configured panel/WES settings and assay/catalog context.",
+  },
+  limited_review_support: {
+    rule:
+      "Assigned when the call is assessable and exposure is at least limitedSupportExposureThreshold but higher-review criteria are not met.",
+    interpretation:
+      "The fitted signal is present under the configured settings but should be reported with limited support.",
+  },
+  not_detected_within_review_settings: {
+    rule:
+      "Assigned when the call is assessable and exposure is below limitedSupportExposureThreshold.",
+    interpretation:
+      "The fitted signal did not cross the configured review threshold; this is not proof of biological absence.",
+  },
+};
+
+const LOCALIZED_CONTEXT_PATTERN_DEFINITIONS = {
+  version: `${RESULT_SCHEMA_VERSION}.localizedContextPatterns.v1`,
+  "APOBEC-context-enriched localized cluster": {
+    patternClass: "APOBEC-context-enriched localized cluster",
+    contexts: ["T[C>G]A", "T[C>G]T", "T[C>T]A", "T[C>T]T"],
+    fractionField: "apobecLikeFraction",
+    definition:
+      "Fraction of context-annotated variants in TC[A/T] pyrimidine contexts corresponding to COSMIC SBS2/SBS13 APOBEC-associated substitutions.",
+    interpretation:
+      "Descriptive context enrichment only; not an etiology assignment.",
+  },
+  "localized mutation cluster": {
+    patternClass: "localized mutation cluster",
+    contexts: [],
+    fractionField: null,
+    definition:
+      "Sequential same-chromosome mutation cluster meeting distance and mutation-count thresholds without crossing the APOBEC-context enrichment threshold.",
+    interpretation:
+      "Descriptive focal clustering only; not an etiology assignment.",
+  },
+};
+
+const ADVISOR_DEFAULTS = Object.freeze({
+  analysisStrategy: Object.freeze({
+    assay: "WGS",
+    wgsLowBurdenThreshold: 100,
+    wgsModerateBurdenThreshold: 1000,
+    panelLowBurdenThreshold: 30,
+    panelModerateBurdenThreshold: 150,
+    highBurdenThreshold: 3000,
+    minSamplesForExtraction: 8,
+    minSamplesForCohortRecommendation: 2,
+    minHighInformationFraction: 0.5,
+    heterogeneityCosineThreshold: 0.85,
+  }),
+  signatureAmbiguity: Object.freeze({
+    pairReportThreshold: 0.9,
+    moderateNearestCosine: 0.9,
+    highNearestCosine: 0.95,
+    moderateEntropy: 0.85,
+    highEntropy: 0.92,
+    flatSignatureWarningEntropy: 0.9,
+  }),
+  catalogSufficiency: Object.freeze({
+    normalizeMode: "relative",
+    unexplainedThreshold: 0.12,
+    weakUnexplainedThreshold: 0.07,
+    cosineThreshold: 0.9,
+    structuredResidualCosineThreshold: 0.85,
+    minBurdenForReliableDetection: 100,
+    moderateBurdenThreshold: 1000,
+    topN: 8,
+  }),
+  fitQualityEvidence: Object.freeze({
+    normalizeMode: "relative",
+    lowBurdenThreshold: 100,
+    moderateBurdenThreshold: 1000,
+  }),
+  groupComparison: Object.freeze({
+    groupKey: "group",
+    minGroupSizeForReliableStats: 5,
+    permutationIterations: 0,
+    seed: 123,
+    topN: 10,
+  }),
+  singleSampleFit: Object.freeze({
+    mutationBurden: Object.freeze({
+      lowBurdenThreshold: 100,
+      moderateBurdenThreshold: 1000,
+    }),
+    fit: Object.freeze({
+      exposureThreshold: 0,
+      exposureType: "relative",
+      renormalize: true,
+      maxIterations: QC_DEFAULTS.nnls.maxIterations,
+      convergenceTolerance: QC_DEFAULTS.nnls.convergenceTolerance,
+    }),
+    thresholdSensitivity: Object.freeze({
+      thresholds: Object.freeze([0, 0.01, 0.03, 0.05, 0.1]),
+    }),
+    bootstrap: Object.freeze({
+      iterations: 100,
+      confidenceLevel: 0.95,
+      seed: 123,
+    }),
+  }),
+  cohortFit: Object.freeze({
+    mutationBurden: Object.freeze({
+      lowBurdenThreshold: 100,
+      moderateBurdenThreshold: 1000,
+    }),
+    bootstrapSampleLimit: 5,
+    clusterCosineThreshold: 0.85,
+    minSubgroupSamples: 5,
+  }),
+  subgroupDiscovery: Object.freeze({
+    clusterCosineThreshold: 0.85,
+    minSubgroupSamples: 8,
+    minMedianBurden: 750,
+    lowBurdenThreshold: 100,
+    minMatchCosine: 0.85,
+    shortlistTopN: 8,
+    minRank: 2,
+    maxRank: 4,
+    maxIterations: 750,
+    tolerance: 1e-5,
+    nRuns: 10,
+    seed: 123,
+    topN: 5,
+    refitExposureThreshold: 0,
+    exposureType: "relative",
+    renormalize: true,
+  }),
+  discoveryWorkflow: Object.freeze({
+    ranks: Object.freeze([2, 3, 4, 5]),
+    rankSelectionMaxIterations: 500,
+    extractionMaxIterations: 1000,
+    tolerance: 1e-5,
+    rankSelectionRuns: 5,
+    extractionRuns: 20,
+    rankSelectionCriterion: "reconstruction_error",
+    seed: 123,
+    rank: null,
+    defaultRank: 3,
+    signaturePrefix: "NMF",
+    topN: 5,
+  }),
+  restrictedAssayEvidence: Object.freeze({
+    burdens: Object.freeze([25, 50, 100, 250, 500, 1000, 2500]),
+    exposureLevels: Object.freeze([0.05, 0.1, 0.2, 0.3, 0.5]),
+    opportunityCoverage: 1,
+  }),
+  panelWorkflow: Object.freeze({
+    lowBurdenThreshold: 30,
+    moderateBurdenThreshold: 150,
+    minAssessableMutations: 30,
+    higherSupportExposureThreshold: 0.2,
+    limitedSupportExposureThreshold: 0.05,
+    opportunityEpsilon: 1e-12,
+  }),
+  localizedMutagenesis: Object.freeze({
+    maxIntermutationDistance: 10000,
+    minMutations: 6,
+    minBurdenForLocalizedAnalysis: 50,
+    apobecLikeFractionThreshold: 0.4,
+    clusterSignificanceThreshold: 0.05,
+    callableGenomeSize: 3000000000,
+    nullModelSpecification:
+      "Poisson upper-tail test using the genome-wide per-sample mutation rate estimated as total input variants divided by callableGenomeSize.",
+  }),
+});
+
 function clamp(value, min = 0, max = 1) {
   return Math.min(Math.max(value, min), max);
 }
@@ -68,12 +465,99 @@ function uniqueStrings(values) {
   return [...new Set(values.filter(Boolean))];
 }
 
+function mergeDefinedOptions(...sources) {
+  const merged = {};
+  for (const source of sources) {
+    if (!isPlainObject(source)) {
+      continue;
+    }
+    for (const [key, value] of Object.entries(source)) {
+      if (value !== undefined) {
+        merged[key] = value;
+      }
+    }
+  }
+  return merged;
+}
+
+function optionSubset(options = {}, keys = []) {
+  const subset = {};
+  for (const key of keys) {
+    if (options[key] !== undefined) {
+      subset[key] = options[key];
+    }
+  }
+  return subset;
+}
+
+function liteOptions(options = {}, keys = []) {
+  return optionSubset(options, [
+    "contexts",
+    "expectedContexts",
+    "genomeBuild",
+    "genomeVersion",
+    "reportFormat",
+    "sampleName",
+    "seed",
+    ...keys,
+  ]);
+}
+
 function makeWarning(code, message, details = {}) {
   return {
     code,
     level: "warning",
     message,
+    resolution: WARNING_RESOLUTIONS[code] || null,
     ...details,
+  };
+}
+
+function warningSeverity(warning) {
+  const code = warning?.code;
+  if (
+    code === WARNING_CODES.INSUFFICIENT_SIGNAL ||
+    code === WARNING_CODES.PANEL_SIGNATURE_NOT_ASSESSABLE
+  ) {
+    return 3;
+  }
+  if (
+    code === WARNING_CODES.LOW_BURDEN ||
+    code === WARNING_CODES.CATALOG_INCOMPLETE_SUSPECTED ||
+    code === WARNING_CODES.HIGH_RESIDUAL_STRUCTURE
+  ) {
+    return 2;
+  }
+  return warning ? 1 : 0;
+}
+
+function deduplicateWarnings(warnings) {
+  const seen = new Set();
+  return (warnings || []).filter((warning) => {
+    if (!warning) {
+      return false;
+    }
+    const key = `${warning.code || ""}|${warning.message || ""}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function summarizeSubsystem(name, result, warnings = []) {
+  const sortedWarnings = deduplicateWarnings(warnings).sort(
+    (a, b) => warningSeverity(b) - warningSeverity(a)
+  );
+  return {
+    subsystem: name,
+    workflowRole: result?.workflowRole || result?.workflow || null,
+    reportingMode: result?.reportingMode || result?.summary?.reportingMode || null,
+    status: result?.overallStatus || result?.status || null,
+    warningCount: sortedWarnings.length,
+    highestSeverity: sortedWarnings[0] ? warningSeverity(sortedWarnings[0]) : 0,
+    primaryWarning: sortedWarnings[0] || null,
   };
 }
 
@@ -108,8 +592,8 @@ function getContextList(signatures, spectra, options = {}) {
     options.contexts ||
     options.expectedContexts ||
     getExpectedContexts({
-      profile: options.profile || "SBS",
-      matrix: options.matrix || 96,
+      profile: options.profile ?? "SBS",
+      matrix: options.matrix ?? 96,
     }) ||
     inferContexts(signatures, spectra)
   );
@@ -191,9 +675,11 @@ function summarizeThresholdInstability(thresholdSensitivity, sampleName) {
   if (!thresholdSensitivity?.runs?.length) {
     return {
       measured: false,
-      score: 0.7,
+      reviewFlag: false,
+      warningCodes: [],
       l1Change: null,
       activeSignatureRange: null,
+      cosineDrop: null,
       recommendation: "Threshold sensitivity was not measured.",
     };
   }
@@ -211,9 +697,11 @@ function summarizeThresholdInstability(thresholdSensitivity, sampleName) {
   if (sampleRows.length < 2) {
     return {
       measured: false,
-      score: 0.7,
+      reviewFlag: false,
+      warningCodes: [],
       l1Change: null,
       activeSignatureRange: null,
+      cosineDrop: null,
       recommendation: "Threshold sensitivity did not contain enough runs for this sample.",
     };
   }
@@ -238,21 +726,24 @@ function summarizeThresholdInstability(thresholdSensitivity, sampleName) {
   const cosineDrop =
     (sampleRows[0].reconstruction?.cosineSimilarity || 0) -
     (sampleRows[sampleRows.length - 1].reconstruction?.cosineSimilarity || 0);
-  const score = clamp(
-    1 - clamp(l1Change / 0.7, 0, 1) * 0.7 - clamp(activeSignatureRange / 4, 0, 1) * 0.2 -
-      clamp(cosineDrop / 0.1, 0, 1) * 0.1
+  const warningCodes = uniqueStrings(
+    (thresholdSensitivity.warnings || []).map((warning) => warning.code)
   );
+  const reviewFlag = warningCodes.length > 0;
 
   return {
     measured: true,
-    score,
+    reviewFlag,
+    warningCodes,
     l1Change,
     activeSignatureRange,
     cosineDrop,
+    interpretationBoundary:
+      "This summary reports observed drift across tested thresholds. It does not convert drift into a calibrated stability score.",
     recommendation:
-      score < 0.55
-        ? "Treat the fitted signature set as threshold-dependent and report sensitivity results."
-        : "The fitted signature set is stable across the tested exposure thresholds.",
+      reviewFlag
+        ? "Report threshold-sensitivity results and inspect the configured warning details before interpreting thresholded active signatures."
+        : "Inspect threshold-sensitivity drift values directly; no configured threshold-sensitivity warning was emitted.",
   };
 }
 
@@ -260,9 +751,10 @@ function summarizeBootstrapStability(bootstrap, exposureFloor = 0.01) {
   if (!bootstrap?.signatures?.length) {
     return {
       measured: false,
-      score: 0.7,
+      reviewFlag: false,
+      warningCodes: [],
       maxConfidenceWidth: null,
-      unstableSignatures: [],
+      intermediateSelectionFrequencySignatures: [],
       recommendation: "Bootstrap stability was not measured.",
     };
   }
@@ -280,41 +772,70 @@ function summarizeBootstrapStability(bootstrap, exposureFloor = 0.01) {
             (signature) => (signature.upper || 0) - (signature.lower || 0)
           )
         );
-  const unstableSignatures = activeSummaries.filter(
+  const intermediateSelectionFrequencySignatures = activeSummaries.filter(
     (signature) =>
       signature.selectionFrequency > 0.2 &&
       signature.selectionFrequency < 0.8
   );
-  const score = clamp(
-    1 - clamp(maxConfidenceWidth / 0.6, 0, 1) * 0.7 -
-      (unstableSignatures.length > 0 ? 0.2 : 0)
+  const warningCodes = uniqueStrings(
+    (bootstrap.warnings || []).map((warning) => warning.code)
   );
+  const reviewFlag = warningCodes.length > 0;
 
   return {
     measured: true,
-    score,
+    reviewFlag,
+    warningCodes,
     maxConfidenceWidth,
-    unstableSignatures: unstableSignatures.map(
+    intermediateSelectionFrequencySignatures: intermediateSelectionFrequencySignatures.map(
       (signature) => signature.signatureName
     ),
+    interpretationBoundary:
+      "This summary reports interval width and selection frequency directly. It does not convert bootstrap output into a calibrated stability score.",
     recommendation:
-      score < 0.55
-        ? "Exposure estimates are bootstrap-unstable; report confidence intervals and avoid fine-grained interpretation."
-        : "Bootstrap estimates are stable enough for standard reporting.",
+      reviewFlag
+        ? "Report bootstrap warning details with interval widths and selection frequencies."
+        : "Inspect bootstrap interval widths and selection frequencies directly; no configured bootstrap warning was emitted.",
   };
 }
 
-function classifyTrust(score) {
-  if (score >= 80) {
-    return "high_confidence";
+function classifyFitQcEvidence(flags) {
+  const flagCodes = new Set(flags.map((flag) => flag.code));
+  if (
+    flagCodes.has(WARNING_CODES.INSUFFICIENT_SIGNAL) ||
+    flagCodes.has(WARNING_CODES.PANEL_SIGNATURE_NOT_ASSESSABLE)
+  ) {
+    return "not_assessable";
   }
-  if (score >= 60) {
-    return "moderate_confidence";
+  if (
+    flagCodes.has(WARNING_CODES.LOW_BURDEN) ||
+    flagCodes.has(WARNING_CODES.CATALOG_INCOMPLETE_SUSPECTED) ||
+    flagCodes.has(WARNING_CODES.HIGH_RESIDUAL_STRUCTURE)
+  ) {
+    return "restricted_interpretation";
   }
-  if (score >= 40) {
-    return "low_confidence";
+  if (
+    flagCodes.has(WARNING_CODES.FIT_UNSTABLE) ||
+    flagCodes.has(WARNING_CODES.THRESHOLD_DEPENDENT) ||
+    flagCodes.has(WARNING_CODES.SIGNATURE_AMBIGUITY) ||
+    flagCodes.has(WARNING_CODES.FLAT_SIGNATURE_RISK)
+  ) {
+    return "report_with_caveats";
   }
-  return "not_assessable";
+  return "standard_qc_passed";
+}
+
+function summarizeFitQcAction(reportingMode) {
+  if (reportingMode === "not_assessable") {
+    return "Do not report fine-grained fitted exposures; report insufficient or not-assessable evidence and consider more data or a better matched assay.";
+  }
+  if (reportingMode === "restricted_interpretation") {
+    return "Restrict interpretation to high-level evidence and include residual, burden, uncertainty, and ambiguity diagnostics.";
+  }
+  if (reportingMode === "report_with_caveats") {
+    return "Report fitted exposures with explicit uncertainty, threshold sensitivity, ambiguity, and catalog-sufficiency diagnostics.";
+  }
+  return "Fitted exposures passed the configured QC checks; still report the diagnostic values and assay limitations.";
 }
 
 function getBootstrapForSample(bootstrap, sampleName) {
@@ -379,10 +900,10 @@ function buildPublicationFigureDescriptors(workflowType, fields = {}) {
       recommendedRenderer: "mSigSDK.qcPlots.plotResidualSpectrum",
     },
     {
-      id: "trust_dashboard",
-      title: "Fit trust and caveat dashboard",
+      id: "fit_quality_evidence_dashboard",
+      title: "Fit-quality evidence summary",
       purpose: "Summarizes burden, reconstruction, residual, bootstrap, threshold, ambiguity, and catalog-sufficiency evidence.",
-      recommendedRenderer: "mSigSDK.qcPlots.plotFitTrustDashboard",
+      recommendedRenderer: "mSigSDK.qcPlots.plotFitQualityEvidenceDashboard",
     },
   ];
 
@@ -399,7 +920,7 @@ function buildPublicationFigureDescriptors(workflowType, fields = {}) {
   if (workflowType === "cohort" || workflowType === "panel") {
     base.push({
       id: "cohort_exposure_heatmap",
-      title: "Cohort exposure heatmap with burden and confidence annotations",
+      title: "Cohort exposure heatmap with burden and reporting-mode annotations",
       purpose: "Compares signature activity across samples while flagging low-information spectra.",
       recommendedRenderer:
         "mSigSDK.signatureFitting.plotDatasetMutationalSignaturesExposure",
@@ -423,7 +944,7 @@ function buildPublicationFigureDescriptors(workflowType, fields = {}) {
       id: "subgroup_discovery",
       title: "Subgroup extraction and matched refitting summary",
       purpose: "Shows which cohort subgroups were extracted, skipped, matched to references, and refitted.",
-      recommendedRenderer: "mSigSDK.pipelines.runSubgroupDiscoveryWorkflow",
+      recommendedRenderer: "mSigSDK.experimental.runSubgroupDiscoveryWorkflow",
     });
   }
 
@@ -450,7 +971,7 @@ function buildPublicationFigureDescriptors(workflowType, fields = {}) {
       id: "rainfall",
       title: "Rainfall plot with focal mutation clusters",
       purpose: "Shows localized hypermutation and kataegis-like regional processes.",
-      recommendedRenderer: "mSigSDK.pipelines.runLocalizedMutagenesisAnalysis",
+      recommendedRenderer: "mSigSDK.experimental.runLocalizedMutagenesisAnalysis",
     });
   }
 
@@ -465,20 +986,33 @@ function buildPublicationFigureDescriptors(workflowType, fields = {}) {
  *
  * @function recommendAnalysisStrategy
  * @memberof advisor
+ * @validated Exercised by manuscript Results as part of the validated advisor claim set.
  * @param {Object<string,Object<string,number>>|Object<string,number>} spectra - Sample spectra matrix or one spectrum.
  * @param {Object} [options] - Advisor options.
  * @returns {Object} Strategy recommendation, caveats, warnings, and next actions.
  */
 function recommendAnalysisStrategy(spectra, options = {}) {
+  const strategyOptions = mergeDefinedOptions(
+    options.analysisStrategy,
+    options.strategy,
+    options
+  );
+  const strategyDefaults = ADVISOR_DEFAULTS.analysisStrategy;
+  const assay = strategyOptions.assay ?? strategyDefaults.assay;
   const {
-    assay = "WGS",
-    lowBurdenThreshold = assay === "panel" ? 30 : 100,
-    moderateBurdenThreshold = assay === "panel" ? 150 : 1000,
-    highBurdenThreshold = 3000,
-    minSamplesForExtraction = 8,
-    minHighInformationFraction = 0.5,
-    heterogeneityCosineThreshold = 0.85,
-  } = options;
+    lowBurdenThreshold = assay === "panel"
+      ? strategyDefaults.panelLowBurdenThreshold
+      : strategyDefaults.wgsLowBurdenThreshold,
+    moderateBurdenThreshold = assay === "panel"
+      ? strategyDefaults.panelModerateBurdenThreshold
+      : strategyDefaults.wgsModerateBurdenThreshold,
+    highBurdenThreshold = strategyDefaults.highBurdenThreshold,
+    minSamplesForExtraction = strategyDefaults.minSamplesForExtraction,
+    minSamplesForCohortRecommendation =
+      strategyDefaults.minSamplesForCohortRecommendation,
+    minHighInformationFraction = strategyDefaults.minHighInformationFraction,
+    heterogeneityCosineThreshold = strategyDefaults.heterogeneityCosineThreshold,
+  } = strategyOptions;
   const normalizedSpectra = normalizeSpectraInput(spectra, options);
   const contexts = getContextList(null, normalizedSpectra, options);
   const validation = validateSpectra(normalizedSpectra, {
@@ -584,6 +1118,8 @@ function recommendAnalysisStrategy(spectra, options = {}) {
 
   const cohort = {
     sampleCount,
+    minSamplesForCohortRecommendation,
+    cohortRecommendationEligible: sampleCount >= minSamplesForCohortRecommendation,
     totalMutations: sum(totalMutations),
     medianMutationBurden: quantile(totalMutations, 0.5),
     highInformationSampleCount: highInformationSamples.length,
@@ -592,7 +1128,7 @@ function recommendAnalysisStrategy(spectra, options = {}) {
     similarity,
     canConsiderExtraction: extractionCandidate,
     primaryRecommendation:
-      sampleCount === 1
+      sampleCount < minSamplesForCohortRecommendation
         ? samples[0]?.recommendedMode || "insufficient_signal"
         : extractionCandidate
           ? "subgroup_aware_discovery_then_refitting"
@@ -605,16 +1141,31 @@ function recommendAnalysisStrategy(spectra, options = {}) {
     extractionCandidate
       ? "Run rank selection and NMF extraction, then match extracted signatures to a reference catalog and refit with a shortlist."
       : sampleCount > 1
-        ? "Use known-signature refitting with confidence flags; reserve extraction for higher-burden subgroups."
+        ? "Use known-signature refitting with fit-quality flags; reserve extraction for higher-burden subgroups."
         : null,
     assay === "panel"
-      ? "Use panel-specific evidence tiers and avoid overinterpreting absent flat signatures."
+      ? "Use panel-specific review evidence tiers and avoid overinterpreting absent flat signatures."
       : null,
   ]);
 
   return {
     schemaVersion: RESULT_SCHEMA_VERSION,
     workflowRole: "analysis_advisor",
+    scopeStatement: SCOPE_STATEMENTS.analysisAdvisor,
+    methodBasis: {
+      mutationBurden: METHOD_BASIS.mutationBurden,
+      cohortStructure: METHOD_BASIS.cohortStructure,
+      thresholdBasis:
+        "Burden and heterogeneity thresholds are configurable empirical defaults for review triage. They are not universal literature cutoffs.",
+      references: [
+        LITERATURE_REFERENCES.koh2021,
+        LITERATURE_REFERENCES.medo2024,
+        LITERATURE_REFERENCES.degasperi2020,
+        assay === "panel" ? LITERATURE_REFERENCES.lawrence2021 : null,
+      ].filter(Boolean),
+      note:
+        "This advisor reports literature-motivated QC signals and configurable recommendations; it is not a consensus clinical decision rule.",
+    },
     assay,
     contexts,
     thresholds,
@@ -634,15 +1185,29 @@ function recommendAnalysisStrategy(spectra, options = {}) {
  *
  * @function computeSignatureAmbiguity
  * @memberof advisor
+ * @validated Exercised by manuscript Results as part of the validated advisor claim set.
  * @param {Object<string,Object<string,number>>} signatures - Reference signatures.
  * @param {Object} [options] - Ambiguity options.
  * @returns {Object} Per-signature ambiguity, pairwise confusability, and warnings.
  */
 function computeSignatureAmbiguity(signatures, options = {}) {
+  const ambiguityOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.signatureAmbiguity,
+    options.ambiguity,
+    options.signatureAmbiguity,
+    options
+  );
   const normalizedSignatures = normalizeMatrixObject(signatures);
-  const contexts = getContextList(normalizedSignatures, null, options);
+  const contexts = getContextList(normalizedSignatures, null, ambiguityOptions);
   const signatureNames = Object.keys(normalizedSignatures);
-  const pairReportThreshold = options.pairReportThreshold ?? 0.9;
+  const pairReportThreshold = ambiguityOptions.pairReportThreshold;
+  const moderateNearestCosine = ambiguityOptions.moderateNearestCosine;
+  const highNearestCosine = ambiguityOptions.highNearestCosine;
+  const moderateEntropy = ambiguityOptions.moderateEntropy;
+  const highEntropy = ambiguityOptions.highEntropy;
+  const flatSignatureWarningEntropy = ambiguityOptions.flatSignatureWarningEntropy;
+  const catalogVersion =
+    ambiguityOptions.catalogVersion || ambiguityOptions.signatureSetName || null;
   const summaries = Object.fromEntries(
     signatureNames.map((signatureName) => {
       const vector = vectorFromRecord(normalizedSignatures[signatureName], contexts);
@@ -663,6 +1228,7 @@ function computeSignatureAmbiguity(signatures, options = {}) {
           nonZeroContexts: positive.length,
           nearestNeighbor: null,
           nearestCosineSimilarity: 0,
+          confoundingNeighbors: [],
         },
       ];
     })
@@ -688,19 +1254,29 @@ function computeSignatureAmbiguity(signatures, options = {}) {
       }
       if (similarity >= pairReportThreshold) {
         pairs.push({ signatureA, signatureB, cosineSimilarity: similarity });
+        summaries[signatureA].confoundingNeighbors.push({
+          signatureName: signatureB,
+          cosineSimilarity: similarity,
+        });
+        summaries[signatureB].confoundingNeighbors.push({
+          signatureName: signatureA,
+          cosineSimilarity: similarity,
+        });
       }
     }
   }
 
   const signatureSummaries = Object.values(summaries).map((summary) => {
     const highAmbiguity =
-      summary.nearestCosineSimilarity >= 0.95 || summary.flatnessScore >= 0.92;
+      summary.nearestCosineSimilarity >= highNearestCosine ||
+      summary.flatnessScore >= highEntropy;
     const moderateAmbiguity =
       !highAmbiguity &&
-      (summary.nearestCosineSimilarity >= 0.9 || summary.flatnessScore >= 0.85);
+      (summary.nearestCosineSimilarity >= moderateNearestCosine ||
+        summary.flatnessScore >= moderateEntropy);
     const warnings = [];
 
-    if (summary.nearestCosineSimilarity >= 0.9) {
+    if (summary.nearestCosineSimilarity >= moderateNearestCosine) {
       warnings.push(
         makeWarning(
           WARNING_CODES.SIGNATURE_AMBIGUITY,
@@ -713,7 +1289,7 @@ function computeSignatureAmbiguity(signatures, options = {}) {
         )
       );
     }
-    if (summary.flatnessScore >= 0.9) {
+    if (summary.flatnessScore >= flatSignatureWarningEntropy) {
       warnings.push(
         makeWarning(
           WARNING_CODES.FLAT_SIGNATURE_RISK,
@@ -725,11 +1301,17 @@ function computeSignatureAmbiguity(signatures, options = {}) {
 
     return {
       ...summary,
+      entropyDefinition:
+        "Shannon entropy of the signature contribution vector after normalization to sum to one, divided by log(contextCount).",
       ambiguityClass: highAmbiguity
         ? "high"
         : moderateAmbiguity
           ? "moderate"
           : "low",
+      confoundingNeighborCount: summary.confoundingNeighbors.length,
+      confoundingNeighbors: summary.confoundingNeighbors.sort(
+        (a, b) => b.cosineSimilarity - a.cosineSimilarity
+      ),
       warnings,
     };
   });
@@ -738,6 +1320,29 @@ function computeSignatureAmbiguity(signatures, options = {}) {
   return {
     schemaVersion: RESULT_SCHEMA_VERSION,
     workflowRole: "signature_ambiguity",
+    scopeStatement: SCOPE_STATEMENTS.signatureAmbiguity,
+    methodBasis: {
+      signatureAmbiguity: METHOD_BASIS.signatureAmbiguity,
+      thresholdBasis:
+        "Pairwise cosine thresholds are configurable screening defaults informed by signature-assignment and confusability literature.",
+      references: [
+        LITERATURE_REFERENCES.koh2021,
+        LITERATURE_REFERENCES.jin2024,
+        LITERATURE_REFERENCES.wu2023,
+        LITERATURE_REFERENCES.alexandrov2020,
+      ],
+      note:
+        "Cosine-similarity and entropy cutoffs flag confusable signatures for review.",
+    },
+    catalogVersion,
+    thresholds: {
+      pairReportThreshold,
+      moderateNearestCosine,
+      highNearestCosine,
+      moderateEntropy,
+      highEntropy,
+      flatSignatureWarningEntropy,
+    },
     contexts,
     signatures: signatureSummaries,
     pairs: pairs.sort((a, b) => b.cosineSimilarity - a.cosineSimilarity),
@@ -760,11 +1365,18 @@ function computeSignatureAmbiguity(signatures, options = {}) {
  *
  * @function detectOutOfReferenceSignal
  * @memberof advisor
+ * @validated Exercised by manuscript Results as part of the validated advisor claim set.
  * @param {Object} input - Fitted spectra, signatures, exposures, and optional residuals.
  * @param {Object} [options] - Catalog sufficiency options.
  * @returns {Object} Per-sample catalog sufficiency checks and recommendations.
  */
 function detectOutOfReferenceSignal(input = {}, options = {}) {
+  const catalogOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.catalogSufficiency,
+    options.catalogSufficiency,
+    options.catalogCheck,
+    options
+  );
   const {
     signatures,
     spectra,
@@ -773,9 +1385,9 @@ function detectOutOfReferenceSignal(input = {}, options = {}) {
     reconstructionError = null,
   } = input;
   const normalizedSignatures = normalizeMatrixObject(signatures);
-  const normalizedSpectra = normalizeSpectraInput(spectra || input, options);
+  const normalizedSpectra = normalizeSpectraInput(spectra || input, catalogOptions);
   const normalizedExposures = normalizeMatrixObject(exposures);
-  const contexts = getContextList(normalizedSignatures, normalizedSpectra, options);
+  const contexts = getContextList(normalizedSignatures, normalizedSpectra, catalogOptions);
 
   if (!residuals && (!signatures || !spectra || !exposures)) {
     throw new Error(
@@ -787,7 +1399,7 @@ function detectOutOfReferenceSignal(input = {}, options = {}) {
     residuals ||
     calculateFitResiduals(normalizedSignatures, normalizedSpectra, normalizedExposures, {
       contexts,
-      normalizeMode: options.normalizeMode || "relative",
+      normalizeMode: catalogOptions.normalizeMode,
     });
   const reconstruction =
     reconstructionError ||
@@ -795,17 +1407,35 @@ function detectOutOfReferenceSignal(input = {}, options = {}) {
       normalizedSignatures,
       normalizedSpectra,
       normalizedExposures,
-      { contexts, normalizeMode: options.normalizeMode || "relative" }
+      { contexts, normalizeMode: catalogOptions.normalizeMode }
     );
-  const unexplainedThreshold = options.unexplainedThreshold ?? 0.12;
-  const weakUnexplainedThreshold = options.weakUnexplainedThreshold ?? 0.07;
-  const cosineThreshold = options.cosineThreshold ?? 0.9;
+  const unexplainedThreshold = catalogOptions.unexplainedThreshold;
+  const weakUnexplainedThreshold = catalogOptions.weakUnexplainedThreshold;
+  const cosineThreshold = catalogOptions.cosineThreshold;
   const structuredResidualCosineThreshold =
-    options.structuredResidualCosineThreshold ?? 0.85;
-  const topN = options.topN || 8;
+    catalogOptions.structuredResidualCosineThreshold;
+  const minBurdenForReliableDetection =
+    catalogOptions.minBurdenForReliableDetection;
+  const topN = catalogOptions.topN;
+  const burdenSummary =
+    input.burdenSummary ||
+    summarizeMutationBurden(normalizedSpectra, {
+      expectedContexts: contexts,
+      lowBurdenThreshold: minBurdenForReliableDetection,
+      moderateBurdenThreshold: catalogOptions.moderateBurdenThreshold,
+    });
 
   const samples = residualResult.samples.map((sample) => {
     const reconstructionSample = getReconstructionSample(reconstruction, sample.sample);
+    const burdenSample = getBurdenSample(burdenSummary, sample.sample);
+    const totalMutations = burdenSample?.totalMutations ?? sample.metrics.totalObserved ?? null;
+    const burdenClass = getBurdenClass(totalMutations, {
+      lowBurdenThreshold: minBurdenForReliableDetection,
+      moderateBurdenThreshold: catalogOptions.moderateBurdenThreshold,
+    });
+    const reliableResidualDetection =
+      Number.isFinite(totalMutations) &&
+      totalMutations >= minBurdenForReliableDetection;
     const denominator =
       sample.normalizationMode === "relative"
         ? 2
@@ -846,14 +1476,26 @@ function detectOutOfReferenceSignal(input = {}, options = {}) {
       !suspected &&
       (unexplainedFraction >= weakUnexplainedThreshold ||
         (reconstructionSample?.cosineSimilarity || 0) < cosineThreshold + 0.04);
-    const status = suspected
+    const rawStatus = suspected
       ? "suspected_out_of_reference"
       : possible
         ? "possible_out_of_reference"
         : "catalog_sufficient_for_fit";
+    const status =
+      rawStatus === "suspected_out_of_reference" && !reliableResidualDetection
+        ? "possible_out_of_reference"
+        : rawStatus;
     const warnings = [];
 
-    if (suspected) {
+    if (rawStatus === "suspected_out_of_reference" && !reliableResidualDetection) {
+      warnings.push(
+        makeWarning(
+          WARNING_CODES.LOW_BURDEN,
+          `${sample.sample} has residual signal but mutation burden is below the configured minimum for reliable out-of-reference screening.`,
+          { sample: sample.sample, totalMutations, minBurdenForReliableDetection }
+        )
+      );
+    } else if (status === "suspected_out_of_reference") {
       warnings.push(
         makeWarning(
           WARNING_CODES.CATALOG_INCOMPLETE_SUSPECTED,
@@ -874,16 +1516,25 @@ function detectOutOfReferenceSignal(input = {}, options = {}) {
     return {
       sample: sample.sample,
       status,
+      rawStatus,
+      totalMutations,
+      burdenClass,
+      minBurdenForReliableDetection,
+      reliableResidualDetection,
       unexplainedFraction,
       cosineSimilarity: reconstructionSample?.cosineSimilarity ?? null,
       rmse: reconstructionSample?.rmse ?? null,
       structuredResidual,
+      structuredResidualDefinition:
+        "Cosine similarity between the positive residual vector and the nearest supplied reference signature, considered only when the relative unexplained fraction also exceeds the weak threshold.",
       residualMatches,
+      residualMatchesInterpretation:
+        "Candidate catalog patterns for manual review only; residual matches do not identify an active or causal mutational signature.",
       topResidualContexts,
       warnings,
       recommendedAction:
         status === "suspected_out_of_reference"
-          ? "Inspect residual spectrum, test a broader or disease-specific catalog, and consider subgroup discovery."
+          ? "Inspect residual spectrum, test a broader or disease-specific catalog, and consider de novo extraction in an adequately powered cohort."
           : status === "possible_out_of_reference"
             ? "Report residual uncertainty and verify with threshold or bootstrap sensitivity."
             : "Reference catalog appears sufficient for this fitted result.",
@@ -900,6 +1551,28 @@ function detectOutOfReferenceSignal(input = {}, options = {}) {
   return {
     schemaVersion: RESULT_SCHEMA_VERSION,
     workflowRole: "catalog_sufficiency",
+    scopeStatement: SCOPE_STATEMENTS.catalogSufficiency,
+    methodBasis: {
+      reconstructionResidual: METHOD_BASIS.reconstructionResidual,
+      catalogSufficiency: METHOD_BASIS.catalogSufficiency,
+      thresholdBasis:
+        "Unexplained-fraction and residual-cosine thresholds are configurable internal review defaults. They should be calibrated to study-specific synthetic or held-out validation data before inferential use.",
+      references: [
+        LITERATURE_REFERENCES.koh2021,
+        LITERATURE_REFERENCES.degasperi2020,
+        LITERATURE_REFERENCES.alexandrov2020,
+        LITERATURE_REFERENCES.medo2024,
+      ],
+      note:
+        "Residual and cosine cutoffs are configurable QC triggers for manual review and reference-catalog reassessment.",
+    },
+    thresholds: {
+      unexplainedThreshold,
+      weakUnexplainedThreshold,
+      cosineThreshold,
+      structuredResidualCosineThreshold,
+      minBurdenForReliableDetection,
+    },
     contexts,
     samples,
     overallStatus:
@@ -921,31 +1594,49 @@ function detectOutOfReferenceSignal(input = {}, options = {}) {
 }
 
 /**
- * Computes a composite trust score for signature fitting results.
+ * Builds a literature-aligned QC evidence report for known-signature fitting.
  *
- * @function computeFitTrust
+ * Reports burden, reconstruction, residual, bootstrap, threshold, ambiguity,
+ * and catalog-sufficiency diagnostics so callers can apply study-specific
+ * reporting rules.
+ *
+ * @function computeFitQualityEvidence
  * @memberof advisor
+ * @validated Exercised by manuscript Results as part of the validated advisor claim set.
  * @param {Object} input - Fitted spectra, signatures, exposures, and optional QC objects.
- * @param {Object} [options] - Trust scoring options.
- * @returns {Object} Per-sample trust scores, classifications, caveats, and next actions.
+ * @param {Object} [options] - QC evidence options.
+ * @returns {Object} Per-sample QC evidence, caveats, and next actions.
  */
-function computeFitTrust(input = {}, options = {}) {
+function computeFitQualityEvidence(input = {}, options = {}) {
+  const fitQualityOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.fitQualityEvidence,
+    options.fitQualityEvidence,
+    options.qcEvidence,
+    options
+  );
   const { signatures, spectra, exposures } = input;
   const normalizedSignatures = normalizeMatrixObject(signatures);
-  const normalizedSpectra = normalizeSpectraInput(spectra || input, options);
+  const normalizedSpectra = normalizeSpectraInput(spectra || input, fitQualityOptions);
   const normalizedExposures = normalizeMatrixObject(exposures);
-  const contexts = getContextList(normalizedSignatures, normalizedSpectra, options);
+  const contexts = getContextList(
+    normalizedSignatures,
+    normalizedSpectra,
+    fitQualityOptions
+  );
   const burdenSummary =
     input.burdenSummary ||
     summarizeMutationBurden(normalizedSpectra, {
       expectedContexts: contexts,
-      lowBurdenThreshold: options.lowBurdenThreshold || 100,
+      lowBurdenThreshold: fitQualityOptions.lowBurdenThreshold,
+      moderateBurdenThreshold: fitQualityOptions.moderateBurdenThreshold,
     });
   const residuals =
     input.residuals ||
     calculateFitResiduals(normalizedSignatures, normalizedSpectra, normalizedExposures, {
       contexts,
-      normalizeMode: options.normalizeMode || "relative",
+      normalizeMode: fitQualityOptions.normalizeMode,
+      lowBurdenThreshold: fitQualityOptions.lowBurdenThreshold,
+      moderateBurdenThreshold: fitQualityOptions.moderateBurdenThreshold,
     });
   const reconstructionError =
     input.reconstructionError ||
@@ -953,7 +1644,12 @@ function computeFitTrust(input = {}, options = {}) {
       normalizedSignatures,
       normalizedSpectra,
       normalizedExposures,
-      { contexts, normalizeMode: options.normalizeMode || "relative" }
+      {
+        contexts,
+        normalizeMode: fitQualityOptions.normalizeMode,
+        lowBurdenThreshold: fitQualityOptions.lowBurdenThreshold,
+        moderateBurdenThreshold: fitQualityOptions.moderateBurdenThreshold,
+      }
     );
   const ambiguity =
     input.ambiguity || computeSignatureAmbiguity(normalizedSignatures, { contexts });
@@ -967,19 +1663,10 @@ function computeFitTrust(input = {}, options = {}) {
       residuals,
       reconstructionError,
       contexts,
-    });
+    }, fitQualityOptions);
   const thresholds = {
-    lowBurdenThreshold: options.lowBurdenThreshold || 100,
-    moderateBurdenThreshold: options.moderateBurdenThreshold || 1000,
-  };
-  const weights = {
-    burden: 0.18,
-    reconstruction: 0.2,
-    residual: 0.18,
-    bootstrap: 0.14,
-    threshold: 0.1,
-    ambiguity: 0.1,
-    catalog: 0.1,
+    lowBurdenThreshold: fitQualityOptions.lowBurdenThreshold,
+    moderateBurdenThreshold: fitQualityOptions.moderateBurdenThreshold,
   };
 
   const samples = Object.keys(normalizedSpectra).map((sampleName) => {
@@ -1001,25 +1688,7 @@ function computeFitTrust(input = {}, options = {}) {
       lowBurdenThreshold: thresholds.lowBurdenThreshold,
       moderateBurdenThreshold: thresholds.moderateBurdenThreshold,
     });
-    const burdenScore =
-      burdenClass === "high"
-        ? 1
-        : burdenClass === "moderate"
-          ? 0.7
-          : burdenClass === "low"
-            ? 0.35
-            : 0;
     const cosine = reconstructionSample?.cosineSimilarity || 0;
-    const reconstructionScore =
-      cosine >= 0.98
-        ? 1
-        : cosine >= 0.95
-          ? 0.85
-          : cosine >= 0.9
-            ? 0.65
-            : cosine >= 0.8
-              ? 0.35
-              : 0.1;
     const denominator =
       residualSample?.normalizationMode === "relative"
         ? 2
@@ -1027,41 +1696,47 @@ function computeFitTrust(input = {}, options = {}) {
     const unexplainedFraction = residualSample
       ? clamp(residualSample.metrics.l1Error / denominator, 0, 1)
       : 1;
-    const residualScore = clamp(1 - unexplainedFraction / 0.18);
     const activeSignatures = activeSignatureNames(normalizedExposures[sampleName]);
     const activeAmbiguityClasses = activeSignatures.map(
       (signatureName) =>
         ambiguityBySignature[signatureName]?.ambiguityClass || "low"
     );
-    const ambiguityScore = activeAmbiguityClasses.includes("high")
-      ? 0.45
-      : activeAmbiguityClasses.includes("moderate")
-        ? 0.75
-        : 1;
-    const catalogScore =
-      catalogSample?.status === "catalog_sufficient_for_fit"
-        ? 1
-        : catalogSample?.status === "possible_out_of_reference"
-          ? 0.65
-          : 0.25;
-    const componentScores = {
-      burden: burdenScore,
-      reconstruction: reconstructionScore,
-      residual: residualScore,
-      bootstrap: bootstrapSummary.score,
-      threshold: thresholdSummary.score,
-      ambiguity: ambiguityScore,
-      catalog: catalogScore,
+    const componentEvidence = {
+      burden: {
+        burdenClass,
+        totalMutations: burdenSample?.totalMutations ?? null,
+        configuredLowBurdenThreshold: thresholds.lowBurdenThreshold,
+        configuredModerateBurdenThreshold: thresholds.moderateBurdenThreshold,
+        derivedScoreDeprecated: true,
+      },
+      reconstruction: {
+        cosineSimilarity: cosine,
+        rmse: reconstructionSample?.rmse ?? null,
+        derivedScoreDeprecated: true,
+      },
+      residual: {
+        unexplainedFraction,
+        normalizationMode: residualSample?.normalizationMode || null,
+        derivedScoreDeprecated: true,
+      },
+      bootstrap: {
+        ...bootstrapSummary,
+        derivedScoreDeprecated: true,
+      },
+      threshold: {
+        ...thresholdSummary,
+        derivedScoreDeprecated: true,
+      },
+      ambiguity: {
+        activeSignatures,
+        activeAmbiguityClasses,
+        derivedScoreDeprecated: true,
+      },
+      catalog: {
+        status: catalogSample?.status || "not_checked",
+        derivedScoreDeprecated: true,
+      },
     };
-    const score = Math.round(
-      100 *
-        Object.entries(weights).reduce(
-          (total, [component, weight]) =>
-            total + componentScores[component] * weight,
-          0
-        )
-    );
-    const classification = classifyTrust(score);
     const warnings = [];
 
     if (burdenClass === "low" || burdenClass === "insufficient") {
@@ -1075,21 +1750,21 @@ function computeFitTrust(input = {}, options = {}) {
         )
       );
     }
-    if (bootstrapSummary.measured && bootstrapSummary.score < 0.55) {
+    if (bootstrapSummary.measured && bootstrapSummary.warningCodes.length > 0) {
       warnings.push(
         makeWarning(
           WARNING_CODES.FIT_UNSTABLE,
-          `${sampleName} has bootstrap-unstable exposure estimates.`,
-          { sample: sampleName }
+          `${sampleName} has bootstrap review warnings that require inspection before routine reporting.`,
+          { sample: sampleName, warningCodes: bootstrapSummary.warningCodes }
         )
       );
     }
-    if (thresholdSummary.measured && thresholdSummary.score < 0.55) {
+    if (thresholdSummary.measured && thresholdSummary.warningCodes.length > 0) {
       warnings.push(
         makeWarning(
           WARNING_CODES.THRESHOLD_DEPENDENT,
-          `${sampleName} has threshold-dependent exposure estimates.`,
-          { sample: sampleName }
+          `${sampleName} has threshold-sensitivity warnings under the configured review settings.`,
+          { sample: sampleName, warningCodes: thresholdSummary.warningCodes }
         )
       );
     }
@@ -1105,12 +1780,17 @@ function computeFitTrust(input = {}, options = {}) {
     if (catalogSample?.status === "suspected_out_of_reference") {
       warnings.push(...catalogSample.warnings);
     }
+    const reportingMode = classifyFitQcEvidence(warnings);
+    const reviewFlagCount = warnings.length;
 
     return {
       sample: sampleName,
-      score,
-      classification,
-      componentScores,
+      reportingMode,
+      recommendedReportingMode: reportingMode,
+      primaryInterpretationField: "reportingMode",
+      reviewFlagCount,
+      reviewFlagCodes: warnings.map((warning) => warning.code),
+      componentEvidence,
       metrics: {
         burdenClass,
         totalMutations: burdenSample?.totalMutations ?? null,
@@ -1122,39 +1802,66 @@ function computeFitTrust(input = {}, options = {}) {
       bootstrap: bootstrapSummary,
       thresholdSensitivity: thresholdSummary,
       catalogStatus: catalogSample?.status || "not_checked",
+      flags: warnings,
+      evidenceFlags: warnings,
       warnings,
       caveats: warnings.map((warning) => warning.message),
       recommendedActions: uniqueStrings([
         bootstrapSummary.recommendation,
         thresholdSummary.recommendation,
         catalogSample?.recommendedAction,
-        classification === "low_confidence" || classification === "not_assessable"
-          ? "Restrict interpretation to high-level evidence calls and report caveats."
-          : "Report fitted exposures with the trust classification and residual checks.",
+        summarizeFitQcAction(reportingMode),
       ]),
     };
   });
 
   return {
     schemaVersion: RESULT_SCHEMA_VERSION,
-    workflowRole: "fit_trust",
+    workflowRole: "fit_quality_evidence",
+    scopeStatement: SCOPE_STATEMENTS.fitQualityEvidence,
+    methodBasis: {
+      mutationBurden: METHOD_BASIS.mutationBurden,
+      reconstructionResidual: METHOD_BASIS.reconstructionResidual,
+      signatureAmbiguity: METHOD_BASIS.signatureAmbiguity,
+      catalogSufficiency: METHOD_BASIS.catalogSufficiency,
+      bootstrapThreshold: METHOD_BASIS.bootstrapThreshold,
+      reportingModeRules: {
+        not_assessable:
+          "Triggered by insufficient signal or not-assessable panel evidence.",
+        restricted_interpretation:
+          "Triggered by low burden, suspected catalog incompleteness, or high residual structure.",
+        report_with_caveats:
+          "Triggered by configured bootstrap warnings, configured threshold-sensitivity warnings, signature ambiguity, or flat-signature risk.",
+        standard_qc_passed:
+          "Returned only when none of the configured rule-based concern flags are active.",
+      },
+      references: [
+        LITERATURE_REFERENCES.koh2021,
+        LITERATURE_REFERENCES.medo2024,
+        LITERATURE_REFERENCES.jin2024,
+        LITERATURE_REFERENCES.wu2023,
+        LITERATURE_REFERENCES.huang2018,
+      ],
+      note:
+        "Reporting modes are rule-based summaries of burden, reconstruction, residual, bootstrap, threshold, ambiguity, and catalog evidence.",
+    },
     contexts,
-    weights,
+    primaryInterpretationField: "samples[].reportingMode",
     samples,
     summary: {
       sampleCount: samples.length,
-      meanTrustScore: average(samples.map((sample) => sample.score)),
-      highConfidenceCount: samples.filter(
-        (sample) => sample.classification === "high_confidence"
-      ).length,
-      moderateConfidenceCount: samples.filter(
-        (sample) => sample.classification === "moderate_confidence"
-      ).length,
-      lowOrNotAssessableCount: samples.filter(
-        (sample) =>
-          sample.classification === "low_confidence" ||
-          sample.classification === "not_assessable"
-      ).length,
+      meanReviewFlagCount: average(samples.map((sample) => sample.reviewFlagCount)),
+      reportingModeCounts: Object.fromEntries(
+        [
+          "standard_qc_passed",
+          "report_with_caveats",
+          "restricted_interpretation",
+          "not_assessable",
+        ].map((mode) => [
+          mode,
+          samples.filter((sample) => sample.reportingMode === mode).length,
+        ])
+      ),
     },
     warnings: samples.flatMap((sample) => sample.warnings),
     recommendedActions: uniqueStrings(
@@ -1171,10 +1878,10 @@ function computeFitTrust(input = {}, options = {}) {
  * @memberof pipelines
  * @param {Object} input - Input spectrum and reference signatures.
  * @param {Object} [options] - Fitting, bootstrap, threshold, and reporting options.
- * @returns {Promise<Object>} Fitted spectrum, trust, ambiguity, residuals, catalog check, and report artifacts.
+ * @returns {Promise<Object>} Fitted spectrum, fit-quality evidence, ambiguity, residuals, catalog check, and report artifacts.
  */
 async function runSingleSampleFit(input = {}, options = {}) {
-  const sampleName = input.sampleName || options.sampleName || "sample_1";
+  const sampleName = input.sampleName ?? options.sampleName ?? "sample_1";
   const spectra = normalizeSpectraInput(input.spectra || input.spectrum || input, {
     sampleName,
   });
@@ -1184,6 +1891,103 @@ async function runSingleSampleFit(input = {}, options = {}) {
     input.signatures || input.referenceSignatures || options.signatures || {}
   );
   const contexts = getContextList(signatures, singleSpectra, options);
+  const burdenOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.singleSampleFit.mutationBurden,
+    options.mutationBurden,
+    options.mutationBurdenOptions,
+    optionSubset(options, [
+      "lowBurdenThreshold",
+      "lowBurdenThresholdMode",
+      "thresholdMode",
+      "quantile",
+      "moderateBurdenThreshold",
+    ])
+  );
+  const fitOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.singleSampleFit.fit,
+    options.fit,
+    options.fitOptions,
+    optionSubset(options, [
+      "exposureThreshold",
+      "exposureType",
+      "renormalize",
+      "maxIterations",
+      "convergenceTolerance",
+    ]),
+    { contexts }
+  );
+  const residualOptions = mergeDefinedOptions(
+    { normalizeMode: fitOptions.exposureType },
+    burdenOptions,
+    options.residuals,
+    options.residualOptions,
+    optionSubset(options, [
+      "weakUnexplainedThreshold",
+      "highResidualStructureCosineThreshold",
+    ]),
+    { contexts }
+  );
+  const thresholdOptions = mergeDefinedOptions(
+    { ...ADVISOR_DEFAULTS.singleSampleFit.thresholdSensitivity },
+    options.thresholdSensitivity,
+    options.thresholdSensitivityOptions,
+    optionSubset(options, [
+      "thresholds",
+      "baselineThreshold",
+      "instabilityL1Threshold",
+      "activeSetJaccardThreshold",
+    ]),
+    {
+      contexts,
+      exposureType: fitOptions.exposureType,
+      renormalize: fitOptions.renormalize,
+      maxIterations: fitOptions.maxIterations,
+      convergenceTolerance: fitOptions.convergenceTolerance,
+    }
+  );
+  const bootstrapOptions = mergeDefinedOptions(
+    { ...ADVISOR_DEFAULTS.singleSampleFit.bootstrap },
+    options.bootstrap,
+    options.bootstrapOptions,
+    optionSubset(options, [
+      "bootstrapIterations",
+      "iterations",
+      "confidenceLevel",
+      "seed",
+      "minIterationsForStableIntervals",
+      "publicationRecommendedIterations",
+      "minMutationsForBootstrapSummary",
+    ]),
+    {
+      contexts,
+      exposureThreshold: fitOptions.exposureThreshold,
+      exposureType: fitOptions.exposureType,
+      renormalize: fitOptions.renormalize,
+      maxIterations: fitOptions.maxIterations,
+      convergenceTolerance: fitOptions.convergenceTolerance,
+    }
+  );
+  if (bootstrapOptions.bootstrapIterations !== undefined) {
+    bootstrapOptions.iterations = bootstrapOptions.bootstrapIterations;
+  }
+  const ambiguityOptions = mergeDefinedOptions(
+    options.ambiguity,
+    options.ambiguityOptions,
+    { contexts }
+  );
+  const catalogOptions = mergeDefinedOptions(
+    options.catalogSufficiency,
+    options.catalogCheck,
+    options.catalogOptions,
+    burdenOptions,
+    { normalizeMode: fitOptions.exposureType, contexts }
+  );
+  const fitQualityOptions = mergeDefinedOptions(
+    burdenOptions,
+    options.fitQualityEvidence,
+    options.fitQualityOptions,
+    { normalizeMode: fitOptions.exposureType, contexts }
+  );
 
   if (Object.keys(singleSpectra).length === 0) {
     throw new Error("runSingleSampleFit requires one spectrum or spectra matrix.");
@@ -1194,41 +1998,34 @@ async function runSingleSampleFit(input = {}, options = {}) {
 
   const advisor = recommendAnalysisStrategy(singleSpectra, {
     ...options,
+    ...burdenOptions,
     expectedContexts: contexts,
   });
   const validation = {
     spectra: validateSpectra(singleSpectra, {
       expectedContexts: contexts,
-      minTotalMutations: options.lowBurdenThreshold || 100,
+      minTotalMutations:
+        options.validationMinTotalMutations ?? burdenOptions.lowBurdenThreshold,
     }),
     signatures: validateSignatureMatrix(signatures, { expectedContexts: contexts }),
   };
-  const fitOptions = {
-    contexts,
-    exposureThreshold: options.exposureThreshold || 0,
-    exposureType: options.exposureType || "relative",
-    renormalize: options.renormalize !== false,
-  };
   const exposures = await fitSpectraWithNNLS(signatures, singleSpectra, fitOptions);
-  const residuals = calculateFitResiduals(signatures, singleSpectra, exposures, {
-    contexts,
-    normalizeMode: fitOptions.exposureType,
-  });
+  const residuals = calculateFitResiduals(
+    signatures,
+    singleSpectra,
+    exposures,
+    residualOptions
+  );
   const reconstructionError = calculateReconstructionError(
     signatures,
     singleSpectra,
     exposures,
-    { contexts, normalizeMode: fitOptions.exposureType }
+    residualOptions
   );
   const thresholdSensitivity =
     options.runThresholdSensitivity === false
       ? null
-      : await runThresholdSensitivity(signatures, singleSpectra, {
-          contexts,
-          thresholds: options.thresholds || [0, 0.01, 0.03, 0.05, 0.1],
-          exposureType: fitOptions.exposureType,
-          renormalize: fitOptions.renormalize,
-        });
+      : await runThresholdSensitivity(signatures, singleSpectra, thresholdOptions);
   const bootstrap =
     options.runBootstrap === false
       ? null
@@ -1236,27 +2033,22 @@ async function runSingleSampleFit(input = {}, options = {}) {
           [selectedSample]: await bootstrapSignatureFit(
             signatures,
             singleSpectra[selectedSample],
-            {
-              contexts,
-              iterations: options.bootstrapIterations || 100,
-              confidenceLevel: options.confidenceLevel || 0.95,
-              exposureThreshold: fitOptions.exposureThreshold,
-              exposureType: fitOptions.exposureType,
-              renormalize: fitOptions.renormalize,
-              seed: options.seed || 123,
-            }
+            bootstrapOptions
           ),
         };
-  const ambiguity = computeSignatureAmbiguity(signatures, { contexts });
-  const catalogCheck = detectOutOfReferenceSignal({
-    signatures,
-    spectra: singleSpectra,
-    exposures,
-    residuals,
-    reconstructionError,
-    contexts,
-  });
-  const trust = computeFitTrust({
+  const ambiguity = computeSignatureAmbiguity(signatures, ambiguityOptions);
+  const catalogCheck = detectOutOfReferenceSignal(
+    {
+      signatures,
+      spectra: singleSpectra,
+      exposures,
+      residuals,
+      reconstructionError,
+      contexts,
+    },
+    catalogOptions
+  );
+  const fitQualityEvidence = computeFitQualityEvidence({
     signatures,
     spectra: singleSpectra,
     exposures,
@@ -1268,12 +2060,64 @@ async function runSingleSampleFit(input = {}, options = {}) {
     ambiguity,
     catalogCheck,
     contexts,
-  });
+  }, fitQualityOptions);
+  const primaryWarnings = deduplicateWarnings([
+    ...(advisor.warnings || []),
+    ...(fitQualityEvidence.warnings || []),
+    ...(catalogCheck.warnings || []),
+    ...(thresholdSensitivity?.warnings || []),
+    ...Object.values(bootstrap || {}).flatMap((entry) => entry.warnings || []),
+  ]);
+  const interpretationSuspended = fitQualityEvidence.samples.some(
+    (sample) => sample.reportingMode === "not_assessable"
+  );
+  const subsystemSummary = [
+    summarizeSubsystem("advisor", advisor, advisor.warnings),
+    summarizeSubsystem("fitQualityEvidence", fitQualityEvidence, fitQualityEvidence.warnings),
+    summarizeSubsystem("ambiguity", ambiguity, ambiguity.warnings),
+    summarizeSubsystem("catalogCheck", catalogCheck, catalogCheck.warnings),
+    summarizeSubsystem("thresholdSensitivity", thresholdSensitivity, thresholdSensitivity?.warnings),
+    summarizeSubsystem(
+      "bootstrap",
+      { workflowRole: "bootstrap_exposure_uncertainty" },
+      Object.values(bootstrap || {}).flatMap((entry) => entry.warnings || [])
+    ),
+  ];
+  const thresholdBootstrapAction =
+    !bootstrap &&
+    (thresholdSensitivity?.warnings || []).some(
+      (warning) => warning.code === WARNING_CODES.THRESHOLD_DEPENDENT
+    )
+      ? "Run bootstrapSignatureFit because threshold sensitivity flagged a threshold-dependent fit."
+      : null;
   const report = createAnalysisReport(
     {
       title: "mSigSDK Single-Sample Signature Fit Report",
       summary:
-        "Opinionated single-sample refitting workflow with burden-aware guidance, uncertainty, residual checks, and trust classification.",
+        "Single-sample refitting workflow with literature-aligned QC evidence, uncertainty, residual checks, and reporting diagnostics.",
+      workflowRole: "single_sample_fit",
+      scopeStatement: SCOPE_STATEMENTS.singleSamplePipeline,
+      methodBasis: {
+        pipeline:
+          "Single-sample refitting combines NNLS exposures with mutation-burden QC, residual review, reconstruction metrics, bootstrap uncertainty, threshold sensitivity, ambiguity screening, and catalog-sufficiency checks.",
+        interpretationBoundary:
+          "Exposures are interpreted through QC evidence and reporting modes rather than as standalone confidence estimates.",
+        validationAnchor: [
+          SYNTHETIC_VALIDATION_ANCHORS.burden50,
+          SYNTHETIC_VALIDATION_ANCHORS.burden100,
+        ],
+        references: [
+          LITERATURE_REFERENCES.koh2021,
+          LITERATURE_REFERENCES.medo2024,
+          LITERATURE_REFERENCES.huang2018,
+        ],
+      },
+      primaryInterpretationFields: [
+        "fitQualityEvidence.samples[].reportingMode",
+        "catalogCheck.samples[].status",
+        "bootstrap[sample].signatures[].interval",
+        "thresholdSensitivity.summary",
+      ],
       parameters: {
         workflow: "runSingleSampleFit",
         fitOptions,
@@ -1284,29 +2128,94 @@ async function runSingleSampleFit(input = {}, options = {}) {
         mutationBurden: advisor.mutationBurden,
         contextCoverage: advisor.contextCoverage,
         reconstructionError,
-        trust: trust.summary,
+        fitQualityEvidence: fitQualityEvidence.summary,
         catalogCheck: catalogCheck.summary,
       },
       exposures,
-      notes: advisor.caveats,
+      citations: [
+        LITERATURE_REFERENCES.koh2021,
+        LITERATURE_REFERENCES.medo2024,
+        LITERATURE_REFERENCES.huang2018,
+      ],
+      notes: [
+        ...advisor.caveats,
+        "Fit interpretation is conditional on the supplied signature catalog, context basis, exposure threshold, and QC evidence.",
+      ],
     },
-    { format: options.reportFormat || "object" }
+    { format: options.reportFormat ?? "object" }
   );
 
   return {
     schemaVersion: RESULT_SCHEMA_VERSION,
     workflow: "single_sample_fit",
+    workflowRole: "single_sample_fit_pipeline",
+    scopeStatement: SCOPE_STATEMENTS.singleSamplePipeline,
+    methodBasis: {
+      pipeline:
+        "Single-sample refitting combines NNLS exposures with mutation-burden QC, residual review, reconstruction metrics, bootstrap uncertainty, threshold sensitivity, ambiguity screening, and catalog-sufficiency checks.",
+      interpretationBoundary:
+        "The primary interpretation fields are fitQualityEvidence.samples[].reportingMode, catalogCheck.samples[].status, bootstrap signature intervals, and threshold-sensitivity drift. Exposures alone should not be treated as confidence estimates.",
+      validationAnchor: [
+        SYNTHETIC_VALIDATION_ANCHORS.burden50,
+        SYNTHETIC_VALIDATION_ANCHORS.burden100,
+      ],
+      references: [
+        LITERATURE_REFERENCES.koh2021,
+        LITERATURE_REFERENCES.medo2024,
+        LITERATURE_REFERENCES.huang2018,
+      ],
+    },
+    primaryInterpretationFields: [
+      "fitQualityEvidence.samples[].reportingMode",
+      "catalogCheck.samples[].status",
+      "bootstrap[sample].signatures[].interval",
+      "thresholdSensitivity.summary",
+    ],
+    parameters: {
+      workflow: "runSingleSampleFit",
+      sampleName: selectedSample,
+      fitOptions,
+      burdenOptions,
+      thresholdOptions,
+      bootstrapOptions: bootstrap ? bootstrapOptions : null,
+      catalogOptions,
+      fitQualityOptions,
+    },
+    validationAnchor: [
+      SYNTHETIC_VALIDATION_ANCHORS.burden50,
+      SYNTHETIC_VALIDATION_ANCHORS.burden100,
+    ],
     sample: selectedSample,
     spectrum: singleSpectra[selectedSample],
     validation,
+    qc: {
+      mutationBurden: advisor.mutationBurden,
+      contextCoverage: advisor.contextCoverage,
+      reconstructionError,
+      residuals,
+      thresholdSensitivity,
+      bootstrap,
+      fitQualityEvidence: fitQualityEvidence.summary,
+      catalogCheck: catalogCheck.summary,
+    },
+    warnings: primaryWarnings,
+    primaryWarnings,
+    provenance: null,
+    interpretationSuspended,
+    subsystemSummary,
     advisor,
     fit: {
       method: "NNLS",
+      solverVariant: "coordinate_descent_nnls",
+      solverCaveats: [
+        "Numerical fit reviewed with QC and uncertainty evidence.",
+        "Plain NNLS is reviewed with ambiguity diagnostics for confusable signatures.",
+      ],
       exposures,
       parameters: fitOptions,
       reconstructionError,
     },
-    trust,
+    fitQualityEvidence,
     ambiguity,
     residuals,
     catalogCheck,
@@ -1314,13 +2223,14 @@ async function runSingleSampleFit(input = {}, options = {}) {
     bootstrap,
     recommendedActions: uniqueStrings([
       ...advisor.recommendedActions,
-      ...trust.recommendedActions,
+      ...fitQualityEvidence.recommendedActions,
       ...catalogCheck.recommendedActions,
+      thresholdBootstrapAction,
     ]),
     publicationFigures: buildPublicationFigureDescriptors("single_sample", {
       single_sample_exposure: ["fit.exposures", "bootstrap"],
       reconstruction_residuals: ["residuals"],
-      trust_dashboard: ["trust"],
+      fit_quality_evidence_dashboard: ["fitQualityEvidence"],
     }),
     report,
   };
@@ -1404,6 +2314,8 @@ function summarizeNumeric(values) {
   const finiteValues = values.filter((value) => Number.isFinite(value));
   const mean = average(finiteValues);
   const median = quantile(finiteValues, 0.5);
+  const q1 = quantile(finiteValues, 0.25);
+  const q3 = quantile(finiteValues, 0.75);
   const variance =
     finiteValues.length <= 1
       ? 0
@@ -1414,9 +2326,50 @@ function summarizeNumeric(values) {
     n: finiteValues.length,
     mean,
     median,
+    q1,
+    q3,
+    iqr:
+      Number.isFinite(q1) && Number.isFinite(q3)
+        ? q3 - q1
+        : null,
     variance,
     sd: Math.sqrt(variance),
   };
+}
+
+function rankBiserialCorrelation(referenceValues, comparisonValues) {
+  const reference = referenceValues.filter(Number.isFinite);
+  const comparison = comparisonValues.filter(Number.isFinite);
+  if (reference.length === 0 || comparison.length === 0) {
+    return null;
+  }
+
+  const ranked = [
+    ...reference.map((value) => ({ value, group: "reference" })),
+    ...comparison.map((value) => ({ value, group: "comparison" })),
+  ].sort((a, b) => a.value - b.value);
+
+  let index = 0;
+  let comparisonRankSum = 0;
+  while (index < ranked.length) {
+    let tieEnd = index + 1;
+    while (tieEnd < ranked.length && ranked[tieEnd].value === ranked[index].value) {
+      tieEnd += 1;
+    }
+    const averageRank = (index + 1 + tieEnd) / 2;
+    for (let rankIndex = index; rankIndex < tieEnd; rankIndex++) {
+      if (ranked[rankIndex].group === "comparison") {
+        comparisonRankSum += averageRank;
+      }
+    }
+    index = tieEnd;
+  }
+
+  const comparisonCount = comparison.length;
+  const referenceCount = reference.length;
+  const mannWhitneyU =
+    comparisonRankSum - (comparisonCount * (comparisonCount + 1)) / 2;
+  return (2 * mannWhitneyU) / (referenceCount * comparisonCount) - 1;
 }
 
 function permutationPValue(groupAValues, groupBValues, iterations = 0, seed = 123) {
@@ -1471,17 +2424,27 @@ function adjustBenjaminiHochberg(comparisons) {
  *
  * @function compareSignatureExposures
  * @memberof advisor
+ * @experimental Descriptive group comparison helper outside the manuscript-validated advisor claim set.
  * @param {Object<string,Object<string,number>>} exposures - Sample-by-signature exposure matrix.
  * @param {Object[]|Object<string,Object>} metadata - Sample metadata rows or object keyed by sample.
  * @param {Object} [options] - Group comparison options.
  * @returns {Object} Group summaries, pairwise exposure comparisons, warnings, and recommendations.
  */
 function compareSignatureExposures(exposures, metadata, options = {}) {
+  warnExperimentalAdvisorFunction("compareSignatureExposures");
+  const comparisonOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.groupComparison,
+    options.comparison,
+    options.groupComparison,
+    options
+  );
   const normalizedExposures = normalizeMatrixObject(exposures);
   const normalizedMetadata = normalizeMetadataInput(metadata);
-  const groupKey = options.groupKey || options.comparisonKey || "group";
-  const minGroupSize = options.minGroupSize || 3;
-  const permutationIterations = options.permutationIterations || 0;
+  const groupKey =
+    comparisonOptions.groupKey ?? comparisonOptions.comparisonKey ?? "group";
+  const minGroupSizeForReliableStats =
+    comparisonOptions.minGroupSizeForReliableStats;
+  const permutationIterations = comparisonOptions.permutationIterations;
   const signatureNames = uniqueStrings(
     Object.values(normalizedExposures).flatMap((row) => Object.keys(row))
   );
@@ -1506,7 +2469,18 @@ function compareSignatureExposures(exposures, metadata, options = {}) {
     return {
       schemaVersion: RESULT_SCHEMA_VERSION,
       workflowRole: "cohort_group_comparison",
+      scopeStatement: SCOPE_STATEMENTS.groupComparison,
+      methodBasis: {
+        summaryStatistics:
+          "Exposure rows are bounded and often zero-inflated; medians and IQRs are reported with means and standard deviations.",
+        effectSize:
+          "The primary effectSize is rank-biserial correlation, a non-parametric direction-and-magnitude summary for two-group comparisons.",
+        multipleTesting:
+          "Benjamini-Hochberg correction is applied across all signature-by-group comparisons generated in one function call when permutation p-values are requested.",
+      },
       groupKey,
+      minGroupSizeForReliableStats,
+      reportingMode: "not_assessable",
       groups: [],
       comparisons: [],
       warnings,
@@ -1520,12 +2494,12 @@ function compareSignatureExposures(exposures, metadata, options = {}) {
     const sampleNames = rows
       .filter((row) => String(row.group) === group)
       .map((row) => row.sample);
-    if (sampleNames.length < minGroupSize) {
+    if (sampleNames.length < minGroupSizeForReliableStats) {
       warnings.push(
         makeWarning(
           WARNING_CODES.GROUP_IMBALANCE,
-          `${groupKey}=${group} contains fewer than ${minGroupSize} samples.`,
-          { groupKey, group, sampleCount: sampleNames.length }
+          `${groupKey}=${group} contains fewer than ${minGroupSizeForReliableStats} samples.`,
+          { groupKey, group, sampleCount: sampleNames.length, minGroupSizeForReliableStats }
         )
       );
     }
@@ -1535,8 +2509,8 @@ function compareSignatureExposures(exposures, metadata, options = {}) {
       samples: sampleNames,
     };
   });
-  const referenceGroup = options.referenceGroup
-    ? String(options.referenceGroup)
+  const referenceGroup = comparisonOptions.referenceGroup
+    ? String(comparisonOptions.referenceGroup)
     : groups[0];
   const comparisonGroups = groups.filter((group) => group !== referenceGroup);
   const comparisons = [];
@@ -1556,12 +2530,13 @@ function compareSignatureExposures(exposures, metadata, options = {}) {
       );
       const meanDifference =
         (comparisonSummary.mean || 0) - (referenceSummary.mean || 0);
-      const effectSize = pooledSd > 0 ? meanDifference / pooledSd : 0;
+      const standardizedMeanDifference = pooledSd > 0 ? meanDifference / pooledSd : 0;
+      const effectSize = rankBiserialCorrelation(referenceValues, comparisonValues);
       const pValue = permutationPValue(
         referenceValues,
         comparisonValues,
         permutationIterations,
-        (options.seed || 123) + comparisons.length
+        comparisonOptions.seed + comparisons.length
       );
 
       comparisons.push({
@@ -1572,7 +2547,17 @@ function compareSignatureExposures(exposures, metadata, options = {}) {
         comparison: comparisonSummary,
         meanDifference,
         absoluteMeanDifference: Math.abs(meanDifference),
+        standardizedMeanDifference,
         effectSize,
+        effectSizeMethod: "rank_biserial_correlation",
+        effectSizeDirection:
+          effectSize === null
+            ? null
+            : effectSize > 0
+              ? `${comparisonGroup}_higher_than_${referenceGroup}`
+              : effectSize < 0
+                ? `${comparisonGroup}_lower_than_${referenceGroup}`
+                : "no_directional_shift",
         pValue,
         qValue: null,
       });
@@ -1582,20 +2567,48 @@ function compareSignatureExposures(exposures, metadata, options = {}) {
   const adjustedComparisons = adjustBenjaminiHochberg(comparisons).sort(
     (a, b) =>
       b.absoluteMeanDifference - a.absoluteMeanDifference ||
-      Math.abs(b.effectSize) - Math.abs(a.effectSize)
+      Math.abs(b.effectSize || 0) - Math.abs(a.effectSize || 0)
   );
   const topSignals = adjustedComparisons
     .filter((comparison) => comparison.absoluteMeanDifference > 0)
-    .slice(0, options.topN || 10);
+    .slice(0, comparisonOptions.topN);
 
   return {
     schemaVersion: RESULT_SCHEMA_VERSION,
     workflowRole: "cohort_group_comparison",
+    scopeStatement: SCOPE_STATEMENTS.groupComparison,
+    methodBasis: {
+      summaryStatistics:
+        "Exposure rows are bounded and often zero-inflated; medians and IQRs are reported with means and standard deviations.",
+      effectSize:
+        "The primary effectSize is rank-biserial correlation. standardizedMeanDifference is retained as a secondary descriptive field.",
+      hypothesisTesting:
+        "Permutation p-values compare absolute mean differences under label exchangeability. They are optional and have limited resolution in small groups.",
+      multipleTesting:
+        "Benjamini-Hochberg correction is applied across all signature-by-group comparisons generated in one function call.",
+      references: [
+        LITERATURE_REFERENCES.medo2024,
+        LITERATURE_REFERENCES.wu2023,
+      ],
+    },
     groupKey,
+    minGroupSizeForReliableStats,
+    reportingMode:
+      warnings.some((warning) => warning.code === WARNING_CODES.GROUP_IMBALANCE)
+        ? "restricted_interpretation"
+        : "standard_qc_passed",
     groups: groupSummaries,
     referenceGroup,
     comparisonGroups,
     permutationIterations,
+    effectSizeMethod: "rank_biserial_correlation",
+    multipleTestingCorrection: {
+      method: "benjamini_hochberg",
+      scope: "all_signature_by_group_comparisons_in_call",
+      applied: adjustedComparisons.some((comparison) =>
+        Number.isFinite(comparison.pValue)
+      ),
+    },
     comparisons: adjustedComparisons,
     topSignals,
     warnings,
@@ -1619,8 +2632,9 @@ function subsetMatrixBySamples(matrix, sampleNames) {
 }
 
 function shortlistReferenceSignatures(comparison, options = {}) {
-  const minMatchCosine = options.minMatchCosine || 0.85;
-  const topN = options.topN || 8;
+  const minMatchCosine =
+    options.minMatchCosine ?? ADVISOR_DEFAULTS.subgroupDiscovery.minMatchCosine;
+  const topN = options.topN ?? ADVISOR_DEFAULTS.subgroupDiscovery.shortlistTopN;
   const matched = uniqueStrings(
     (comparison || [])
       .flatMap((signature) =>
@@ -1637,8 +2651,20 @@ function shortlistReferenceSignatures(comparison, options = {}) {
   return uniqueStrings(
     (comparison || [])
       .map((signature) => signature.bestMatch?.referenceName)
-      .filter(Boolean)
+    .filter(Boolean)
   ).slice(0, topN);
+}
+
+function describeShortlistingCriteria(options = {}) {
+  return {
+    minMatchCosine:
+      options.minMatchCosine ?? ADVISOR_DEFAULTS.subgroupDiscovery.minMatchCosine,
+    topN: options.topN ?? ADVISOR_DEFAULTS.subgroupDiscovery.shortlistTopN,
+    rule:
+      "Reference signatures are shortlisted when an extracted subgroup signature has cosine similarity at or above minMatchCosine; if no match crosses the threshold, the best available reference matches are retained up to topN for exploratory refitting.",
+    interpretationBoundary:
+      "Shortlisting defines a follow-up refitting set and does not identify the biological source of a subgroup signature.",
+  };
 }
 
 /**
@@ -1647,25 +2673,45 @@ function shortlistReferenceSignatures(comparison, options = {}) {
  * @async
  * @function runSubgroupDiscoveryWorkflow
  * @memberof pipelines
+ * @experimental Full subgroup-discovery pipeline outside the manuscript-validated advisor claim set.
  * @param {Object} input - Cohort spectra, optional signatures, and optional subgroups.
  * @param {Object} [options] - Subgroup extraction options.
  * @returns {Promise<Object>} Subgroup extraction/refit summaries and skipped subgroup caveats.
  */
 async function runSubgroupDiscoveryWorkflow(input = {}, options = {}) {
-  const spectra = normalizeSpectraInput(input.spectra || input, options);
-  const referenceSignatures = normalizeMatrixObject(
-    input.referenceSignatures || input.signatures || options.referenceSignatures || {}
+  warnExperimentalAdvisorFunction("runSubgroupDiscoveryWorkflow");
+  const subgroupOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.subgroupDiscovery,
+    options.subgroupDiscovery,
+    options.subgroupDiscoveryOptions,
+    options
   );
-  const contexts = getContextList(referenceSignatures, spectra, options);
+  const spectra = normalizeSpectraInput(input.spectra || input, subgroupOptions);
+  const referenceSignatures = normalizeMatrixObject(
+    input.referenceSignatures ||
+      input.signatures ||
+      subgroupOptions.referenceSignatures ||
+      {}
+  );
+  const contexts = getContextList(referenceSignatures, spectra, subgroupOptions);
   const subgroups =
     input.subgroups ||
     clusterSamplesBySimilarity(
       spectra,
       contexts,
-      options.clusterCosineThreshold || 0.85
+      subgroupOptions.clusterCosineThreshold
     );
-  const minSubgroupSamples = options.minSubgroupSamples || 5;
-  const minMedianBurden = options.minMedianBurden || 750;
+  const minSubgroupSamples = subgroupOptions.minSubgroupSamples;
+  const minMedianBurden = subgroupOptions.minMedianBurden;
+  const shortlistingCriteria = describeShortlistingCriteria({
+    minMatchCosine: subgroupOptions.minMatchCosine,
+    topN: subgroupOptions.shortlistTopN,
+  });
+  const subgroupExtractionCaveats = [
+    "Small subgroup NMF is unstable when sample count and mutation burden are low.",
+    "Extracted subgroup signatures require external validation before biological interpretation.",
+    "Reference matches and matched refits are exploratory summaries rather than causal labels.",
+  ];
   const subgroupResults = [];
   const warnings = [];
 
@@ -1674,7 +2720,7 @@ async function runSubgroupDiscoveryWorkflow(input = {}, options = {}) {
     const sampleNames = Object.keys(subgroupSpectra);
     const burden = summarizeMutationBurden(subgroupSpectra, {
       expectedContexts: contexts,
-      lowBurdenThreshold: options.lowBurdenThreshold || 100,
+      lowBurdenThreshold: subgroupOptions.lowBurdenThreshold,
     });
     const medianMutationBurden = quantile(
       burden.samples.map((sample) => sample.totalMutations),
@@ -1693,6 +2739,8 @@ async function runSubgroupDiscoveryWorkflow(input = {}, options = {}) {
           subgroupId: subgroup.clusterId,
           sampleCount: sampleNames.length,
           medianMutationBurden,
+          minSubgroupSamples,
+          minMedianBurden,
         }
       );
       warnings.push(warning);
@@ -1705,36 +2753,37 @@ async function runSubgroupDiscoveryWorkflow(input = {}, options = {}) {
         warnings: [warning],
         extraction: null,
         comparison: null,
+        subgroupExtractionCaveats,
         refit: null,
       });
       continue;
     }
 
     const rank =
-      options.rank ||
+      subgroupOptions.rank ??
       Math.min(
-        options.maxRank || 4,
-        Math.max(options.minRank || 2, Math.floor(sampleNames.length / 3))
+        subgroupOptions.maxRank,
+        Math.max(subgroupOptions.minRank, Math.floor(sampleNames.length / 3))
       );
     const extraction = extractSignaturesNMF(subgroupSpectra, {
       contexts,
       rank,
-      maxIterations: options.maxIterations || 750,
-      tolerance: options.tolerance || 1e-5,
-      nRuns: options.nRuns || 10,
-      seed: (options.seed || 123) + subgroupResults.length * 101,
+      maxIterations: subgroupOptions.maxIterations,
+      tolerance: subgroupOptions.tolerance,
+      nRuns: subgroupOptions.nRuns,
+      seed: subgroupOptions.seed + subgroupResults.length * 101,
       signaturePrefix: `${subgroup.clusterId || "cluster"}_NMF`,
     });
     const comparison =
       Object.keys(referenceSignatures).length > 0
         ? compareExtractedToReference(extraction, referenceSignatures, {
             contexts,
-            topN: options.topN || 5,
+            topN: subgroupOptions.topN,
           })
         : null;
     const shortlistedSignatureNames = shortlistReferenceSignatures(comparison, {
-      minMatchCosine: options.minMatchCosine || 0.85,
-      topN: options.shortlistTopN || 8,
+      minMatchCosine: subgroupOptions.minMatchCosine,
+      topN: subgroupOptions.shortlistTopN,
     });
     const shortlistedSignatures = Object.fromEntries(
       shortlistedSignatureNames
@@ -1750,9 +2799,9 @@ async function runSubgroupDiscoveryWorkflow(input = {}, options = {}) {
               subgroupSpectra,
               {
                 contexts,
-                exposureThreshold: options.refitExposureThreshold || 0,
-                exposureType: options.exposureType || "relative",
-                renormalize: options.renormalize !== false,
+                exposureThreshold: subgroupOptions.refitExposureThreshold,
+                exposureType: subgroupOptions.exposureType,
+                renormalize: subgroupOptions.renormalize,
               }
             ),
           }
@@ -1763,7 +2812,7 @@ async function runSubgroupDiscoveryWorkflow(input = {}, options = {}) {
         shortlistedSignatures,
         subgroupSpectra,
         refit.exposures,
-        { contexts, normalizeMode: options.exposureType || "relative" }
+        { contexts, normalizeMode: subgroupOptions.exposureType }
       );
     }
 
@@ -1777,6 +2826,8 @@ async function runSubgroupDiscoveryWorkflow(input = {}, options = {}) {
       extraction,
       comparison,
       shortlistedSignatureNames,
+      shortlistingCriteria,
+      subgroupExtractionCaveats,
       refit,
       warnings: [],
     });
@@ -1785,7 +2836,72 @@ async function runSubgroupDiscoveryWorkflow(input = {}, options = {}) {
   return {
     schemaVersion: RESULT_SCHEMA_VERSION,
     workflow: "subgroup_discovery",
+    workflowRole: "subgroup_discovery_pipeline",
+    scopeStatement: SCOPE_STATEMENTS.subgroupPipeline,
+    methodBasis: {
+      subgroupReadiness:
+        "Subgroups are extracted only when sample count and median mutation burden satisfy configurable readiness defaults.",
+      minimumSubgroupSize:
+        "The default minimum subgroup size is 8 samples, matching the advisor's minimum de novo extraction guard for exploratory cohort analysis.",
+      shortlistingCriteria,
+      extractionInterpretation:
+        "Extracted subgroup signatures are exploratory profiles. Reference matches and matched refits are follow-up summaries, not causal labels.",
+      configurableDefaults: {
+        minSubgroupSamples,
+        minMedianBurden,
+        clusterCosineThreshold: subgroupOptions.clusterCosineThreshold,
+        shortlistTopN: subgroupOptions.shortlistTopN,
+        minMatchCosine: subgroupOptions.minMatchCosine,
+      },
+      references: [
+        LITERATURE_REFERENCES.alexandrov2013,
+        LITERATURE_REFERENCES.alexandrov2020,
+        LITERATURE_REFERENCES.degasperi2020,
+        LITERATURE_REFERENCES.koh2021,
+        LITERATURE_REFERENCES.islam2022,
+      ],
+    },
+    primaryInterpretationFields: [
+      "subgroups[].status",
+      "subgroups[].warnings",
+      "subgroups[].comparison",
+      "subgroups[].refit.reconstructionError",
+    ],
+    experimentalStatus: {
+      state: "experimental",
+      validatedForManuscriptUse: false,
+      scopeStatement: SCOPE_STATEMENTS.subgroupPipeline,
+    },
+    parameters: {
+      workflow: "runSubgroupDiscoveryWorkflow",
+      minSubgroupSamples,
+      minMedianBurden,
+      clusterCosineThreshold: subgroupOptions.clusterCosineThreshold,
+      shortlistTopN: subgroupOptions.shortlistTopN,
+      minMatchCosine: subgroupOptions.minMatchCosine,
+      rank: subgroupOptions.rank,
+      minRank: subgroupOptions.minRank,
+      maxRank: subgroupOptions.maxRank,
+      nRuns: subgroupOptions.nRuns,
+      seed: subgroupOptions.seed,
+    },
+    validation: {
+      spectra: validateSpectra(spectra, { expectedContexts: contexts }),
+    },
+    qc: {
+      subgroups: subgroupResults.map((subgroup) => ({
+        subgroupId: subgroup.subgroupId,
+        sampleCount: subgroup.sampleCount,
+        medianMutationBurden: subgroup.medianMutationBurden,
+        status: subgroup.status,
+        warnings: subgroup.warnings,
+      })),
+    },
     contexts,
+    minimumSubgroupSamples: minSubgroupSamples,
+    minimumMedianMutationBurden: minMedianBurden,
+    shortlistingCriteria,
+    subgroupExtractionCaveats,
     subgroups: subgroupResults,
     summary: {
       subgroupCount: subgroupResults.length,
@@ -1814,7 +2930,7 @@ async function runSubgroupDiscoveryWorkflow(input = {}, options = {}) {
  * @memberof pipelines
  * @param {Object} input - Cohort spectra and reference signatures.
  * @param {Object} [options] - Fitting and reporting options.
- * @returns {Promise<Object>} Cohort fit, subgroup structure, trust scores, residuals, and report artifacts.
+ * @returns {Promise<Object>} Cohort fit, subgroup structure, fit-quality evidence, residuals, and report artifacts.
  */
 async function runCohortFit(input = {}, options = {}) {
   const spectra = normalizeSpectraInput(input.spectra || input, options);
@@ -1824,6 +2940,109 @@ async function runCohortFit(input = {}, options = {}) {
   const metadata = normalizeMetadataInput(input.metadata || options.metadata);
   const groupKey = input.groupKey || options.groupKey || options.comparisonKey;
   const contexts = getContextList(signatures, spectra, options);
+  const burdenOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.cohortFit.mutationBurden,
+    options.mutationBurden,
+    options.mutationBurdenOptions,
+    optionSubset(options, [
+      "lowBurdenThreshold",
+      "lowBurdenThresholdMode",
+      "thresholdMode",
+      "quantile",
+      "moderateBurdenThreshold",
+    ])
+  );
+  const fitOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.singleSampleFit.fit,
+    options.fit,
+    options.fitOptions,
+    optionSubset(options, [
+      "exposureThreshold",
+      "exposureType",
+      "renormalize",
+      "maxIterations",
+      "convergenceTolerance",
+    ]),
+    { contexts }
+  );
+  const residualOptions = mergeDefinedOptions(
+    { normalizeMode: fitOptions.exposureType },
+    burdenOptions,
+    options.residuals,
+    options.residualOptions,
+    optionSubset(options, [
+      "weakUnexplainedThreshold",
+      "highResidualStructureCosineThreshold",
+    ]),
+    { contexts }
+  );
+  const thresholdOptions = mergeDefinedOptions(
+    { ...ADVISOR_DEFAULTS.singleSampleFit.thresholdSensitivity },
+    options.thresholdSensitivity,
+    options.thresholdSensitivityOptions,
+    optionSubset(options, [
+      "thresholds",
+      "baselineThreshold",
+      "instabilityL1Threshold",
+      "activeSetJaccardThreshold",
+    ]),
+    {
+      contexts,
+      exposureType: fitOptions.exposureType,
+      renormalize: fitOptions.renormalize,
+      maxIterations: fitOptions.maxIterations,
+      convergenceTolerance: fitOptions.convergenceTolerance,
+    }
+  );
+  const bootstrapOptions = mergeDefinedOptions(
+    { ...ADVISOR_DEFAULTS.singleSampleFit.bootstrap },
+    options.bootstrap,
+    options.bootstrapOptions,
+    optionSubset(options, [
+      "bootstrapIterations",
+      "iterations",
+      "confidenceLevel",
+      "seed",
+      "minIterationsForStableIntervals",
+      "publicationRecommendedIterations",
+      "minMutationsForBootstrapSummary",
+    ]),
+    {
+      contexts,
+      exposureThreshold: fitOptions.exposureThreshold,
+      exposureType: fitOptions.exposureType,
+      renormalize: fitOptions.renormalize,
+      maxIterations: fitOptions.maxIterations,
+      convergenceTolerance: fitOptions.convergenceTolerance,
+    }
+  );
+  if (bootstrapOptions.bootstrapIterations !== undefined) {
+    bootstrapOptions.iterations = bootstrapOptions.bootstrapIterations;
+  }
+  const ambiguityOptions = mergeDefinedOptions(
+    options.ambiguity,
+    options.ambiguityOptions,
+    { contexts }
+  );
+  const catalogOptions = mergeDefinedOptions(
+    options.catalogSufficiency,
+    options.catalogCheck,
+    options.catalogOptions,
+    burdenOptions,
+    { normalizeMode: fitOptions.exposureType, contexts }
+  );
+  const fitQualityOptions = mergeDefinedOptions(
+    burdenOptions,
+    options.fitQualityEvidence,
+    options.fitQualityOptions,
+    { normalizeMode: fitOptions.exposureType, contexts }
+  );
+  const cohortOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.cohortFit,
+    options.cohort,
+    options.cohortOptions,
+    options
+  );
 
   if (Object.keys(spectra).length === 0) {
     throw new Error("runCohortFit requires a sample spectra matrix.");
@@ -1834,70 +3053,62 @@ async function runCohortFit(input = {}, options = {}) {
 
   const advisor = recommendAnalysisStrategy(spectra, {
     ...options,
+    ...burdenOptions,
     expectedContexts: contexts,
   });
   const validation = {
     spectra: validateSpectra(spectra, {
       expectedContexts: contexts,
-      minTotalMutations: options.lowBurdenThreshold || 100,
+      minTotalMutations:
+        options.validationMinTotalMutations ?? burdenOptions.lowBurdenThreshold,
     }),
     signatures: validateSignatureMatrix(signatures, { expectedContexts: contexts }),
   };
-  const fitOptions = {
-    contexts,
-    exposureThreshold: options.exposureThreshold || 0,
-    exposureType: options.exposureType || "relative",
-    renormalize: options.renormalize !== false,
-  };
   const exposures = await fitSpectraWithNNLS(signatures, spectra, fitOptions);
-  const residuals = calculateFitResiduals(signatures, spectra, exposures, {
-    contexts,
-    normalizeMode: fitOptions.exposureType,
-  });
+  const residuals = calculateFitResiduals(
+    signatures,
+    spectra,
+    exposures,
+    residualOptions
+  );
   const reconstructionError = calculateReconstructionError(
     signatures,
     spectra,
     exposures,
-    { contexts, normalizeMode: fitOptions.exposureType }
+    residualOptions
   );
   const thresholdSensitivity =
     options.runThresholdSensitivity === false
       ? null
-      : await runThresholdSensitivity(signatures, spectra, {
-          contexts,
-          thresholds: options.thresholds || [0, 0.01, 0.03, 0.05, 0.1],
-          exposureType: fitOptions.exposureType,
-          renormalize: fitOptions.renormalize,
-        });
+      : await runThresholdSensitivity(signatures, spectra, thresholdOptions);
   const bootstrap = {};
   if (options.runBootstrap) {
-    const bootstrapSampleLimit = options.bootstrapSampleLimit || 5;
+    const bootstrapSampleLimit =
+      options.bootstrapSampleLimit ?? cohortOptions.bootstrapSampleLimit;
     for (const sampleName of Object.keys(spectra).slice(0, bootstrapSampleLimit)) {
       bootstrap[sampleName] = await bootstrapSignatureFit(
         signatures,
         spectra[sampleName],
         {
-          contexts,
-          iterations: options.bootstrapIterations || 100,
-          confidenceLevel: options.confidenceLevel || 0.95,
-          exposureThreshold: fitOptions.exposureThreshold,
-          exposureType: fitOptions.exposureType,
-          renormalize: fitOptions.renormalize,
-          seed: (options.seed || 123) + Object.keys(bootstrap).length,
+          ...bootstrapOptions,
+          seed: bootstrapOptions.seed + Object.keys(bootstrap).length,
         }
       );
     }
   }
-  const ambiguity = computeSignatureAmbiguity(signatures, { contexts });
-  const catalogCheck = detectOutOfReferenceSignal({
-    signatures,
-    spectra,
-    exposures,
-    residuals,
-    reconstructionError,
-    contexts,
-  });
-  const trust = computeFitTrust({
+  const ambiguity = computeSignatureAmbiguity(signatures, ambiguityOptions);
+  const catalogCheck = detectOutOfReferenceSignal(
+    {
+      signatures,
+      spectra,
+      exposures,
+      residuals,
+      reconstructionError,
+      contexts,
+    },
+    catalogOptions
+  );
+  const fitQualityEvidence = computeFitQualityEvidence({
     signatures,
     spectra,
     exposures,
@@ -1909,21 +3120,16 @@ async function runCohortFit(input = {}, options = {}) {
     ambiguity,
     catalogCheck,
     contexts,
-  });
+  }, fitQualityOptions);
   const subgroups = clusterSamplesBySimilarity(
     spectra,
     contexts,
-    options.clusterCosineThreshold || 0.85
+    cohortOptions.clusterCosineThreshold
   );
   const eligibleSubgroupCount = subgroups.filter(
-    (subgroup) => subgroup.sampleCount >= (options.minSubgroupSamples || 5)
+    (subgroup) => subgroup.sampleCount >= cohortOptions.minSubgroupSamples
   ).length;
-  const shouldRunSubgroupDiscovery =
-    options.runSubgroupDiscovery === true ||
-    (options.runSubgroupDiscovery !== false &&
-      subgroups.length > 1 &&
-      eligibleSubgroupCount > 0 &&
-      Object.keys(spectra).length <= (options.maxAutoSubgroupExtractionSamples || 30));
+  const shouldRunSubgroupDiscovery = options.runSubgroupDiscovery === true;
   const subgroupDiscovery = shouldRunSubgroupDiscovery
     ? await runSubgroupDiscoveryWorkflow(
         {
@@ -1936,14 +3142,22 @@ async function runCohortFit(input = {}, options = {}) {
           contexts,
         }
       )
-    : {
+      : {
         schemaVersion: RESULT_SCHEMA_VERSION,
         workflow: "subgroup_discovery",
+        workflowRole: "subgroup_discovery_pipeline",
+        scopeStatement: SCOPE_STATEMENTS.subgroupPipeline,
+        methodBasis: {
+          subgroupReadiness:
+            "Subgroup discovery is gated by cohort heterogeneity, sample count, mutation burden, and explicit experimental-workflow selection.",
+          extractionInterpretation:
+            "A not-run status means the exploratory extraction step was not executed under the current settings; it is not evidence of absent subgroup processes.",
+        },
         status: "not_run",
         reason:
           subgroups.length <= 1
             ? "Cohort similarity graph produced one subgroup."
-            : "Subgroup discovery was not requested or exceeded automatic extraction limits.",
+            : "Subgroup discovery was not requested through the experimental workflow.",
         subgroups: [],
         summary: {
           subgroupCount: subgroups.length,
@@ -1955,7 +3169,7 @@ async function runCohortFit(input = {}, options = {}) {
             ? [
                 makeWarning(
                   WARNING_CODES.SUBGROUP_EXTRACTION_SKIPPED,
-                  "Subgroup extraction was not run automatically; enable runSubgroupDiscovery for extraction and matched refitting.",
+                  "Subgroup structure was detected, but experimental subgroup extraction is not run automatically; call mSigSDK.experimental.runSubgroupDiscoveryWorkflow for extraction and matched refitting.",
                   { subgroupCount: subgroups.length }
                 ),
               ]
@@ -1963,39 +3177,100 @@ async function runCohortFit(input = {}, options = {}) {
         recommendedActions:
           subgroups.length > 1
             ? [
-                "Enable runSubgroupDiscovery for heterogeneous cohorts with sufficiently high mutation burden.",
+                "Use mSigSDK.experimental.runSubgroupDiscoveryWorkflow for heterogeneous cohorts with sufficiently high mutation burden.",
               ]
             : [],
       };
+  const subgroupDiscoveryStatus = shouldRunSubgroupDiscovery
+    ? "run"
+    : options.runSubgroupDiscovery === false
+      ? "not_requested"
+      : "skipped";
   const groupComparison =
     groupKey && Object.keys(metadata).length > 0
       ? compareSignatureExposures(exposures, metadata, {
           ...options.comparison,
-          groupKey,
-          permutationIterations:
-            options.permutationIterations ||
-            options.comparison?.permutationIterations ||
+        groupKey,
+        permutationIterations:
+            options.permutationIterations ??
+            options.comparison?.permutationIterations ??
             0,
-          seed: options.seed || 123,
+          seed: options.seed ?? ADVISOR_DEFAULTS.groupComparison.seed,
         })
+      : null;
+  const bootstrapAnalyzedSamples = Object.keys(bootstrap);
+  const bootstrapScope =
+    bootstrapAnalyzedSamples.length === 0
+      ? "none"
+      : bootstrapAnalyzedSamples.length === Object.keys(spectra).length
+        ? "per_sample"
+        : "representative_samples";
+  const cohortSizeCaveat =
+    Object.keys(spectra).length < 20
+    ? "Cohorts with fewer than 20 samples should be treated as limited for de novo extraction and subgroup inference; use recommendAnalysisStrategy and mSigSDK.experimental.runSubgroupDiscoveryWorkflow explicitly before interpreting extracted signatures."
+      : null;
+  const primaryWarnings = deduplicateWarnings([
+    ...(advisor.warnings || []),
+    ...(fitQualityEvidence.warnings || []),
+    ...(catalogCheck.warnings || []),
+    ...(thresholdSensitivity?.warnings || []),
+    ...(subgroupDiscovery.warnings || []),
+    ...(groupComparison?.warnings || []),
+    ...Object.values(bootstrap || {}).flatMap((entry) => entry.warnings || []),
+  ]);
+  const subsystemSummary = [
+    summarizeSubsystem("advisor", advisor, advisor.warnings),
+    summarizeSubsystem("fitQualityEvidence", fitQualityEvidence, fitQualityEvidence.warnings),
+    summarizeSubsystem("catalogCheck", catalogCheck, catalogCheck.warnings),
+    summarizeSubsystem("thresholdSensitivity", thresholdSensitivity, thresholdSensitivity?.warnings),
+    summarizeSubsystem("subgroupDiscovery", subgroupDiscovery, subgroupDiscovery.warnings),
+    summarizeSubsystem("groupComparison", groupComparison, groupComparison?.warnings),
+  ];
+  const thresholdBootstrapAction =
+    bootstrapScope === "none" &&
+    (thresholdSensitivity?.warnings || []).some(
+      (warning) => warning.code === WARNING_CODES.THRESHOLD_DEPENDENT
+    )
+      ? "Run bootstrapSignatureFit for representative or flagged samples because threshold sensitivity flagged a threshold-dependent fit."
       : null;
   const report = createAnalysisReport(
     {
       title: "mSigSDK Cohort Signature Fit Report",
       summary:
-        "Opinionated cohort refitting workflow with burden-aware sample flags, subgroup structure, residual checks, and trust classifications.",
+        "Cohort refitting workflow with burden-aware sample flags, subgroup structure, residual checks, and fit-quality evidence.",
+      workflowRole: "cohort_fit",
+      scopeStatement: SCOPE_STATEMENTS.cohortPipeline,
+      methodBasis: {
+        pipeline:
+          "Cohort refitting combines NNLS exposures with burden-aware advice, residual review, reconstruction metrics, fit-quality reporting modes, subgroup structure, optional subgroup extraction, and optional metadata-stratified exposure comparison.",
+        validationAnchor: [
+          SYNTHETIC_VALIDATION_ANCHORS.burden50,
+          SYNTHETIC_VALIDATION_ANCHORS.burden100,
+        ],
+        references: [
+          LITERATURE_REFERENCES.koh2021,
+          LITERATURE_REFERENCES.medo2024,
+          LITERATURE_REFERENCES.wu2023,
+        ],
+      },
+      primaryInterpretationFields: [
+        "fitQualityEvidence.samples[].reportingMode",
+        "advisor.cohort.primaryRecommendation",
+        "subgroupDiscovery.summary",
+        "groupComparison.reportingMode",
+      ],
       parameters: {
         workflow: "runCohortFit",
         fitOptions,
         thresholds: advisor.thresholds,
-        clusterCosineThreshold: options.clusterCosineThreshold || 0.85,
+        clusterCosineThreshold: cohortOptions.clusterCosineThreshold,
       },
       validation,
       qc: {
         mutationBurden: advisor.mutationBurden,
         contextCoverage: advisor.contextCoverage,
         reconstructionError,
-        trust: trust.summary,
+        fitQualityEvidence: fitQualityEvidence.summary,
         catalogCheck: catalogCheck.summary,
         subgroups,
         subgroupDiscovery: subgroupDiscovery.summary,
@@ -2007,27 +3282,102 @@ async function runCohortFit(input = {}, options = {}) {
           },
       },
       exposures,
-      notes: advisor.caveats,
+      citations: [
+        LITERATURE_REFERENCES.koh2021,
+        LITERATURE_REFERENCES.medo2024,
+        LITERATURE_REFERENCES.wu2023,
+      ],
+      notes: [
+        ...advisor.caveats,
+        "Cohort-level fitted exposures should be interpreted with sample burden, subgroup structure, catalog ambiguity, threshold sensitivity, and multiplicity-aware group comparisons.",
+      ],
     },
-    { format: options.reportFormat || "object" }
+    { format: options.reportFormat ?? "object" }
   );
 
   return {
     schemaVersion: RESULT_SCHEMA_VERSION,
     workflow: "cohort_fit",
+    workflowRole: "cohort_fit_pipeline",
+    scopeStatement: SCOPE_STATEMENTS.cohortPipeline,
+    methodBasis: {
+      pipeline:
+        "Cohort refitting combines NNLS exposures with burden-aware advice, residual review, reconstruction metrics, fit-quality reporting modes, subgroup structure, optional subgroup extraction, and optional metadata-stratified exposure comparison.",
+      groupComparison:
+        "Metadata-stratified comparisons are exploratory unless group sizes, multiplicity, effect-size interpretation, and cohort design support inference.",
+      validationAnchor: [
+        SYNTHETIC_VALIDATION_ANCHORS.burden50,
+        SYNTHETIC_VALIDATION_ANCHORS.burden100,
+      ],
+      references: [
+        LITERATURE_REFERENCES.koh2021,
+        LITERATURE_REFERENCES.medo2024,
+        LITERATURE_REFERENCES.wu2023,
+      ],
+    },
+    primaryInterpretationFields: [
+      "fitQualityEvidence.samples[].reportingMode",
+      "advisor.cohort.primaryRecommendation",
+      "subgroupDiscovery.summary",
+      "groupComparison.reportingMode",
+    ],
+    parameters: {
+      workflow: "runCohortFit",
+      groupKey,
+      fitOptions,
+      burdenOptions,
+      thresholdOptions,
+      bootstrapOptions,
+      bootstrapScope,
+      cohortOptions,
+      catalogOptions,
+      fitQualityOptions,
+    },
+    validationAnchor: [
+      SYNTHETIC_VALIDATION_ANCHORS.burden50,
+      SYNTHETIC_VALIDATION_ANCHORS.burden100,
+    ],
     validation,
+    qc: {
+      mutationBurden: advisor.mutationBurden,
+      contextCoverage: advisor.contextCoverage,
+      reconstructionError,
+      residuals,
+      thresholdSensitivity,
+      bootstrap,
+      fitQualityEvidence: fitQualityEvidence.summary,
+      catalogCheck: catalogCheck.summary,
+      subgroups,
+      subgroupDiscovery: subgroupDiscovery.summary,
+      groupComparison:
+        groupComparison && {
+          groupKey: groupComparison.groupKey,
+          groups: groupComparison.groups,
+          topSignals: groupComparison.topSignals,
+          reportingMode: groupComparison.reportingMode,
+        },
+    },
+    warnings: primaryWarnings,
+    primaryWarnings,
+    provenance: null,
+    subsystemSummary,
     advisor,
     cohort: advisor.cohort,
+    subgroupDiscoveryStatus,
+    bootstrapScope,
+    bootstrapAnalyzedSamples,
+    cohortSizeCaveat,
     subgroups,
     subgroupDiscovery,
     groupComparison,
     fit: {
       method: "NNLS",
+      solverVariant: "coordinate_descent_nnls",
       exposures,
       parameters: fitOptions,
       reconstructionError,
     },
-    trust,
+    fitQualityEvidence,
     ambiguity,
     residuals,
     catalogCheck,
@@ -2035,16 +3385,19 @@ async function runCohortFit(input = {}, options = {}) {
     bootstrap,
     recommendedActions: uniqueStrings([
       ...advisor.recommendedActions,
-      ...trust.recommendedActions,
+      ...fitQualityEvidence.recommendedActions,
       ...catalogCheck.recommendedActions,
       ...subgroupDiscovery.recommendedActions,
       ...(groupComparison?.recommendedActions || []),
+      cohortSizeCaveat,
+      thresholdBootstrapAction,
+      "Use mSigSDK.experimental.runSubgroupDiscoveryWorkflow when NMF discovery is the primary analysis rather than a cohort-fit submodule.",
     ]),
     publicationFigures: buildPublicationFigureDescriptors("cohort", {
-      cohort_exposure_heatmap: ["fit.exposures", "trust", "advisor.mutationBurden"],
+      cohort_exposure_heatmap: ["fit.exposures", "fitQualityEvidence", "advisor.mutationBurden"],
       sample_similarity: ["cohort.similarity", "subgroups"],
       reconstruction_residuals: ["residuals"],
-      trust_dashboard: ["trust"],
+      fit_quality_evidence_dashboard: ["fitQualityEvidence"],
       group_comparison: groupComparison ? ["groupComparison"] : [],
       subgroup_discovery: ["subgroupDiscovery"],
     }),
@@ -2062,61 +3415,121 @@ async function runCohortFit(input = {}, options = {}) {
  * @returns {Object} Advisor, optional extraction, reference matches, and publication artifacts.
  */
 function runDiscoveryWorkflow(input = {}, options = {}) {
-  const spectra = normalizeSpectraInput(input.spectra || input, options);
-  const referenceSignatures = normalizeMatrixObject(
-    input.referenceSignatures || input.signatures || options.referenceSignatures || {}
+  const discoveryOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.discoveryWorkflow,
+    options.discovery,
+    options.discoveryOptions,
+    options
   );
-  const contexts = getContextList(referenceSignatures, spectra, options);
+  const spectra = normalizeSpectraInput(input.spectra || input, discoveryOptions);
+  const referenceSignatures = normalizeMatrixObject(
+    input.referenceSignatures ||
+      input.signatures ||
+      discoveryOptions.referenceSignatures ||
+      {}
+  );
+  const contexts = getContextList(referenceSignatures, spectra, discoveryOptions);
   const advisor = recommendAnalysisStrategy(spectra, {
-    ...options,
+    ...discoveryOptions,
     expectedContexts: contexts,
   });
-  const shouldExtract = options.forceExtraction || advisor.cohort.canConsiderExtraction;
+  const shouldExtract =
+    discoveryOptions.forceExtraction || advisor.cohort.canConsiderExtraction;
 
   if (!shouldExtract) {
+    const warnings = [
+      makeWarning(
+        WARNING_CODES.EXTRACTION_NOT_RECOMMENDED,
+        "Discovery was not run because burden, sample count, or heterogeneity did not support stable extraction."
+      ),
+    ];
     return {
       schemaVersion: RESULT_SCHEMA_VERSION,
       workflow: "discovery_workflow",
+      workflowRole: "discovery_pipeline",
+      scopeStatement: SCOPE_STATEMENTS.discoveryPipeline,
+      methodBasis: {
+        extractionReadiness:
+          "Discovery is gated by burden, sample count, and cohort structure because unstable extraction can produce misleading profiles.",
+        references: [
+          LITERATURE_REFERENCES.alexandrov2020,
+          LITERATURE_REFERENCES.degasperi2020,
+          LITERATURE_REFERENCES.koh2021,
+        ],
+      },
+      primaryInterpretationFields: [
+        "advisor.cohort.primaryRecommendation",
+        "warnings",
+        "recommendedActions",
+      ],
+      parameters: {
+        workflow: "runDiscoveryWorkflow",
+        discoveryOptions,
+        shouldExtract,
+      },
+      validation: {
+        spectra: validateSpectra(spectra, { expectedContexts: contexts }),
+      },
+      qc: {
+        mutationBurden: advisor.mutationBurden,
+        contextCoverage: advisor.contextCoverage,
+      },
+      rankSelectionCriterion: "not_run",
+      rankSelectionRationale:
+        "Rank selection is skipped when extraction-readiness gates fail or extraction is not requested.",
+      productionHandoffRecommendation:
+        "Use SigProfilerExtractor or an equivalent production extraction pipeline for large cohorts, high candidate ranks, or manuscript-grade de novo discovery.",
       advisor,
+      fit: null,
       extraction: null,
       comparison: null,
-      warnings: [
-        makeWarning(
-          WARNING_CODES.EXTRACTION_NOT_RECOMMENDED,
-          "Discovery was not run because burden, sample count, or heterogeneity did not support stable extraction."
-        ),
-      ],
+      discovery: {
+        rankSelection: null,
+        extraction: null,
+        comparison: null,
+        productionHandoffRecommendation:
+          "Use SigProfilerExtractor or an equivalent production extraction pipeline for large cohorts, high candidate ranks, or manuscript-grade de novo discovery.",
+      },
+      warnings,
       recommendedActions: advisor.recommendedActions,
       publicationFigures: buildPublicationFigureDescriptors("discovery"),
+      provenance: null,
     };
   }
 
   const rankSelection =
-    options.rank || options.runRankSelection === false
+    discoveryOptions.rank || discoveryOptions.runRankSelection === false
       ? null
       : selectNMFRank(spectra, {
           contexts,
-          ranks: options.ranks || [2, 3, 4, 5],
-          maxIterations: options.maxIterations || 500,
-          tolerance: options.tolerance || 1e-5,
-          nRuns: options.nRuns || 5,
-          seed: options.seed || 123,
+          ranks: discoveryOptions.ranks,
+          maxIterations:
+            discoveryOptions.rankSelectionMaxIterations ??
+            discoveryOptions.maxIterations,
+          tolerance: discoveryOptions.tolerance,
+          nRuns: discoveryOptions.rankSelectionRuns ?? discoveryOptions.nRuns,
+          rankSelectionCriterion: discoveryOptions.rankSelectionCriterion,
+          seed: discoveryOptions.seed,
         });
-  const rank = options.rank || rankSelection?.recommendedRank || 3;
+  const rank =
+    discoveryOptions.rank ??
+    rankSelection?.recommendedRank ??
+    discoveryOptions.defaultRank;
   const extraction = extractSignaturesNMF(spectra, {
     contexts,
     rank,
-    maxIterations: options.maxIterations || 1000,
-    tolerance: options.tolerance || 1e-5,
-    nRuns: options.nRuns || 20,
-    seed: options.seed || 123,
-    signaturePrefix: options.signaturePrefix || "NMF",
+    maxIterations:
+      discoveryOptions.extractionMaxIterations ?? discoveryOptions.maxIterations,
+    tolerance: discoveryOptions.tolerance,
+    nRuns: discoveryOptions.extractionRuns ?? discoveryOptions.nRuns,
+    seed: discoveryOptions.seed,
+    signaturePrefix: discoveryOptions.signaturePrefix,
   });
   const comparison =
     Object.keys(referenceSignatures).length > 0
       ? compareExtractedToReference(extraction, referenceSignatures, {
           contexts,
-          topN: options.topN || 5,
+          topN: discoveryOptions.topN,
         })
       : null;
   const reconstructionError = calculateReconstructionError(
@@ -2129,14 +3542,70 @@ function runDiscoveryWorkflow(input = {}, options = {}) {
   return {
     schemaVersion: RESULT_SCHEMA_VERSION,
     workflow: "discovery_workflow",
+    workflowRole: "discovery_pipeline",
+    scopeStatement: SCOPE_STATEMENTS.discoveryPipeline,
+    methodBasis: {
+      extraction:
+        "NMF extraction is run with configurable rank, iteration, tolerance, and run-count settings. Rank selection and reference matching are diagnostics for review.",
+      rankSelectionCriterion:
+        "When rank selection is enabled, mSigSDK evaluates the requested rank grid and recommends a rank using the configured criterion: reconstruction error, cophenetic correlation, or average silhouette.",
+      rankSelectionRationale:
+        "NMF rank selection is a contested step; reconstruction error alone is a lightweight browser-side screening criterion and should not replace production stability frameworks.",
+      interpretationBoundary:
+        "Extracted signatures are cohort-derived patterns and should be matched, refit, and validated before biological interpretation.",
+      references: [
+        LITERATURE_REFERENCES.alexandrov2013,
+        LITERATURE_REFERENCES.alexandrov2020,
+        LITERATURE_REFERENCES.degasperi2020,
+        LITERATURE_REFERENCES.koh2021,
+        LITERATURE_REFERENCES.islam2022,
+      ],
+    },
+    rankSelectionCriterion: rankSelection?.rankSelectionCriterion || "fixed_rank",
+    rankSelectionRationale: rankSelection
+      ? `Rank selection used ${rankSelection.rankSelectionCriterion} across the tested rank grid. This is a browser-side screening criterion and should be checked against production extraction diagnostics for manuscript-grade discovery.`
+      : "Rank selection was not run; extraction used the fixed or default rank recorded in parameters.",
+    productionHandoffRecommendation:
+      `Use SigProfilerExtractor or an equivalent production extraction pipeline to test rank ${rank} and neighboring ranks across more random starts before making discovery claims.`,
+    primaryInterpretationFields: [
+      "rankSelection.recommendedRank",
+      "extraction.reconstructionError",
+      "comparison[].bestMatch",
+      "qc.reconstructionError",
+    ],
+    parameters: {
+      workflow: "runDiscoveryWorkflow",
+      discoveryOptions,
+      rank,
+      rankSelectionCriterion: rankSelection
+        ? rankSelection.rankSelectionCriterion
+        : "fixed_or_default_rank",
+    },
+    validation: {
+      spectra: validateSpectra(spectra, { expectedContexts: contexts }),
+    },
     advisor,
     rankSelection,
+    fit: null,
     extraction,
     comparison,
+    discovery: {
+      rankSelection,
+      extraction,
+      comparison,
+      productionHandoffRecommendation:
+        `Use SigProfilerExtractor or an equivalent production extraction pipeline to test rank ${rank} and neighboring ranks across more random starts before making discovery claims.`,
+    },
     qc: {
       mutationBurden: advisor.mutationBurden,
+      contextCoverage: advisor.contextCoverage,
       reconstructionError,
     },
+    warnings: deduplicateWarnings([
+      ...(advisor.warnings || []),
+      ...(rankSelection?.warnings || []),
+      ...(extraction?.warnings || []),
+    ]),
     recommendedActions: uniqueStrings([
       ...advisor.recommendedActions,
       "Match extracted signatures to reference catalogs and refit per sample with a shortlisted catalog.",
@@ -2145,107 +3614,226 @@ function runDiscoveryWorkflow(input = {}, options = {}) {
       nmf_stability: ["rankSelection", "extraction.runMetrics"],
       cohort_exposure_heatmap: ["extraction.exposures"],
     }),
+    provenance: null,
   };
 }
 
-function normalizeByCallableOpportunities(spectra, opportunities, contexts) {
+function normalizeByCallableOpportunities(
+  spectra,
+  opportunities,
+  contexts,
+  { referenceOpportunities = null, epsilon = 1e-12 } = {}
+) {
   if (!isPlainObject(opportunities)) {
-    return { spectra, applied: false };
+    return {
+      spectra,
+      applied: false,
+      referenceApplied: false,
+      inputDefinitions: {
+        callableContextOpportunity:
+          "Not supplied. Provide per-context callable opportunities derived from the assay territory and genome build to apply restricted-assay normalization.",
+        referenceContextOpportunity:
+          "Not supplied. Optional per-context reference opportunities define the territory used by the reference spectra or signatures.",
+      },
+      contextNormalization: {},
+    };
   }
 
   const sampleSpecific = Object.values(opportunities).some(isPlainObject);
+  const referenceRecord = isPlainObject(referenceOpportunities)
+    ? referenceOpportunities
+    : null;
   const normalized = {};
+  const contextNormalization = {};
 
   for (const [sampleName, spectrum] of Object.entries(spectra)) {
     const opportunityRecord = sampleSpecific
       ? opportunities[sampleName] || {}
       : opportunities;
-    const rates = contexts.map((context) => {
+    const normalizationRows = contexts.map((context) => {
       const opportunity = toFiniteNumber(opportunityRecord[context]);
+      const referenceOpportunity = toFiniteNumber(referenceRecord?.[context]);
+      const opportunityScale =
+        referenceOpportunity && referenceOpportunity > 0
+          ? opportunity / referenceOpportunity
+          : opportunity;
       const count = spectrum[context] || 0;
-      return opportunity && opportunity > 0 ? count / opportunity : 0;
+      const normalizedRate =
+        opportunityScale && opportunityScale > 0
+          ? count / Math.max(opportunityScale, epsilon)
+          : 0;
+      return {
+        context,
+        observedContextCount: count,
+        callableContextOpportunity: opportunity ?? null,
+        referenceContextOpportunity: referenceOpportunity ?? null,
+        opportunityScale: opportunityScale ?? null,
+        normalizedRate,
+      };
     });
+    const rates = normalizationRows.map((row) => row.normalizedRate);
     const totalCount = sum(contexts.map((context) => spectrum[context] || 0));
     const scaledRates = normalizeVector(rates, totalCount);
     normalized[sampleName] = Object.fromEntries(
       contexts.map((context, index) => [context, scaledRates[index]])
     );
+    contextNormalization[sampleName] = Object.fromEntries(
+      normalizationRows.map((row) => [
+        row.context,
+        {
+          observedContextCount: row.observedContextCount,
+          callableContextOpportunity: row.callableContextOpportunity,
+          referenceContextOpportunity: row.referenceContextOpportunity,
+          opportunityScale: row.opportunityScale,
+          normalizedContextCount: scaledRates[contexts.indexOf(row.context)],
+        },
+      ])
+    );
   }
 
-  return { spectra: normalized, applied: true };
+  return {
+    spectra: normalized,
+    applied: true,
+    referenceApplied: Boolean(referenceRecord),
+    inputDefinitions: {
+      callableContextOpportunity:
+        "Number or fraction of trinucleotide sites callable in the restricted assay territory for this context.",
+      referenceContextOpportunity:
+        "Number or fraction of trinucleotide sites in the reference territory for this context. When supplied, normalization uses callable_context_opportunity / reference_context_opportunity.",
+    },
+    contextNormalization,
+  };
 }
 
-function computeDetectabilityConfidence({
-  burden,
-  exposure,
-  flatnessScore,
-  nearestCosineSimilarity,
-  opportunityCoverage = 1,
-}) {
-  const distinctiveness = clamp(1 - nearestCosineSimilarity, 0.03, 1);
-  const flatnessPenalty = 1 + clamp(flatnessScore, 0, 1) * 0.9;
-  const ambiguityPenalty = 1 + clamp(nearestCosineSimilarity, 0, 1) * 1.35;
-  const effectiveSignal =
-    Math.max(burden, 0) *
-    Math.max(exposure, 0) *
-    Math.max(exposure, 0) *
-    distinctiveness *
-    clamp(opportunityCoverage, 0.05, 1);
-  const confidence = 1 - Math.exp(-effectiveSignal / (8 * flatnessPenalty * ambiguityPenalty));
+function getCallableOpportunityRecord(opportunities, sampleName = null) {
+  if (!isPlainObject(opportunities)) {
+    return null;
+  }
+  const values = Object.values(opportunities);
+  const sampleSpecific = values.some(isPlainObject);
+  if (sampleSpecific) {
+    if (isPlainObject(opportunities[sampleName])) {
+      return opportunities[sampleName];
+    }
+    const unionRecord = {};
+    for (const record of values) {
+      if (!isPlainObject(record)) {
+        continue;
+      }
+      for (const [context, value] of Object.entries(record)) {
+        const finiteValue = toFiniteNumber(value);
+        if (finiteValue === null) {
+          continue;
+        }
+        unionRecord[context] = Math.max(unionRecord[context] || 0, finiteValue);
+      }
+    }
+    return unionRecord;
+  }
+  return opportunities;
+}
 
-  return clamp(confidence, 0, 1);
+function summarizeCallableOpportunityForSignature(
+  signature,
+  contexts,
+  opportunities,
+  sampleName = null
+) {
+  const opportunityRecord = getCallableOpportunityRecord(opportunities, sampleName);
+  const opportunitiesSupplied = isPlainObject(opportunityRecord);
+  const weights = contexts.map((context) => ({
+    context,
+    signatureWeight: Math.max(toFiniteNumber(signature?.[context]) || 0, 0),
+    opportunity: opportunitiesSupplied
+      ? toFiniteNumber(opportunityRecord[context])
+      : null,
+  }));
+  const totalSignatureMass = sum(weights.map((row) => row.signatureWeight));
+  const callableRows = opportunitiesSupplied
+    ? weights.filter((row) => row.opportunity > 0)
+    : weights;
+  const callableSignatureMassRaw = sum(
+    callableRows.map((row) => row.signatureWeight)
+  );
+  const signatureMassInCallableContexts =
+    opportunitiesSupplied && totalSignatureMass > 0
+      ? callableSignatureMassRaw / totalSignatureMass
+      : null;
+
+  return {
+    callableOpportunitiesSupplied: opportunitiesSupplied,
+    opportunitySource: opportunitiesSupplied
+      ? sampleName
+        ? "sample_specific_or_shared_callable_opportunities"
+        : "shared_or_union_callable_opportunities"
+      : "not_supplied",
+    callableContextCount: callableRows.length,
+    totalContextCount: contexts.length,
+    callableContextFraction:
+      contexts.length === 0 ? null : callableRows.length / contexts.length,
+    signatureMassInCallableContexts,
+    signatureMassInCallableContextsDefinition:
+      "Fraction of the supplied reference signature profile that falls in contexts with positive callable opportunity. Reported only when callable opportunities are supplied.",
+    interpretationBoundary:
+      "This assay-territory summary is reported with callable-context evidence.",
+  };
 }
 
 /**
- * Estimates burden/exposure detectability curves for reference signatures.
+ * Summarizes transparent restricted-assay evidence components for reference signatures.
  *
- * @function estimateSignatureDetectability
+ * @function summarizeRestrictedAssayEvidence
  * @memberof advisor
+ * @experimental Descriptive restricted-assay evidence helper outside the manuscript-validated advisor claim set.
  * @param {Object<string,Object<string,number>>} signatures - Reference signature matrix.
- * @param {Object} [options] - Detectability options.
- * @returns {Object} Signature-specific burden/exposure curves and assessability warnings.
+ * @param {Object} [options] - Restricted-assay evidence options.
+ * @returns {Object} Signature-specific burden/exposure grids and callable-territory summaries.
  */
-function estimateSignatureDetectability(signatures, options = {}) {
+function summarizeRestrictedAssayEvidence(signatures, options = {}) {
+  warnExperimentalAdvisorFunction("summarizeRestrictedAssayEvidence");
+  const restrictedOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.restrictedAssayEvidence,
+    options.restrictedAssayEvidence,
+    options.restrictedAssayOptions,
+    options
+  );
   const normalizedSignatures = normalizeMatrixObject(signatures);
-  const contexts = getContextList(normalizedSignatures, null, options);
+  const contexts = getContextList(normalizedSignatures, null, restrictedOptions);
   const ambiguity = computeSignatureAmbiguity(normalizedSignatures, { contexts });
-  const burdens = options.burdens || [25, 50, 100, 250, 500, 1000, 2500];
-  const exposureLevels = options.exposureLevels || [0.05, 0.1, 0.2, 0.3, 0.5];
-  const targetConfidence = options.targetConfidence || 0.8;
-  const opportunityCoverage = options.opportunityCoverage || 1;
+  const burdens = restrictedOptions.burdens;
+  const exposureLevels = restrictedOptions.exposureLevels;
+  const opportunityCoverage = restrictedOptions.opportunityCoverage;
+  const callableOpportunities =
+    restrictedOptions.callableOpportunities || restrictedOptions.opportunities || null;
+  const modelType = "descriptive_restricted_assay_evidence";
   const signaturesResult = ambiguity.signatures.map((signature) => {
+    const callableEvidence = summarizeCallableOpportunityForSignature(
+      normalizedSignatures[signature.signatureName],
+      contexts,
+      callableOpportunities
+    );
     const curves = burdens.flatMap((burden) =>
-      exposureLevels.map((exposure) => ({
-        burden,
-        exposure,
-        confidence: computeDetectabilityConfidence({
+      exposureLevels.map((exposure) => {
+        const expectedSignatureMutations = Math.max(burden, 0) * Math.max(exposure, 0);
+        const expectedCallableSignatureMutations =
+          callableEvidence.signatureMassInCallableContexts === null
+            ? null
+            : expectedSignatureMutations *
+              callableEvidence.signatureMassInCallableContexts;
+        return {
           burden,
           exposure,
-          flatnessScore: signature.flatnessScore,
-          nearestCosineSimilarity: signature.nearestCosineSimilarity,
-          opportunityCoverage,
-        }),
-      }))
-    );
-    const minBurdenByExposure = Object.fromEntries(
-      exposureLevels.map((exposure) => {
-        const burdenHit = burdens.find((burden) => {
-          const curve = curves.find(
-            (entry) => entry.burden === burden && entry.exposure === exposure
-          );
-          return curve && curve.confidence >= targetConfidence;
-        });
-        return [String(exposure), burdenHit || null];
+          expectedSignatureMutations,
+          expectedCallableSignatureMutations,
+          callableSignatureMass:
+            callableEvidence.signatureMassInCallableContexts,
+          evidenceType: "descriptive_expected_mutation_count",
+        };
       })
     );
-    const notAssessableAtLowBurden =
-      computeDetectabilityConfidence({
-        burden: burdens[1] || burdens[0],
-        exposure: exposureLevels[Math.min(2, exposureLevels.length - 1)],
-        flatnessScore: signature.flatnessScore,
-        nearestCosineSimilarity: signature.nearestCosineSimilarity,
-        opportunityCoverage,
-      }) < 0.35;
+    const noCallableSignatureMass =
+      callableEvidence.callableOpportunitiesSupplied &&
+      callableEvidence.signatureMassInCallableContexts === 0;
 
     return {
       signatureName: signature.signatureName,
@@ -2253,10 +3841,10 @@ function estimateSignatureDetectability(signatures, options = {}) {
       flatnessScore: signature.flatnessScore,
       nearestNeighbor: signature.nearestNeighbor,
       nearestCosineSimilarity: signature.nearestCosineSimilarity,
+      callableEvidence,
       curves,
-      minBurdenByExposure,
       warningCodes: uniqueStrings([
-        notAssessableAtLowBurden
+        noCallableSignatureMass
           ? WARNING_CODES.PANEL_SIGNATURE_NOT_ASSESSABLE
           : null,
         signature.ambiguityClass === "high"
@@ -2268,11 +3856,33 @@ function estimateSignatureDetectability(signatures, options = {}) {
 
   return {
     schemaVersion: RESULT_SCHEMA_VERSION,
-    workflowRole: "signature_detectability",
+    workflowRole: "restricted_assay_evidence",
+    scopeStatement: SCOPE_STATEMENTS.restrictedAssayEvidence,
+    methodBasis: {
+      panelEvidence: METHOD_BASIS.panelEvidence,
+      modelDefinition:
+        "No calibrated detection-probability model is applied. The output reports expected fitted signature mutation counts, callable signature mass when opportunities are supplied, and signature ambiguity descriptors.",
+      modelType,
+      calibrationStatus:
+        "Descriptive only. Use study-specific simulation or a validated external panel-signature model for inferential detection claims.",
+      opportunityCoverageDefinition:
+        "Fraction of expected mutation contexts with callable opportunity in the restricted assay, or 1 when no opportunity matrix is supplied.",
+      references: [
+        LITERATURE_REFERENCES.lawrence2021,
+        LITERATURE_REFERENCES.medo2024,
+        LITERATURE_REFERENCES.huang2018,
+        LITERATURE_REFERENCES.alexandrov2020,
+      ],
+    },
+    modelType,
+    modelParameters: {
+      opportunityCoverage,
+    },
+    opportunityCoverageDefinition:
+      "Fraction of expected mutation contexts with callable opportunity in the restricted assay, or 1 when no opportunity matrix is supplied.",
     contexts,
     burdens,
     exposureLevels,
-    targetConfidence,
     opportunityCoverage,
     signatures: signaturesResult,
     warnings: signaturesResult
@@ -2282,41 +3892,75 @@ function estimateSignatureDetectability(signatures, options = {}) {
       .map((signature) =>
         makeWarning(
           WARNING_CODES.PANEL_SIGNATURE_NOT_ASSESSABLE,
-          `${signature.signatureName} may not be assessable at low panel/WES burden with the current settings.`,
+          `${signature.signatureName} has no callable signature mass under the supplied restricted-assay opportunities.`,
           { signatureName: signature.signatureName }
         )
       ),
   };
 }
 
-function lookupDetectabilityConfidence(detectability, signatureName, burden, exposure) {
-  const signature = detectability?.signatures?.find(
+function lookupRestrictedAssayEvidence(restrictedAssayEvidenceSummary, signatureName, burden, exposure) {
+  const signature = restrictedAssayEvidenceSummary?.signatures?.find(
     (entry) => entry.signatureName === signatureName
   );
   if (!signature) {
     return null;
   }
 
-  return computeDetectabilityConfidence({
+  const expectedSignatureMutations = Math.max(burden, 0) * Math.max(exposure, 0);
+  const callableMass =
+    signature.callableEvidence?.signatureMassInCallableContexts ?? null;
+  return {
+    signatureName,
     burden,
     exposure,
-    flatnessScore: signature.flatnessScore,
+    expectedSignatureMutations,
+    expectedCallableSignatureMutations:
+      callableMass === null ? null : expectedSignatureMutations * callableMass,
+    ambiguityClass: signature.ambiguityClass,
+    nearestNeighbor: signature.nearestNeighbor,
     nearestCosineSimilarity: signature.nearestCosineSimilarity,
-    opportunityCoverage: detectability.opportunityCoverage || 1,
-  });
+    flatnessScore: signature.flatnessScore,
+    callableEvidence: signature.callableEvidence,
+    interpretationBoundary:
+      "Restricted-assay evidence is reported with fitted exposure, burden, and callable-territory evidence.",
+  };
+}
+
+const PANEL_REVIEW_TIERS = [
+  "higher_review_support",
+  "limited_review_support",
+  "not_detected_within_review_settings",
+  "not_assessable",
+];
+
+function normalizePanelReviewTier(tier) {
+  if (tier === "strong_evidence") {
+    return "higher_review_support";
+  }
+  if (tier === "weak_evidence") {
+    return "limited_review_support";
+  }
+  if (tier === "not_detected") {
+    return "not_detected_within_review_settings";
+  }
+  return tier;
 }
 
 function summarizeEvidenceCalls(evidenceCalls) {
   const calls = Object.entries(evidenceCalls || {}).flatMap(([sample, rows]) =>
-    (rows || []).map((row) => ({ sample, ...row }))
+    (rows || []).map((row) => ({
+      sample,
+      ...row,
+      tier: normalizePanelReviewTier(row.tier),
+    }))
   );
-  const tiers = ["strong_evidence", "weak_evidence", "not_detected", "not_assessable"];
 
   return {
     sampleCount: Object.keys(evidenceCalls || {}).length,
     callCount: calls.length,
     tierCounts: Object.fromEntries(
-      tiers.map((tier) => [
+      PANEL_REVIEW_TIERS.map((tier) => [
         tier,
         calls.filter((call) => call.tier === tier).length,
       ])
@@ -2326,21 +3970,29 @@ function summarizeEvidenceCalls(evidenceCalls) {
         const signatureCalls = calls.filter(
           (call) => call.signatureName === signatureName
         );
+        const higherReviewSupportCount = signatureCalls.filter(
+          (call) => call.tier === "higher_review_support"
+        ).length;
+        const limitedReviewSupportCount = signatureCalls.filter(
+          (call) => call.tier === "limited_review_support"
+        ).length;
         return {
           signatureName,
-          strongEvidenceCount: signatureCalls.filter(
-            (call) => call.tier === "strong_evidence"
-          ).length,
-          weakEvidenceCount: signatureCalls.filter(
-            (call) => call.tier === "weak_evidence"
-          ).length,
+          higherReviewSupportCount,
+          limitedReviewSupportCount,
+          strongEvidenceCount: higherReviewSupportCount,
+          weakEvidenceCount: limitedReviewSupportCount,
           notAssessableCount: signatureCalls.filter(
             (call) => call.tier === "not_assessable"
           ).length,
           maxExposure: Math.max(...signatureCalls.map((call) => call.exposure), 0),
-          meanDetectabilityConfidence: average(
+          meanCallableSignatureMass: average(
             signatureCalls
-              .map((call) => call.detectabilityConfidence)
+              .map(
+                (call) =>
+                  call.restrictedAssayEvidence?.callableEvidence
+                    ?.signatureMassInCallableContexts
+              )
               .filter(Number.isFinite)
           ),
         };
@@ -2350,7 +4002,7 @@ function summarizeEvidenceCalls(evidenceCalls) {
 }
 
 /**
- * Runs a panel/WES-oriented workflow with opportunity normalization and evidence tiers.
+ * Runs a panel/WES-oriented workflow with opportunity normalization and review evidence tiers.
  *
  * @async
  * @function runPanelWorkflow
@@ -2360,20 +4012,36 @@ function summarizeEvidenceCalls(evidenceCalls) {
  * @returns {Promise<Object>} Fit result plus panel evidence calls and limitations.
  */
 async function runPanelWorkflow(input = {}, options = {}) {
-  const spectra = normalizeSpectraInput(input.spectra || input, options);
-  const signatures = normalizeMatrixObject(
-    input.signatures || input.referenceSignatures || options.signatures || {}
+  const panelOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.panelWorkflow,
+    options.panel,
+    options.panelOptions,
+    options
   );
-  const contexts = getContextList(signatures, spectra, options);
+  const spectra = normalizeSpectraInput(input.spectra || input, panelOptions);
+  const signatures = normalizeMatrixObject(
+    input.signatures || input.referenceSignatures || panelOptions.signatures || {}
+  );
+  const contexts = getContextList(signatures, spectra, panelOptions);
   const callableOpportunities =
-    input.callableOpportunities || options.callableOpportunities;
+    input.callableOpportunities || panelOptions.callableOpportunities;
+  const referenceOpportunities =
+    input.referenceOpportunities || panelOptions.referenceOpportunities || null;
+  const referenceOpportunitySource =
+    input.referenceOpportunitySource ||
+    panelOptions.referenceOpportunitySource ||
+    (referenceOpportunities ? "user_supplied_reference_opportunities" : "not_supplied");
   const opportunityNormalization = normalizeByCallableOpportunities(
     spectra,
     callableOpportunities,
-    contexts
+    contexts,
+    {
+      referenceOpportunities,
+      epsilon: panelOptions.opportunityEpsilon,
+    }
   );
   const opportunityCoverage =
-    options.opportunityCoverage ||
+    panelOptions.opportunityCoverage ??
     (isPlainObject(callableOpportunities)
       ? contexts.filter((context) => {
           const values = Object.values(callableOpportunities);
@@ -2383,12 +4051,38 @@ async function runPanelWorkflow(input = {}, options = {}) {
           return contextValue;
         }).length / Math.max(contexts.length, 1)
       : 1);
-  const detectability = estimateSignatureDetectability(signatures, {
+  const genomeVersion =
+    input.genomeVersion ||
+    input.genomeBuild ||
+    panelOptions.genomeVersion ||
+    panelOptions.genomeBuild ||
+    null;
+  const opportunitySource =
+    input.opportunitySource ||
+    panelOptions.opportunitySource ||
+    (isPlainObject(callableOpportunities) ? "user_supplied" : "not_supplied");
+  const opportunitySourceDetails =
+    opportunitySource === "user_supplied"
+      ? "User-supplied callable opportunity counts or fractions derived outside the SDK from the assay territory and genome build."
+      : opportunitySource === "canonical_panel"
+        ? "Canonical panel opportunity counts supplied by the workflow configuration."
+        : "Callable opportunities were not supplied; full-context coverage is assumed for screening only.";
+  const panelWorkflowWarnings = [];
+  if (opportunitySource === "not_supplied") {
+    panelWorkflowWarnings.push(
+      makeWarning(
+        WARNING_CODES.PANEL_LIMITED,
+        "Callable opportunities were not supplied; full-context coverage was assumed for screening only.",
+        { opportunitySource }
+      )
+    );
+  }
+  const restrictedAssayEvidenceSummary = summarizeRestrictedAssayEvidence(signatures, {
     contexts,
-    burdens: options.detectabilityBurdens,
-    exposureLevels: options.detectabilityExposureLevels,
-    targetConfidence: options.targetDetectabilityConfidence || 0.8,
+    burdens: panelOptions.restrictedAssayBurdens,
+    exposureLevels: panelOptions.restrictedAssayExposureLevels,
     opportunityCoverage,
+    callableOpportunities,
   });
   const result = await runCohortFit(
     {
@@ -2397,20 +4091,21 @@ async function runPanelWorkflow(input = {}, options = {}) {
     },
     {
       ...options,
+      ...panelOptions,
       assay: "panel",
       contexts,
-      lowBurdenThreshold: options.lowBurdenThreshold || 30,
-      moderateBurdenThreshold: options.moderateBurdenThreshold || 150,
+      lowBurdenThreshold: panelOptions.lowBurdenThreshold,
+      moderateBurdenThreshold: panelOptions.moderateBurdenThreshold,
     }
   );
-  const minAssessableMutations = options.minAssessableMutations || 30;
-  const strongExposureThreshold = options.strongExposureThreshold || 0.2;
-  const weakExposureThreshold = options.weakExposureThreshold || 0.05;
-  const weakDetectabilityConfidence = options.weakDetectabilityConfidence || 0.25;
-  const strongDetectabilityConfidence =
-    options.strongDetectabilityConfidence || 0.55;
-  const trustBySample = Object.fromEntries(
-    result.trust.samples.map((sample) => [sample.sample, sample])
+  const minAssessableMutations = panelOptions.minAssessableMutations;
+  const higherSupportExposureThreshold =
+    panelOptions.higherSupportExposureThreshold;
+  const limitedSupportExposureThreshold =
+    panelOptions.limitedSupportExposureThreshold;
+  const resultFitQualityEvidence = result.fitQualityEvidence;
+  const fitQualityBySample = Object.fromEntries(
+    resultFitQualityEvidence.samples.map((sample) => [sample.sample, sample])
   );
   const burdenBySample = Object.fromEntries(
     result.advisor.mutationBurden.samples.map((sample) => [sample.sample, sample])
@@ -2420,18 +4115,47 @@ async function runPanelWorkflow(input = {}, options = {}) {
       sampleName,
       Object.entries(exposureRow).map(([signatureName, exposure]) => {
         const burden = burdenBySample[sampleName]?.totalMutations || 0;
-        const trustClass = trustBySample[sampleName]?.classification;
-        const detectabilityConfidence = lookupDetectabilityConfidence(
-          detectability,
+        const reportingMode =
+          fitQualityBySample[sampleName]?.recommendedReportingMode ||
+          fitQualityBySample[sampleName]?.reportingMode;
+        const restrictedAssayEvidence = lookupRestrictedAssayEvidence(
+          restrictedAssayEvidenceSummary,
           signatureName,
           burden,
           exposure
         );
-        const assessable =
-          burden >= minAssessableMutations &&
-          (detectabilityConfidence === null ||
-            detectabilityConfidence >= weakDetectabilityConfidence);
-        let tier = "not_detected";
+        const callableEvidence = restrictedAssayEvidence?.callableEvidence;
+        const noCallableSignatureContexts =
+          callableEvidence?.callableOpportunitiesSupplied &&
+          callableEvidence.signatureMassInCallableContexts === 0;
+        const assessabilityReasons = [
+          burden < minAssessableMutations
+            ? {
+                code: "below_configured_min_assessable_mutations",
+                detail: `${burden} mutations < configured minimum ${minAssessableMutations}.`,
+              }
+            : null,
+          noCallableSignatureContexts
+            ? {
+                code: "no_callable_signature_contexts",
+                detail:
+                  "Supplied callable opportunities contain no positive-opportunity contexts for this reference signature.",
+              }
+            : null,
+          reportingMode === "not_assessable"
+            ? {
+                code: "fit_quality_not_assessable",
+                detail: "The upstream fit-quality evidence is not assessable.",
+              }
+            : null,
+        ].filter(Boolean);
+        const assessable = assessabilityReasons.length === 0;
+        const assessabilityClass = assessable
+          ? reportingMode === "restricted_interpretation"
+            ? "assessable_with_restricted_fit_interpretation"
+            : "assessable_under_configured_review_rules"
+          : "not_assessable";
+        let tier = "not_detected_within_review_settings";
         const warnings = [];
 
         if (!assessable) {
@@ -2440,27 +4164,40 @@ async function runPanelWorkflow(input = {}, options = {}) {
             makeWarning(
               WARNING_CODES.PANEL_SIGNATURE_NOT_ASSESSABLE,
               `${signatureName} is not assessable for ${sampleName} at the observed burden and fitted exposure.`,
-              { sample: sampleName, signatureName, burden, exposure }
+              {
+                sample: sampleName,
+                signatureName,
+                burden,
+                exposure,
+                assessabilityReasons,
+              }
             )
           );
         } else if (
-          exposure >= strongExposureThreshold &&
-          (trustClass === "high_confidence" ||
-            trustClass === "moderate_confidence") &&
-          (detectabilityConfidence === null ||
-            detectabilityConfidence >= strongDetectabilityConfidence)
+          exposure >= higherSupportExposureThreshold &&
+          (reportingMode === "standard_qc_passed" ||
+            reportingMode === "report_with_caveats")
         ) {
-          tier = "strong_evidence";
-        } else if (exposure >= weakExposureThreshold) {
-          tier = "weak_evidence";
+          tier = "higher_review_support";
+        } else if (exposure >= limitedSupportExposureThreshold) {
+          tier = "limited_review_support";
         }
         return {
           signatureName,
           exposure,
           tier,
+          tierLabel: {
+            higher_review_support: "Higher review support",
+            limited_review_support: "Limited review support",
+            not_detected_within_review_settings: "Not detected within review settings",
+            not_assessable: "Not assessable",
+          }[tier],
           totalMutations: burden,
-          trustClass,
-          detectabilityConfidence,
+          fitQualityReportingMode: reportingMode,
+          reportingMode,
+          restrictedAssayEvidence,
+          assessabilityClass,
+          assessabilityReasons,
           assessable,
           warnings,
         };
@@ -2470,62 +4207,299 @@ async function runPanelWorkflow(input = {}, options = {}) {
   const evidenceSummary = summarizeEvidenceCalls(evidenceCalls);
   const panelReport = createAnalysisReport(
     {
-      title: "mSigSDK Panel/WES Signature Evidence Report",
+      title: "mSigSDK Panel/WES Signature Review Evidence Report",
       summary:
-        "Panel/WES-oriented workflow with opportunity normalization, detectability estimates, evidence tiers, trust classifications, and explicit limitations.",
+        "Panel/WES-oriented workflow with opportunity normalization, transparent restricted-assay evidence, review tiers, reporting modes, and explicit limitations.",
+      workflowRole: "panel_workflow",
+      scopeStatement: SCOPE_STATEMENTS.panel,
+      methodBasis: {
+        panelEvidence: METHOD_BASIS.panelEvidence,
+        opportunityNormalization:
+          "When callable opportunities are supplied, mutation counts are rescaled by assay-specific trinucleotide opportunity relative to the selected reference opportunity set. The SDK applies the supplied opportunities; it does not infer assay-territory opportunity counts.",
+        opportunityNormalizationFormula:
+          "normalized_context_count = observed_context_count / max(callable_context_opportunity / reference_context_opportunity, epsilon) when reference opportunities are supplied; otherwise observed_context_count / max(callable_context_opportunity, epsilon). The normalized context vector is rescaled to the observed mutation total.",
+        tierRuleDefinitions: PANEL_TIER_RULE_DEFINITIONS,
+        references: [
+          LITERATURE_REFERENCES.alexandrov2020,
+          LITERATURE_REFERENCES.lawrence2021,
+          LITERATURE_REFERENCES.koh2021,
+        ],
+      },
+      primaryInterpretationFields: [
+        "evidenceCalls[sample][].tier",
+        "evidenceCalls[sample][].assessabilityClass",
+        "restrictedAssayEvidenceSummary.signatures[].callableEvidence",
+        "restrictedAssayEvidenceSummary.signatures[].curves",
+        "opportunityMetadata",
+      ],
       parameters: {
         workflow: "runPanelWorkflow",
         minAssessableMutations,
-        strongExposureThreshold,
-        weakExposureThreshold,
-        weakDetectabilityConfidence,
-        strongDetectabilityConfidence,
+        higherSupportExposureThreshold,
+        limitedSupportExposureThreshold,
         opportunityCoverage,
+        genomeVersion,
+        opportunitySource,
+        opportunitySourceDetails,
+        referenceOpportunitySource,
+        opportunityEpsilon: panelOptions.opportunityEpsilon,
       },
       validation: result.validation,
       qc: {
         mutationBurden: result.advisor.mutationBurden,
         reconstructionError: result.fit.reconstructionError,
-        trust: result.trust.summary,
-        detectability: {
-          targetConfidence: detectability.targetConfidence,
-          opportunityCoverage: detectability.opportunityCoverage,
+        fitQualityEvidence: resultFitQualityEvidence.summary,
+        restrictedAssayEvidence: {
+          modelType: restrictedAssayEvidenceSummary.modelType,
+          calibrationStatus: restrictedAssayEvidenceSummary.methodBasis.calibrationStatus,
+          opportunityCoverage: restrictedAssayEvidenceSummary.opportunityCoverage,
         },
         evidenceSummary,
+        panelWorkflowWarnings,
       },
       exposures: result.fit.exposures,
       notes: [
-        "Panel and WES outputs are best interpreted as evidence tiers rather than full decompositions.",
-        ...detectability.warnings.map((warning) => warning.message),
+        "Panel and WES outputs are best interpreted as transparent review evidence rather than full decompositions or calibrated detection probabilities.",
+        ...panelWorkflowWarnings.map((warning) => warning.message),
+        ...restrictedAssayEvidenceSummary.warnings.map((warning) => warning.message),
       ],
     },
-    { format: options.reportFormat || "object" }
+    { format: panelOptions.reportFormat ?? "object" }
   );
 
   return {
     ...result,
     schemaVersion: RESULT_SCHEMA_VERSION,
     workflow: "panel_workflow",
+    workflowRole: "panel_wes_review_pipeline",
+    scopeStatement: SCOPE_STATEMENTS.panel,
+    methodBasis: {
+      panelEvidence: METHOD_BASIS.panelEvidence,
+      opportunityNormalization:
+        "When callable opportunities are supplied, mutation counts are rescaled by assay-specific trinucleotide opportunity relative to the selected reference opportunity set. The SDK applies the supplied opportunities; it does not infer assay-territory opportunity counts.",
+      opportunityNormalizationFormula:
+        "normalized_context_count = observed_context_count / max(callable_context_opportunity / reference_context_opportunity, epsilon) when reference opportunities are supplied; otherwise observed_context_count / max(callable_context_opportunity, epsilon). The normalized context vector is rescaled to the observed mutation total.",
+      tierAssignment:
+        "Evidence tiers combine mutation burden, fit reporting mode, exposure thresholds, and callable-territory checks. They are configured review tiers rather than absence-or-presence calls.",
+      tierRuleDefinitions: PANEL_TIER_RULE_DEFINITIONS,
+      configurableDefaults: {
+        minAssessableMutations,
+        higherSupportExposureThreshold,
+        limitedSupportExposureThreshold,
+        opportunityEpsilon: panelOptions.opportunityEpsilon,
+      },
+      references: [
+        LITERATURE_REFERENCES.alexandrov2020,
+        LITERATURE_REFERENCES.lawrence2021,
+        LITERATURE_REFERENCES.koh2021,
+      ],
+    },
+    primaryInterpretationFields: [
+      "evidenceCalls[sample][].tier",
+      "evidenceCalls[sample][].assessabilityClass",
+      "restrictedAssayEvidenceSummary.signatures[].callableEvidence",
+      "restrictedAssayEvidenceSummary.signatures[].curves",
+      "opportunityMetadata",
+    ],
+    parameters: {
+      workflow: "runPanelWorkflow",
+      panelOptions,
+      minAssessableMutations,
+      higherSupportExposureThreshold,
+      limitedSupportExposureThreshold,
+      opportunityCoverage,
+      genomeVersion,
+      opportunitySource,
+      referenceOpportunitySource,
+    },
+    qc: {
+      ...(result.qc || {}),
+      restrictedAssayEvidence: {
+        modelType: restrictedAssayEvidenceSummary.modelType,
+        calibrationStatus:
+          restrictedAssayEvidenceSummary.methodBasis.calibrationStatus,
+        opportunityCoverage: restrictedAssayEvidenceSummary.opportunityCoverage,
+      },
+      evidenceSummary,
+      panelWorkflowWarnings,
+    },
     opportunityNormalization,
-    detectability,
+    opportunityMetadata: {
+      genomeVersion,
+      opportunitySource,
+      opportunitySourceDetails,
+      referenceOpportunitySource,
+      referenceOpportunityApplied: opportunityNormalization.referenceApplied,
+      opportunityCoverage,
+      opportunityCoverageDefinition:
+        "Fraction of expected mutation contexts with callable opportunity in the restricted assay, or 1 when no opportunity matrix is supplied.",
+    },
+    restrictedAssayEvidenceSummary,
+    tierRules: PANEL_TIER_RULE_DEFINITIONS,
+    tierRuleDefinitions: PANEL_TIER_RULE_DEFINITIONS,
     evidenceCalls,
     evidenceSummary,
+    panel: {
+      opportunityNormalization,
+      opportunityMetadata: {
+        genomeVersion,
+        opportunitySource,
+        opportunitySourceDetails,
+        referenceOpportunitySource,
+        referenceOpportunityApplied: opportunityNormalization.referenceApplied,
+        opportunityCoverage,
+      },
+      restrictedAssayEvidenceSummary,
+      evidenceCalls,
+      evidenceSummary,
+      tierRules: PANEL_TIER_RULE_DEFINITIONS,
+      limitations: [
+        "Panel and WES analyses are territory-restricted and are best reported as transparent review evidence rather than full fine-grained decompositions.",
+        "mSigSDK does not estimate calibrated panel/WES detection probabilities; use study-specific simulation or a validated external model for inferential detection claims.",
+      ],
+    },
+    warnings: deduplicateWarnings([
+      ...(result.warnings || []),
+      ...panelWorkflowWarnings,
+      ...(restrictedAssayEvidenceSummary.warnings || []),
+    ]),
     limitations: [
-      "Panel and WES analyses are territory-restricted and are best reported as evidence tiers rather than full fine-grained decompositions.",
-      "Flat or highly confusable signatures may be not assessable at low mutation counts.",
+      "Panel and WES analyses are territory-restricted and are best reported as transparent review evidence rather than full fine-grained decompositions.",
+      "mSigSDK does not estimate calibrated panel/WES detection probabilities; use study-specific simulation or a validated external model for inferential detection claims.",
     ],
     report: panelReport,
     recommendedActions: uniqueStrings([
       ...result.recommendedActions,
-      "Use evidence tiers and detectability confidence for panel/WES interpretation.",
-      ...detectability.warnings.map((warning) => warning.message),
+      "Inspect review tiers together with callable-territory evidence, fitted exposure, burden, and fit-quality warnings for panel/WES interpretation.",
+      ...panelWorkflowWarnings.map((warning) => warning.resolution),
+      ...restrictedAssayEvidenceSummary.warnings.map((warning) => warning.message),
     ]),
     publicationFigures: buildPublicationFigureDescriptors("panel", {
-      cohort_exposure_heatmap: ["fit.exposures", "evidenceCalls", "trust"],
-      panel_evidence: ["evidenceCalls", "detectability"],
-      trust_dashboard: ["trust"],
+      cohort_exposure_heatmap: ["fit.exposures", "evidenceCalls", "fitQualityEvidence"],
+      panel_evidence: ["evidenceCalls", "restrictedAssayEvidenceSummary"],
+      fit_quality_evidence_dashboard: ["fitQualityEvidence"],
     }),
   };
+}
+
+/**
+ * Runs the beginner-facing single-sample refit path with a small option set.
+ *
+ * @async
+ * @function runSingleSampleFitLite
+ * @memberof pipelines
+ * @param {Object} input - Spectrum and reference signatures.
+ * @param {Object} [options] - Minimal options: contexts, sampleName, exposureThreshold, bootstrapIterations, genomeBuild, reportFormat.
+ * @returns {Promise<Object>} Standard pipeline result frame.
+ */
+async function runSingleSampleFitLite(input = {}, options = {}) {
+  return await runSingleSampleFit(
+    input,
+    mergeDefinedOptions(
+      {
+        runThresholdSensitivity: true,
+        runBootstrap: true,
+        bootstrapIterations: 100,
+        exposureThreshold: 0.01,
+        reportFormat: "object",
+      },
+      liteOptions(options, [
+        "exposureThreshold",
+        "bootstrapIterations",
+        "lowBurdenThreshold",
+      ])
+    )
+  );
+}
+
+/**
+ * Runs the beginner-facing cohort refit path with experimental subgroup discovery disabled.
+ *
+ * @async
+ * @function runCohortFitLite
+ * @memberof pipelines
+ * @param {Object} input - Cohort spectra, signatures, and optional metadata.
+ * @param {Object} [options] - Minimal options: contexts, exposureThreshold, lowBurdenThreshold, metadata, groupKey, reportFormat.
+ * @returns {Promise<Object>} Standard pipeline result frame.
+ */
+async function runCohortFitLite(input = {}, options = {}) {
+  return await runCohortFit(
+    input,
+    mergeDefinedOptions(
+      {
+        runSubgroupDiscovery: false,
+        runBootstrap: false,
+        runThresholdSensitivity: true,
+        exposureThreshold: 0.01,
+        reportFormat: "object",
+      },
+      liteOptions(options, [
+        "exposureThreshold",
+        "lowBurdenThreshold",
+        "metadata",
+        "groupKey",
+        "comparisonKey",
+      ])
+    )
+  );
+}
+
+/**
+ * Runs the beginner-facing panel/WES review path with stable defaults.
+ *
+ * @async
+ * @function runPanelWorkflowLite
+ * @memberof pipelines
+ * @param {Object} input - Restricted-assay spectra, signatures, and optional callable opportunities.
+ * @param {Object} [options] - Minimal options: contexts, genomeBuild, callableOpportunities, referenceOpportunities, reportFormat.
+ * @returns {Promise<Object>} Standard panel workflow result frame.
+ */
+async function runPanelWorkflowLite(input = {}, options = {}) {
+  return await runPanelWorkflow(
+    input,
+    mergeDefinedOptions(
+      {
+        runSubgroupDiscovery: false,
+        runBootstrap: false,
+        runThresholdSensitivity: true,
+        reportFormat: "object",
+      },
+      liteOptions(options, [
+        "callableOpportunities",
+        "referenceOpportunities",
+        "opportunitySource",
+        "referenceOpportunitySource",
+        "minAssessableMutations",
+        "higherSupportExposureThreshold",
+        "limitedSupportExposureThreshold",
+      ])
+    )
+  );
+}
+
+/**
+ * Runs the beginner-facing discovery path with a fixed rank unless rank selection is requested.
+ *
+ * @function runDiscoveryWorkflowLite
+ * @memberof pipelines
+ * @param {Object} input - Cohort spectra and optional reference signatures.
+ * @param {Object} [options] - Minimal options: contexts, rank, ranks, runRankSelection, reportFormat.
+ * @returns {Object} Standard discovery workflow result frame.
+ */
+function runDiscoveryWorkflowLite(input = {}, options = {}) {
+  return runDiscoveryWorkflow(
+    input,
+    mergeDefinedOptions(
+      {
+        rank: 5,
+        runRankSelection: false,
+        forceExtraction: true,
+        nRuns: 10,
+        maxIterations: 500,
+      },
+      liteOptions(options, ["rank", "ranks", "runRankSelection", "topN"])
+    )
+  );
 }
 
 function normalizeVariantRows(variants) {
@@ -2569,6 +4543,86 @@ function normalizeVariantRows(variants) {
     });
 }
 
+function isApobecLikeContext(context) {
+  if (!context) {
+    return false;
+  }
+  const normalized = String(context).toUpperCase().replace(/\s+/g, "");
+  return /^T\[C>[GT]\][AT]$/.test(normalized);
+}
+
+function buildChromosomeMutationStats(rainfall) {
+  const grouped = {};
+  for (const variant of rainfall) {
+    if (!variant.chromosome || !Number.isFinite(variant.position)) {
+      continue;
+    }
+    if (!grouped[variant.chromosome]) {
+      grouped[variant.chromosome] = {
+        chromosome: variant.chromosome,
+        mutationCount: 0,
+        minPosition: variant.position,
+        maxPosition: variant.position,
+      };
+    }
+    const stats = grouped[variant.chromosome];
+    stats.mutationCount += 1;
+    stats.minPosition = Math.min(stats.minPosition, variant.position);
+    stats.maxPosition = Math.max(stats.maxPosition, variant.position);
+  }
+  return Object.fromEntries(
+    Object.entries(grouped).map(([chromosome, stats]) => {
+      const observedSpan = Math.max(stats.maxPosition - stats.minPosition + 1, 1);
+      return [
+        chromosome,
+        {
+          ...stats,
+          observedSpan,
+          backgroundRatePerBase: stats.mutationCount / observedSpan,
+        },
+      ];
+    })
+  );
+}
+
+function buildGenomeMutationStats(rainfall, callableGenomeSize) {
+  const positions = rainfall
+    .map((variant) => variant.position)
+    .filter((position) => Number.isFinite(position));
+  if (positions.length === 0) {
+    return null;
+  }
+  const minPosition = Math.min(...positions);
+  const maxPosition = Math.max(...positions);
+  const observedSpan = Math.max(callableGenomeSize || maxPosition - minPosition + 1, 1);
+  return {
+    mutationCount: positions.length,
+    minPosition,
+    maxPosition,
+    observedSpan,
+    backgroundRatePerBase: positions.length / observedSpan,
+  };
+}
+
+function poissonUpperTail(k, lambda) {
+  if (!Number.isFinite(k) || k <= 0 || !Number.isFinite(lambda) || lambda < 0) {
+    return null;
+  }
+  if (lambda === 0) {
+    return 0;
+  }
+  let probability = Math.exp(-lambda);
+  let cumulative = probability;
+  for (let count = 1; count < k; count += 1) {
+    probability *= lambda / count;
+    cumulative += probability;
+    if (!Number.isFinite(cumulative)) {
+      return null;
+    }
+  }
+  return clamp(1 - cumulative, 0, 1);
+}
+
 function finalizeFocus(current, foci, options) {
   if (current.length < options.minMutations) {
     return;
@@ -2579,26 +4633,54 @@ function finalizeFocus(current, foci, options) {
     .map((variant) => variant.previousDistance)
     .filter((distance) => Number.isFinite(distance));
   const contexts = current.map((variant) => variant.context).filter(Boolean);
-  const apobecLikeCount = contexts.filter(
-    (context) =>
-      /T\[C>[GT]\][ATCG]/.test(context) ||
-      /[ATCG]\[C>[GT]\]T/.test(context)
-  ).length;
+  const apobecLikeCount = contexts.filter(isApobecLikeContext).length;
   const apobecLikeFraction =
     contexts.length === 0 ? 0 : apobecLikeCount / contexts.length;
+  const start = current[0].position;
+  const end = current[current.length - 1].position;
+  const regionSpan = Math.max(end - start + 1, 1);
+  const backgroundStats = options.genomeBackgroundStats || null;
+  const expectedMutations =
+    backgroundStats && Number.isFinite(backgroundStats.backgroundRatePerBase)
+      ? backgroundStats.backgroundRatePerBase * regionSpan
+      : null;
+  const clusterPValue =
+    expectedMutations === null
+      ? null
+      : poissonUpperTail(current.length, expectedMutations);
+  const contextPattern =
+    apobecLikeFraction >= options.apobecLikeFractionThreshold
+      ? "APOBEC-context-enriched localized cluster"
+      : "localized mutation cluster";
 
   foci.push({
     focusId: `focus_${foci.length + 1}`,
     chromosome: current[0].chromosome,
-    start: current[0].position,
-    end: current[current.length - 1].position,
+    start,
+    end,
+    regionSpan,
     mutationCount: current.length,
     medianIntermutationDistance: quantile(distances, 0.5),
+    clusterPValue,
+    clusterSignificant:
+      clusterPValue !== null && clusterPValue <= options.clusterSignificanceThreshold,
+    clusterSignificanceThreshold: options.clusterSignificanceThreshold,
+    callableGenomeSize: backgroundStats?.observedSpan || null,
+    expectedMutationsUnderPoisson: expectedMutations,
+    expectedMutationsUnderGenomeWidePoisson: expectedMutations,
+    significanceModel:
+      "Poisson upper-tail test using the genome-wide per-sample mutation rate estimated as total input variants divided by callableGenomeSize.",
+    nullModelSpecification: options.nullModelSpecification,
+    contextPattern,
+    associatedPattern: contextPattern,
+    contextPatternDefinition:
+      LOCALIZED_CONTEXT_PATTERN_DEFINITIONS[contextPattern] ||
+      LOCALIZED_CONTEXT_PATTERN_DEFINITIONS["localized mutation cluster"],
+    contextPatternInterpretation:
+      "Context-pattern labels are descriptive and hypothesis-generating; they are not etiology assignments.",
     apobecLikeFraction,
-    candidateEtiology:
-      apobecLikeFraction >= 0.4
-        ? "APOBEC-like localized hypermutation"
-        : "localized hypermutation",
+    apobecLikeDefinition:
+      "Fraction of mutations with standardized pyrimidine-context labels T[C>G]A, T[C>G]T, T[C>T]A, or T[C>T]T among variants with available context labels.",
     variantIds: current.map((variant) => variant.id),
   });
 }
@@ -2608,15 +4690,32 @@ function finalizeFocus(current, foci, options) {
  *
  * @function runLocalizedMutagenesisAnalysis
  * @memberof pipelines
+ * @experimental Localized-mutagenesis pipeline outside the manuscript-validated advisor claim set.
  * @param {Object[]|Object} variants - Variant rows or an object with a variants field.
  * @param {string} genomeBuild - Genome build label.
  * @param {Object} [options] - Localized mutagenesis options.
  * @returns {Object} Rainfall data, focal regions, warnings, and publication artifacts.
  */
 function runLocalizedMutagenesisAnalysis(variants, genomeBuild, options = {}) {
+  warnExperimentalAdvisorFunction("runLocalizedMutagenesisAnalysis");
+  const localizedOptions = mergeDefinedOptions(
+    ADVISOR_DEFAULTS.localizedMutagenesis,
+    options.localized,
+    options.localizedOptions,
+    options
+  );
   const normalizedVariants = normalizeVariantRows(variants);
-  const maxIntermutationDistance = options.maxIntermutationDistance || 10000;
-  const minMutations = options.minMutations || 6;
+  const maxIntermutationDistance = localizedOptions.maxIntermutationDistance;
+  const minMutations = localizedOptions.minMutations;
+  const minBurdenForLocalizedAnalysis =
+    localizedOptions.minBurdenForLocalizedAnalysis;
+  const apobecLikeFractionThreshold =
+    localizedOptions.apobecLikeFractionThreshold;
+  const clusterSignificanceThreshold =
+    localizedOptions.clusterSignificanceThreshold;
+  const callableGenomeSize = localizedOptions.callableGenomeSize;
+  const nullModelSpecification =
+    localizedOptions.nullModelSpecification;
   const rainfall = normalizedVariants.map((variant, index) => {
     const previous = normalizedVariants[index - 1];
     const previousDistance =
@@ -2632,6 +4731,8 @@ function runLocalizedMutagenesisAnalysis(variants, genomeBuild, options = {}) {
           : null,
     };
   });
+  const chromosomeStats = buildChromosomeMutationStats(rainfall);
+  const genomeBackgroundStats = buildGenomeMutationStats(rainfall, callableGenomeSize);
   const foci = [];
   let current = [];
 
@@ -2644,40 +4745,139 @@ function runLocalizedMutagenesisAnalysis(variants, genomeBuild, options = {}) {
     if (continuesFocus) {
       current.push(variant);
     } else {
-      finalizeFocus(current, foci, { minMutations });
+      finalizeFocus(current, foci, {
+        minMutations,
+        chromosomeStats,
+        genomeBackgroundStats,
+        apobecLikeFractionThreshold,
+        clusterSignificanceThreshold,
+        nullModelSpecification,
+      });
       current = [variant];
     }
   }
-  finalizeFocus(current, foci, { minMutations });
+  finalizeFocus(current, foci, {
+    minMutations,
+    chromosomeStats,
+    genomeBackgroundStats,
+    apobecLikeFractionThreshold,
+    clusterSignificanceThreshold,
+    nullModelSpecification,
+  });
 
-  const warnings =
-    foci.length > 0
-      ? [
-          makeWarning(
-            WARNING_CODES.REGIONAL_PROCESS_SUSPECTED,
-            "One or more focal mutation clusters were detected; compare focal spectra with the genomic background.",
-            { focusCount: foci.length }
-          ),
-        ]
-      : [];
+  const totalMutations = normalizedVariants.length;
+  const analysisEligible = totalMutations >= minBurdenForLocalizedAnalysis;
+  const warnings = [];
+  if (!analysisEligible) {
+    warnings.push(
+      makeWarning(
+        WARNING_CODES.LOW_BURDEN,
+        `Localized mutagenesis screening is below the configured minimum burden of ${minBurdenForLocalizedAnalysis} variants.`,
+        { totalMutations, minBurdenForLocalizedAnalysis }
+      )
+    );
+  }
+  if (foci.length > 0) {
+    warnings.push(
+      makeWarning(
+        WARNING_CODES.REGIONAL_PROCESS_SUSPECTED,
+        "One or more focal mutation clusters were detected; compare focal spectra with the genomic background.",
+        { focusCount: foci.length }
+      )
+    );
+  }
 
   return {
     schemaVersion: RESULT_SCHEMA_VERSION,
     workflow: "localized_mutagenesis",
+    workflowRole: "localized_mutagenesis_pipeline",
+    scopeStatement: SCOPE_STATEMENTS.localized,
+    experimentalStatus: {
+      state: "experimental",
+      validatedForManuscriptUse: false,
+      scopeStatement: SCOPE_STATEMENTS.localized,
+    },
+    methodBasis: {
+      localizedClustering:
+        "Clusters are descriptive runs of nearby same-chromosome variants under a configurable maximum intermutation-distance rule.",
+      contextPattern:
+        "APOBEC-context enrichment is reported as a context pattern, not as a causal etiology assignment.",
+      significanceModel:
+        nullModelSpecification,
+      nullModelSpecification,
+      contextPatternDefinitionVersion: LOCALIZED_CONTEXT_PATTERN_DEFINITIONS.version,
+      contextPatternDefinition: LOCALIZED_CONTEXT_PATTERN_DEFINITIONS,
+      references: [
+        LITERATURE_REFERENCES.roberts2013,
+        LITERATURE_REFERENCES.alexandrov2020,
+        LITERATURE_REFERENCES.petljak2022,
+      ],
+    },
+    primaryInterpretationFields: [
+      "analysisEligibility",
+      "foci[].contextPattern",
+      "foci[].clusterPValue",
+      "warnings",
+    ],
     genomeBuild,
     parameters: {
       maxIntermutationDistance,
       minMutations,
+      minBurdenForLocalizedAnalysis,
+      apobecLikeFractionThreshold,
+      clusterSignificanceThreshold,
+      callableGenomeSize,
+      nullModelSpecification,
+      clusterAlgorithm:
+        "Sequential distance-threshold run: sorted variants are assigned to the same focus when consecutive variants are on the same chromosome and separated by no more than maxIntermutationDistance.",
     },
+    validation: {
+      variants: {
+        valid: rainfall.length > 0,
+        variantCount: rainfall.length,
+        requiredFields: ["chromosome", "position"],
+      },
+    },
+    qc: {
+      chromosomeStats,
+      focusCount: foci.length,
+      analysisEligibility: {
+        totalMutations,
+        minBurdenForLocalizedAnalysis,
+        analysisEligible,
+      },
+    },
+    analysisEligibility: {
+      totalMutations,
+      minBurdenForLocalizedAnalysis,
+      analysisEligible,
+    },
+    genomeBackgroundStats,
+    chromosomeStats,
     rainfall,
     foci,
+    nullModelSpecification,
+    clusterSignificanceThreshold,
     focalSpectra: null,
     flankComparison: null,
     genomeTracks: {
       suggestedTrackType: "rainfall",
       fields: ["chromosome", "position", "previousDistance", "focusId"],
     },
-    candidateEtiologies: uniqueStrings(foci.map((focus) => focus.candidateEtiology)),
+    contextPatterns: uniqueStrings(foci.map((focus) => focus.contextPattern)),
+    associatedPatterns: uniqueStrings(foci.map((focus) => focus.associatedPattern)),
+    contextPatternDefinition: LOCALIZED_CONTEXT_PATTERN_DEFINITIONS,
+    localized: {
+      analysisEligibility: {
+        totalMutations,
+        minBurdenForLocalizedAnalysis,
+        analysisEligible,
+      },
+      foci,
+      rainfall,
+      contextPatterns: uniqueStrings(foci.map((focus) => focus.contextPattern)),
+      nullModelSpecification,
+    },
     warnings,
     recommendedActions: uniqueStrings([
       foci.length > 0
@@ -2687,21 +4887,27 @@ function runLocalizedMutagenesisAnalysis(variants, genomeBuild, options = {}) {
     publicationFigures: buildPublicationFigureDescriptors("localized", {
       rainfall: ["rainfall", "foci"],
     }),
+    provenance: null,
   };
 }
 
 export {
+  ADVISOR_DEFAULTS,
   WARNING_CODES,
   compareSignatureExposures,
-  computeFitTrust,
+  computeFitQualityEvidence,
   computeSignatureAmbiguity,
   detectOutOfReferenceSignal,
-  estimateSignatureDetectability,
   recommendAnalysisStrategy,
   runCohortFit,
+  runCohortFitLite,
   runDiscoveryWorkflow,
+  runDiscoveryWorkflowLite,
   runLocalizedMutagenesisAnalysis,
   runPanelWorkflow,
+  runPanelWorkflowLite,
   runSingleSampleFit,
+  runSingleSampleFitLite,
   runSubgroupDiscoveryWorkflow,
+  summarizeRestrictedAssayEvidence,
 };

@@ -1,0 +1,4 @@
+reporting_mode,spectra,mean_exposure_cosine,mean_reconstruction_cosine,signature_ambiguity_warning_rate
+standard_qc_passed,166,0.9991876589839914,0.9976740400264282,0
+report_with_caveats,47,0.9894438350744966,0.9809128446344735,1
+restricted_interpretation,171,0.9467816694342699,0.8874513757925009,0.7894736842105263

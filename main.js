@@ -80,6 +80,9 @@ const sdkModuleSpecs = [
   ["reports", "mSigSDKScripts/reports.js"],
   ["workflows", "mSigSDKScripts/workflows.js"],
   ["guidance", "mSigSDKScripts/guidance.js"],
+  ["presentation", "mSigSDKScripts/presentation.js"],
+  ["runners", "mSigSDKScripts/runners.js"],
+  ["adapters", "mSigSDKScripts/adapters.js"],
 ];
 
 const sdkModuleResults = await Promise.allSettled(
@@ -135,12 +138,16 @@ const ioModule = getLoadedModule(27);
 const reportsModule = getLoadedModule(28);
 const workflowsModule = getLoadedModule(29);
 const guidanceModule = getLoadedModule(30);
+const presentationModule = getLoadedModule(31);
+const runnersModule = getLoadedModule(32);
+const adaptersModule = getLoadedModule(33);
 const preprocessData = machineLearningModule.preprocessData || missingDependency("preprocessData");
 const kFoldCV = machineLearningModule.kFoldCV || missingDependency("kFoldCV");
 
 const {
   convertMatrix,
   convertWGStoPanel,
+  createWGStoPanelValidationPairs,
   init_sbs_mutational_spectra,
   convertMutationalSpectraIntoJSON,
 } = userDataModule;
@@ -200,12 +207,15 @@ const {
 } = validationModule;
 
 const {
+  QC_DEFAULTS = {},
+  QC_WARNING_CODES = {},
   bootstrapSignatureFit,
   calculateFitResiduals,
   calculateReconstructionError,
   fitSpectraWithNNLS,
   normalizeExposures,
   runThresholdSensitivity,
+  selectSamplesByMutationBurden,
   summarizeMissingContexts,
   summarizeMutationBurden,
 } = qcModule;
@@ -222,9 +232,11 @@ const {
   exposureMatrixToRows,
   exportCOSMICSignatureMatrix,
   exportMatrixTSV,
+  exportMuSiCalInput,
   exportSigProfilerMatrix,
   importCOSMICSignatureMatrix,
   importMatrixTSV,
+  importMuSiCalOutput,
   importSigProfilerMatrix,
   rowsToExposureMatrix,
   signatureMatrixToRows,
@@ -243,20 +255,68 @@ const {
 } = workflowsModule;
 
 const {
+  ADVISOR_DEFAULTS = {},
   WARNING_CODES = {},
   compareSignatureExposures = missingDependency("compareSignatureExposures"),
-  computeFitTrust = missingDependency("computeFitTrust"),
+  computeFitQualityEvidence = missingDependency("computeFitQualityEvidence"),
   computeSignatureAmbiguity = missingDependency("computeSignatureAmbiguity"),
   detectOutOfReferenceSignal = missingDependency("detectOutOfReferenceSignal"),
-  estimateSignatureDetectability = missingDependency("estimateSignatureDetectability"),
   recommendAnalysisStrategy = missingDependency("recommendAnalysisStrategy"),
   runCohortFit = missingDependency("runCohortFit"),
+  runCohortFitLite = missingDependency("runCohortFitLite"),
   runDiscoveryWorkflow = missingDependency("runDiscoveryWorkflow"),
+  runDiscoveryWorkflowLite = missingDependency("runDiscoveryWorkflowLite"),
   runLocalizedMutagenesisAnalysis = missingDependency("runLocalizedMutagenesisAnalysis"),
   runPanelWorkflow = missingDependency("runPanelWorkflow"),
+  runPanelWorkflowLite = missingDependency("runPanelWorkflowLite"),
   runSingleSampleFit = missingDependency("runSingleSampleFit"),
+  runSingleSampleFitLite = missingDependency("runSingleSampleFitLite"),
   runSubgroupDiscoveryWorkflow = missingDependency("runSubgroupDiscoveryWorkflow"),
+  summarizeRestrictedAssayEvidence = missingDependency("summarizeRestrictedAssayEvidence"),
 } = guidanceModule;
+
+const {
+  bootstrapRows = missingDependency("bootstrapRows"),
+  burdenSampleRows = missingDependency("burdenSampleRows"),
+  compactSummary = missingDependency("compactSummary"),
+  details: presentationDetails = missingDependency("presentation.details"),
+  exposureRows = missingDependency("exposureRows"),
+  formatCell = missingDependency("formatCell"),
+  formatNumber = missingDependency("formatNumber"),
+  metrics: presentationMetrics = missingDependency("presentation.metrics"),
+  nmfMatchRows = missingDependency("nmfMatchRows"),
+  note: presentationNote = missingDependency("presentation.note"),
+  reconstructionRows = missingDependency("reconstructionRows"),
+  reportFieldRows = missingDependency("reportFieldRows"),
+  table: presentationTable = missingDependency("presentation.table"),
+  thresholdRows = missingDependency("thresholdRows"),
+} = presentationModule;
+
+const {
+  DEFAULT_PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.27.4/full/",
+  PYODIDE_RUNNER_SCHEMA_VERSION = "msig.runner.pyodide.v0.3",
+  createPyodideWorkerRunner = missingDependency("createPyodideWorkerRunner"),
+  createPyodideWorkerSource = missingDependency("createPyodideWorkerSource"),
+  detectPyodideRuntime = missingDependency("detectPyodideRuntime"),
+  runPython = missingDependency("runPython"),
+  runPyodide = missingDependency("runPyodide"),
+} = runnersModule;
+
+const {
+  ADAPTER_SCHEMA_VERSION = "msig.adapters.v0.3",
+  DEFAULT_SPA_PACKAGE = "SigProfilerAssignment==1.1.3",
+  createInteroperabilityBundle = missingDependency("createInteroperabilityBundle"),
+  parseExposureTables = missingDependency("parseExposureTables"),
+  parseDeconstructSigsOutput = missingDependency("parseDeconstructSigsOutput"),
+  parseSigProfilerExtractorOutput = missingDependency("parseSigProfilerExtractorOutput"),
+  prepareDeconstructSigsInput = missingDependency("prepareDeconstructSigsInput"),
+  prepareMuSiCalRefitInput = missingDependency("prepareMuSiCalRefitInput"),
+  prepareSigProfilerAssignmentInput = missingDependency("prepareSigProfilerAssignmentInput"),
+  prepareSigProfilerExtractorInput = missingDependency("prepareSigProfilerExtractorInput"),
+  runMuSiCalRefit = missingDependency("runMuSiCalRefit"),
+  runSigProfilerAssignment = missingDependency("runSigProfilerAssignment"),
+  runSparseNnlsRefit = missingDependency("runSparseNnlsRefit"),
+} = adaptersModule;
 
 // import * as mSigPortalPlotting from "./index.js";
 
@@ -318,11 +378,31 @@ const mSigSDK = (function () {
    */
 
   /**
+   * @namespace presentation
+   */
+
+  /**
+   * @namespace quickstart
+   */
+
+  /**
+   * @namespace runners
+   */
+
+  /**
+   * @namespace adapters
+   */
+
+  /**
    * @namespace advisor
    */
 
   /**
    * @namespace pipelines
+   */
+
+  /**
+   * @namespace experimental
    */
 
 
@@ -393,6 +473,14 @@ const mSigSDK = (function () {
     parameters = {},
     sourceUrls = [],
     dataSources = [],
+    catalogVersion = null,
+    catalogSource = null,
+    genomeBuild = null,
+    contextSource = null,
+    contextApiVersion = null,
+    contextLookupMode = null,
+    contextFetchTimestamp = null,
+    apiEndpointSnapshot = [],
     notes = [],
   } = {}) {
     return {
@@ -406,11 +494,99 @@ const mSigSDK = (function () {
         repository: SDK_REPOSITORY_URL,
       },
       parameters: copyProvenanceValue(parameters) || {},
+      catalog: {
+        version: catalogVersion,
+        source: catalogSource,
+      },
+      genome: {
+        build: genomeBuild,
+        contextSource,
+        contextApiVersion,
+        contextLookupMode,
+        contextFetchTimestamp,
+      },
+      apiEndpointSnapshot: copyProvenanceValue(asArray(apiEndpointSnapshot)),
       sourceUrls: asArray(sourceUrls),
       dataSources: copyProvenanceValue(asArray(dataSources)),
       runtime: getRuntimeContext(),
       notes: asArray(notes),
     };
+  }
+
+  function flattenMafRowsForWorkflow(rows) {
+    if (!Array.isArray(rows)) {
+      return [];
+    }
+    return rows.flatMap((entry) => (Array.isArray(entry) ? entry : [entry]));
+  }
+
+  function normalizeWorkflowMafRow(row) {
+    if (!row || typeof row !== "object") {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(row).map(([key, value]) => [String(key).toLowerCase(), value])
+    );
+  }
+
+  function countConvertibleSnvRows(mafFiles, { tcga = false } = {}) {
+    return flattenMafRowsForWorkflow(mafFiles)
+      .map(normalizeWorkflowMafRow)
+      .filter((row) => {
+        const referenceAllele = String(
+          tcga ? row.reference_genome_allele : row.reference_allele
+        ).toUpperCase();
+        const alternateAllele = String(
+          tcga ? row.mutated_to_allele : row.tumor_seq_allele2
+        ).toUpperCase();
+        const variantType = String(
+          tcga ? row.mutation_type : row.variant_type
+        ).toLowerCase();
+        return (
+          (variantType === "snp" ||
+            variantType === "single base substitution" ||
+            variantType === "single_base_substitution") &&
+          /^[ACGT]$/.test(referenceAllele) &&
+          /^[ACGT]$/.test(alternateAllele)
+        );
+      }).length;
+  }
+
+  function sumSpectraCounts(spectra) {
+    return Object.values(spectra || {}).reduce(
+      (outerTotal, spectrum) =>
+        outerTotal +
+        Object.values(spectrum || {}).reduce(
+          (innerTotal, value) =>
+            innerTotal + (Number.isFinite(Number(value)) ? Number(value) : 0),
+          0
+        ),
+      0
+    );
+  }
+
+  function makeWorkflowWarning(code, message, details = {}) {
+    return {
+      code,
+      level: "warning",
+      message,
+      resolution:
+        code === QC_WARNING_CODES.CONTEXT_FETCH_FAILED
+          ? "Verify the genome build, remote context endpoint, and SBS96 count totals; rerun with pinned or cached contexts before fitting."
+          : null,
+      ...details,
+    };
+  }
+
+  function buildUCSCContextEndpointSnapshot({ genome, contextApiEndpoint }) {
+    return [
+      {
+        label: "trinucleotide_context_sequence",
+        endpoint: contextApiEndpoint,
+        queryTemplate:
+          `${contextApiEndpoint}?genome=${genome};chrom=chr{chromosome};start={position_minus_2};end={position_plus_1}`,
+      },
+    ];
   }
 
   /**
@@ -2871,141 +3047,331 @@ Renders a plot of the mutational spectra for one or more patients in a given div
   }
 
   /**
-   * Renders the composite fit-trust result returned by mSigSDK.advisor.computeFitTrust.
+   * Renders fit-quality evidence returned by mSigSDK.advisor.computeFitQualityEvidence.
    *
    * @async
-   * @function plotFitTrustDashboard
+   * @function plotFitQualityEvidenceDashboard
    * @memberof qcPlots
    * @param {string|Element} divID - Container element or element id.
-   * @param {Object} trustResult - Result from mSigSDK.advisor.computeFitTrust.
+   * @param {Object} fitQualityEvidenceResult - Result from mSigSDK.advisor.computeFitQualityEvidence.
    * @returns {Promise<Object|Element>} Render metadata or an error element.
    */
-  async function plotFitTrustDashboard(divID, trustResult) {
-    const samples = [...(trustResult.samples || [])].sort(
-      (a, b) => a.score - b.score
-    );
+  async function plotFitQualityEvidenceDashboard(divID, fitQualityEvidenceResult) {
+    const severityRank = {
+      standard_qc_passed: 0,
+      report_with_caveats: 1,
+      restricted_interpretation: 2,
+      not_assessable: 3,
+    };
+    const reportingModeFor = (sample) =>
+      sample.reportingMode ||
+      sample.recommendedReportingMode ||
+      "not_assessable";
+    const reviewFlagCountFor = (sample) =>
+      sample.reviewFlagCount ??
+      sample.reviewFlagCodes?.length ??
+      sample.evidenceFlags?.length ??
+      sample.flags?.length ??
+      sample.warnings?.length ??
+      0;
+    const samples = [...(fitQualityEvidenceResult.samples || [])].sort((a, b) => {
+      const modeDelta =
+        (severityRank[reportingModeFor(b)] ?? 0) -
+        (severityRank[reportingModeFor(a)] ?? 0);
+      if (modeDelta !== 0) {
+        return modeDelta;
+      }
+      return reviewFlagCountFor(b) - reviewFlagCountFor(a);
+    });
     if (samples.length === 0) {
-      return renderPlotError(divID, "No fit trust data available.");
+      return renderPlotError(divID, "No fit-quality evidence available.");
     }
 
     const components = [
-      "burden",
-      "reconstruction",
-      "residual",
-      "bootstrap",
-      "threshold",
-      "ambiguity",
-      "catalog",
+      { key: "burden", label: "Burden" },
+      { key: "reconstruction", label: "Recon." },
+      { key: "residual", label: "Residual" },
+      { key: "bootstrap", label: "Bootstrap" },
+      { key: "threshold", label: "Threshold" },
+      { key: "ambiguity", label: "Ambiguity" },
+      { key: "catalog", label: "Catalog" },
     ];
     const classLabel = {
-      high_confidence: "High",
-      moderate_confidence: "Moderate",
-      low_confidence: "Low",
+      standard_qc_passed: "QC passed",
+      report_with_caveats: "Flagged",
+      restricted_interpretation: "Restricted",
       not_assessable: "Not assessable",
     };
     const classColor = {
-      high_confidence: SCIENTIFIC_COLORS.green,
-      moderate_confidence: SCIENTIFIC_COLORS.blue,
-      low_confidence: SCIENTIFIC_COLORS.orange,
+      standard_qc_passed: SCIENTIFIC_COLORS.green,
+      report_with_caveats: SCIENTIFIC_COLORS.blue,
+      restricted_interpretation: SCIENTIFIC_COLORS.orange,
       not_assessable: SCIENTIFIC_COLORS.vermillion,
     };
+    const stateColor = {
+      concern: SCIENTIFIC_COLORS.vermillion,
+      caution: SCIENTIFIC_COLORS.orange,
+      observed: SCIENTIFIC_COLORS.blue,
+      ok: SCIENTIFIC_COLORS.green,
+      missing: "#f1f5f9",
+    };
+    const stateLabel = {
+      concern: "warning",
+      caution: "caution",
+      observed: "reported",
+      ok: "ok",
+      missing: "not measured",
+    };
+    const componentLabel = Object.fromEntries(
+      components.map(({ key, label }) => [key, label])
+    );
+    const evidenceFor = (sample, component) =>
+      sample.componentEvidence?.[component] || {};
+    const warningCodesFor = (sample) =>
+      new Set(
+        [
+          ...(sample.reviewFlagCodes || []),
+          ...(sample.evidenceFlags || []).map((flag) => flag?.code),
+          ...(sample.flags || []).map((flag) => flag?.code),
+          ...(sample.warnings || []).map((warning) => warning?.code),
+        ].filter(Boolean)
+      );
+    const hasAnyWarning = (sample, codes) => {
+      const warningCodes = warningCodesFor(sample);
+      return codes.some((code) => warningCodes.has(code));
+    };
+    const compactText = (value, maxLength = 14) => {
+      const text = String(value ?? "NA");
+      return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
+    };
+    const formatPercentEvidence = (value, digits = 1) =>
+      Number.isFinite(value) ? d3.format(`.${digits}%`)(value) : "NA";
+    const componentState = (sample, component) => {
+      const evidence = evidenceFor(sample, component);
+      if (component === "burden") {
+        if (
+          hasAnyWarning(sample, ["LOW_BURDEN", "INSUFFICIENT_SIGNAL"]) ||
+          ["low", "insufficient"].includes(evidence.burdenClass)
+        ) {
+          return "concern";
+        }
+        return evidence.burdenClass ? "ok" : "missing";
+      }
+      if (component === "reconstruction") {
+        return Number.isFinite(evidence.cosineSimilarity) ? "observed" : "missing";
+      }
+      if (component === "residual") {
+        return hasAnyWarning(sample, ["HIGH_RESIDUAL_STRUCTURE"])
+          ? "concern"
+          : Number.isFinite(evidence.unexplainedFraction)
+            ? "observed"
+            : "missing";
+      }
+      if (component === "bootstrap") {
+        if (!evidence.measured) {
+          return "missing";
+        }
+        return evidence.reviewFlag || evidence.warningCodes?.length
+          ? "concern"
+          : "ok";
+      }
+      if (component === "threshold") {
+        if (!evidence.measured) {
+          return "missing";
+        }
+        return evidence.reviewFlag || evidence.warningCodes?.length
+          ? "concern"
+          : "ok";
+      }
+      if (component === "ambiguity") {
+        const classes = evidence.activeAmbiguityClasses || [];
+        if (classes.includes("high")) {
+          return "concern";
+        }
+        if (classes.includes("moderate")) {
+          return "caution";
+        }
+        return classes.length ? "ok" : "missing";
+      }
+      if (component === "catalog") {
+        if (evidence.status === "suspected_out_of_reference") {
+          return "concern";
+        }
+        if (evidence.status && evidence.status !== "not_checked") {
+          return "ok";
+        }
+        return "missing";
+      }
+      return "missing";
+    };
+    const componentValue = (sample, component) => {
+      const evidence = evidenceFor(sample, component);
+      if (component === "burden") {
+        return evidence.totalMutations ?? sample.metrics?.totalMutations ?? "NA";
+      }
+      if (component === "reconstruction") {
+        return Number.isFinite(evidence.cosineSimilarity)
+          ? formatPlotNumber(evidence.cosineSimilarity, 3)
+          : "NA";
+      }
+      if (component === "residual") {
+        return formatPercentEvidence(evidence.unexplainedFraction, 1);
+      }
+      if (component === "bootstrap") {
+        if (!evidence.measured) {
+          return "not run";
+        }
+        return evidence.warningCodes?.length ? "warn" : "ok";
+      }
+      if (component === "threshold") {
+        if (!evidence.measured) {
+          return "not run";
+        }
+        return evidence.warningCodes?.length ? "warn" : "ok";
+      }
+      if (component === "ambiguity") {
+        const classes = evidence.activeAmbiguityClasses || [];
+        return compactText(
+          classes.length ? uniqueStringsForPlot(classes).join("/") : "NA"
+        );
+      }
+      if (component === "catalog") {
+        return compactText(evidence.status || "not checked");
+      }
+      return "NA";
+    };
+    const componentDetail = (sample, component) => {
+      const evidence = evidenceFor(sample, component);
+      if (component === "burden") {
+        return [
+          ["Burden class", evidence.burdenClass || "NA"],
+          ["Total mutations", evidence.totalMutations ?? "NA"],
+        ];
+      }
+      if (component === "reconstruction") {
+        return [
+          ["Cosine", formatPlotNumber(evidence.cosineSimilarity, 4)],
+          ["RMSE", formatPlotNumber(evidence.rmse, 5)],
+        ];
+      }
+      if (component === "residual") {
+        return [
+          ["Unexplained", formatPercentEvidence(evidence.unexplainedFraction, 1)],
+          ["Normalization", evidence.normalizationMode || "NA"],
+        ];
+      }
+      if (component === "bootstrap") {
+        return [
+          ["Measured", evidence.measured ? "yes" : "no"],
+          ["Warnings", evidence.warningCodes?.join(", ") || "none"],
+          ["Max interval width", formatPlotNumber(evidence.maxConfidenceWidth, 4)],
+        ];
+      }
+      if (component === "threshold") {
+        return [
+          ["Measured", evidence.measured ? "yes" : "no"],
+          ["Warnings", evidence.warningCodes?.join(", ") || "none"],
+          ["L1 change", formatPlotNumber(evidence.l1Change, 4)],
+        ];
+      }
+      if (component === "ambiguity") {
+        return [
+          ["Active signatures", evidence.activeSignatures?.join(", ") || "none"],
+          ["Classes", evidence.activeAmbiguityClasses?.join(", ") || "none"],
+        ];
+      }
+      if (component === "catalog") {
+        return [["Status", evidence.status || "not checked"]];
+      }
+      return [];
+    };
     const rowHeight = 34;
-    const width = 1060;
     const margin = { top: 30, right: 32, bottom: 64, left: 150 };
-    const scoreWidth = 420;
+    const flagWidth = 310;
     const heatGap = 54;
-    const heatCellWidth = 64;
+    const heatCellWidth = 88;
     const heatWidth = components.length * heatCellWidth;
+    const width = margin.left + flagWidth + heatGap + heatWidth + margin.right;
     const innerHeight = Math.max(270, samples.length * rowHeight);
     const height = innerHeight + margin.top + margin.bottom;
-    const meanScore = trustResult.summary?.meanTrustScore;
+    const meanFlagCount = fitQualityEvidenceResult.summary?.meanReviewFlagCount;
+    const maxFlagCount = Math.max(
+      1,
+      ...samples.map((sample) => reviewFlagCountFor(sample))
+    );
 
     const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
-      title: "Fit trust dashboard",
+      title: "Fit-quality evidence summary",
       subtitle:
-        "Composite confidence classification combines burden, reconstruction, residuals, bootstrap stability, threshold sensitivity, catalog ambiguity, and catalog sufficiency.",
+        "QC evidence summarizes burden, reconstruction, residuals, bootstrap stability, threshold sensitivity, signature ambiguity, and catalog sufficiency.",
       badges: [
         {
           label: "Samples",
           value: String(samples.length),
         },
         {
-          label: "Mean score",
-          value: Number.isFinite(meanScore)
-            ? formatPlotNumber(meanScore, 1)
+          label: "Mean flags",
+          value: Number.isFinite(meanFlagCount)
+            ? formatPlotNumber(meanFlagCount, 1)
             : "NA",
         },
       ],
     });
-    const svg = appendResponsiveSvg(chart, width, height, "Fit trust dashboard");
+    const svg = appendResponsiveSvg(chart, width, height, "Fit-quality evidence summary");
     const y = d3
       .scaleBand()
       .domain(samples.map((sample) => sample.sample))
       .range([0, innerHeight])
       .padding(0.22);
-    const x = d3.scaleLinear().domain([0, 100]).range([0, scoreWidth]);
-    const heatColor = d3
-      .scaleLinear()
-      .domain([0, 0.5, 1])
-      .range([SCIENTIFIC_COLORS.vermillion, "#f8fafc", SCIENTIFIC_COLORS.green]);
-    const scorePlot = svg
+    const x = d3.scaleLinear().domain([0, maxFlagCount]).range([0, flagWidth]);
+    const flagPlot = svg
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
     const heatPlot = svg
       .append("g")
       .attr(
         "transform",
-        `translate(${margin.left + scoreWidth + heatGap},${margin.top})`
+        `translate(${margin.left + flagWidth + heatGap},${margin.top})`
       );
 
-    scorePlot
+    flagPlot
       .append("g")
       .attr("stroke", SCIENTIFIC_COLORS.lightGray)
       .attr("stroke-opacity", 0.9)
       .call(d3.axisBottom(x).ticks(5).tickSize(innerHeight).tickFormat(""))
       .call((axis) => axis.select(".domain").remove());
-    scorePlot
+    flagPlot
       .append("g")
       .attr("transform", `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(x).ticks(5))
+      .call(d3.axisBottom(x).ticks(maxFlagCount).tickFormat(d3.format("d")))
       .call(styleD3Axis);
-    scorePlot
+    flagPlot
       .append("g")
       .call(d3.axisLeft(y).tickSize(0))
       .call(styleD3Axis)
       .select(".domain")
       .remove();
 
-    [40, 60, 80].forEach((cutoff) => {
-      scorePlot
-        .append("line")
-        .attr("x1", x(cutoff))
-        .attr("x2", x(cutoff))
-        .attr("y1", 0)
-        .attr("y2", innerHeight)
-        .attr("stroke", "#94a3b8")
-        .attr("stroke-dasharray", "4 4");
-    });
-
-    scorePlot
-      .selectAll("rect.msig-trust-score")
+    flagPlot
+      .selectAll("rect.msig-fit-quality-flag")
       .data(samples)
       .join("rect")
-      .attr("class", "msig-trust-score")
+      .attr("class", "msig-fit-quality-flag")
       .attr("x", 0)
       .attr("y", (sample) => y(sample.sample))
-      .attr("width", (sample) => x(sample.score))
+      .attr("width", (sample) => x(reviewFlagCountFor(sample)))
       .attr("height", y.bandwidth())
       .attr("rx", 4)
-      .attr("fill", (sample) => classColor[sample.classification] || SCIENTIFIC_COLORS.gray)
+      .attr("fill", (sample) => classColor[reportingModeFor(sample)] || SCIENTIFIC_COLORS.gray)
       .attr("opacity", 0.88)
       .on("mousemove", (event, sample) =>
         showTooltip(
           event,
           tooltipRows([
             ["Sample", sample.sample],
-            ["Trust score", `${sample.score}/100`],
-            ["Class", classLabel[sample.classification] || sample.classification],
+            ["Review flags", String(reviewFlagCountFor(sample))],
+            ["Reporting mode", classLabel[reportingModeFor(sample)] || reportingModeFor(sample)],
+            ["Flag codes", sample.reviewFlagCodes?.join(", ") || "none"],
             ["Burden class", sample.metrics?.burdenClass || "NA"],
             ["Cosine", formatPlotNumber(sample.metrics?.cosineSimilarity, 4)],
             ["Unexplained", d3.format(".1%")(sample.metrics?.unexplainedFraction || 0)],
@@ -3013,38 +3379,49 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         )
       )
       .on("mouseleave", hideTooltip);
-    scorePlot
-      .selectAll("text.msig-trust-score-label")
+    flagPlot
+      .selectAll("text.msig-fit-quality-flag-label")
       .data(samples)
       .join("text")
-      .attr("class", "msig-trust-score-label")
-      .attr("x", (sample) => (sample.score >= 18 ? x(sample.score) - 8 : x(sample.score) + 7))
+      .attr("class", "msig-fit-quality-flag-label")
+      .attr("x", (sample) =>
+        reviewFlagCountFor(sample) >= maxFlagCount * 0.18
+          ? x(reviewFlagCountFor(sample)) - 8
+          : x(reviewFlagCountFor(sample)) + 7
+      )
       .attr("y", (sample) => y(sample.sample) + y.bandwidth() / 2)
       .attr("dy", "0.35em")
-      .attr("text-anchor", (sample) => (sample.score >= 18 ? "end" : "start"))
-      .attr("fill", (sample) => (sample.score >= 18 ? "#ffffff" : SCIENTIFIC_COLORS.darkGray))
+      .attr("text-anchor", (sample) =>
+        reviewFlagCountFor(sample) >= maxFlagCount * 0.18 ? "end" : "start"
+      )
+      .attr("fill", (sample) =>
+        reviewFlagCountFor(sample) >= maxFlagCount * 0.18
+          ? "#ffffff"
+          : SCIENTIFIC_COLORS.darkGray
+      )
       .attr("font", "700 11px Arial, sans-serif")
-      .text((sample) => sample.score);
+      .text((sample) => reviewFlagCountFor(sample));
 
     const heatRows = samples.flatMap((sample) =>
-      components.map((component) => ({
+      components.map(({ key }) => ({
         sample: sample.sample,
-        classification: sample.classification,
-        component,
-        value: sample.componentScores?.[component] ?? 0,
+        component: key,
+        value: componentValue(sample, key),
+        state: componentState(sample, key),
+        detailRows: componentDetail(sample, key),
       }))
     );
     heatPlot
-      .selectAll("rect.msig-trust-component")
+      .selectAll("rect.msig-fit-quality-component")
       .data(heatRows)
       .join("rect")
-      .attr("class", "msig-trust-component")
-      .attr("x", (row) => components.indexOf(row.component) * heatCellWidth)
+      .attr("class", "msig-fit-quality-component")
+      .attr("x", (row) => components.findIndex(({ key }) => key === row.component) * heatCellWidth)
       .attr("y", (row) => y(row.sample))
       .attr("width", heatCellWidth - 4)
       .attr("height", y.bandwidth())
       .attr("rx", 4)
-      .attr("fill", (row) => heatColor(row.value))
+      .attr("fill", (row) => stateColor[row.state] || stateColor.missing)
       .attr("stroke", "#ffffff")
       .attr("stroke-width", 1)
       .on("mousemove", (event, row) =>
@@ -3052,50 +3429,64 @@ Renders a plot of the mutational spectra for one or more patients in a given div
           event,
           tooltipRows([
             ["Sample", row.sample],
-            ["Component", row.component],
-            ["Score", d3.format(".0%")(row.value)],
+            ["Evidence field", componentLabel[row.component] || row.component],
+            ["Status", stateLabel[row.state] || row.state],
+            ["Value", row.value],
+            ...row.detailRows,
           ])
         )
       )
       .on("mouseleave", hideTooltip);
     heatPlot
-      .selectAll("text.msig-trust-component-label")
+      .selectAll("text.msig-fit-quality-component-label")
       .data(heatRows)
       .join("text")
-      .attr("class", "msig-trust-component-label")
-      .attr("x", (row) => components.indexOf(row.component) * heatCellWidth + heatCellWidth / 2 - 2)
+      .attr("class", "msig-fit-quality-component-label")
+      .attr("x", (row) =>
+        components.findIndex(({ key }) => key === row.component) * heatCellWidth +
+        heatCellWidth / 2 -
+        2
+      )
       .attr("y", (row) => y(row.sample) + y.bandwidth() / 2)
       .attr("dy", "0.35em")
       .attr("text-anchor", "middle")
-      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .attr("fill", (row) =>
+        row.state === "concern" || row.state === "caution" || row.state === "ok"
+          ? "#ffffff"
+          : SCIENTIFIC_COLORS.darkGray
+      )
       .attr("font", "700 9px Arial, sans-serif")
-      .text((row) => d3.format(".0%")(row.value));
+      .text((row) => compactText(row.value, 12));
     heatPlot
-      .selectAll("text.msig-trust-component-header")
+      .selectAll("text.msig-fit-quality-component-header")
       .data(components)
       .join("text")
-      .attr("class", "msig-trust-component-header")
-      .attr("x", (component) => components.indexOf(component) * heatCellWidth + heatCellWidth / 2 - 2)
+      .attr("class", "msig-fit-quality-component-header")
+      .attr("x", (component) =>
+        components.findIndex(({ key }) => key === component.key) * heatCellWidth +
+        heatCellWidth / 2 -
+        2
+      )
       .attr("y", -8)
       .attr("text-anchor", "middle")
       .attr("fill", SCIENTIFIC_COLORS.darkGray)
       .attr("font", "700 10px Arial, sans-serif")
-      .text((component) => component.slice(0, 4));
+      .text((component) => component.label);
 
     svg
       .append("text")
       .attr("class", "msig-d3-axis-title")
-      .attr("x", margin.left + scoreWidth / 2)
+      .attr("x", margin.left + flagWidth / 2)
       .attr("y", height - 14)
       .attr("text-anchor", "middle")
-      .text("Composite trust score");
+      .text("Review flag count");
     svg
       .append("text")
       .attr("class", "msig-d3-axis-title")
-      .attr("x", margin.left + scoreWidth + heatGap + heatWidth / 2)
+      .attr("x", margin.left + flagWidth + heatGap + heatWidth / 2)
       .attr("y", height - 14)
       .attr("text-anchor", "middle")
-      .text("Component scores");
+      .text("Evidence fields");
 
     return { data: samples, components };
   }
@@ -3131,7 +3522,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
       title: "Group exposure comparison",
       subtitle:
-        "Fitted exposure differences are shown as comparison group minus reference group. Large effects should be interpreted with burden and trust diagnostics.",
+        "Fitted exposure differences are shown as comparison group minus reference group, with burden and fit-quality diagnostics available alongside the comparison.",
       badges: [
         { label: "Group key", value: comparisonResult.groupKey || "group" },
         { label: "Reference", value: comparisonResult.referenceGroup || "NA" },
@@ -3264,14 +3655,20 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     const sampleNames = uniqueStringsForPlot(rows.map((row) => row.sample));
     const signatureNames = uniqueStringsForPlot(rows.map((row) => row.signatureName));
     const tierColor = {
+      higher_review_support: SCIENTIFIC_COLORS.green,
+      limited_review_support: SCIENTIFIC_COLORS.blue,
+      not_detected_within_review_settings: "#f1f5f9",
       strong_evidence: SCIENTIFIC_COLORS.green,
       weak_evidence: SCIENTIFIC_COLORS.blue,
       not_detected: "#f1f5f9",
       not_assessable: SCIENTIFIC_COLORS.orange,
     };
     const tierLabel = {
-      strong_evidence: "Strong",
-      weak_evidence: "Weak",
+      higher_review_support: "Higher support",
+      limited_review_support: "Limited support",
+      not_detected_within_review_settings: "Not detected",
+      strong_evidence: "Higher support",
+      weak_evidence: "Limited support",
       not_detected: "Not detected",
       not_assessable: "Not assessable",
     };
@@ -3281,9 +3678,9 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     const innerHeight = Math.max(260, sampleNames.length * rowHeight);
     const height = innerHeight + margin.top + margin.bottom;
     const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
-      title: "Panel/WES evidence matrix",
+      title: "Panel/WES review evidence matrix",
       subtitle:
-        "Evidence tiers combine fitted exposure, sample burden, trust classification, and signature-specific detectability.",
+        "Evidence tiers summarize fitted exposure, sample burden, fit-quality evidence, and callable-territory evidence.",
       badges: [
         { label: "Samples", value: String(sampleNames.length) },
         { label: "Signatures", value: String(signatureNames.length) },
@@ -3344,12 +3741,32 @@ Renders a plot of the mutational spectra for one or more patients in a given div
             ["Exposure", d3.format(".1%")(row.exposure || 0)],
             ["Mutations", row.totalMutations],
             [
-              "Detectability",
-              Number.isFinite(row.detectabilityConfidence)
-                ? d3.format(".0%")(row.detectabilityConfidence)
+              "Callable signature mass",
+              Number.isFinite(
+                row.restrictedAssayEvidence?.callableEvidence
+                  ?.signatureMassInCallableContexts
+              )
+                ? d3.format(".0%")(
+                    row.restrictedAssayEvidence.callableEvidence
+                      .signatureMassInCallableContexts
+                  )
                 : "NA",
             ],
-            ["Trust", row.trustClass || "NA"],
+            [
+              "Expected signature muts",
+              formatPlotNumber(
+                row.restrictedAssayEvidence?.expectedSignatureMutations,
+                2
+              ),
+            ],
+            [
+              "Expected callable muts",
+              formatPlotNumber(
+                row.restrictedAssayEvidence?.expectedCallableSignatureMutations,
+                2
+              ),
+            ],
+            ["Reporting mode", row.fitQualityReportingMode || row.reportingMode || "NA"],
           ])
         )
       )
@@ -3364,11 +3781,17 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       .attr("dy", "0.35em")
       .attr("text-anchor", "middle")
       .attr("fill", (row) =>
-        row.tier === "not_detected" ? SCIENTIFIC_COLORS.gray : "#ffffff"
+        row.tier === "not_detected" ||
+        row.tier === "not_detected_within_review_settings"
+          ? SCIENTIFIC_COLORS.gray
+          : "#ffffff"
       )
       .attr("font", "700 10px Arial, sans-serif")
       .text((row) =>
-        row.tier === "not_detected" ? "" : d3.format(".0%")(row.exposure || 0)
+        row.tier === "not_detected" ||
+        row.tier === "not_detected_within_review_settings"
+          ? ""
+          : d3.format(".0%")(row.exposure || 0)
       );
 
     return { data: rows, samples: sampleNames, signatures: signatureNames };
@@ -3502,7 +3925,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
       title: "Bootstrap exposure uncertainty",
       subtitle:
-        "Each row shows the bootstrap exposure distribution for one signature, with the confidence interval and mean exposure overlaid. The right panel shows how often the signature survives thresholding.",
+        "Each row shows the bootstrap exposure distribution for one signature, with the confidence interval, mean exposure, and threshold-selection frequency.",
       badges: [
         { label: "Iterations", value: String(bootstrapResult.iterations || 0) },
         { label: "Interval", value: `${confidenceLabel}%` },
@@ -3799,7 +4222,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       const rowsForThreshold = rows.filter(
         (row) => row.threshold === run.threshold
       );
-      const instabilityScore =
+      const meanAbsoluteDrift =
         rowsForThreshold.reduce(
           (total, row) => total + row.absPercentChange,
           0
@@ -3811,8 +4234,8 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       return {
         threshold: run.threshold,
         thresholdLabel,
-        instabilityScore,
-        instabilityScoreLabel: `${formatPlotNumber(instabilityScore, 1)}%`,
+        meanAbsoluteDrift,
+        meanAbsoluteDriftLabel: `${formatPlotNumber(meanAbsoluteDrift, 1)}%`,
         largestDriver: largestDriver.metric,
         largestDriverChange: largestDriver.percentChange,
         largestDriverChangeLabel: formatSignedPercent(
@@ -3824,8 +4247,8 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       ...rows.map((row) => row.absPercentChange),
       1
     );
-    const maxInstabilityScore = Math.max(
-      ...stabilityRows.map((row) => row.instabilityScore),
+    const maxMeanAbsoluteDrift = Math.max(
+      ...stabilityRows.map((row) => row.meanAbsoluteDrift),
       1
     );
     const yDomainMax = maxAbsPercentChange * 1.14;
@@ -3848,9 +4271,9 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       .filter(Boolean);
 
     const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
-      title: "Threshold stability atlas",
+      title: "Threshold sensitivity summary",
       subtitle:
-        "A defensible exposure threshold should preserve reconstruction quality and the active signature set. This view shows drift from the baseline threshold rather than declaring universal good or bad cutoffs.",
+        "Threshold sweeps show changes in reconstruction quality and active signature counts across configured exposure cutoffs.",
       badges: [
         { label: "Baseline", value: formatPlotNumber(baselineRun.threshold, 3) },
         { label: "Max drift", value: `${formatPlotNumber(maxAbsPercentChange, 1)}%` },
@@ -4060,7 +4483,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       );
     const instabilityX = d3
       .scaleLinear()
-      .domain([0, maxInstabilityScore * 1.32])
+      .domain([0, maxMeanAbsoluteDrift * 1.32])
       .range([0, instabilityWidth]);
     const instabilityY = d3
       .scaleBand()
@@ -4085,7 +4508,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       .attr("class", "msig-threshold-instability")
       .attr("x", 0)
       .attr("y", (row) => instabilityY(row.thresholdLabel))
-      .attr("width", (row) => instabilityX(row.instabilityScore))
+      .attr("width", (row) => instabilityX(row.meanAbsoluteDrift))
       .attr("height", instabilityY.bandwidth())
       .attr("rx", 4)
       .attr("fill", (row) => metricColor(row.largestDriver))
@@ -4095,7 +4518,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
           event,
           tooltipRows([
             ["Threshold", row.thresholdLabel],
-            ["Mean absolute change", row.instabilityScoreLabel],
+            ["Mean absolute drift", row.meanAbsoluteDriftLabel],
             ["Largest driver", row.largestDriver],
             ["Driver change", row.largestDriverChangeLabel],
           ])
@@ -4107,12 +4530,12 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       .data(stabilityRows)
       .join("text")
       .attr("class", "msig-threshold-instability-label")
-      .attr("x", (row) => instabilityX(row.instabilityScore) + 5)
+      .attr("x", (row) => instabilityX(row.meanAbsoluteDrift) + 5)
       .attr("y", (row) => instabilityY(row.thresholdLabel) + instabilityY.bandwidth() / 2)
       .attr("dominant-baseline", "middle")
       .attr("fill", SCIENTIFIC_COLORS.darkGray)
       .attr("font", "700 10px Arial, sans-serif")
-      .text((row) => row.instabilityScoreLabel);
+      .text((row) => row.meanAbsoluteDriftLabel);
 
     svg
       .append("text")
@@ -4127,7 +4550,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       .attr("x", margin.left + heatWidth + impactGap + instabilityWidth / 2)
       .attr("y", margin.top + heatTop - 14)
       .attr("text-anchor", "middle")
-      .text("Instability score");
+      .text("Mean absolute drift");
 
     return {
       data: rows,
@@ -4533,30 +4956,45 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       exposureThreshold = 0,
       exposureType = "relative",
       renormalize = true,
+      fitOptions = {},
       expectedContexts = null,
       mutationBurdenOptions = {},
+      residualOptions = {},
+      reconstructionOptions = {},
       parameters = {},
       reportFormat = "object",
+      catalogVersion = null,
+      catalogSource = null,
+      genomeBuild = null,
+      apiEndpointSnapshot = [],
     } = {}
   ) {
-    const fitParameters = {
+    const resolvedFitOptions = {
       exposureThreshold,
       exposureType,
       renormalize,
+      ...fitOptions,
+    };
+    const fitParameters = {
+      ...resolvedFitOptions,
+      residualOptions,
+      reconstructionOptions,
       ...parameters,
     };
     const exposures = await fitMutationalSpectraToSignatures(
       signatures,
       spectra,
       {
-        exposureThreshold,
-        exposureType,
-        renormalize,
+        ...resolvedFitOptions,
       }
     );
     const provenanceRecord = createProvenance({
       analysis: "signature fitting",
       parameters: fitParameters,
+      catalogVersion,
+      catalogSource,
+      genomeBuild,
+      apiEndpointSnapshot,
     });
     const analysis = createSignatureFitAnalysis({
       spectra,
@@ -4565,6 +5003,8 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       parameters: fitParameters,
       expectedContexts,
       mutationBurdenOptions,
+      residualOptions,
+      reconstructionOptions,
       provenance: provenanceRecord,
       reportFormat,
     });
@@ -4655,49 +5095,232 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       expectedContexts = null,
       reportFormat = "object",
       fitting = {},
+      mutationBurdenOptions = fitting.mutationBurdenOptions || {},
+      offline = false,
+      contextLookupTable = null,
+      contextSource = offline
+        ? "mSigSDK offline trinucleotide context table"
+        : "UCSC Genome Browser API",
+      contextApiVersion = offline
+        ? "static_trinucleotide_context_lookup"
+        : "getData/sequence",
+      contextApiEndpoint = offline
+        ? null
+        : "https://api.genome.ucsc.edu/getData/sequence",
+      catalogVersion = fitting.catalogVersion || null,
+      catalogSource = fitting.catalogSource || null,
     } = {}
   ) {
+    const contextFetchTimestamp = new Date().toISOString();
+    const contextLookupMode = offline ? "offline_table" : "live_ucsc_api";
+    const apiEndpointSnapshot = offline
+      ? null
+      : buildUCSCContextEndpointSnapshot({
+          genome,
+          contextApiEndpoint,
+        });
+    const expectedConvertibleSnvCount = countConvertibleSnvRows(mafFiles, { tcga });
     const spectra = await convertMatrix(
       mafFiles,
       groupBy,
       batchSize,
       genome,
-      tcga
+      tcga,
+      {
+        offline,
+        contextLookupTable,
+      }
     );
+    const observedSbs96Count = sumSpectraCounts(spectra);
+    const contextWarnings =
+      expectedConvertibleSnvCount !== observedSbs96Count
+        ? [
+            makeWorkflowWarning(
+              QC_WARNING_CODES.CONTEXT_FETCH_FAILED || "CONTEXT_FETCH_FAILED",
+              "MAF conversion produced fewer or more SBS96 counts than convertible SNV rows; context fetching or input normalization may be incomplete.",
+              {
+                expectedConvertibleSnvCount,
+                observedSbs96Count,
+                droppedOrUncountedSnvCount:
+                  expectedConvertibleSnvCount - observedSbs96Count,
+              }
+            ),
+          ]
+        : [];
+    const contextMetadata = {
+      genomeBuild: genome,
+      contextSource,
+      contextApiVersion,
+      contextApiEndpoint,
+      contextLookupMode,
+      contextFetchTimestamp,
+      contextResultsCached: offline ? false : true,
+      offlineContextTableSupplied: Boolean(contextLookupTable),
+      cacheBoundary:
+        offline
+          ? "Offline context lookup uses the supplied or bundled position-indexed trinucleotide table; reproducibility depends on pinning the table build and coordinate convention."
+          : "Context sequence requests use the SDK fetchURLAndCache utility; reproducibility still depends on pinning the genome build and endpoint behavior.",
+      expectedConvertibleSnvCount,
+      observedSbs96Count,
+      sbs96CountMatchesConvertibleSnvCount:
+        expectedConvertibleSnvCount === observedSbs96Count,
+      validationRule:
+        "The sum of SBS96 context counts should equal the number of convertible single-base substitution rows.",
+    };
     const parameters = {
       groupBy,
       batchSize,
       genome,
       tcga,
+      contextMetadata,
       ...fitting,
     };
 
     if (signatures) {
-      return analyzeSpectraWithSignatures(spectra, signatures, {
+      const fitResult = await analyzeSpectraWithSignatures(spectra, signatures, {
         ...fitting,
         expectedContexts,
         parameters,
         reportFormat,
+        catalogVersion,
+        catalogSource,
+        genomeBuild: genome,
+        apiEndpointSnapshot,
       });
+      const mergedWarnings = [
+        ...(fitResult.warnings || fitResult.primaryWarnings || []),
+        ...contextWarnings,
+      ];
+      return {
+        ...fitResult,
+        workflow: "maf_signature_fit",
+        workflowRole: "maf_signature_fit_pipeline",
+        primaryInterpretationFields:
+          fitResult.primaryInterpretationFields || [
+            "fit.exposures",
+            "qc.mutationBurden",
+            "qc.reconstructionError",
+            "warnings",
+          ],
+        parameters,
+        fit:
+          fitResult.fit || {
+            method: "NNLS",
+            exposures: fitResult.exposures,
+            reconstructionError: fitResult.qc?.reconstructionError,
+          },
+        spectra,
+        mafConversion: contextMetadata,
+        contextMetadata,
+        conversionWarnings: contextWarnings,
+        warnings: mergedWarnings,
+        primaryWarnings: mergedWarnings,
+        recommendedActions: fitResult.recommendedActions || [
+          "Review MAF conversion count reconciliation, mutation burden, reconstruction error, and residuals before interpreting fitted exposures.",
+        ],
+        publicationFigures: fitResult.publicationFigures || [],
+        provenance: {
+          ...fitResult.provenance,
+          genome: {
+            ...(fitResult.provenance?.genome || {}),
+            build: genome,
+            contextSource,
+            contextApiVersion,
+            contextLookupMode,
+            contextFetchTimestamp,
+          },
+          catalog: {
+            ...(fitResult.provenance?.catalog || {}),
+            version: catalogVersion,
+            source: catalogSource,
+          },
+          apiEndpointSnapshot,
+          mafConversion: contextMetadata,
+        },
+      };
     }
 
     const validation = {
       maf: validateMafRows(mafFiles),
-      spectra: validateSpectra(spectra, { expectedContexts }),
+      spectra: validateSpectra(spectra, {
+        expectedContexts,
+        ...(Number.isFinite(mutationBurdenOptions.lowBurdenThreshold)
+          ? { minTotalMutations: mutationBurdenOptions.lowBurdenThreshold }
+          : {}),
+      }),
+      mafToSbs96CountCheck: {
+        valid: expectedConvertibleSnvCount === observedSbs96Count,
+        expectedConvertibleSnvCount,
+        observedSbs96Count,
+        issues: contextWarnings,
+      },
     };
     const qc = {
-      mutationBurden: summarizeMutationBurden(spectra, { expectedContexts }),
+      mutationBurden: summarizeMutationBurden(spectra, {
+        expectedContexts,
+        ...mutationBurdenOptions,
+      }),
       missingContexts: summarizeMissingContexts(spectra, { expectedContexts }),
     };
     const provenanceRecord = createProvenance({
       analysis: "MAF to mutational spectra",
       parameters,
+      genomeBuild: genome,
+      contextSource,
+      contextApiVersion,
+      contextLookupMode,
+      contextFetchTimestamp,
+      apiEndpointSnapshot,
     });
 
     return {
+      schemaVersion: "msig.workflow.v0.3",
+      workflow: "maf_spectra_qc",
+      workflowRole: "maf_spectra_qc_analysis",
+      scopeStatement:
+        "High-level MAF-to-spectra QC workflow. The output validates conversion and context coverage; it does not perform signature attribution unless reference signatures are supplied.",
+      methodBasis: {
+        mafConversion:
+          "MAF rows are grouped into mutation spectra using the configured genome, grouping field, batch size, and TCGA conversion setting.",
+        interpretationBoundary:
+          "Spectra-only output supports validation, burden review, and context coverage checks. Signature interpretation requires a separate fitted or extracted model.",
+        contextFetching:
+          offline
+            ? "Trinucleotide context sequence is read from an offline position-indexed lookup table. Genome build, lookup mode, timestamp, and count-matching checks are recorded in provenance."
+            : "Trinucleotide context sequence is requested from the configured genome sequence endpoint. Genome build, endpoint, timestamp, and count-matching checks are recorded in provenance.",
+        references: [],
+      },
+      primaryInterpretationFields: [
+        "mafConversion.sbs96CountMatchesConvertibleSnvCount",
+        "qc.mutationBurden",
+        "qc.missingContexts",
+        "warnings",
+      ],
+      parameters,
       spectra,
+      mafConversion: contextMetadata,
+      contextMetadata,
       validation,
       qc,
+      fit: null,
+      extraction: null,
+      panel: null,
+      warnings: contextWarnings,
+      recommendedActions: contextWarnings.length
+        ? [
+            "Verify genome build, grouping field, and trinucleotide-context lookup before fitting signatures.",
+          ]
+        : [
+            "Proceed to known-signature fitting or exploratory extraction after reviewing burden and context coverage.",
+          ],
+      publicationFigures: [
+        {
+          id: "mutation_burden",
+          title: "Mutation burden summary",
+          recommendedRenderer: "mSigSDK.qcPlots.plotMutationBurdenSummary",
+          dataFields: ["qc.mutationBurden"],
+        },
+      ],
       provenance: provenanceRecord,
       report: createAnalysisReport(
         {
@@ -4707,11 +5330,61 @@ Renders a plot of the mutational spectra for one or more patients in a given div
           parameters,
           validation,
           qc,
+          methodBasis: {
+            mafConversion:
+              offline
+                ? "MAF rows are converted to SBS96 spectra after offline trinucleotide-context lookup against the configured genome build."
+                : "MAF rows are converted to SBS96 spectra after remote trinucleotide-context lookup against the configured genome build.",
+            contextFetching:
+              "The sum of SBS96 context counts is checked against convertible SNV rows to detect failed or partial context lookup.",
+          },
           provenance: provenanceRecord,
+          notes: contextWarnings.map((warning) => warning.message),
         },
         { format: reportFormat }
       ),
     };
+  }
+
+  /**
+   * Beginner-facing MAF analysis wrapper with a small option set.
+   *
+   * @async
+   * @function analyzeMafFilesLite
+   * @memberof quickstart
+   * @param {Object[]|Object[][]} mafFiles - MAF rows or nested MAF row arrays.
+   * @param {Object<string,Object<string,number>>} [signatures=null] - Optional reference signatures for fitting.
+   * @param {Object} [options] - Minimal options: groupBy, genome, offline, contextLookupTable, expectedContexts, reportFormat.
+   * @returns {Promise<Object>} MAF-to-spectra or signature-fitting workflow result.
+   */
+  async function analyzeMafFilesLite(mafFiles, signatures = null, options = {}) {
+    const allowedOptions = [
+      "groupBy",
+      "genome",
+      "offline",
+      "contextLookupTable",
+      "expectedContexts",
+      "reportFormat",
+      "catalogVersion",
+      "catalogSource",
+    ];
+    const liteMafOptions = Object.fromEntries(
+      allowedOptions
+        .filter((key) => options[key] !== undefined)
+        .map((key) => [key, options[key]])
+    );
+    const fitting = {
+      exposureThreshold: options.exposureThreshold ?? 0.01,
+      runThresholdSensitivity: true,
+      runBootstrap: options.runBootstrap ?? Boolean(signatures),
+      bootstrapIterations: options.bootstrapIterations ?? 100,
+      reportFormat: options.reportFormat ?? "object",
+    };
+    return await analyzeMafFiles(mafFiles, signatures, {
+      reportFormat: options.reportFormat ?? "object",
+      ...liteMafOptions,
+      fitting,
+    });
   }
 
   //#endregion
@@ -4753,6 +5426,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
   const userData = {
     convertMatrix,
     convertWGStoPanel,
+    createWGStoPanelValidationPairs,
     plotPatientMutationalSpectrumuserData,
     convertMutationalSpectraIntoJSON,
   };
@@ -4796,12 +5470,15 @@ Renders a plot of the mutational spectra for one or more patients in a given div
   };
 
   const qc = {
+    QC_DEFAULTS,
+    QC_WARNING_CODES,
     bootstrapSignatureFit,
     calculateFitResiduals,
     calculateReconstructionError,
     fitSpectraWithNNLS,
     normalizeExposures,
     runThresholdSensitivity,
+    selectSamplesByMutationBurden,
     summarizeMissingContexts,
     summarizeMutationBurden,
   };
@@ -4809,7 +5486,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
   const qcPlots = {
     plotBootstrapConfidenceIntervals,
     plotCohortGroupComparison,
-    plotFitTrustDashboard,
+    plotFitQualityEvidenceDashboard,
     plotFitResiduals,
     plotMutationBurdenSummary,
     plotPanelEvidenceMatrix,
@@ -4835,9 +5512,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     exposureMatrixToRows,
     exportCOSMICSignatureMatrix,
     exportMatrixTSV,
+    exportMuSiCalInput,
     exportSigProfilerMatrix,
     importCOSMICSignatureMatrix,
     importMatrixTSV,
+    importMuSiCalOutput,
     importSigProfilerMatrix,
     rowsToExposureMatrix,
     rowsToSampleSpectra,
@@ -4853,41 +5532,127 @@ Renders a plot of the mutational spectra for one or more patients in a given div
   };
 
   const advisor = {
+    ADVISOR_DEFAULTS,
     WARNING_CODES,
     compareSignatureExposures,
-    computeFitTrust,
+    computeFitQualityEvidence,
     computeSignatureAmbiguity,
     detectOutOfReferenceSignal,
-    estimateSignatureDetectability,
     recommendAnalysisStrategy,
+    summarizeRestrictedAssayEvidence,
   };
 
   const pipelines = {
     runCohortFit,
+    runCohortFitLite,
     runDiscoveryWorkflow,
-    runLocalizedMutagenesisAnalysis,
+    runDiscoveryWorkflowLite,
     runPanelWorkflow,
+    runPanelWorkflowLite,
     runSingleSampleFit,
-    runSubgroupDiscoveryWorkflow,
+    runSingleSampleFitLite,
   };
 
   const workflows = {
     analyzeMafFiles,
+    analyzeMafFilesLite,
     analyzeSpectraWithSignatures,
     createNMFAnalysis,
     createSignatureFitAnalysis,
     extractSignaturesFromSpectra,
     runCohortFit,
+    runCohortFitLite,
     runDiscoveryWorkflow,
-    runLocalizedMutagenesisAnalysis,
+    runDiscoveryWorkflowLite,
     runPanelWorkflow,
+    runPanelWorkflowLite,
     runSingleSampleFit,
+    runSingleSampleFitLite,
+  };
+
+  const quickstart = {
+    analyzeMafFiles: analyzeMafFilesLite,
+    runSingleSampleFit: runSingleSampleFitLite,
+    runCohortFit: runCohortFitLite,
+    runPanelWorkflow: runPanelWorkflowLite,
+    runDiscoveryWorkflow: runDiscoveryWorkflowLite,
+  };
+
+  const experimental = {
+    runLocalizedMutagenesisAnalysis,
     runSubgroupDiscoveryWorkflow,
   };
 
   const provenance = {
     createProvenance,
     withProvenance,
+  };
+
+  const presentation = {
+    bootstrapRows,
+    burdenSampleRows,
+    compactSummary,
+    details: presentationDetails,
+    exposureRows,
+    formatCell,
+    formatNumber,
+    metrics: presentationMetrics,
+    nmfMatchRows,
+    note: presentationNote,
+    reconstructionRows,
+    reportFieldRows,
+    table: presentationTable,
+    thresholdRows,
+  };
+
+  const runners = {
+    pyodide: {
+      DEFAULT_PYODIDE_INDEX_URL,
+      PYODIDE_RUNNER_SCHEMA_VERSION,
+      createRunner: createPyodideWorkerRunner,
+      createWorkerSource: createPyodideWorkerSource,
+      detect: detectPyodideRuntime,
+      run: runPyodide,
+      runPython,
+    },
+    createPyodideWorkerRunner,
+    detectPyodideRuntime,
+    runPython,
+    runPyodide,
+  };
+
+  const adapters = {
+    ADAPTER_SCHEMA_VERSION,
+    DEFAULT_SPA_PACKAGE,
+    createInteroperabilityBundle,
+    parseExposureTables,
+    parseDeconstructSigsOutput,
+    parseSigProfilerExtractorOutput,
+    prepareDeconstructSigsInput,
+    prepareMuSiCalRefitInput,
+    prepareSigProfilerAssignmentInput,
+    prepareSigProfilerExtractorInput,
+    runMuSiCalRefit,
+    runSigProfilerAssignment,
+    runSparseNnlsRefit,
+    sigProfilerAssignment: {
+      prepareInput: prepareSigProfilerAssignmentInput,
+      run: runSigProfilerAssignment,
+      parseOutput: parseExposureTables,
+    },
+    sigProfilerExtractor: {
+      prepareInput: prepareSigProfilerExtractorInput,
+      parseOutput: parseSigProfilerExtractorOutput,
+    },
+    deconstructSigs: {
+      prepareInput: prepareDeconstructSigsInput,
+      parseOutput: parseDeconstructSigsOutput,
+    },
+    musical: {
+      prepareRefitInput: prepareMuSiCalRefitInput,
+      runRefit: runMuSiCalRefit,
+      runSparseNnlsRefit,
+    },
   };
 
   //#endregion
@@ -4912,7 +5677,12 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     advisor,
     pipelines,
     workflows,
+    quickstart,
+    experimental,
     provenance,
+    presentation,
+    runners,
+    adapters,
   };
 })();
 

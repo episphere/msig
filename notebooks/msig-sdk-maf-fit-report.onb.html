@@ -1,0 +1,151 @@
+<!doctype html>
+<notebook theme="air">
+  <title>mSigSDK MAF to report</title>
+
+  <script type="text/markdown">
+    # MAF to spectra, fit, QC, and report
+
+    This notebook follows the primary `mSigSDK.workflows` entry path for local variant rows: convert MAF-like records into SBS96 spectra, fit a compatible signature catalog, inspect QC outputs, and render report-ready summaries.
+  </script>
+
+  <script type="module" pinned id="1">
+    const mafSdkUrl = new URL("../main.js?v=2026-05-14-maf-workflow", location.href).href;
+    const { mSigSDK } = await import(mafSdkUrl);
+    const { exposureRows, metrics, table } = mSigSDK.presentation;
+    const mafContexts = mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 });
+    const emptySpectrum = () => Object.fromEntries(mafContexts.map((context) => [context, 0]));
+
+    display(metrics([
+      { label: "Primary namespace", value: "workflows" },
+      { label: "Workflow", value: "analyzeMafFiles" },
+      { label: "Context mode", value: "offline row-supplied contexts" },
+    ]));
+  </script>
+
+  <script type="text/markdown">
+    ## 1. Convert local MAF-like rows
+
+    The example uses row-supplied trinucleotide contexts so the notebook can run without a genome-sequence request. Production analyses can use the live UCSC sequence path or a pinned offline lookup table.
+  </script>
+
+  <script type="module" pinned id="2">
+    const mafRows = [
+      ...Array.from({ length: 72 }, (_, index) => ({
+        chromosome: "1",
+        start_position: 100000 + index,
+        reference_allele: "C",
+        tumor_seq_allele2: "A",
+        variant_type: "SNP",
+        project_code: "demo_tumor",
+        context: "ACA",
+      })),
+      ...Array.from({ length: 48 }, (_, index) => ({
+        chromosome: "1",
+        start_position: 200000 + index,
+        reference_allele: "C",
+        tumor_seq_allele2: "T",
+        variant_type: "SNP",
+        project_code: "demo_tumor",
+        context: "TCT",
+      })),
+      ...Array.from({ length: 30 }, (_, index) => ({
+        chromosome: "2",
+        start_position: 300000 + index,
+        reference_allele: "C",
+        tumor_seq_allele2: "G",
+        variant_type: "SNP",
+        project_code: "demo_tumor",
+        context: "GCG",
+      })),
+    ];
+
+    const mafSignatures = {
+      SBS_demo_A: {
+        ...emptySpectrum(),
+        "A[C>A]A": 0.65,
+        "T[C>T]T": 0.30,
+        "G[C>G]G": 0.05,
+      },
+      SBS_demo_B: {
+        ...emptySpectrum(),
+        "A[C>A]A": 0.10,
+        "T[C>T]T": 0.25,
+        "G[C>G]G": 0.65,
+      },
+    };
+
+    const mafAnalysis = await mSigSDK.workflows.analyzeMafFiles(
+      mafRows,
+      mafSignatures,
+      {
+        groupBy: "project_code",
+        offline: true,
+        expectedContexts: mafContexts,
+        reportFormat: "object",
+        fitting: {
+          exposureThreshold: 0.01,
+          exposureType: "relative",
+          renormalize: true,
+        },
+      }
+    );
+
+    display(metrics([
+      { label: "Workflow", value: mafAnalysis.workflow },
+      { label: "Samples", value: Object.keys(mafAnalysis.spectra).length },
+      { label: "Convertible SNVs", value: mafAnalysis.mafConversion.expectedConvertibleSnvCount },
+      { label: "SBS96 counts", value: mafAnalysis.mafConversion.observedSbs96Count },
+      { label: "Warnings", value: mafAnalysis.warnings.length },
+    ]));
+
+    display(table(
+      exposureRows(mafAnalysis.fit.exposures),
+      [
+        { key: "sample", label: "Sample" },
+        { key: "signature", label: "Signature" },
+        { key: "exposure", label: "Exposure" },
+      ]
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## 2. Inspect burden, profile, exposures, and residuals
+
+    The workflow result keeps conversion metadata, spectra, fitted exposures, reconstruction metrics, residuals, and provenance together under one result object.
+  </script>
+
+  <script type="module" pinned id="3">
+    const mafBurdenDiv = document.createElement("div");
+    mafBurdenDiv.style.width = "100%";
+    display(mafBurdenDiv);
+    await mSigSDK.qcPlots.plotMutationBurdenSummary(mafBurdenDiv, mafAnalysis.qc.mutationBurden);
+
+    const mafSpectrumDiv = document.createElement("div");
+    mafSpectrumDiv.style.width = "100%";
+    display(mafSpectrumDiv);
+    await mSigSDK.userData.plotPatientMutationalSpectrumuserData(
+      mafAnalysis.spectra,
+      96,
+      mafSpectrumDiv
+    );
+
+    const mafExposureDiv = document.createElement("div");
+    mafExposureDiv.id = `maf-exposure-${Date.now()}`;
+    mafExposureDiv.style.width = "100%";
+    display(mafExposureDiv);
+    await mSigSDK.signatureFitting.plotPatientMutationalSignaturesExposure(
+      mafAnalysis.fit.exposures,
+      mafExposureDiv.id,
+      "demo_tumor"
+    );
+
+    const mafResidualDiv = document.createElement("div");
+    mafResidualDiv.style.width = "100%";
+    display(mafResidualDiv);
+    await mSigSDK.qcPlots.plotFitResiduals(
+      mafResidualDiv,
+      mafAnalysis.qc.residuals,
+      "demo_tumor"
+    );
+  </script>
+</notebook>

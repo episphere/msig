@@ -1,32 +1,12 @@
-# nci-webtools-dceg-mSigPortal
-Mutational Signature Portal Analysis Tool
+# Legacy mSigPortal Application Scripts
 
-### Getting Started
+This directory contains the legacy mSigPortal client and database utility scripts retained for reference. The public mSigSDK entry point is `../main.js`; manuscript and SDK validation workflows do not depend on running this application stack.
 
-#### Install Dependencies
-```bash
-cd client
-npm install
-cd ../server
-npm install
-```
+## Folders
 
-#### Create Configuration File
-```bash
-cd server
-cp config.example.json config.json
-# Update config.json with properties specific to your environment
-```
+- `client/`: legacy React client.
+- `database/`: database import notes and reference-data layout.
 
-#### Start Server
-```bash
-npm start
-# Server runs on port 8330 by default
-```
+## Local Development
 
-#### Start Client
-```bash
-cd client
-npm start
-# Client runs on port 3000 by default
-```
+The legacy stack has separate client and server dependencies. Use it only when working on the portal application itself; SDK examples, notebooks, manuscript assets, and report-generation workflows run from the repository root.
