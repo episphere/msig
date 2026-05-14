@@ -5,7 +5,9 @@
   <script type="text/markdown">
     # Bring your own spectra
 
-    This notebook starts from a local SBS96 count matrix and does not fetch public spectra. Use this pattern when spectra are generated in another pipeline, stored in a private project, or pasted from a local matrix export.
+    A researcher often begins with spectra that already exist outside mSigPortal: a private cohort, a collaborator's matrix, a pipeline export, or a pasted supplemental table. The workflow here keeps those spectra local, validates the matrix shape, fits a reference catalog, checks whether the fit is interpretable, and exports the files needed to reproduce the result.
+
+    Walk through the cells in order. First confirm that the input objects have the expected sample-by-context and signature-by-context shapes. Then inspect validation and burden before reading exposures. Finally, save the report and provenance bundle so the same result can be checked outside the browser.
   </script>
 
   <script type="module" pinned id="1">
@@ -17,7 +19,7 @@
       demoSpectra,
       sbs96Contexts,
     } = await import("./msig-notebook-fixtures.js");
-    const { exposureRows, metrics, reconstructionRows, table } = mSigSDK.presentation;
+    const { details, exposureRows, metrics, reconstructionRows, table } = mSigSDK.presentation;
 
     const localContexts = sbs96Contexts();
     const localSpectra = demoSpectra();
@@ -35,9 +37,11 @@
   </script>
 
   <script type="text/markdown">
-    ## Adapt this notebook
+    ## Step 1. Replace the example matrices with project inputs
 
-    Replace `localSpectra` with an object keyed by sample name and mutation context. Keep the context list, validation, mutation-burden review, reconstruction metrics, warnings, recommended actions, report, and download cells. Replace `localSignatures` with the catalog used by the project, and record the catalog version in the report parameters.
+    The first decision is whether the incoming matrix is already in the shape mSigSDK expects. `localSpectra` should be keyed by sample name, with one SBS96 count for each context. `localSignatures` should be keyed by signature name, with one proportion for each matching context. The metadata table is optional, but it preserves cohort labels, assay labels, or clinical groups for later review.
+
+    Before changing any analysis parameters, replace only the input objects and confirm that the template table still describes the project accurately. A confusing result at this stage usually means the matrix is transposed, normalized when counts are expected, or missing contexts.
   </script>
 
   <script type="module" pinned id="2">
@@ -62,9 +66,11 @@
   </script>
 
   <script type="text/markdown">
-    ## Validate and fit
+    ## Step 2. Validate the matrix before interpreting exposures
 
-    The cohort workflow keeps validation, fitting, QC evidence, warnings, recommended actions, and report fields together. Low-burden samples remain in the object so they can be reviewed rather than silently dropped.
+    Validation answers whether the spectra and signatures can be compared at all. The workflow checks context coverage, mutation burden, reconstruction quality, warnings, recommended actions, and report fields in one object. Low-burden samples remain visible because silent filtering can hide exactly the samples that need caveats.
+
+    Read the reconstruction table before the exposure table. A large exposure to a named signature is not useful if the fitted spectrum does not reconstruct the observed spectrum well.
   </script>
 
   <script type="module" pinned id="3">
@@ -112,9 +118,11 @@
   </script>
 
   <script type="text/markdown">
-    ## Evidence, warnings, and actions
+    ## Step 3. Interpret warnings and recommended actions
 
-    Interpretation should use the structured evidence fields rather than exposure values alone.
+    Exposures are estimates, not final conclusions. The warnings and recommended actions explain whether the matrix had low burden, weak reconstruction, catalog limitations, or other issues that should be carried into a report. Treat this section as the handoff from computation to interpretation.
+
+    If this section contains warnings, adapt the workflow by changing the catalog, reviewing low-burden samples separately, or adding uncertainty analysis before reporting signature activity.
   </script>
 
   <script type="module" pinned id="4">
@@ -146,9 +154,9 @@
   </script>
 
   <script type="text/markdown">
-    ## Export reproducibility files
+    ## Step 4. Export a reproducible local-analysis bundle
 
-    The minimum reusable bundle includes the local spectra, fitted exposures, QC/report objects, provenance, and the parameters used for fitting.
+    The reusable output is not just an exposure table. A complete bundle includes the input spectra, fitted exposures, QC and report objects, provenance, and the fitting parameters. Saving these files makes the analysis portable across a local script, a manuscript supplement, or another review application.
   </script>
 
   <script type="module" pinned id="5">

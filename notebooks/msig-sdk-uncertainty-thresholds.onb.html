@@ -8,11 +8,17 @@
     Use this notebook after you understand the basic known-signature fitting workflow. It teaches two questions that come up immediately after fitting: are the estimated exposures stable, and do the conclusions depend on the exposure threshold?
 
     The code uses count-scale public mSigPortal spectra selected from moderate-to-high burden PCAWG WGS Lung-AdenoCA samples, but the same functions work with your own spectra and reference signatures. Replace the loading block with your own matrices, keep the bootstrap and threshold cells, and tune the iteration count and threshold grid for your analysis plan.
+
+    The story begins after a fit already exists. A researcher now asks which fitted signatures are stable enough to report and which depend too strongly on sampling noise or threshold choice.
   </script>
 
   <script type="module" pinned id="1">
     const uncSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-uncertainty", location.href).href;
     const { mSigSDK } = await import(uncSdkUrl);
+    const {
+      demoSignatures,
+      demoSpectra,
+    } = await import("./msig-notebook-fixtures.js");
     const {
       bootstrapRows,
       burdenSampleRows,
@@ -30,14 +36,14 @@
     ]));
     display(table(
       [
-        { functionName: "qc.bootstrapSignatureFit", reviewerValue: "Shows confidence intervals and selection frequency for one sample" },
-        { functionName: "qc.runThresholdSensitivity", reviewerValue: "Tests whether exposure conclusions depend on the reporting floor" },
-        { functionName: "qcPlots.*", reviewerValue: "Turns the returned objects into interpretable figures" },
-        { functionName: "presentation.*", reviewerValue: "Formats compact reviewer-facing evidence tables" },
+        { functionName: "qc.bootstrapSignatureFit", workflowValue: "Shows confidence intervals and selection frequency for one sample" },
+        { functionName: "qc.runThresholdSensitivity", workflowValue: "Tests whether exposure conclusions depend on the reporting floor" },
+        { functionName: "qcPlots.*", workflowValue: "Turns the returned objects into interpretable figures" },
+        { functionName: "presentation.*", workflowValue: "Formats compact evidence tables" },
       ],
       [
         { key: "functionName", label: "Function" },
-        { key: "reviewerValue", label: "Why reviewers should care" },
+        { key: "workflowValue", label: "Workflow value" },
       ]
     ));
   </script>
@@ -46,6 +52,8 @@
     ## 1. Set the analysis grid
 
     Bootstrap and threshold analyses can be expensive because they repeat fitting. Keep the defaults small while learning the API. Increase `uncBootstrapIterations` for smoother intervals, edit `uncThresholdGrid` to match the thresholds you plan to report, or replace `uncExampleSampleNames` with samples from your cohort.
+
+    This step defines the stress test. A confusing uncertainty result is often a sign that the grid does not match the thresholds the project intends to use.
   </script>
 
   <script type="module" pinned id="2">
@@ -83,45 +91,61 @@
       "SBS40",
     ];
 
-    const [uncRawSpectrumRows, uncRawSignatureRows] = await Promise.all([
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-        uncStudy,
-        uncExampleSampleNames,
-        uncGenomeDataType,
-        uncCancerType,
-        uncMutationType,
-        uncMatrixSize
-      ),
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
-        uncGenomeDataType,
-        uncSignatureSetName,
-        uncMutationType,
-        uncMatrixSize,
-        10000
-      ),
-    ]);
-
-    const uncSpectrumRows = Array.isArray(uncRawSpectrumRows)
-      ? uncRawSpectrumRows.flat()
-      : [];
-    const uncSignatureRows = Array.isArray(uncRawSignatureRows)
-      ? uncRawSignatureRows.flat()
-      : [];
-    const uncAllGroupedSpectra =
-      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(uncSpectrumRows);
-    const uncAllReferenceSignatures =
-      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-        uncSignatureRows,
-        "signatureName"
-      );
+    let uncDataSourceStatus = "live mSigPortal";
+    let uncAllGroupedSpectra;
+    let uncAllReferenceSignatures;
+    try {
+      const [uncRawSpectrumRows, uncRawSignatureRows] = await Promise.all([
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+          uncStudy,
+          uncExampleSampleNames,
+          uncGenomeDataType,
+          uncCancerType,
+          uncMutationType,
+          uncMatrixSize
+        ),
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
+          uncGenomeDataType,
+          uncSignatureSetName,
+          uncMutationType,
+          uncMatrixSize,
+          10000
+        ),
+      ]);
+      const uncSpectrumRows = Array.isArray(uncRawSpectrumRows)
+        ? uncRawSpectrumRows.flat()
+        : [];
+      const uncSignatureRows = Array.isArray(uncRawSignatureRows)
+        ? uncRawSignatureRows.flat()
+        : [];
+      uncAllGroupedSpectra =
+        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(uncSpectrumRows);
+      uncAllReferenceSignatures =
+        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
+          uncSignatureRows,
+          "signatureName"
+        );
+      if (Object.keys(uncAllGroupedSpectra).length < 2 || Object.keys(uncAllReferenceSignatures).length < 3) {
+        throw new Error("mSigPortal returned too few matrices for uncertainty review.");
+      }
+    } catch (error) {
+      uncDataSourceStatus = `embedded fallback: ${error.message}`;
+      uncAllGroupedSpectra = demoSpectra();
+      uncAllReferenceSignatures = demoSignatures();
+    }
     const uncAllBurden = mSigSDK.qc.summarizeMutationBurden(
       uncAllGroupedSpectra,
       { expectedContexts: uncContexts }
     );
+    const uncAvailableSampleNames = uncExampleSampleNames.filter(
+      (sample) => uncAllGroupedSpectra[sample]
+    );
     const uncSelectedBurdenSamples = mSigSDK.qc.selectSamplesByMutationBurden(
       uncAllBurden,
       {
-        sampleNames: uncExampleSampleNames,
+        sampleNames: uncAvailableSampleNames.length
+          ? uncAvailableSampleNames
+          : Object.keys(uncAllGroupedSpectra),
         minTotalMutations: 1,
         limit: uncSampleLimit,
       }
@@ -132,9 +156,12 @@
     const uncGroupedSpectra = Object.fromEntries(
       uncSelectedSampleNames.map((sample) => [sample, uncAllGroupedSpectra[sample]])
     );
-    const uncSelectedSignatureNames = uncPreferredSignatureNames
+    const uncPreferredAvailableSignatures = uncPreferredSignatureNames
       .filter((signature) => uncAllReferenceSignatures[signature])
       .slice(0, 8);
+    const uncSelectedSignatureNames = uncPreferredAvailableSignatures.length
+      ? uncPreferredAvailableSignatures
+      : Object.keys(uncAllReferenceSignatures).slice(0, 8);
     const uncReferenceSignatures = Object.fromEntries(
       uncSelectedSignatureNames.map((signature) => [
         signature,
@@ -146,6 +173,7 @@
       : uncSelectedSampleNames[0];
 
     display(metrics([
+      { label: "Data source", value: uncDataSourceStatus },
       { label: "Samples", value: uncSelectedSampleNames.length },
       { label: "Signatures", value: uncSelectedSignatureNames.length },
       { label: "Bootstrap sample", value: uncBootstrapSample },
@@ -177,6 +205,8 @@
     ## 2. Run bootstrap resampling and a threshold sweep
 
     Bootstrap resampling repeatedly perturbs one sample and refits exposures. Threshold sensitivity fits the cohort across a grid of exposure floors. Read the returned objects first; the plots in the next cells are wrappers around these data structures.
+
+    These computations are not alternative signature calls. They are checks on how much confidence to place in the fitted call from the main workflow.
   </script>
 
   <script type="module" pinned id="3">
@@ -238,6 +268,8 @@
     ## 3. Read bootstrap exposure uncertainty
 
     The plot shows bootstrap draws, confidence intervals, mean exposures, and selection frequencies. Stable signatures have narrow intervals and high selection frequency. Wide intervals or low selection frequency suggest that a fitted exposure should be reported cautiously.
+
+    Read this table as a statement about repeatability. A signature that appears in only a minority of bootstrap draws should not be described with the same certainty as a consistently selected signature.
   </script>
 
   <script type="module" pinned id="4">
@@ -254,6 +286,8 @@
     ## 4. Check threshold stability
 
     The sensitivity plot compares every threshold against the baseline threshold. Large drift means the interpretation depends strongly on the threshold choice. In your own analyses, this is a useful place to document why you chose a reporting threshold.
+
+    If a signature disappears or changes rank across reasonable thresholds, report the dependence explicitly or revise the reporting threshold before producing final figures.
   </script>
 
   <script type="module" pinned id="5">
@@ -264,5 +298,85 @@
       uncThresholdSensitivityResult
     );
     display(uncThresholdDiv);
+  </script>
+
+  <script type="text/markdown">
+    ## 5. Convert uncertainty output into reporting decisions
+
+    Confidence intervals, selection frequency, and threshold drift should be translated into a short decision table before exposures are reported. This table is a compact pattern for manuscript supplements, review memos, or application tooltips.
+
+    The final decision table is where uncertainty becomes usable guidance: report, caveat, review manually, or omit from the main interpretation.
+  </script>
+
+  <script type="module" pinned id="6">
+    const uncDecisionRows = uncBootstrapRows.map((row) => {
+      const width = Number(row.upper95 || 0) - Number(row.lower95 || 0);
+      const stableSelection = Number(row.selectionFrequency || 0) >= 0.8;
+      const narrowInterval = width <= 0.2;
+      return {
+        signature: row.signature,
+        meanExposure: row.mean,
+        intervalWidth: width,
+        selectionFrequency: row.selectionFrequency,
+        reportingDecision:
+          stableSelection && narrowInterval
+            ? "routine_with_qc_context"
+            : "report_with_uncertainty_caveat",
+      };
+    });
+    const uncWarningRows = [
+      ...warningRows(uncBootstrapResult.warnings || []),
+      ...warningRows(uncThresholdSensitivityResult.warnings || []),
+    ];
+
+    display(table(
+      uncDecisionRows,
+      [
+        { key: "signature", label: "Signature" },
+        { key: "meanExposure", label: "Mean exposure" },
+        { key: "intervalWidth", label: "95% CI width" },
+        { key: "selectionFrequency", label: "Selection frequency" },
+        { key: "reportingDecision", label: "Reporting decision" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(table(
+      uncWarningRows,
+      [
+        { key: "code", label: "Warning code" },
+        { key: "message", label: "Message" },
+        { key: "resolution", label: "Resolution" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(downloadMany([
+      {
+        filename: "uncertainty_bootstrap.csv",
+        text: rowsToCsv(uncBootstrapRows),
+        label: "Download bootstrap CSV",
+      },
+      {
+        filename: "uncertainty_thresholds.csv",
+        text: rowsToCsv(uncThresholdRows),
+        label: "Download threshold CSV",
+      },
+      {
+        filename: "uncertainty_report.json",
+        type: "json",
+        value: {
+          dataSourceStatus: uncDataSourceStatus,
+          bootstrap: uncBootstrapResult,
+          thresholdSensitivity: uncThresholdSensitivityResult,
+          decisions: uncDecisionRows,
+          warnings: uncWarningRows,
+          parameters: {
+            bootstrapIterations: uncBootstrapIterations,
+            exposureThreshold: uncExposureThreshold,
+            thresholdGrid: uncThresholdGrid,
+          },
+        },
+        label: "Download uncertainty JSON",
+      },
+    ]));
   </script>
 </notebook>

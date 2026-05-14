@@ -79,7 +79,7 @@ const DEFAULT_NOTEBOOKS = [
   {
     file: "msig-sdk-multi-engine-comparison.onb.html",
     title: "Multi-engine comparison",
-    summary: "Review mSigSDK NNLS alongside cached and optional live external-tool comparison outputs.",
+    summary: "Run or import outputs from mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls on one shared dataset.",
     workflowGroup: "reliability",
     workflowGroupLabel: "Reliability, reporting, and interoperability",
   },
@@ -557,9 +557,10 @@ function table(rows, columns = null, options = {}) {
   return wrapper;
 }
 
-function details(label, value) {
+function details(label, value, options = {}) {
   const detailsElement = document.createElement("details");
   detailsElement.className = "output-details";
+  detailsElement.open = Boolean(options.open);
   const summary = document.createElement("summary");
   summary.textContent = label;
   const pre = document.createElement("pre");

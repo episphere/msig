@@ -5,14 +5,18 @@
   <script type="text/markdown">
     # Export, reports, and workflow helpers
 
-    This notebook teaches the utility layer that helps users move from exploratory code to reproducible analysis artifacts. It covers SigProfiler-style matrix export/import, provenance, structured reports, and the high-level workflow helper that bundles validation, fitting, QC, and reporting.
+    This workflow teaches the utility layer that turns exploratory analysis into reusable artifacts. It covers SigProfiler-style matrix export/import, provenance, structured reports, and the high-level workflow helper that bundles validation, fitting, QC, and reporting.
 
-    Use this notebook when you want to understand what to save after an analysis. The examples are deliberately small so you can inspect the returned strings and objects.
+    Follow the story from input to artifact. First load a small analysis, then prove that the matrix can round trip, then compare the high-level workflow helper with manual report assembly, and finally save the bundle that another researcher would need to reproduce the run.
   </script>
 
   <script type="module" pinned id="1">
     const repSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-report", location.href).href;
     const { mSigSDK } = await import(repSdkUrl);
+    const {
+      demoSignatures,
+      demoSpectra,
+    } = await import("./msig-notebook-fixtures.js");
     const {
       burdenSampleRows,
       details,
@@ -30,15 +34,15 @@
     ]));
     display(table(
       [
-        { functionName: "io.exportSigProfilerMatrix", reviewerValue: "Exports spectra to a common matrix format" },
-        { functionName: "io.importSigProfilerMatrix", reviewerValue: "Reads the same format back into SDK objects" },
-        { functionName: "workflows.analyzeSpectraWithSignatures", reviewerValue: "Bundles validation, fitting, QC, provenance, and reports" },
-        { functionName: "reports.createAnalysisReport", reviewerValue: "Creates a structured artifact that can be saved or rendered" },
-        { functionName: "presentation.reportFieldRows", reviewerValue: "Summarizes report objects without dumping nested JSON" },
+        { functionName: "io.exportSigProfilerMatrix", workflowValue: "Exports spectra to a common matrix format" },
+        { functionName: "io.importSigProfilerMatrix", workflowValue: "Reads the same format back into SDK objects" },
+        { functionName: "workflows.analyzeSpectraWithSignatures", workflowValue: "Bundles validation, fitting, QC, provenance, and reports" },
+        { functionName: "reports.createAnalysisReport", workflowValue: "Creates a structured artifact that can be saved or rendered" },
+        { functionName: "presentation.reportFieldRows", workflowValue: "Summarizes report objects without dumping nested JSON" },
       ],
       [
         { key: "functionName", label: "Function" },
-        { key: "reviewerValue", label: "What it demonstrates" },
+        { key: "workflowValue", label: "What it demonstrates" },
       ]
     ));
   </script>
@@ -46,7 +50,9 @@
   <script type="text/markdown">
     ## 1. Load a small dataset for reporting
 
-    The reporting workflow starts from the same input shape as fitting: count spectra by sample and signatures by signature name. This cell uses a compact set of public PCAWG WGS Lung-AdenoCA spectra with both adequate and low mutation burdens, so the report demonstrates useful validation and QC fields. In your own analysis, replace this cell with your local spectra and reference signatures.
+    The reporting workflow starts from the same input shape as fitting: count spectra by sample and signatures by signature name. This cell uses a compact set of public PCAWG WGS Lung-AdenoCA spectra with both adequate and low mutation burdens, so the report demonstrates useful validation and QC fields.
+
+    At this point, the researcher is not judging signatures yet. The question is whether the inputs, sample count, signature count, and source metadata are clear enough to make the rest of the report interpretable.
   </script>
 
   <script type="module" pinned id="2">
@@ -82,37 +88,48 @@
       "SBS40",
     ];
 
-    const [repRawSpectrumRows, repRawSignatureRows] = await Promise.all([
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-        repStudy,
-        repExampleSampleNames,
-        repGenomeDataType,
-        repCancerType,
-        repMutationType,
-        repMatrixSize
-      ),
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
-        repGenomeDataType,
-        repSignatureSetName,
-        repMutationType,
-        repMatrixSize,
-        10000
-      ),
-    ]);
-
-    const repSpectrumRows = Array.isArray(repRawSpectrumRows)
-      ? repRawSpectrumRows.flat()
-      : [];
-    const repSignatureRows = Array.isArray(repRawSignatureRows)
-      ? repRawSignatureRows.flat()
-      : [];
-    const repAllGroupedSpectra =
-      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(repSpectrumRows);
-    const repAllReferenceSignatures =
-      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-        repSignatureRows,
-        "signatureName"
-      );
+    let repDataSourceStatus = "live mSigPortal";
+    let repAllGroupedSpectra;
+    let repAllReferenceSignatures;
+    try {
+      const [repRawSpectrumRows, repRawSignatureRows] = await Promise.all([
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+          repStudy,
+          repExampleSampleNames,
+          repGenomeDataType,
+          repCancerType,
+          repMutationType,
+          repMatrixSize
+        ),
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
+          repGenomeDataType,
+          repSignatureSetName,
+          repMutationType,
+          repMatrixSize,
+          10000
+        ),
+      ]);
+      const repSpectrumRows = Array.isArray(repRawSpectrumRows)
+        ? repRawSpectrumRows.flat()
+        : [];
+      const repSignatureRows = Array.isArray(repRawSignatureRows)
+        ? repRawSignatureRows.flat()
+        : [];
+      repAllGroupedSpectra =
+        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(repSpectrumRows);
+      repAllReferenceSignatures =
+        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
+          repSignatureRows,
+          "signatureName"
+        );
+      if (Object.keys(repAllGroupedSpectra).length < 2 || Object.keys(repAllReferenceSignatures).length < 3) {
+        throw new Error("mSigPortal returned too few matrices for report review.");
+      }
+    } catch (error) {
+      repDataSourceStatus = `embedded fallback: ${error.message}`;
+      repAllGroupedSpectra = demoSpectra();
+      repAllReferenceSignatures = demoSignatures();
+    }
     const repAllBurden = mSigSDK.qc.summarizeMutationBurden(repAllGroupedSpectra, {
       expectedContexts: repContexts,
       lowBurdenThresholdMode: "fixed",
@@ -121,7 +138,9 @@
     const repSelectedBurdenSamples = mSigSDK.qc.selectSamplesByMutationBurden(
       repAllBurden,
       {
-        sampleNames: repExampleSampleNames,
+        sampleNames: repExampleSampleNames.filter((sample) => repAllGroupedSpectra[sample]).length
+          ? repExampleSampleNames.filter((sample) => repAllGroupedSpectra[sample])
+          : Object.keys(repAllGroupedSpectra),
         minTotalMutations: 1,
         limit: repSampleLimit,
       }
@@ -132,9 +151,12 @@
     const repGroupedSpectra = Object.fromEntries(
       repSelectedSampleNames.map((sample) => [sample, repAllGroupedSpectra[sample]])
     );
-    const repSelectedSignatureNames = repPreferredSignatureNames.filter(
+    const repPreferredAvailableSignatures = repPreferredSignatureNames.filter(
       (signature) => repAllReferenceSignatures[signature]
     );
+    const repSelectedSignatureNames = repPreferredAvailableSignatures.length
+      ? repPreferredAvailableSignatures
+      : Object.keys(repAllReferenceSignatures).slice(0, 8);
     const repReferenceSignatures = Object.fromEntries(
       repSelectedSignatureNames.map((signature) => [
         signature,
@@ -143,6 +165,7 @@
     );
 
     display(metrics([
+      { label: "Data source", value: repDataSourceStatus },
       { label: "Samples", value: repSelectedSampleNames.length },
       { label: "Reference signatures", value: repSelectedSignatureNames.length },
       { label: "Burden cutoff", value: repMutationBurdenThreshold },
@@ -169,6 +192,8 @@
     ## 2. Export and round trip a SigProfiler-style matrix
 
     Interoperability matters because signature analysts often move between mSigSDK, SigProfiler, COSMIC tables, R/Bioconductor workflows, and supplemental tables. A round trip is a practical check that the exported matrix can be parsed back into the SDK's object shape.
+
+    If the row and column counts change after import, stop here. A report built on a non-round-trippable matrix will be difficult to reproduce or compare with external tools.
   </script>
 
   <script type="module" pinned id="3">
@@ -192,6 +217,8 @@
     ## 3. Use the high-level workflow helper
 
     The workflow helper performs fitting, validation, QC object creation, provenance, and report assembly in one call. Use this when you want a consistent result bundle. Use the lower-level functions when you need finer control over one step.
+
+    Read the workflow output as the standard project artifact: parameters, validation, warnings, fit evidence, report fields, and provenance together. The helper is useful when consistency matters more than hand-building every intermediate object.
   </script>
 
   <script type="module" pinned id="4">
@@ -238,6 +265,8 @@
     ## 4. Assemble a report manually
 
     You can also build a report from individual pieces when you want full control over what gets included. This pattern is useful for notebooks, manuscripts, or applications where you want to keep the analysis result, parameters, SDK version, source URLs, and warnings together.
+
+    Manual assembly is most useful when an application has already computed some pieces itself or needs to attach study-specific metadata. The responsibility is the same: do not export exposures without the QC and provenance fields that explain them.
   </script>
 
   <script type="module" pinned id="5">
@@ -278,5 +307,83 @@
       ]
     ));
     display(details("Full manual report object", repManualReport));
+  </script>
+
+  <script type="text/markdown">
+    ## 5. Check required report fields and save the bundle
+
+    A reusable report should include input parameters, validation, QC, provenance, warnings or caveats, and the matrix export needed to rerun the analysis outside the notebook.
+
+    Treat the final download list as a reproducibility checklist. If a collaborator received only these files, they should be able to identify the inputs, rerun the fit, inspect warnings, and understand how the report was generated.
+  </script>
+
+  <script type="module" pinned id="6">
+    const repRequiredFields = [
+      "schemaVersion",
+      "title",
+      "summary",
+      "generatedAt",
+      "parameters",
+      "validation",
+      "qc",
+      "provenance",
+      "citations",
+      "notes",
+    ];
+    const repFieldChecklist = repRequiredFields.map((field) => ({
+      field,
+      presentInWorkflowReport: repWorkflowAnalysis.report?.[field] !== undefined,
+      presentInManualReport: repManualReport?.[field] !== undefined,
+    }));
+    const repReproducibilityRows = [
+      { artifact: "spectra TSV", purpose: "Input matrix for rerun or external tool handoff" },
+      { artifact: "workflow report JSON", purpose: "Validation, QC, fitting, provenance, and report fields" },
+      { artifact: "manual report JSON", purpose: "Minimal structured report assembled from selected pieces" },
+      { artifact: "field checklist CSV", purpose: "Schema-style presence check for required report fields" },
+    ];
+
+    display(table(
+      repFieldChecklist,
+      [
+        { key: "field", label: "Report field" },
+        { key: "presentInWorkflowReport", label: "Workflow report" },
+        { key: "presentInManualReport", label: "Manual report" },
+      ]
+    ));
+    display(table(
+      repReproducibilityRows,
+      [
+        { key: "artifact", label: "Artifact" },
+        { key: "purpose", label: "Purpose" },
+      ]
+    ));
+    display(downloadMany([
+      {
+        filename: "export_report_spectra.tsv",
+        text: repSigProfilerTsv,
+        label: "Download spectra TSV",
+      },
+      {
+        filename: "export_report_field_checklist.csv",
+        text: rowsToCsv(repFieldChecklist),
+        label: "Download field checklist CSV",
+      },
+      {
+        filename: "export_report_workflow.json",
+        type: "json",
+        value: {
+          dataSourceStatus: repDataSourceStatus,
+          workflowAnalysis: repWorkflowAnalysis,
+          fieldChecklist: repFieldChecklist,
+        },
+        label: "Download workflow report JSON",
+      },
+      {
+        filename: "export_report_manual.json",
+        type: "json",
+        value: repManualReport,
+        label: "Download manual report JSON",
+      },
+    ]));
   </script>
 </notebook>

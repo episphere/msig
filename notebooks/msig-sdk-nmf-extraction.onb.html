@@ -8,11 +8,17 @@
     This notebook demonstrates mSigSDK's exploratory de novo extraction path. Instead of fitting known reference signatures, non-negative matrix factorization (NMF) learns a small set of component profiles and sample exposures directly from the spectra.
 
     Use this as a browser-sized teaching example, not as a full production extraction recipe. For your own data, increase the sample count, rank grid, number of random starts, and maximum iterations only after confirming that the browser can handle the workload.
+
+    The narrative is deliberately different from known-signature fitting. First choose whether the cohort has enough signal for extraction, then inspect extracted profiles, then ask whether sample exposures and rank diagnostics support a stable interpretation, and finally prepare a handoff for production extraction.
   </script>
 
   <script type="module" pinned id="1">
     const nmfSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-nmf", location.href).href;
     const { mSigSDK } = await import(nmfSdkUrl);
+    const {
+      demoSignatures,
+      demoSpectra,
+    } = await import("./msig-notebook-fixtures.js");
     const {
       burdenSampleRows,
       details,
@@ -30,14 +36,14 @@
     ]));
     display(table(
       [
-        { functionName: "extractSignaturesNMF", reviewerValue: "Runs de novo extraction directly in the browser" },
-        { functionName: "compareExtractedToReference", reviewerValue: "Compares extracted components to known COSMIC profiles" },
-        { functionName: "selectNMFRank", reviewerValue: "Provides rank diagnostics instead of a fixed black-box rank" },
-        { functionName: "presentation.nmfMatchRows", reviewerValue: "Formats reference matching as a compact table" },
+        { functionName: "extractSignaturesNMF", workflowValue: "Runs de novo extraction directly in the browser" },
+        { functionName: "compareExtractedToReference", workflowValue: "Compares extracted components to known COSMIC profiles" },
+        { functionName: "selectNMFRank", workflowValue: "Provides rank diagnostics instead of a fixed black-box rank" },
+        { functionName: "presentation.nmfMatchRows", workflowValue: "Formats reference matching as a compact table" },
       ],
       [
         { key: "functionName", label: "Function" },
-        { key: "reviewerValue", label: "Publication-relevant capability" },
+        { key: "workflowValue", label: "Workflow capability" },
       ]
     ));
   </script>
@@ -48,6 +54,8 @@
     NMF is more sensitive to cohort size, mutation burden, rank, and random starts than known-signature fitting. This example fetches specific high-burden PCAWG WGS Lung-AdenoCA spectra so the browser has enough count-scale signal to extract simple components quickly.
 
     Edit `nmfRank`, `nmfRuns`, and `nmfMaxIterations` to see the speed and stability tradeoff. In a larger analysis, use more random starts and a broader rank grid.
+
+    If this first step feels underpowered, that is the intended lesson: extraction depends on cohort size, burden, and repeated optimization far more than a quick refit does.
   </script>
 
   <script type="module" pinned id="2">
@@ -74,44 +82,57 @@
     const nmfRuns = 3;
     const nmfMaxIterations = 180;
 
-    const [nmfRawSpectrumRows, nmfRawSignatureRows] = await Promise.all([
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-        nmfStudy,
-        nmfExampleSampleNames,
-        nmfGenomeDataType,
-        nmfCancerType,
-        nmfMutationType,
-        nmfMatrixSize
-      ),
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
-        nmfGenomeDataType,
-        nmfSignatureSetName,
-        nmfMutationType,
-        nmfMatrixSize,
-        10000
-      ),
-    ]);
-
-    const nmfSpectrumRows = Array.isArray(nmfRawSpectrumRows)
-      ? nmfRawSpectrumRows.flat()
-      : [];
-    const nmfSignatureRows = Array.isArray(nmfRawSignatureRows)
-      ? nmfRawSignatureRows.flat()
-      : [];
-    const nmfAllGroupedSpectra =
-      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(nmfSpectrumRows);
-    const nmfAllReferenceSignatures =
-      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-        nmfSignatureRows,
-        "signatureName"
-      );
+    let nmfDataSourceStatus = "live mSigPortal";
+    let nmfAllGroupedSpectra;
+    let nmfAllReferenceSignatures;
+    try {
+      const [nmfRawSpectrumRows, nmfRawSignatureRows] = await Promise.all([
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+          nmfStudy,
+          nmfExampleSampleNames,
+          nmfGenomeDataType,
+          nmfCancerType,
+          nmfMutationType,
+          nmfMatrixSize
+        ),
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
+          nmfGenomeDataType,
+          nmfSignatureSetName,
+          nmfMutationType,
+          nmfMatrixSize,
+          10000
+        ),
+      ]);
+      const nmfSpectrumRows = Array.isArray(nmfRawSpectrumRows)
+        ? nmfRawSpectrumRows.flat()
+        : [];
+      const nmfSignatureRows = Array.isArray(nmfRawSignatureRows)
+        ? nmfRawSignatureRows.flat()
+        : [];
+      nmfAllGroupedSpectra =
+        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(nmfSpectrumRows);
+      nmfAllReferenceSignatures =
+        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
+          nmfSignatureRows,
+          "signatureName"
+        );
+      if (Object.keys(nmfAllGroupedSpectra).length < 3 || Object.keys(nmfAllReferenceSignatures).length < 3) {
+        throw new Error("mSigPortal returned too few matrices for NMF review.");
+      }
+    } catch (error) {
+      nmfDataSourceStatus = `embedded fallback: ${error.message}`;
+      nmfAllGroupedSpectra = demoSpectra();
+      nmfAllReferenceSignatures = demoSignatures();
+    }
     const nmfAllBurden = mSigSDK.qc.summarizeMutationBurden(nmfAllGroupedSpectra, {
       expectedContexts: nmfContexts,
     });
     const nmfSelectedBurdenSamples = mSigSDK.qc.selectSamplesByMutationBurden(
       nmfAllBurden,
       {
-        sampleNames: nmfExampleSampleNames,
+        sampleNames: nmfExampleSampleNames.filter((sample) => nmfAllGroupedSpectra[sample]).length
+          ? nmfExampleSampleNames.filter((sample) => nmfAllGroupedSpectra[sample])
+          : Object.keys(nmfAllGroupedSpectra),
         minTotalMutations: 1,
         limit: nmfSampleLimit,
       }
@@ -124,6 +145,7 @@
     );
 
     display(metrics([
+      { label: "Data source", value: nmfDataSourceStatus },
       { label: "Samples", value: nmfSelectedSampleNames.length },
       { label: "Rank", value: nmfRank },
       { label: "Random starts", value: nmfRuns },
@@ -144,6 +166,8 @@
     ## 2. Extract signatures and compare them to references
 
     `extractSignaturesNMF` returns extracted profiles, exposures, reconstruction metrics, and run metadata. `compareExtractedToReference` is a post hoc interpretation aid: it finds similar COSMIC profiles, but it does not prove that an extracted component is biologically identical to a named signature.
+
+    Read the reference-match table as an annotation step, not as the extraction result itself. A component with a weak match may still be meaningful, and a component with a strong match still needs stability and cohort-context review.
   </script>
 
   <script type="module" pinned id="3">
@@ -183,6 +207,19 @@
       ],
       { maxRows: 9 }
     ));
+    display(table(
+      nmfReferenceMatchRows.map((row) => ({
+        extractedSignature: row.extractedSignature,
+        closestReference: row.referenceSignature,
+        interpretation: "Similarity aid; not an etiologic assignment",
+      })),
+      [
+        { key: "extractedSignature", label: "Extracted component" },
+        { key: "closestReference", label: "Closest reference" },
+        { key: "interpretation", label: "Interpretation boundary" },
+      ],
+      { maxRows: 9 }
+    ));
     display(details("Full NMF result and match objects", {
       nmfResult,
       nmfMatches,
@@ -193,6 +230,8 @@
     ## 3. Inspect extracted signature profiles
 
     Profiles are shown through the established mSigPortal SBS96 renderer so the mutation-context colors match COSMIC conventions. New users should first check whether each extracted component has a coherent profile before looking at sample exposures.
+
+    A coherent profile is one that has recognizable context structure rather than scattered noise. If the profile looks unstable, return to sample selection, rank, or random starts before interpreting exposure heatmaps.
   </script>
 
   <script type="module" pinned id="4">
@@ -209,6 +248,8 @@
     ## 4. Inspect sample exposures
 
     The exposure heatmap shows whether extracted signatures are broad cohort processes or concentrated in a few samples. A component driven by only one or two samples may still be useful, but it should be interpreted differently from a component distributed across the cohort.
+
+    This is where the extraction story becomes sample-specific: broad components suggest cohort-wide processes, while concentrated components suggest outliers, artifacts, or rare biology that needs follow-up.
   </script>
 
   <script type="module" pinned id="5">
@@ -226,6 +267,8 @@
     ## 5. Compare candidate ranks
 
     Rank selection is not a single-number decision. This small grid is intentionally modest for browser performance. In production, use more ranks and random starts, then judge reconstruction, stability, and interpretability together.
+
+    A useful rank should improve reconstruction without splitting a biological process into unstable fragments. Use this table to decide what needs a production rerun, not to declare a final rank from the browser example alone.
   </script>
 
   <script type="module" pinned id="6">
@@ -252,6 +295,8 @@
     ## 6. Prepare production extraction handoff
 
     Browser NMF is a screening tool. The same spectra can be exported as matrix-mode input for SigProfilerExtractor so production extraction and stability analysis can be run outside the browser.
+
+    The handoff keeps the story connected: the browser identifies whether extraction is worth pursuing, and the production engine runs the heavier stability analysis.
   </script>
 
   <script type="module" pinned id="7">
@@ -278,17 +323,35 @@
       ]
     ));
 
-    const handoffLinks = document.createElement("div");
-    handoffLinks.style.display = "flex";
-    handoffLinks.style.gap = "0.75rem";
-    handoffLinks.style.flexWrap = "wrap";
-    for (const file of nmfExtractorInput.files) {
-      const link = document.createElement("a");
-      link.textContent = `Download ${file.path.split("/").pop()}`;
-      link.href = URL.createObjectURL(new Blob([file.text], { type: "text/tab-separated-values" }));
-      link.download = file.path.split("/").pop();
-      handoffLinks.append(link);
-    }
-    display(handoffLinks);
+    display(details("SigProfilerExtractor Python handoff snippet", nmfExtractorInput.pythonSnippet, {
+      open: true,
+    }));
+    display(downloadMany([
+      ...nmfExtractorInput.files.map((file) => ({
+        filename: file.path.split("/").pop(),
+        text: file.text,
+        label: `Download ${file.path.split("/").pop()}`,
+      })),
+      {
+        filename: "nmf_extraction_report.json",
+        type: "json",
+        value: {
+          dataSourceStatus: nmfDataSourceStatus,
+          nmfSettings: {
+            rank: nmfRank,
+            randomStarts: nmfRuns,
+            maxIterations: nmfMaxIterations,
+          },
+          extraction: nmfResult,
+          referenceMatches: nmfMatches,
+          rankSelection: nmfRankSelection,
+          handoff: {
+            manifest: nmfExtractorInput.manifest,
+            pythonSnippet: nmfExtractorInput.pythonSnippet,
+          },
+        },
+        label: "Download NMF report JSON",
+      },
+    ]));
   </script>
 </notebook>

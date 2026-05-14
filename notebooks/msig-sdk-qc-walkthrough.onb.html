@@ -7,12 +7,16 @@
 
     Use this notebook first if you are new to mSigSDK. It demonstrates the complete known-signature fitting workflow: import the SDK, define an SBS96 analysis, load count-scale public spectra and COSMIC reference signatures, reshape the API rows into SDK matrices, validate inputs, fit exposures, and inspect QC plots.
 
-    To reuse the pattern with your own data, replace the mSigPortal spectrum-loading block with a JavaScript object whose keys are sample names and whose values are mutation-context counts. Keep the same validation, fitting, and QC cells so you can catch missing contexts, low burden, and poor reconstruction before interpreting exposures.
+    The story is intentionally sequential. A researcher chooses an analysis profile, validates the matrix, checks mutation burden, fits signatures, inspects reconstruction and residuals, then packages the same logic as a reusable workflow result. To reuse the pattern with your own data, replace the mSigPortal loading block and keep the validation and QC sections intact.
   </script>
 
   <script type="module" pinned id="1">
     const qcSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-qc", location.href).href;
     const { mSigSDK } = await import(qcSdkUrl);
+    const {
+      demoSignatures,
+      demoSpectra,
+    } = await import("./msig-notebook-fixtures.js");
     const {
       burdenSampleRows,
       details,
@@ -35,7 +39,7 @@
         { namespace: "validation", role: "Check matrix shape and missing contexts" },
         { namespace: "signatureFitting", role: "Estimate relative signature exposures" },
         { namespace: "qc", role: "Create burden, reconstruction, and residual objects" },
-        { namespace: "qcPlots", role: "Render reviewer-facing QC figures" },
+        { namespace: "qcPlots", role: "Render QC figures for reports and notebooks" },
         { namespace: "presentation", role: "Create reusable metrics, tables, and object summaries" },
       ],
       [
@@ -50,7 +54,7 @@
 
     The first analysis decision is the mutation matrix. Here we use SBS96, so `getExpectedContexts` returns the 96 trinucleotide contexts used to check spectra and signatures. The mSigPortal calls fetch specific PCAWG WGS Lung-AdenoCA samples with real mutation counts, including high-burden and low-burden examples so the QC flags are visible. In your own project, replace `qcExampleSampleNames` with your local sample IDs or replace the fetch with your own spectra object.
 
-    Edit `qcSampleLimit`, `qcMutationBurdenThreshold`, or `qcPreferredSignatureNames`, then press Run notebook to see how the analysis changes.
+    Edit `qcSampleLimit`, `qcMutationBurdenThreshold`, or `qcPreferredSignatureNames` to see how the analysis changes. In a real project, these parameters should come from the assay design, expected mutation burden, and the reference catalog being tested.
   </script>
 
   <script type="module" pinned id="2">
@@ -89,37 +93,48 @@
       "SBS40",
     ];
 
-    const [qcRawSpectrumRows, qcRawSignatureRows] = await Promise.all([
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-        qcStudy,
-        qcExampleSampleNames,
-        qcGenomeDataType,
-        qcCancerType,
-        qcMutationType,
-        qcMatrixSize
-      ),
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
-        qcGenomeDataType,
-        qcSignatureSetName,
-        qcMutationType,
-        qcMatrixSize,
-        10000
-      ),
-    ]);
-
-    const qcSpectrumRows = Array.isArray(qcRawSpectrumRows)
-      ? qcRawSpectrumRows.flat()
-      : [];
-    const qcSignatureRows = Array.isArray(qcRawSignatureRows)
-      ? qcRawSignatureRows.flat()
-      : [];
-    const qcAllGroupedSpectra =
-      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(qcSpectrumRows);
-    const qcAllReferenceSignatures =
-      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-        qcSignatureRows,
-        "signatureName"
-      );
+    let qcDataSourceStatus = "live mSigPortal";
+    let qcAllGroupedSpectra;
+    let qcAllReferenceSignatures;
+    try {
+      const [qcRawSpectrumRows, qcRawSignatureRows] = await Promise.all([
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+          qcStudy,
+          qcExampleSampleNames,
+          qcGenomeDataType,
+          qcCancerType,
+          qcMutationType,
+          qcMatrixSize
+        ),
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
+          qcGenomeDataType,
+          qcSignatureSetName,
+          qcMutationType,
+          qcMatrixSize,
+          10000
+        ),
+      ]);
+      const qcSpectrumRows = Array.isArray(qcRawSpectrumRows)
+        ? qcRawSpectrumRows.flat()
+        : [];
+      const qcSignatureRows = Array.isArray(qcRawSignatureRows)
+        ? qcRawSignatureRows.flat()
+        : [];
+      qcAllGroupedSpectra =
+        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(qcSpectrumRows);
+      qcAllReferenceSignatures =
+        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
+          qcSignatureRows,
+          "signatureName"
+        );
+      if (Object.keys(qcAllGroupedSpectra).length < 2 || Object.keys(qcAllReferenceSignatures).length < 3) {
+        throw new Error("mSigPortal returned too few matrices for QC review.");
+      }
+    } catch (error) {
+      qcDataSourceStatus = `embedded fallback: ${error.message}`;
+      qcAllGroupedSpectra = demoSpectra();
+      qcAllReferenceSignatures = demoSignatures();
+    }
 
     const qcAllBurden = mSigSDK.qc.summarizeMutationBurden(qcAllGroupedSpectra, {
       expectedContexts: qcContexts,
@@ -129,7 +144,9 @@
     const qcSelectedBurdenSamples = mSigSDK.qc.selectSamplesByMutationBurden(
       qcAllBurden,
       {
-        sampleNames: qcExampleSampleNames,
+        sampleNames: qcExampleSampleNames.filter((sample) => qcAllGroupedSpectra[sample]).length
+          ? qcExampleSampleNames.filter((sample) => qcAllGroupedSpectra[sample])
+          : Object.keys(qcAllGroupedSpectra),
         minTotalMutations: 1,
         limit: qcSampleLimit,
       }
@@ -156,6 +173,7 @@
     );
 
     display(metrics([
+      { label: "Data source", value: qcDataSourceStatus },
       { label: "Study", value: qcStudy },
       { label: "Cancer type", value: qcCancerType },
       { label: "Samples selected", value: qcSelectedSampleNames.length },
@@ -185,6 +203,8 @@
     ## 2. Validate, fit, and build QC objects
 
     Validation is not optional boilerplate. It confirms that spectra and signatures share the expected contexts before fitting. The fitting call estimates relative exposures, and the QC functions return plain JavaScript objects that can be inspected, saved, or passed into plotting functions.
+
+    If validation fails, interpretation stops here. A fit produced from mismatched contexts can look numerical and still be biologically meaningless.
   </script>
 
   <script type="module" pinned id="3">
@@ -272,6 +292,8 @@
     ## 3. Check mutation burden
 
     Mutation burden affects how much information is available for fitting. Samples below the threshold marker should be interpreted cautiously, especially for weak or rare signatures. In your own workflow, set this threshold from your study design or assay characteristics rather than treating this example value as universal.
+
+    A low-burden warning does not always require removing a sample. It does require that downstream exposure estimates be reported with more caution.
   </script>
 
   <script type="module" pinned id="4">
@@ -285,6 +307,8 @@
     ## 4. Inspect reconstruction quality
 
     Cosine similarity measures profile-shape agreement; RMSE measures residual magnitude on the relative-profile scale used for fitting. Inspect both because a fit can have good shape agreement while still leaving systematic residuals in specific mutation contexts. Use the mutation-burden table above for count totals.
+
+    This is the main checkpoint before reading exposure values as evidence. A poor reconstruction usually means the catalog is incomplete, the sample is noisy, or the matrix needs additional QC.
   </script>
 
   <script type="module" pinned id="5">
@@ -301,6 +325,8 @@
     ## 5. Inspect residual spectra
 
     Residual plots show where the fitted signature mixture does not reconstruct the observed spectrum. Positive residuals are underfit contexts; negative residuals are overfit contexts. This is often where you identify missing reference signatures, context-specific artifacts, or samples that need a different analysis strategy.
+
+    Read residuals as diagnostic evidence, not as a decorative plot. Repeated residual structure across samples may point to a missing signature or a systematic preprocessing issue.
   </script>
 
   <script type="module" pinned id="6">
@@ -312,5 +338,101 @@
       qcResidualSample
     );
     display(qcResidualDiv);
+  </script>
+
+  <script type="text/markdown">
+    ## 6. Package the same fit as a workflow result
+
+    The lower-level cells above teach each QC step. The high-level workflow returns the same analysis as an auditable bundle with warnings, recommended actions, fit-quality evidence, publication figure descriptors, report fields, and exports.
+
+    The workflow result is the object to hand to an application or report generator because it keeps the exposure estimates connected to the evidence that qualifies them.
+  </script>
+
+  <script type="module" pinned id="7">
+    const qcWorkflowAnalysis = await mSigSDK.workflows.runCohortFit(
+      {
+        spectra: qcGroupedSpectra,
+        signatures: qcReferenceSignatures,
+      },
+      {
+        contexts: qcContexts,
+        exposureThreshold: qcExposureThreshold,
+        lowBurdenThreshold: qcMutationBurdenThreshold,
+        thresholds: [0, 0.01, 0.03, 0.05],
+        runBootstrap: false,
+        runThresholdSensitivity: true,
+        runSubgroupDiscovery: false,
+        reportFormat: "object",
+      }
+    );
+    const qcFitQualityRows = qcWorkflowAnalysis.fitQualityEvidence.samples.map((sample) => ({
+      sample: sample.sample,
+      reportingMode: sample.reportingMode || sample.recommendedReportingMode,
+      reviewFlagCount: sample.reviewFlagCount,
+      flags: (sample.reviewFlagCodes || []).join(", "),
+    }));
+
+    display(metrics([
+      { label: "Workflow warnings", value: qcWorkflowAnalysis.warnings.length },
+      { label: "Recommended actions", value: qcWorkflowAnalysis.recommendedActions.length },
+      { label: "Figure descriptors", value: qcWorkflowAnalysis.publicationFigures.length },
+      { label: "Report fields", value: Object.keys(qcWorkflowAnalysis.report || {}).length },
+    ]));
+    display(table(
+      qcFitQualityRows,
+      [
+        { key: "sample", label: "Sample" },
+        { key: "reportingMode", label: "Reporting mode" },
+        { key: "reviewFlagCount", label: "Review flags" },
+        { key: "flags", label: "Flag codes" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(table(
+      warningRows(qcWorkflowAnalysis.warnings),
+      [
+        { key: "code", label: "Warning code" },
+        { key: "message", label: "Message" },
+        { key: "resolution", label: "Resolution" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(table(
+      publicationFigureRows(qcWorkflowAnalysis.publicationFigures),
+      [
+        { key: "id", label: "Figure id" },
+        { key: "title", label: "Figure title" },
+        { key: "renderer", label: "Renderer" },
+        { key: "dataFields", label: "Required fields" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(downloadMany([
+      {
+        filename: "known_signature_qc_spectra.tsv",
+        text: spectraMatrixToTsv(qcGroupedSpectra, qcContexts),
+        label: "Download spectra TSV",
+      },
+      {
+        filename: "known_signature_qc_exposures.csv",
+        text: rowsToCsv(qcExposureRows),
+        label: "Download exposures CSV",
+      },
+      {
+        filename: "known_signature_qc_report.json",
+        type: "json",
+        value: {
+          dataSourceStatus: qcDataSourceStatus,
+          validation: qcWorkflowAnalysis.validation,
+          qc: qcWorkflowAnalysis.qc,
+          warnings: qcWorkflowAnalysis.warnings,
+          recommendedActions: qcWorkflowAnalysis.recommendedActions,
+          publicationFigures: qcWorkflowAnalysis.publicationFigures,
+          fitQualityEvidence: qcWorkflowAnalysis.fitQualityEvidence,
+          report: qcWorkflowAnalysis.report,
+        },
+        label: "Download report JSON",
+      },
+    ]));
   </script>
 </notebook>

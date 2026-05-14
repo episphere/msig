@@ -4,67 +4,113 @@
       "file": "msig-sdk-notebooks.onb.html",
       "title": "Notebook index",
       "summary": "Start here for the SDK workflow map.",
-      "image": "images/mSigPortal.png"
+      "image": "images/mSigPortal.png",
+      "workflowGroup": "orientation",
+      "workflowGroupLabel": "Orientation"
     },
     {
-      "file": "msig-sdk-qc-walkthrough.onb.html",
-      "title": "Known-signature QC",
-      "summary": "Import, fetch, reshape, fit, and assess spectra.",
-      "image": "images/Mutational%20Burden.png"
-    },
-    {
-      "file": "msig-sdk-maf-fit-report.onb.html",
-      "title": "MAF to report",
-      "summary": "Convert MAF rows, fit signatures, inspect QC, and render report-ready outputs.",
-      "image": "images/Mutational%20Burden.png"
+      "file": "msig-sdk-end-to-end-workflow.onb.html",
+      "title": "End-to-end workflow",
+      "summary": "Follow one realistic analysis from input setup through QC, uncertainty, reports, and interoperability.",
+      "image": "images/datasetSummary.png",
+      "workflowGroup": "orientation",
+      "workflowGroupLabel": "Orientation"
     },
     {
       "file": "msig-sdk-public-cohort-exploration.onb.html",
       "title": "Public cohort exploration",
       "summary": "Fetch public spectra, review burden, and inspect similarity structure before fitting.",
-      "image": "images/CosineSimilarityHeatmap.png"
+      "image": "images/CosineSimilarityHeatmap.png",
+      "workflowGroup": "orientation",
+      "workflowGroupLabel": "Orientation"
     },
     {
       "file": "msig-sdk-resource-portability.onb.html",
       "title": "Resource portability",
       "summary": "Bridge mSigPortal, TCGA/GDC, matrices, and exports.",
-      "image": "images/mSigPortal.png"
+      "image": "images/mSigPortal.png",
+      "workflowGroup": "input",
+      "workflowGroupLabel": "Input and resource setup"
     },
     {
-      "file": "msig-sdk-uncertainty-thresholds.onb.html",
-      "title": "Uncertainty thresholds",
-      "summary": "Quantify uncertainty and threshold dependence.",
-      "image": "images/CosineSimilarityHeatmap.png"
+      "file": "msig-sdk-bring-your-own-spectra.onb.html",
+      "title": "Bring your own spectra",
+      "summary": "Start from a local SBS96 matrix, validate it, fit signatures, and export a reproducible report.",
+      "image": "images/Mutational%20Burden.png",
+      "workflowGroup": "input",
+      "workflowGroupLabel": "Input and resource setup"
     },
     {
-      "file": "msig-sdk-nmf-extraction.onb.html",
-      "title": "NMF extraction",
-      "summary": "Run exploratory extraction without fixed signatures.",
-      "image": "images/signatureComparison.png"
+      "file": "msig-sdk-maf-fit-report.onb.html",
+      "title": "MAF to report",
+      "summary": "Convert MAF rows, fit signatures, inspect QC, and render report-ready outputs.",
+      "image": "images/Mutational%20Burden.png",
+      "workflowGroup": "input",
+      "workflowGroupLabel": "Input and resource setup"
+    },
+    {
+      "file": "msig-sdk-qc-walkthrough.onb.html",
+      "title": "Known-signature QC",
+      "summary": "Import, fetch, reshape, fit, and assess spectra.",
+      "image": "images/Mutational%20Burden.png",
+      "workflowGroup": "core",
+      "workflowGroupLabel": "Core analysis"
+    },
+    {
+      "file": "msig-sdk-cohort-panel-workflow.onb.html",
+      "title": "Cohort and panel workflow",
+      "summary": "Run cohort fitting and panel evidence review with metadata, assay territory, warnings, and report outputs.",
+      "image": "images/datasetSummary.png",
+      "workflowGroup": "core",
+      "workflowGroupLabel": "Core analysis"
     },
     {
       "file": "msig-sdk-panel-evidence-tiers.onb.html",
       "title": "Panel evidence tiers",
       "summary": "Review panel and WES assessability, evidence tiers, and callable-territory limits.",
-      "image": "images/datasetSummary.png"
+      "image": "images/datasetSummary.png",
+      "workflowGroup": "core",
+      "workflowGroupLabel": "Core analysis"
     },
     {
-      "file": "msig-sdk-multi-engine-comparison.onb.html",
-      "title": "Multi-engine comparison",
-      "summary": "Compare mSigSDK NNLS, SigProfilerAssignment via Pyodide, and MuSiCal-compatible refit.",
-      "image": "images/signatureComparison.png"
+      "file": "msig-sdk-nmf-extraction.onb.html",
+      "title": "NMF extraction",
+      "summary": "Run exploratory extraction without fixed signatures.",
+      "image": "images/signatureComparison.png",
+      "workflowGroup": "core",
+      "workflowGroupLabel": "Core analysis"
+    },
+    {
+      "file": "msig-sdk-uncertainty-thresholds.onb.html",
+      "title": "Uncertainty thresholds",
+      "summary": "Quantify uncertainty and threshold dependence.",
+      "image": "images/CosineSimilarityHeatmap.png",
+      "workflowGroup": "reliability",
+      "workflowGroupLabel": "Reliability, reporting, and interoperability"
     },
     {
       "file": "msig-sdk-export-report.onb.html",
       "title": "Export and reports",
       "summary": "Round-trip matrices and create reproducible reports.",
-      "image": "images/datasetSummary.png"
+      "image": "images/datasetSummary.png",
+      "workflowGroup": "reliability",
+      "workflowGroupLabel": "Reliability, reporting, and interoperability"
+    },
+    {
+      "file": "msig-sdk-multi-engine-comparison.onb.html",
+      "title": "Multi-engine comparison",
+      "summary": "Run or import outputs from mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls on one shared dataset.",
+      "image": "images/signatureComparison.png",
+      "workflowGroup": "reliability",
+      "workflowGroupLabel": "Reliability, reporting, and interoperability"
     },
     {
       "file": "msig-sdk-experimental-sandbox.onb.html",
       "title": "Experimental sandbox",
       "summary": "Inspect explicitly experimental workflow outputs and scope statements.",
-      "image": "images/mSigPortal.png"
+      "image": "images/mSigPortal.png",
+      "workflowGroup": "advanced",
+      "workflowGroupLabel": "Advanced or experimental"
     }
   ]
 }

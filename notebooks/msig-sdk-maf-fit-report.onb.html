@@ -5,116 +5,175 @@
   <script type="text/markdown">
     # MAF to spectra, fit, QC, and report
 
-    This notebook follows the primary `mSigSDK.workflows` entry path for local variant rows: convert MAF-like records into SBS96 spectra, fit a compatible signature catalog, inspect QC outputs, and render report-ready summaries.
+    Many projects start from variant rows rather than a finished signature matrix. This workflow converts local MAF-like rows into SBS96 spectra, checks whether the conversion preserved the expected SNV counts, fits a compatible reference catalog, reviews QC evidence, renders plots, and exports report-ready objects.
+
+    The example uses row-supplied trinucleotide contexts so it runs without a genome sequence request. In a production pipeline, the same checkpoints apply after genome-backed context annotation: count reconciliation first, fitting second, interpretation third.
   </script>
 
   <script type="module" pinned id="1">
     const mafSdkUrl = new URL("../main.js?v=2026-05-14-maf-workflow", location.href).href;
     const { mSigSDK } = await import(mafSdkUrl);
-    const { exposureRows, metrics, table } = mSigSDK.presentation;
-    const mafContexts = mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 });
-    const emptySpectrum = () => Object.fromEntries(mafContexts.map((context) => [context, 0]));
+    const {
+      demoMafRows,
+      demoSignatures,
+      sbs96Contexts,
+    } = await import("./msig-notebook-fixtures.js");
+    const {
+      exposureRows,
+      metrics,
+      reconstructionRows,
+      table,
+    } = mSigSDK.presentation;
 
-    display(metrics([
-      { label: "Primary namespace", value: "workflows" },
-      { label: "Workflow", value: "analyzeMafFiles" },
-      { label: "Context mode", value: "offline row-supplied contexts" },
-    ]));
-  </script>
-
-  <script type="text/markdown">
-    ## 1. Convert local MAF-like rows
-
-    The example uses row-supplied trinucleotide contexts so the notebook can run without a genome-sequence request. Production analyses can use the live UCSC sequence path or a pinned offline lookup table.
-  </script>
-
-  <script type="module" pinned id="2">
-    const mafRows = [
-      ...Array.from({ length: 72 }, (_, index) => ({
-        chromosome: "1",
-        start_position: 100000 + index,
-        reference_allele: "C",
-        tumor_seq_allele2: "A",
-        variant_type: "SNP",
-        project_code: "demo_tumor",
-        context: "ACA",
-      })),
-      ...Array.from({ length: 48 }, (_, index) => ({
-        chromosome: "1",
-        start_position: 200000 + index,
-        reference_allele: "C",
-        tumor_seq_allele2: "T",
-        variant_type: "SNP",
-        project_code: "demo_tumor",
-        context: "TCT",
-      })),
-      ...Array.from({ length: 30 }, (_, index) => ({
-        chromosome: "2",
-        start_position: 300000 + index,
-        reference_allele: "C",
-        tumor_seq_allele2: "G",
-        variant_type: "SNP",
-        project_code: "demo_tumor",
-        context: "GCG",
-      })),
-    ];
-
-    const mafSignatures = {
-      SBS_demo_A: {
-        ...emptySpectrum(),
-        "A[C>A]A": 0.65,
-        "T[C>T]T": 0.30,
-        "G[C>G]G": 0.05,
-      },
-      SBS_demo_B: {
-        ...emptySpectrum(),
-        "A[C>A]A": 0.10,
-        "T[C>T]T": 0.25,
-        "G[C>G]G": 0.65,
-      },
+    const mafContexts = sbs96Contexts();
+    const mafRows = demoMafRows;
+    const mafSignatures = demoSignatures();
+    const mafOptions = {
+      groupBy: "project_code",
+      genome: "hg19",
+      offline: true,
+      contextSource: "row-supplied trinucleotide context field",
+      exposureThreshold: 0.01,
     };
 
-    const mafAnalysis = await mSigSDK.workflows.analyzeMafFiles(
-      mafRows,
-      mafSignatures,
-      {
-        groupBy: "project_code",
-        offline: true,
-        expectedContexts: mafContexts,
-        reportFormat: "object",
-        fitting: {
-          exposureThreshold: 0.01,
-          exposureType: "relative",
-          renormalize: true,
-        },
-      }
-    );
-
     display(metrics([
-      { label: "Workflow", value: mafAnalysis.workflow },
-      { label: "Samples", value: Object.keys(mafAnalysis.spectra).length },
-      { label: "Convertible SNVs", value: mafAnalysis.mafConversion.expectedConvertibleSnvCount },
-      { label: "SBS96 counts", value: mafAnalysis.mafConversion.observedSbs96Count },
-      { label: "Warnings", value: mafAnalysis.warnings.length },
+      { label: "Rows", value: mafRows.length },
+      { label: "Context mode", value: "offline row-supplied contexts" },
+      { label: "Grouping field", value: mafOptions.groupBy },
+      { label: "Signatures", value: Object.keys(mafSignatures).length },
     ]));
-
     display(table(
-      exposureRows(mafAnalysis.fit.exposures),
       [
-        { key: "sample", label: "Sample" },
-        { key: "signature", label: "Signature" },
-        { key: "exposure", label: "Exposure" },
+        { notebookObject: "mafRows", replaceWith: "MAF rows with chromosome, position, alleles, sample/project field, and context source" },
+        { notebookObject: "mafOptions.groupBy", replaceWith: "Tumor_Sample_Barcode, project_code, sample, or another sample identifier" },
+        { notebookObject: "mafOptions.offline", replaceWith: "true for a pinned context table; false for live UCSC context lookup" },
+        { notebookObject: "mafSignatures", replaceWith: "COSMIC or project-specific reference signature matrix" },
+      ],
+      [
+        { key: "notebookObject", label: "Object to edit" },
+        { key: "replaceWith", label: "Project-specific replacement" },
       ]
     ));
   </script>
 
   <script type="text/markdown">
-    ## 2. Inspect burden, profile, exposures, and residuals
+    ## Step 1. Convert variant rows into an SBS96 matrix
 
-    The workflow result keeps conversion metadata, spectra, fitted exposures, reconstruction metrics, residuals, and provenance together under one result object.
+    `analyzeMafFiles` accepts either a flat row array or nested per-file arrays. The conversion record stores the genome build, context source, lookup mode, timestamp, and a count reconciliation check between convertible SNV rows and observed SBS96 counts.
+
+    Before reading exposures, confirm that the number of convertible SNVs agrees with the total SBS96 counts. A mismatch here points to context annotation, filtering, sample naming, or input-shape problems.
+  </script>
+
+  <script type="module" pinned id="2">
+    const mafAnalysis = await mSigSDK.workflows.analyzeMafFiles(
+      mafRows,
+      mafSignatures,
+      {
+        groupBy: mafOptions.groupBy,
+        genome: mafOptions.genome,
+        offline: mafOptions.offline,
+        contextSource: mafOptions.contextSource,
+        expectedContexts: mafContexts,
+        reportFormat: "object",
+        fitting: {
+          exposureThreshold: mafOptions.exposureThreshold,
+          exposureType: "relative",
+          renormalize: true,
+          mutationBurdenOptions: {
+            lowBurdenThresholdMode: "fixed",
+            lowBurdenThreshold: 50,
+          },
+        },
+      }
+    );
+    const mafConversionRows = [
+      { field: "Convertible SNV rows", value: mafAnalysis.mafConversion.expectedConvertibleSnvCount },
+      { field: "Observed SBS96 counts", value: mafAnalysis.mafConversion.observedSbs96Count },
+      { field: "Count reconciliation", value: mafAnalysis.mafConversion.sbs96CountMatchesConvertibleSnvCount ? "pass" : "review" },
+      { field: "Context source", value: mafAnalysis.mafConversion.contextSource },
+      { field: "Context lookup mode", value: mafAnalysis.mafConversion.contextLookupMode },
+    ];
+
+    display(metrics([
+      { label: "Workflow", value: mafAnalysis.workflow },
+      { label: "Samples", value: Object.keys(mafAnalysis.spectra).length },
+      { label: "SBS96 counts", value: mafAnalysis.mafConversion.observedSbs96Count },
+      { label: "Warnings", value: mafAnalysis.warnings.length },
+      { label: "Figures", value: mafAnalysis.publicationFigures.length },
+    ]));
+    display(table(
+      mafRows.slice(0, 8),
+      [
+        { key: "project_code", label: "Group" },
+        { key: "chromosome", label: "Chromosome" },
+        { key: "start_position", label: "Position" },
+        { key: "reference_allele", label: "Reference" },
+        { key: "tumor_seq_allele2", label: "Alternate" },
+        { key: "context", label: "Trinucleotide context" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(table(
+      mafConversionRows,
+      [
+        { key: "field", label: "Conversion field" },
+        { key: "value", label: "Value" },
+      ]
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 2. Inspect fit evidence after conversion
+
+    The same result object contains fitted exposures, mutation-burden QC, reconstruction metrics, warning codes, recommended actions, and figure descriptors. This is the minimum evidence trail to keep with a converted MAF analysis.
+
+    Interpret the tables in order: mutation burden tells whether the spectra contain enough signal, reconstruction metrics tell whether the catalog explains the spectra, and exposures tell which signatures contribute after those checks pass.
   </script>
 
   <script type="module" pinned id="3">
+    display(table(
+      exposureRows(mafAnalysis.fit.exposures, { minExposure: 0, topN: 12 }),
+      [
+        { key: "sample", label: "Sample" },
+        { key: "signature", label: "Signature" },
+        { key: "exposure", label: "Relative exposure" },
+      ],
+      { maxRows: 12 }
+    ));
+    display(table(
+      reconstructionRows(mafAnalysis.fit.reconstructionError),
+      [
+        { key: "sample", label: "Sample" },
+        { key: "cosineSimilarity", label: "Cosine similarity" },
+        { key: "rmse", label: "RMSE" },
+      ]
+    ));
+    display(table(
+      warningRows(mafAnalysis.warnings),
+      [
+        { key: "code", label: "Warning code" },
+        { key: "message", label: "Message" },
+        { key: "resolution", label: "Resolution" },
+      ]
+    ));
+    display(table(
+      publicationFigureRows(mafAnalysis.publicationFigures),
+      [
+        { key: "id", label: "Figure id" },
+        { key: "title", label: "Figure title" },
+        { key: "renderer", label: "Renderer" },
+        { key: "dataFields", label: "Required fields" },
+      ]
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 3. Render QC plots for visual review
+
+    Plots help identify problems that summary tables can hide: a low-burden sample, a systematic residual pattern, or an exposure profile dominated by a questionable signature. Use the plots to decide which samples need manual review before the report is exported.
+  </script>
+
+  <script type="module" pinned id="4">
     const mafBurdenDiv = document.createElement("div");
     mafBurdenDiv.style.width = "100%";
     display(mafBurdenDiv);
@@ -128,24 +187,41 @@
       96,
       mafSpectrumDiv
     );
+  </script>
 
-    const mafExposureDiv = document.createElement("div");
-    mafExposureDiv.id = `maf-exposure-${Date.now()}`;
-    mafExposureDiv.style.width = "100%";
-    display(mafExposureDiv);
-    await mSigSDK.signatureFitting.plotPatientMutationalSignaturesExposure(
-      mafAnalysis.fit.exposures,
-      mafExposureDiv.id,
-      "demo_tumor"
-    );
+  <script type="text/markdown">
+    ## Step 4. Save the converted spectra and report
 
-    const mafResidualDiv = document.createElement("div");
-    mafResidualDiv.style.width = "100%";
-    display(mafResidualDiv);
-    await mSigSDK.qcPlots.plotFitResiduals(
-      mafResidualDiv,
-      mafAnalysis.qc.residuals,
-      "demo_tumor"
-    );
+    The saved bundle should include the MAF conversion summary, SBS96 matrix, fitted exposures, QC evidence, warnings, recommended actions, report fields, and provenance. These pieces let another researcher trace the result from variant rows to signature interpretation.
+  </script>
+
+  <script type="module" pinned id="5">
+    display(downloadMany([
+      {
+        filename: "maf_converted_spectra.tsv",
+        text: spectraMatrixToTsv(mafAnalysis.spectra, mafContexts),
+        label: "Download spectra TSV",
+      },
+      {
+        filename: "maf_exposures.csv",
+        text: rowsToCsv(exposureRows(mafAnalysis.fit.exposures, { minExposure: 0, topN: 100 })),
+        label: "Download exposures CSV",
+      },
+      {
+        filename: "maf_report.json",
+        type: "json",
+        value: {
+          options: mafOptions,
+          conversion: mafAnalysis.mafConversion,
+          validation: mafAnalysis.validation,
+          qc: mafAnalysis.qc,
+          warnings: mafAnalysis.warnings,
+          recommendedActions: mafAnalysis.recommendedActions,
+          publicationFigures: mafAnalysis.publicationFigures,
+          report: mafAnalysis.report,
+        },
+        label: "Download report JSON",
+      },
+    ]));
   </script>
 </notebook>

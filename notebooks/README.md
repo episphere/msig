@@ -1,22 +1,41 @@
-# mSigSDK Observable Kit Notebooks
+# mSigSDK Observable Kit notebooks
 
-Focused Observable Kit notebooks for testing mSigSDK workflows without loading every example into one runtime. The tutorials use count-scale PCAWG WGS examples selected to show meaningful mutation-burden QC rather than normalized spectra that sum to 1.
+Focused Observable Kit notebooks for learning, testing, and adapting mSigSDK workflows without loading every example into one runtime. The examples use count-scale SBS96 matrices, cached fallback fixtures, and public-resource loaders so the same notebooks can run on GitHub Pages, a local checkout, or an offline browser session.
 
-The notebooks are intended to expose the same structured objects used by the manuscript: validation results, fit-quality evidence, warnings, recommended actions, portable matrix exports, and report/provenance fields. New user-facing examples should enter through the primary `mSigSDK.workflows` surface before expanding into `mSigSDK.pipelines`, `mSigSDK.quickstart`, or advanced namespace-specific calls.
+The notebooks expose the structured objects that make an analysis auditable: validation results, fit-quality evidence, warnings, recommended actions, portable matrix exports, publication figure descriptors, reports, and provenance fields. New examples should enter through the primary `mSigSDK.workflows` surface before expanding into `mSigSDK.pipelines`, `mSigSDK.quickstart`, or advanced namespace-specific calls.
 
-## Notebook Index
+Each notebook should read as a stepwise researcher workflow. Narrative cells should explain the decision being made, the output that answers it, the common failure mode, and the next step in the analysis. Tables and plots should not appear without interpretation guidance.
 
-- `msig-sdk-notebooks.onb.html`: index of focused notebooks.
-- `msig-sdk-qc-walkthrough.onb.html`: known-signature fitting QC.
-- `msig-sdk-maf-fit-report.onb.html`: MAF rows to spectra, fit, QC, plots, and report fields.
-- `msig-sdk-public-cohort-exploration.onb.html`: public spectra burden and similarity review before fitting.
-- `msig-sdk-resource-portability.onb.html`: mSigPortal, TCGA/GDC, matrix portability, and provenance.
-- `msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals and threshold sensitivity.
-- `msig-sdk-nmf-extraction.onb.html`: browser-sized NMF extraction and rank diagnostics.
-- `msig-sdk-panel-evidence-tiers.onb.html`: panel/WES evidence tiers and assessability reasons.
-- `msig-sdk-multi-engine-comparison.onb.html`: NNLS, SigProfilerAssignment, and MuSiCal-compatible comparison.
-- `msig-sdk-export-report.onb.html`: import/export, reports, provenance, and workflow helpers.
-- `msig-sdk-experimental-sandbox.onb.html`: clearly labeled experimental workflow example.
+## Notebook index
+
+### Orientation
+
+- `msig-sdk-notebooks.onb.html`: workflow-stage index.
+- `msig-sdk-end-to-end-workflow.onb.html`: local spectra to validation, fitting, uncertainty, interoperability, and report exports.
+- `msig-sdk-public-cohort-exploration.onb.html`: public or cached spectra burden, metadata, validation, and similarity review before fitting.
+
+### Input and resource setup
+
+- `msig-sdk-resource-portability.onb.html`: mSigPortal, TCGA/GDC, matrix portability, fallback resources, and provenance exports.
+- `msig-sdk-bring-your-own-spectra.onb.html`: local SBS96 spectra, reference signatures, fit-quality evidence, warnings, and downloadable analysis bundle.
+- `msig-sdk-maf-fit-report.onb.html`: MAF rows to spectra, count reconciliation, fitting, QC, plots, warnings, and report fields.
+
+### Core analysis
+
+- `msig-sdk-qc-walkthrough.onb.html`: known-signature fitting QC with lower-level calls and high-level workflow packaging.
+- `msig-sdk-cohort-panel-workflow.onb.html`: cohort fitting with metadata plus panel/WES callable-territory evidence.
+- `msig-sdk-panel-evidence-tiers.onb.html`: panel/WES evidence tiers, assessability reasons, validation summary, and limitations.
+- `msig-sdk-nmf-extraction.onb.html`: browser-sized NMF extraction, reference matching, rank diagnostics, and production handoff.
+
+### Reliability, reporting, and interoperability
+
+- `msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals, threshold sensitivity, decision table, and uncertainty exports.
+- `msig-sdk-export-report.onb.html`: import/export, reports, provenance, schema-style field checks, and workflow helpers.
+- `msig-sdk-multi-engine-comparison.onb.html`: shared-input comparison of mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls outputs with package handoffs and disagreement review tables.
+
+### Advanced or experimental
+
+- `msig-sdk-experimental-sandbox.onb.html`: experimental localized-mutagenesis workflow with explicit status, warnings, and validation roadmap.
 
 ## Local Use
 

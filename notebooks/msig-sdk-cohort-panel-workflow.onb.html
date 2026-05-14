@@ -1,0 +1,299 @@
+<!doctype html>
+<notebook theme="air">
+  <title>mSigSDK cohort and panel workflow</title>
+
+  <script type="text/markdown">
+    # Cohort and panel workflow
+
+    Signature analysis rarely ends with one sample. A researcher needs to fit a cohort, preserve sample metadata, compare groups, and decide whether restricted assays such as panels or WES provide enough callable territory to support a signature claim. This workflow follows that path from a local SBS96 matrix to cohort-level evidence and panel/WES assessability fields.
+
+    Read the notebook as two linked analyses. The cohort section asks what the spectra and metadata show under a standard known-signature fit. The panel/WES section asks whether the same interpretation remains reportable when only part of the mutational-signature territory is observed.
+  </script>
+
+  <script type="module" pinned id="1">
+    const cohortPanelSdkUrl = new URL("../main.js?v=2026-05-14-cohort-panel", location.href).href;
+    const { mSigSDK } = await import(cohortPanelSdkUrl);
+    const {
+      demoMetadata,
+      demoSignatures,
+      demoSpectra,
+      panelValidationSummary,
+      sbs96Contexts,
+      sharedCallableOpportunities,
+    } = await import("./msig-notebook-fixtures.js");
+    const {
+      exposureRows,
+      metrics,
+      reconstructionRows,
+      table,
+    } = mSigSDK.presentation;
+
+    const cpContexts = sbs96Contexts();
+    const cpSpectra = demoSpectra();
+    const cpSignatures = demoSignatures();
+    const cpMetadata = demoMetadata;
+    const cpCallableOpportunities = sharedCallableOpportunities();
+    const cpOptions = {
+      exposureThreshold: 0.01,
+      lowBurdenThreshold: 100,
+      groupKey: "assay",
+      minAssessableMutations: 30,
+      limitedSupportExposureThreshold: 0.05,
+      higherSupportExposureThreshold: 0.20,
+      thresholdGrid: [0, 0.01, 0.03, 0.05],
+    };
+
+    display(metrics([
+      { label: "Samples", value: Object.keys(cpSpectra).length },
+      { label: "Metadata rows", value: cpMetadata.length },
+      { label: "Signatures", value: Object.keys(cpSignatures).length },
+      { label: "Context basis", value: "SBS96" },
+    ]));
+    display(table(
+      [
+        { notebookObject: "cpSpectra", replaceWith: "Project count matrix keyed by sample and SBS96 context" },
+        { notebookObject: "cpMetadata", replaceWith: "Sample-level cohort, assay, batch, tissue, treatment, or phenotype table" },
+        { notebookObject: "cpSignatures", replaceWith: "Reference signature catalog used for known-signature fitting" },
+        { notebookObject: "cpCallableOpportunities", replaceWith: "Assay-specific callable trinucleotide opportunity counts or fractions" },
+        { notebookObject: "cpOptions", replaceWith: "Study thresholds for burden, exposure, reportability, and group comparison" },
+      ],
+      [
+        { key: "notebookObject", label: "Object to edit" },
+        { key: "replaceWith", label: "Project-specific replacement" },
+      ]
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 1. Fit the cohort with metadata
+
+    `runCohortFit` keeps the core analysis together: validation, burden, exposures, reconstruction, residuals, subgroup summaries, group comparisons, warnings, recommended actions, and figure descriptors. The metadata table supplies the biological or technical strata that make those outputs interpretable.
+
+    Start by asking whether the samples form meaningful groups and whether those groups should be compared. If the metadata are missing or inconsistent, the exposure table may still run, but the cohort story will be weaker.
+  </script>
+
+  <script type="module" pinned id="2">
+    const cpCohortResult = await mSigSDK.workflows.runCohortFit(
+      {
+        spectra: cpSpectra,
+        signatures: cpSignatures,
+        metadata: cpMetadata,
+      },
+      {
+        contexts: cpContexts,
+        groupKey: cpOptions.groupKey,
+        exposureThreshold: cpOptions.exposureThreshold,
+        lowBurdenThreshold: cpOptions.lowBurdenThreshold,
+        thresholds: cpOptions.thresholdGrid,
+        runBootstrap: false,
+        runThresholdSensitivity: true,
+        runSubgroupDiscovery: false,
+        reportFormat: "object",
+      }
+    );
+
+    display(metrics([
+      { label: "Workflow", value: cpCohortResult.workflow },
+      { label: "Warnings", value: cpCohortResult.warnings.length },
+      { label: "Actions", value: cpCohortResult.recommendedActions.length },
+      { label: "Figures", value: cpCohortResult.publicationFigures.length },
+      {
+        label: "Group comparison",
+        value: cpCohortResult.groupComparison?.reportingMode || "not run",
+      },
+    ]));
+    display(table(
+      reconstructionRows(cpCohortResult.fit.reconstructionError),
+      [
+        { key: "sample", label: "Sample" },
+        { key: "cosineSimilarity", label: "Cosine similarity" },
+        { key: "rmse", label: "RMSE" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(table(
+      exposureRows(cpCohortResult.fit.exposures, { minExposure: 0, topN: 12 }),
+      [
+        { key: "sample", label: "Sample" },
+        { key: "signature", label: "Signature" },
+        { key: "exposure", label: "Relative exposure" },
+      ],
+      { maxRows: 12 }
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 2. Inspect cohort evidence before reporting group results
+
+    The next decision is whether the cohort fit is strong enough to summarize. Fit-quality modes, warning codes, recommended actions, and figure descriptors explain which outputs can be shown routinely and which need caveats. This section turns a table of exposures into a reportable evidence object.
+
+    When adapting the workflow, review this section before creating figures. A group difference is not convincing if it is driven by low-burden samples or poor reconstruction.
+  </script>
+
+  <script type="module" pinned id="3">
+    const cpFitQualityRows = cpCohortResult.fitQualityEvidence.samples.map((sample) => ({
+      sample: sample.sample,
+      reportingMode: sample.reportingMode || sample.recommendedReportingMode,
+      reviewFlagCount: sample.reviewFlagCount,
+      reviewFlags: (sample.reviewFlagCodes || []).join(", "),
+      caveats: (sample.caveats || []).join(" "),
+    }));
+    display(table(
+      cpFitQualityRows,
+      [
+        { key: "sample", label: "Sample" },
+        { key: "reportingMode", label: "Reporting mode" },
+        { key: "reviewFlagCount", label: "Review flags" },
+        { key: "reviewFlags", label: "Flag codes" },
+        { key: "caveats", label: "Caveats" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(table(
+      warningRows(cpCohortResult.warnings),
+      [
+        { key: "code", label: "Warning code" },
+        { key: "message", label: "Message" },
+        { key: "resolution", label: "Resolution" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(table(
+      publicationFigureRows(cpCohortResult.publicationFigures),
+      [
+        { key: "id", label: "Figure id" },
+        { key: "title", label: "Figure title" },
+        { key: "renderer", label: "Renderer" },
+        { key: "dataFields", label: "Required fields" },
+      ],
+      { maxRows: 8 }
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 3. Ask whether restricted-assay data are assessable
+
+    `runPanelWorkflow` adds opportunity normalization, restricted-assay evidence summaries, evidence tiers, assessability reasons, and panel-specific limitations. These fields separate a WGS-style decomposition from the narrower question of what a panel or WES assay can support.
+
+    Read the assessability reasons carefully. They are the explanation a collaborator, method reviewer, or clinical user needs when a signature is marked reportable, limited, or not assessable.
+  </script>
+
+  <script type="module" pinned id="4">
+    const cpPanelResult = await mSigSDK.workflows.runPanelWorkflow(
+      {
+        spectra: cpSpectra,
+        signatures: cpSignatures,
+        callableOpportunities: cpCallableOpportunities,
+      },
+      {
+        contexts: cpContexts,
+        expectedContexts: cpContexts,
+        runBootstrap: false,
+        runThresholdSensitivity: false,
+        minAssessableMutations: cpOptions.minAssessableMutations,
+        limitedSupportExposureThreshold: cpOptions.limitedSupportExposureThreshold,
+        higherSupportExposureThreshold: cpOptions.higherSupportExposureThreshold,
+        lowBurdenThreshold: cpOptions.lowBurdenThreshold,
+        opportunitySource: "user_supplied",
+        genomeBuild: "GRCh37",
+        reportFormat: "object",
+      }
+    );
+    const cpPanelRows = Object.entries(cpPanelResult.panel.evidenceCalls).flatMap(
+      ([sample, calls]) =>
+        calls.map((call) => ({
+          sample,
+          signature: call.signatureName,
+          exposure: call.exposure,
+          tier: call.tier,
+          assessability: call.assessabilityClass,
+          reasons: (call.assessabilityReasons || [])
+            .map((reason) => reason.detail || reason.code)
+            .join("; "),
+        }))
+    );
+
+    display(metrics([
+      { label: "Panel workflow", value: cpPanelResult.workflow },
+      { label: "Opportunity source", value: cpPanelResult.opportunityMetadata.opportunitySource },
+      { label: "Opportunity coverage", value: cpPanelResult.opportunityMetadata.opportunityCoverage },
+      { label: "Evidence calls", value: cpPanelResult.panel.evidenceSummary.callCount },
+      { label: "Warnings", value: cpPanelResult.warnings.length },
+    ]));
+    display(table(
+      cpPanelRows,
+      [
+        { key: "sample", label: "Sample" },
+        { key: "signature", label: "Signature" },
+        { key: "exposure", label: "Exposure" },
+        { key: "tier", label: "Evidence tier" },
+        { key: "assessability", label: "Assessability" },
+        { key: "reasons", label: "Assessability reasons" },
+      ],
+      { maxRows: 12 }
+    ));
+    display(table(
+      panelValidationSummary,
+      [
+        { key: "callableContextCount", label: "Callable contexts" },
+        { key: "truthExposureBin", label: "Truth exposure bin" },
+        { key: "panelBurdenBin", label: "Panel burden bin" },
+        { key: "calls", label: "Validation calls" },
+        { key: "tierAccuracy", label: "Tier accuracy" },
+        { key: "meanPanelVsWgsExposureCosine", label: "Mean panel-WGS cosine" },
+      ],
+      { maxRows: 8 }
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 4. Save the cohort and panel evidence bundle
+
+    The final bundle preserves the fitted exposures, metadata-aware summaries, panel evidence calls, warnings, recommended actions, and report fields. Save these together so downstream applications do not detach a signature call from the assay limitations that qualify it.
+  </script>
+
+  <script type="module" pinned id="5">
+    display(downloadMany([
+      {
+        filename: "cohort_panel_spectra.tsv",
+        text: spectraMatrixToTsv(cpSpectra, cpContexts),
+        label: "Download spectra TSV",
+      },
+      {
+        filename: "cohort_panel_exposures.csv",
+        text: rowsToCsv(exposureRows(cpCohortResult.fit.exposures, { minExposure: 0, topN: 100 })),
+        label: "Download cohort exposures CSV",
+      },
+      {
+        filename: "panel_evidence_calls.csv",
+        text: rowsToCsv(cpPanelRows),
+        label: "Download panel evidence CSV",
+      },
+      {
+        filename: "cohort_panel_report.json",
+        type: "json",
+        value: {
+          options: cpOptions,
+          metadata: cpMetadata,
+          cohort: {
+            validation: cpCohortResult.validation,
+            warnings: cpCohortResult.warnings,
+            recommendedActions: cpCohortResult.recommendedActions,
+            fitQualityEvidence: cpCohortResult.fitQualityEvidence,
+            publicationFigures: cpCohortResult.publicationFigures,
+            report: cpCohortResult.report,
+          },
+          panel: {
+            opportunityMetadata: cpPanelResult.opportunityMetadata,
+            restrictedAssayEvidenceSummary: cpPanelResult.restrictedAssayEvidenceSummary,
+            evidenceSummary: cpPanelResult.panel.evidenceSummary,
+            warnings: cpPanelResult.warnings,
+            recommendedActions: cpPanelResult.recommendedActions,
+            report: cpPanelResult.report,
+          },
+        },
+        label: "Download report JSON",
+      },
+    ]));
+  </script>
+</notebook>

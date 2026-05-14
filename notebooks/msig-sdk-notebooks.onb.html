@@ -5,9 +5,13 @@
   <script type="text/markdown">
     # mSigSDK focused notebooks
 
-    Start here for the SDK workflow map. The notebooks follow a single researcher path: understand the input shape, validate spectra, run the analysis, inspect warnings and evidence objects, then export the files needed to reproduce or adapt the workflow.
+    Start here for the SDK workflow map. The notebooks are organized as a researcher path rather than a function catalog: understand the input shape, validate spectra, run the analysis, inspect warnings and evidence objects, compare or adapt the result, then export the files needed to reproduce the workflow.
+
+    Each notebook should be read as a small analysis story. The first section establishes the decision being made, the middle sections generate evidence, and the final section saves enough context for another researcher to rerun or review the result.
 
     ## Suggested execution order
+
+    Follow this order when learning the SDK from scratch. It starts with public spectra, moves into fitting and uncertainty, then branches into project-specific inputs and specialized workflows.
 
     1. [Public cohort exploration](./viewer.html?notebook=msig-sdk-public-cohort-exploration.onb.html)
     2. [Known-signature QC](./viewer.html?notebook=msig-sdk-qc-walkthrough.onb.html)
@@ -17,6 +21,8 @@
     6. [Panel evidence tiers](./viewer.html?notebook=msig-sdk-panel-evidence-tiers.onb.html), [NMF extraction](./viewer.html?notebook=msig-sdk-nmf-extraction.onb.html), or [Multi-engine comparison](./viewer.html?notebook=msig-sdk-multi-engine-comparison.onb.html)
 
     ## Workflow stages
+
+    The groups below match the natural analysis sequence. Orientation notebooks explain the path, input notebooks teach how to bring data into the SDK, core notebooks perform analysis, reliability notebooks test and export results, and the experimental notebook keeps hypothesis-generating outputs separate.
 
     Orientation:
 
@@ -49,9 +55,13 @@
 
     ## Inspect before trusting results
 
+    The recurring lesson across the notebooks is that signature exposure estimates should not be read alone. Look for validation results, mutation burden, reconstruction quality, residual structure, warnings, recommended actions, report fields, and provenance before treating an output as reportable.
+
     Check the SDK import path, data provenance, validation result, warning table, recommended actions, local computation boundary, report/provenance output, and any external-tool handoff. Plots should be read together with the returned JavaScript objects and thresholds that generated them.
 
     ## Replace for a local project
+
+    For a local project, replace the input-loading cell first and leave the validation, QC, warning, report, and export sections in place. After the adapted notebook runs cleanly, tighten thresholds, expand uncertainty settings, or add external-engine comparisons to match the project question.
 
     Replace sample spectra, signature catalog, mutation-burden thresholds, exposure thresholds, metadata, panel opportunity masks, and report parameters. Keep the validation, burden, reconstruction, residual, uncertainty, warning, and export cells in place so the adapted notebook still produces a complete analysis record.
 

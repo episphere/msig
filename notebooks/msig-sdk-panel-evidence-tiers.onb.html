@@ -5,68 +5,114 @@
   <script type="text/markdown">
     # Panel and WES evidence tiers
 
-    This notebook demonstrates `workflows.runPanelWorkflow`, including callable-opportunity metadata, evidence tiers, assessability reasons, and the distinction between `not_assessable` and `not_detected_within_review_settings`.
+    Panel and WES data do not observe the same mutational territory as WGS. This workflow shows how mSigSDK reports that limitation explicitly through callable-opportunity metadata, restricted-assay evidence, evidence tiers, assessability reasons, and report fields.
+
+    Read the notebook as an evidence review, not a WGS-equivalent decomposition. The central question is whether a signature is assessable under the assay design and whether the reported tier is supported by validation, burden, and callable territory.
   </script>
 
   <script type="module" pinned id="1">
     const panelSdkUrl = new URL("../main.js?v=2026-05-14-panel-workflow", location.href).href;
     const { mSigSDK } = await import(panelSdkUrl);
-    const { metrics, table } = mSigSDK.presentation;
-    const panelContexts = mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 });
-    const zeroRecord = () => Object.fromEntries(panelContexts.map((context) => [context, 0]));
+    const {
+      demoSignatures,
+      demoSpectra,
+      panelValidationSummary,
+      sbs96Contexts,
+      sharedCallableOpportunities,
+    } = await import("./msig-notebook-fixtures.js");
+    const { exposureRows, metrics, table } = mSigSDK.presentation;
 
+    const panelContexts = sbs96Contexts();
     const panelSpectra = {
-      panel_high: { ...zeroRecord(), "A[C>A]A": 80, "T[C>T]T": 30, "G[C>G]G": 10 },
-      panel_low: { ...zeroRecord(), "A[C>A]A": 12, "T[C>T]T": 4, "G[C>G]G": 1 },
+      panel_high: demoSpectra().local_high_smoking_like,
+      panel_low: demoSpectra().local_low_burden_review,
+      wes_apobec: demoSpectra().local_apobec_pattern,
     };
-    const panelSignatures = {
-      SBS_panel_A: { ...zeroRecord(), "A[C>A]A": 0.70, "T[C>T]T": 0.25, "G[C>G]G": 0.05 },
-      SBS_panel_B: { ...zeroRecord(), "A[C>A]A": 0.05, "T[C>T]T": 0.20, "G[C>G]G": 0.75 },
+    const panelSignatures = demoSignatures();
+    const callableOpportunities = sharedCallableOpportunities();
+    const panelOptions = {
+      minAssessableMutations: 30,
+      limitedSupportExposureThreshold: 0.05,
+      higherSupportExposureThreshold: 0.20,
+      lowBurdenThreshold: 50,
+      genomeBuild: "GRCh37",
     };
-    const callableOpportunities = Object.fromEntries(panelContexts.map((context) => [context, 1]));
-    callableOpportunities["G[C>G]G"] = 0;
 
+    display(metrics([
+      { label: "Samples", value: Object.keys(panelSpectra).length },
+      { label: "Reference signatures", value: Object.keys(panelSignatures).length },
+      { label: "Callable contexts", value: Object.values(callableOpportunities).filter((value) => Number(value) > 0).length },
+      { label: "Assay type", value: "panel/WES review" },
+    ]));
+    display(table(
+      [
+        { tier: "higher_review_support", definition: "Assessable sample with exposure at or above the configured higher-support threshold and acceptable fit evidence." },
+        { tier: "limited_review_support", definition: "Assessable sample with exposure at or above the lower review threshold but below the higher-support threshold." },
+        { tier: "not_detected_within_review_settings", definition: "Assessable sample with fitted exposure below the configured review threshold." },
+        { tier: "not_assessable", definition: "Burden, callable territory, or fit-quality evidence does not support an interpretable tier." },
+      ],
+      [
+        { key: "tier", label: "Tier" },
+        { key: "definition", label: "Definition" },
+      ]
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 1. Run panel/WES evidence review
+
+    The panel workflow combines spectra, signatures, assay metadata, and callable opportunity summaries. It returns fitted exposures plus evidence tiers that explain whether each signature can be assessed under the restricted assay.
+
+    Start with the evidence tier and assessability fields before interpreting exposure magnitude. A high exposure can still be weak evidence if the assay has poor opportunity for the relevant contexts.
+  </script>
+
+  <script type="module" pinned id="2">
     const panelResult = await mSigSDK.workflows.runPanelWorkflow(
       { spectra: panelSpectra, signatures: panelSignatures, callableOpportunities },
       {
+        contexts: panelContexts,
         expectedContexts: panelContexts,
         runBootstrap: false,
         runThresholdSensitivity: false,
-        minAssessableMutations: 30,
-        limitedSupportExposureThreshold: 0.05,
-        higherSupportExposureThreshold: 0.20,
-        genomeBuild: "GRCh37",
+        minAssessableMutations: panelOptions.minAssessableMutations,
+        limitedSupportExposureThreshold: panelOptions.limitedSupportExposureThreshold,
+        higherSupportExposureThreshold: panelOptions.higherSupportExposureThreshold,
+        lowBurdenThreshold: panelOptions.lowBurdenThreshold,
+        opportunitySource: "user_supplied",
+        genomeBuild: panelOptions.genomeBuild,
+        reportFormat: "object",
       }
     );
 
     display(metrics([
       { label: "Workflow", value: panelResult.workflow },
-      { label: "Samples", value: Object.keys(panelResult.panel.evidenceCalls).length },
       { label: "Evidence calls", value: panelResult.panel.evidenceSummary.callCount },
+      { label: "Opportunity coverage", value: panelResult.opportunityMetadata.opportunityCoverage },
       { label: "Warnings", value: panelResult.warnings.length },
     ]));
+    display(table(
+      exposureRows(panelResult.fit.exposures, { minExposure: 0, topN: 12 }),
+      [
+        { key: "sample", label: "Sample" },
+        { key: "signature", label: "Signature" },
+        { key: "exposure", label: "Relative exposure" },
+      ],
+      { maxRows: 12 }
+    ));
   </script>
 
   <script type="text/markdown">
-    ## 1. Evidence matrix
+    ## Step 2. Read the evidence matrix and assessability table
 
-    The heatmap displays one tier per sample-signature pair. `not_assessable` marks insufficient burden or callable territory; it is not evidence that a signature is absent.
+    The evidence matrix explains which signatures are supported, limited, or not assessable and why. This is the section that should travel with any panel-derived signature call. It prevents a downstream reader from interpreting a restricted-assay fit as if it came from complete WGS coverage.
   </script>
 
-  <script type="module" pinned id="2">
+  <script type="module" pinned id="3">
     const panelMatrixDiv = document.createElement("div");
     panelMatrixDiv.style.width = "100%";
     display(panelMatrixDiv);
     await mSigSDK.qcPlots.plotPanelEvidenceMatrix(panelMatrixDiv, panelResult);
-  </script>
 
-  <script type="text/markdown">
-    ## 2. Per-sample evidence table
-
-    Each row keeps the fitted exposure, tier, assessability class, and reason fields together so panel review can distinguish a low fitted exposure from a non-assessable call.
-  </script>
-
-  <script type="module" pinned id="3">
     const panelRows = Object.entries(panelResult.panel.evidenceCalls).flatMap(
       ([sample, calls]) =>
         calls.map((call) => ({
@@ -75,7 +121,10 @@
           exposure: call.exposure,
           tier: call.tier,
           assessability: call.assessabilityClass,
-          reasons: call.assessabilityReasons.join("; "),
+          totalMutations: call.totalMutations,
+          reasons: (call.assessabilityReasons || [])
+            .map((reason) => reason.detail || reason.code)
+            .join("; "),
         }))
     );
     display(table(
@@ -86,8 +135,83 @@
         { key: "exposure", label: "Exposure" },
         { key: "tier", label: "Tier" },
         { key: "assessability", label: "Assessability" },
+        { key: "totalMutations", label: "Mutations" },
         { key: "reasons", label: "Reasons" },
-      ]
+      ],
+      { maxRows: 12 }
     ));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 3. Review validation evidence and limitations
+
+    The validation summary below is a compact fixture that mirrors the kind of WGS-to-panel sensitivity table a project should include when using restricted-assay evidence tiers. Replace these rows with study-specific simulation, dilution, or matched WGS validation results before making inferential detection claims.
+
+    If a signature is marked limited or not assessable, the limitation is part of the result. The correct adaptation is not to hide the row, but to calibrate or replace the evidence model with assay-specific validation.
+  </script>
+
+  <script type="module" pinned id="4">
+    display(table(
+      panelValidationSummary,
+      [
+        { key: "callableContextCount", label: "Callable contexts" },
+        { key: "truthExposureBin", label: "Truth exposure bin" },
+        { key: "panelBurdenBin", label: "Panel burden bin" },
+        { key: "calls", label: "Validation calls" },
+        { key: "tierAccuracy", label: "Tier accuracy" },
+        { key: "meanPanelVsWgsExposureCosine", label: "Mean panel-WGS cosine" },
+        { key: "medianPanelTotal", label: "Median panel mutations" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(table(
+      panelResult.limitations.map((limitation) => ({ limitation })),
+      [{ key: "limitation", label: "Reporting limitation" }]
+    ));
+    display(table(
+      warningRows(panelResult.warnings),
+      [
+        { key: "code", label: "Warning code" },
+        { key: "message", label: "Message" },
+        { key: "resolution", label: "Resolution" },
+      ],
+      { maxRows: 8 }
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 4. Save evidence calls and report fields
+
+    The exported bundle should include the assay definition, evidence tiers, assessability reasons, limitations, validation rows, warnings, recommended actions, and report fields. These files allow a panel or WES interpretation to be reviewed without losing the assay context.
+  </script>
+
+  <script type="module" pinned id="5">
+    display(downloadMany([
+      {
+        filename: "panel_evidence_calls.csv",
+        text: rowsToCsv(panelRows),
+        label: "Download evidence calls CSV",
+      },
+      {
+        filename: "panel_validation_summary.csv",
+        text: rowsToCsv(panelValidationSummary),
+        label: "Download validation summary CSV",
+      },
+      {
+        filename: "panel_workflow_report.json",
+        type: "json",
+        value: {
+          options: panelOptions,
+          opportunityMetadata: panelResult.opportunityMetadata,
+          tierRules: panelResult.tierRules,
+          evidenceSummary: panelResult.panel.evidenceSummary,
+          warnings: panelResult.warnings,
+          recommendedActions: panelResult.recommendedActions,
+          publicationFigures: panelResult.publicationFigures,
+          report: panelResult.report,
+        },
+        label: "Download report JSON",
+      },
+    ]));
   </script>
 </notebook>

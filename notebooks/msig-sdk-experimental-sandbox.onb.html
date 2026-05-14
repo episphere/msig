@@ -5,7 +5,9 @@
   <script type="text/markdown">
     # Experimental sandbox
 
-    Functions under `mSigSDK.experimental` are hypothesis-generating workflows. Their result objects include an experimental `scopeStatement`, `experimentalStatus`, warnings, and recommended actions so applications can keep them separate from the validated core.
+    Experimental workflows are hypothesis-generating aids, not validated signature-calling pipelines. This notebook shows how an application can expose experimental outputs while keeping their scope, limitations, warnings, and validation roadmap visible.
+
+    Read the workflow as a safety pattern. First define the scope, then inspect the exploratory signal, then review warnings and validation requirements before saving any output. The result object should make it difficult to confuse exploratory evidence with a validated analysis.
   </script>
 
   <script type="module" pinned id="1">
@@ -13,48 +15,189 @@
     const { mSigSDK } = await import(experimentalSdkUrl);
     const { metrics, table } = mSigSDK.presentation;
 
+    const localizedVariants = [
+      { chromosome: "1", position: 1000, context: "T[C>T]A", id: "v1" },
+      { chromosome: "1", position: 1450, context: "T[C>G]T", id: "v2" },
+      { chromosome: "1", position: 1850, context: "T[C>T]T", id: "v3" },
+      { chromosome: "1", position: 2300, context: "A[C>A]A", id: "v4" },
+      { chromosome: "2", position: 900000, context: "G[C>A]A", id: "v5" },
+    ];
+    const localizedParameters = {
+      maxIntermutationDistance: 700,
+      minMutations: 3,
+      minBurdenForLocalizedAnalysis: 3,
+      clusterSignificanceThreshold: 0.05,
+    };
     const localizedResult = mSigSDK.experimental.runLocalizedMutagenesisAnalysis(
-      [
-        { chromosome: "1", position: 1000, context: "T[C>T]A" },
-        { chromosome: "1", position: 1450, context: "T[C>G]T" },
-        { chromosome: "1", position: 1850, context: "T[C>T]T" },
-        { chromosome: "1", position: 2300, context: "A[C>A]A" },
-        { chromosome: "2", position: 900000, context: "G[C>A]A" },
-      ],
+      localizedVariants,
       "GRCh37",
-      {
-        maxIntermutationDistance: 700,
-        minMutations: 3,
-        minBurdenForLocalizedAnalysis: 3,
-      }
+      localizedParameters
     );
 
     display(metrics([
       { label: "Namespace", value: "experimental" },
       { label: "Workflow", value: localizedResult.workflow },
-      { label: "Validated for manuscript use", value: localizedResult.experimentalStatus.validatedForManuscriptUse },
+      {
+        label: "Manuscript-validated claim",
+        value: localizedResult.experimentalStatus.validatedForManuscriptUse ? "Yes" : "No",
+      },
+      { label: "Variants", value: localizedResult.validation.variants.variantCount },
       { label: "Foci", value: localizedResult.localized.foci.length },
     ]));
   </script>
 
   <script type="text/markdown">
-    ## Scope and recommended actions
+    ## Step 1. Define the experimental scope
 
-    The localized block nests the fields needed for exploratory review without placing the workflow in the default `pipelines` or `workflows` surface.
+    The first output to inspect is the scope statement. It identifies what the workflow is designed to screen, what assumptions it makes, and what evidence is still needed. A researcher should understand this section before looking at any focal-region table.
   </script>
 
   <script type="module" pinned id="2">
     display(table(
+      localizedVariants,
+      [
+        { key: "id", label: "Variant id" },
+        { key: "chromosome", label: "Chromosome" },
+        { key: "position", label: "Position" },
+        { key: "context", label: "Context" },
+      ]
+    ));
+    display(table(
       [
         { field: "scopeStatement", value: localizedResult.scopeStatement },
         { field: "experimentalStatus.state", value: localizedResult.experimentalStatus.state },
-        { field: "analysisEligibility", value: JSON.stringify(localizedResult.localized.analysisEligibility) },
-        { field: "recommendedActions", value: localizedResult.recommendedActions.join(" ") },
+        { field: "validatedForManuscriptUse", value: localizedResult.experimentalStatus.validatedForManuscriptUse ? "Yes" : "No" },
+        { field: "nullModelSpecification", value: localizedResult.nullModelSpecification },
+        { field: "clusterAlgorithm", value: localizedResult.parameters.clusterAlgorithm },
       ],
       [
         { key: "field", label: "Field" },
         { key: "value", label: "Value" },
       ]
     ));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 2. Inspect exploratory rainfall evidence
+
+    Rainfall-style summaries highlight clustered mutation patterns and focal regions that may deserve follow-up. These tables are useful for triage, but they do not establish mechanism by themselves. Treat dense local clusters as leads to validate with orthogonal evidence, sample-level QC, and study-specific thresholds.
+  </script>
+
+  <script type="module" pinned id="3">
+    const localizedRainfallRows = localizedResult.rainfall.map((variant) => ({
+      id: variant.id,
+      chromosome: variant.chromosome,
+      position: variant.position,
+      previousDistance: variant.previousDistance,
+      log10PreviousDistance: variant.log10PreviousDistance,
+      context: variant.context,
+    }));
+    const localizedFociRows = localizedResult.foci.map((focus, index) => ({
+      focus: index + 1,
+      chromosome: focus.chromosome,
+      start: focus.start,
+      end: focus.end,
+      mutations: focus.mutationCount,
+      contextPattern: focus.contextPattern,
+      apobecLikeFraction: focus.apobecLikeFraction,
+      clusterPValue: focus.clusterPValue,
+    }));
+
+    display(table(
+      localizedRainfallRows,
+      [
+        { key: "id", label: "Variant id" },
+        { key: "chromosome", label: "Chromosome" },
+        { key: "position", label: "Position" },
+        { key: "previousDistance", label: "Previous distance" },
+        { key: "log10PreviousDistance", label: "log10 distance" },
+        { key: "context", label: "Context" },
+      ],
+      { maxRows: 8 }
+    ));
+    display(table(
+      localizedFociRows,
+      [
+        { key: "focus", label: "Focus" },
+        { key: "chromosome", label: "Chromosome" },
+        { key: "start", label: "Start" },
+        { key: "end", label: "End" },
+        { key: "mutations", label: "Mutations" },
+        { key: "contextPattern", label: "Context pattern" },
+        { key: "apobecLikeFraction", label: "APOBEC-like fraction" },
+        { key: "clusterPValue", label: "Cluster p value" },
+      ]
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 3. Read warnings before interpreting candidates
+
+    The warning and roadmap fields state what remains unvalidated. They are part of the result, not optional annotation. If this section lists missing validation, the workflow should remain in exploratory mode even when the candidate table looks interesting.
+  </script>
+
+  <script type="module" pinned id="4">
+    const localizedRoadmapRows = [
+      { item: "Input validation", requirement: "Confirm chromosome, position, genome build, and context labels against a pinned variant source." },
+      { item: "Null model", requirement: "Replace the descriptive distance threshold with a calibrated background model for the assay and callable territory." },
+      { item: "Focal spectrum", requirement: "Compare focal contexts against matched genomic background and sequencing artifact filters." },
+      { item: "External validation", requirement: "Benchmark candidate foci against known localized mutagenesis datasets before inferential use." },
+      { item: "Reporting", requirement: "Keep experimental status visible in figures, tables, and application outputs." },
+    ];
+    display(table(
+      warningRows(localizedResult.warnings),
+      [
+        { key: "code", label: "Warning code" },
+        { key: "message", label: "Message" },
+        { key: "resolution", label: "Resolution" },
+      ]
+    ));
+    display(table(
+      localizedResult.recommendedActions.map((action) => ({ action })),
+      [{ key: "action", label: "Recommended action" }]
+    ));
+    display(table(
+      localizedRoadmapRows,
+      [
+        { key: "item", label: "Validation area" },
+        { key: "requirement", label: "Requirement before inferential reporting" },
+      ]
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 4. Save exploratory outputs with their scope
+
+    Experimental outputs should be exported with the scope statement, status, warnings, recommended actions, and validation roadmap. Saving those fields with the candidate regions prevents downstream users from treating a screening result as a validated call.
+  </script>
+
+  <script type="module" pinned id="5">
+    display(downloadMany([
+      {
+        filename: "localized_mutagenesis_rainfall.csv",
+        text: rowsToCsv(localizedRainfallRows),
+        label: "Download rainfall CSV",
+      },
+      {
+        filename: "localized_mutagenesis_foci.csv",
+        text: rowsToCsv(localizedFociRows),
+        label: "Download foci CSV",
+      },
+      {
+        filename: "localized_mutagenesis_report.json",
+        type: "json",
+        value: {
+          parameters: localizedParameters,
+          validation: localizedResult.validation,
+          experimentalStatus: localizedResult.experimentalStatus,
+          methodBasis: localizedResult.methodBasis,
+          warnings: localizedResult.warnings,
+          recommendedActions: localizedResult.recommendedActions,
+          publicationFigures: localizedResult.publicationFigures,
+          result: localizedResult,
+        },
+        label: "Download experimental report JSON",
+      },
+    ]));
   </script>
 </notebook>

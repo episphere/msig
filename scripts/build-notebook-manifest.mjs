@@ -94,7 +94,7 @@ const overrides = {
   },
   "msig-sdk-multi-engine-comparison.onb.html": {
     title: "Multi-engine comparison",
-    summary: "Review mSigSDK NNLS alongside cached and optional live external-tool comparison outputs.",
+    summary: "Run or import outputs from mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls on one shared dataset.",
     image: "images/signatureComparison.png",
     workflowGroup: "reliability",
     order: 58,

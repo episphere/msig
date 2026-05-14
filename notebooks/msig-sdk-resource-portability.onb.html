@@ -7,12 +7,19 @@
 
     This notebook shows mSigSDK as a bridge around public mutational-signature resources, not only as a fitting library. It demonstrates how mSigPortal resources and TCGA/GDC resource indexes become ordinary JavaScript objects that can be validated, analyzed, exported, documented, and reused in another environment.
 
-    Use this workflow when you want to show reviewers where the public data come from, what shape the SDK expects, and how the same spectra can move between mSigPortal-style rows, SDK matrices, SigProfiler-style files, reports, and TCGA-derived mutation spectra.
+    Use this workflow when you need to document where public data come from, what shape the SDK expects, and how the same spectra can move between mSigPortal-style rows, SDK matrices, SigProfiler-style files, reports, and TCGA-derived mutation spectra.
+
+    The story is about custody of data objects. A researcher discovers resources, converts them into a common matrix shape, proves they can be exported and reloaded, then connects a second public data source to the same analysis path.
   </script>
 
   <script type="module" pinned id="1">
     const portSdkUrl = new URL("../main.js?v=2026-05-13-resource-portability", location.href).href;
     const { mSigSDK } = await import(portSdkUrl);
+    const {
+      demoSignatures,
+      demoSpectra,
+      gdcResourceFallback,
+    } = await import("./msig-notebook-fixtures.js");
     const {
       burdenSampleRows,
       details,
@@ -64,6 +71,8 @@
     ## 1. Discover public resources before fetching full data
 
     The SDK exposes discovery calls so a user can inspect available resources before downloading spectra or MAF-derived variants. This cell queries mSigPortal for spectrum and signature availability, then queries the GDC through the TCGA namespace for project and MAF-file availability.
+
+    Discovery is the first reproducibility checkpoint. It records what resource exists and where it came from before a notebook silently depends on a remote dataset.
   </script>
 
   <script type="module" pinned id="2">
@@ -81,25 +90,38 @@
     const portTcgaProject = "TCGA-LUAD";
     const portGeneIds = ["ENSG00000141510"];
 
-    const [
-      portSpectrumOptions,
-      portSignatureSummary,
-      portTcgaGeneProjects,
-      portTcgaMafIndex,
-    ] = await Promise.all([
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumOptions(
-        portStudy,
-        portGenomeDataType,
-        portCancerType,
-        10
-      ),
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesSummary(
-        10,
-        portSummarySignatureSet
-      ),
-      mSigSDK.TCGA.getProjectsByGene(portGeneIds),
-      mSigSDK.TCGA.getMafInformationFromProjects([portTcgaProject]),
-    ]);
+    let portDiscoveryStatus = "live public APIs";
+    let portSpectrumOptions;
+    let portSignatureSummary;
+    let portTcgaGeneProjects;
+    let portTcgaMafIndex;
+    try {
+      [
+        portSpectrumOptions,
+        portSignatureSummary,
+        portTcgaGeneProjects,
+        portTcgaMafIndex,
+      ] = await Promise.all([
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumOptions(
+          portStudy,
+          portGenomeDataType,
+          portCancerType,
+          10
+        ),
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesSummary(
+          10,
+          portSummarySignatureSet
+        ),
+        mSigSDK.TCGA.getProjectsByGene(portGeneIds),
+        mSigSDK.TCGA.getMafInformationFromProjects([portTcgaProject]),
+      ]);
+    } catch (error) {
+      portDiscoveryStatus = `embedded fallback: ${error.message}`;
+      portSpectrumOptions = gdcResourceFallback.spectrumOptions;
+      portSignatureSummary = gdcResourceFallback.signatureSummary;
+      portTcgaGeneProjects = gdcResourceFallback.tcgaGeneProjects;
+      portTcgaMafIndex = gdcResourceFallback.tcgaMafIndex;
+    }
 
     const portTcgaMafFiles =
       portTcgaMafIndex[portTcgaProject]?.maf_files || [];
@@ -110,6 +132,7 @@
       .map((project) => ({ gene: portGeneIds[0], project }));
 
     display(metrics([
+      { label: "Discovery source", value: portDiscoveryStatus },
       { label: "mSigPortal spectrum rows", value: portSpectrumOptions.length },
       { label: "Signature summaries", value: portSignatureSummary.length },
       { label: "TCGA/GDC projects for gene", value: portTcgaGeneProjects.projects?.length || 0 },
@@ -151,10 +174,13 @@
     ## 2. Turn public spectra and signatures into SDK matrices
 
     mSigPortal returns long API rows. The SDK converts those rows into two reusable matrices: one keyed by sample and one keyed by signature. After that conversion, the source of the data no longer matters to validation, fitting, QC, export, or reporting.
+
+    This is the handoff from public resource access to local analysis. Once the matrices are built, the same downstream workflow can be used for public, private, or simulated spectra.
   </script>
 
   <script type="module" pinned id="3">
-    const portSampleNames = ["SP50611", "SP50406", "SP55004"];
+    let portMatrixSourceStatus = "live mSigPortal";
+    let portSampleNames = ["SP50611", "SP50406", "SP55004"];
     const portPreferredSignatureNames = [
       "SBS1",
       "SBS2",
@@ -167,46 +193,56 @@
       "SBS40",
     ];
 
-    const [portRawSpectrumRows, portRawSignatureRows] = await Promise.all([
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-        portStudy,
-        portSampleNames,
-        portGenomeDataType,
-        portCancerType,
-        portMutationType,
-        portMatrixSize
-      ),
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
-        portGenomeDataType,
-        portSignatureSetName,
-        portMutationType,
-        portMatrixSize,
-        10000
-      ),
-    ]);
-
-    const portSpectrumRows = Array.isArray(portRawSpectrumRows)
-      ? portRawSpectrumRows.flat()
-      : [];
-    const portSignatureRows = Array.isArray(portRawSignatureRows)
-      ? portRawSignatureRows.flat()
-      : [];
-    const portGroupedSpectra =
-      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(portSpectrumRows);
-    const portAllReferenceSignatures =
-      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-        portSignatureRows,
-        "signatureName"
+    let portGroupedSpectra;
+    let portReferenceSignatures;
+    let portSelectedSignatureNames;
+    try {
+      const [portRawSpectrumRows, portRawSignatureRows] = await Promise.all([
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+          portStudy,
+          portSampleNames,
+          portGenomeDataType,
+          portCancerType,
+          portMutationType,
+          portMatrixSize
+        ),
+        mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
+          portGenomeDataType,
+          portSignatureSetName,
+          portMutationType,
+          portMatrixSize,
+          10000
+        ),
+      ]);
+      const portSpectrumRows = Array.isArray(portRawSpectrumRows)
+        ? portRawSpectrumRows.flat()
+        : [];
+      const portSignatureRows = Array.isArray(portRawSignatureRows)
+        ? portRawSignatureRows.flat()
+        : [];
+      portGroupedSpectra =
+        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(portSpectrumRows);
+      const portAllReferenceSignatures =
+        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
+          portSignatureRows,
+          "signatureName"
+        );
+      portSelectedSignatureNames = portPreferredSignatureNames.filter(
+        (signature) => portAllReferenceSignatures[signature]
       );
-    const portSelectedSignatureNames = portPreferredSignatureNames.filter(
-      (signature) => portAllReferenceSignatures[signature]
-    );
-    const portReferenceSignatures = Object.fromEntries(
-      portSelectedSignatureNames.map((signature) => [
-        signature,
-        portAllReferenceSignatures[signature],
-      ])
-    );
+      portReferenceSignatures = Object.fromEntries(
+        portSelectedSignatureNames.map((signature) => [
+          signature,
+          portAllReferenceSignatures[signature],
+        ])
+      );
+    } catch (error) {
+      portMatrixSourceStatus = `embedded fallback: ${error.message}`;
+      portGroupedSpectra = demoSpectra();
+      portReferenceSignatures = demoSignatures();
+      portSampleNames = Object.keys(portGroupedSpectra);
+      portSelectedSignatureNames = Object.keys(portReferenceSignatures);
+    }
 
     const portSpectraValidation = mSigSDK.validation.validateSpectra(
       portGroupedSpectra,
@@ -233,6 +269,7 @@
       );
 
     display(metrics([
+      { label: "Matrix source", value: portMatrixSourceStatus },
       { label: "Samples", value: Object.keys(portGroupedSpectra).length },
       { label: "Reference signatures", value: portSelectedSignatureNames.length },
       { label: "Spectra validation", value: portSpectraValidation.valid ? "Pass" : "Review" },
@@ -263,7 +300,9 @@
   <script type="text/markdown">
     ## 3. Export, reload, and document the same resource-derived objects
 
-    Once spectra are in the SDK matrix shape, they can be exported as a SigProfiler-style TSV, imported back into the SDK, converted to long rows, paired with a COSMIC-style signature matrix, and packaged with provenance. This is the portability layer reviewers should inspect: the workflow is not locked to one hosted notebook runtime.
+    Once spectra are in the SDK matrix shape, they can be exported as a SigProfiler-style TSV, imported back into the SDK, converted to long rows, paired with a COSMIC-style signature matrix, and packaged with provenance. This is the portability layer that makes the workflow independent of one hosted notebook runtime.
+
+    The round trip should preserve sample names, contexts, and counts. If it does not, the analysis is not yet portable enough for a collaborator or external engine.
   </script>
 
   <script type="module" pinned id="4">
@@ -321,6 +360,32 @@
       portCosmicTsv.split("\n").slice(0, 8).join("\n")
     ));
     display(details("Provenance object", portProvenance));
+    display(downloadMany([
+      {
+        filename: "resource_portability_spectra.tsv",
+        text: portSigProfilerTsv,
+        label: "Download spectra TSV",
+      },
+      {
+        filename: "resource_portability_signatures.tsv",
+        text: portCosmicTsv,
+        label: "Download signatures TSV",
+      },
+      {
+        filename: "resource_portability_provenance.json",
+        type: "json",
+        value: {
+          discoveryStatus: portDiscoveryStatus,
+          matrixSourceStatus: portMatrixSourceStatus,
+          provenance: portProvenance,
+          validation: {
+            spectra: portSpectraValidation,
+            signatures: portSignatureValidation,
+          },
+        },
+        label: "Download provenance JSON",
+      },
+    ]));
   </script>
 
   <script type="text/markdown">
@@ -328,7 +393,9 @@
 
     The TCGA namespace starts from GDC resources rather than mSigPortal spectra. `getMafInformationFromProjects` discovers MAF file IDs and case metadata. A full TCGA mutation-spectrum run uses those IDs with `getVariantInformationFromMafFiles`, then converts the result into the same row shape used above.
 
-    The full MAF download/conversion is intentionally not run automatically here because it can be slow in a reviewer browser session. The cell below shows the live GDC index and demonstrates the shared row schema using the already-loaded spectra.
+    The full MAF download/conversion is intentionally not run automatically here because it can be slow in a browser session. The cell below shows the live GDC index and demonstrates the shared row schema using the already-loaded spectra.
+
+    The important connection is conceptual: TCGA/GDC begins with variant files, mSigPortal begins with signature resources, and both can converge on the same SDK matrix and report objects.
   </script>
 
   <script type="module" pinned id="5">

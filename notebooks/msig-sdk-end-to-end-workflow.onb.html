@@ -5,7 +5,9 @@
   <script type="text/markdown">
     # End-to-end workflow
 
-    This notebook follows one compact analysis from local spectra through validation, known-signature fitting, fit-quality evidence, uncertainty checks, report/provenance output, and external-tool interoperability. It is the fastest way to see how the SDK pieces fit together in a reusable project workflow.
+    This workflow is the shortest complete analysis path through mSigSDK. It begins with local spectra, validates the matrix, fits known signatures, checks reconstruction and uncertainty, packages report fields, prepares external-tool handoffs, and saves the analysis record.
+
+    Read it as a template for a real project. Each section answers one decision: whether the input is usable, whether the fit is credible, whether the exposure estimates are stable, whether the result can be exchanged with other tools, and whether the exported bundle is sufficient to reproduce the analysis.
   </script>
 
   <script type="module" pinned id="1">
@@ -48,9 +50,11 @@
   </script>
 
   <script type="text/markdown">
-    ## Adapt this notebook
+    ## Step 1. Swap in project spectra and signatures
 
-    Replace the local spectra and signature catalog with project-specific inputs. Keep the validation, burden, reconstruction, residual, uncertainty, warning, report, and export cells so the adapted workflow keeps a complete evidence trail.
+    Replace the local spectra and signature catalog with project-specific inputs, then leave the downstream validation and reporting cells intact. The purpose of this first step is to make the input substitution explicit before analysis begins.
+
+    If a result becomes confusing after adaptation, return here first. Most downstream problems come from a transposed matrix, normalized spectra where counts are expected, mismatched context names, or a catalog that does not match the matrix profile.
   </script>
 
   <script type="module" pinned id="2">
@@ -70,9 +74,11 @@
   </script>
 
   <script type="text/markdown">
-    ## Run the cohort workflow
+    ## Step 2. Run the core cohort fit
 
-    The high-level workflow returns exposure estimates, reconstruction metrics, fit-quality evidence, warnings, recommended actions, report fields, and figure descriptors.
+    The high-level workflow returns exposure estimates, reconstruction metrics, fit-quality evidence, warnings, recommended actions, report fields, and figure descriptors. The output should be read from general to specific: validation and burden first, reconstruction second, exposures third.
+
+    The exposure table is useful only after the fit-quality fields support interpretation. A poor reconstruction means the signature catalog or input matrix needs review before any biological claim is made.
   </script>
 
   <script type="module" pinned id="3">
@@ -121,9 +127,11 @@
   </script>
 
   <script type="text/markdown">
-    ## Check uncertainty and threshold dependence
+    ## Step 3. Check uncertainty and threshold dependence
 
-    Bootstrap intervals and threshold sweeps answer a different question than fitted exposure size: whether the fitted exposure is stable enough to report without excessive caveats.
+    Bootstrap intervals and threshold sweeps answer a different question than fitted exposure size: whether the fitted exposure is stable enough to report without excessive caveats. A large point estimate can still be unstable if it appears inconsistently across bootstrap draws or changes sharply with the reporting threshold.
+
+    Use this section to decide which exposures should be emphasized, which should be caveated, and which should be omitted from a concise report.
   </script>
 
   <script type="module" pinned id="4">
@@ -169,9 +177,11 @@
   </script>
 
   <script type="text/markdown">
-    ## Interoperability and report bundle
+    ## Step 4. Prepare report and interoperability objects
 
-    mSigSDK outputs should remain portable. The same spectra and signatures can be exported as common matrices, packaged as a report object, and compared with cached external-tool evidence.
+    mSigSDK outputs should remain portable. The same spectra and signatures can be exported as common matrices, packaged as a report object, and compared with cached external-tool evidence. This step connects the browser workflow to R, Python, supplemental tables, or another application.
+
+    If the report is going to leave the notebook, preserve the parameters, SDK version, validation summary, warnings, and provenance with the exposure table.
   </script>
 
   <script type="module" pinned id="5">
@@ -221,7 +231,9 @@
   </script>
 
   <script type="text/markdown">
-    ## Save the analysis record
+    ## Step 5. Save the analysis record
+
+    The final record is the audit trail for the run. It should contain the input matrices, fitted exposures, QC evidence, uncertainty summaries, report fields, provenance, and interoperability metadata. Saving only the final exposure table would make the result difficult to evaluate later.
   </script>
 
   <script type="module" pinned id="6">
