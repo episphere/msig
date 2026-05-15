@@ -3,7 +3,7 @@
   <title>mSigSDK known-signature quality check</title>
 
   <script type="text/markdown">
-    # Known-signature fitting and quality checks
+    # Known-signature quality check
 
     Use this notebook first if you are new to mSigSDK. It demonstrates the complete known-signature fitting workflow: import the SDK, define an SBS96 analysis, load count-scale public spectra and COSMIC reference signatures, reshape the API rows into SDK tables, check inputs, estimate signature contributions, and inspect quality-check plots.
 
@@ -63,7 +63,7 @@
   </script>
 
   <script type="text/markdown">
-    ## 1. Choose the profile, example data, and fitting settings
+    ## Step 1. Choose the profile, example data, and fitting settings
 
     The first analysis decision is the mutation table. Here we use SBS96, so `getExpectedContexts` returns the 96 trinucleotide contexts used to check spectra and signatures. The mSigPortal calls fetch specific PCAWG WGS Lung-AdenoCA samples with real mutation counts, including high-count and low-count examples so the review cues are visible. In your own project, replace `qcExampleSampleNames` with your local sample IDs or replace the fetch with your own spectra object.
 
@@ -71,7 +71,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 1, phase: "data", title: "1. Choose the profile, example data, and fitting settings", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 1, phase: "data", title: "Step 1. Choose the profile, example data, and fitting settings", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -217,7 +217,7 @@
   </script>
 
   <script type="text/markdown">
-    ## 2. Check inputs, fit, and build review objects
+    ## Step 2. Check inputs, fit, and build review objects
 
     Input checking is not optional boilerplate. It confirms that spectra and signatures share the expected contexts before fitting. The fitting call estimates relative signature contributions, and the quality-check functions return plain result objects that can be inspected, saved, or passed into plotting functions.
 
@@ -225,7 +225,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 2, phase: "analysis", title: "2. Check inputs, fit, and build review objects", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 2, phase: "analysis", title: "Step 2. Check inputs, fit, and build review objects", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="3">
@@ -310,7 +310,7 @@
   </script>
 
   <script type="text/markdown">
-    ## 3. Check mutation counts
+    ## Step 3. Check mutation counts
 
     Mutation count affects how much information is available for fitting. Samples below the cutoff marker should be interpreted cautiously, especially for weak or rare signatures. In your own workflow, set this cutoff from your study design or assay characteristics rather than treating this example value as universal.
 
@@ -318,7 +318,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 3, phase: "visualize", title: "3. Check mutation counts", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 3, phase: "visualize", title: "Step 3. Check mutation counts", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="4">
@@ -329,7 +329,7 @@
   </script>
 
   <script type="text/markdown">
-    ## 4. Inspect reconstruction quality
+    ## Step 4. Inspect reconstruction quality
 
     Cosine similarity measures profile-shape agreement; RMSE measures residual magnitude on the relative-profile scale used for fitting. Inspect both because a fit can have good shape agreement while still leaving systematic residuals in specific mutation contexts. Use the mutation-count table above for count totals.
 
@@ -337,7 +337,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 4, phase: "review", title: "4. Inspect reconstruction quality", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 4, phase: "review", title: "Step 4. Inspect reconstruction quality", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">
@@ -351,7 +351,7 @@
   </script>
 
   <script type="text/markdown">
-    ## 5. Inspect residual spectra
+    ## Step 5. Inspect residual spectra
 
     Residual plots show where the fitted signature mixture does not reconstruct the observed spectrum. Positive residuals are underfit contexts; negative residuals are overfit contexts. This is often where you identify missing reference signatures, context-specific technical effects, or samples that need a different analysis strategy.
 
@@ -359,7 +359,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-5">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 5, phase: "visualize", title: "5. Inspect residual spectra", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 5, phase: "visualize", title: "Step 5. Inspect residual spectra", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="6">
@@ -374,7 +374,7 @@
   </script>
 
   <script type="text/markdown">
-    ## 6. Package the same fit as a workflow result
+    ## Step 6. Package the same fit as a workflow result
 
     The lower-level cells above teach each review step. The high-level workflow returns the same analysis as a reviewable bundle with warnings, suggested review steps, fit-quality evidence, figure descriptors, report fields, and exports.
 
@@ -382,7 +382,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-6">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 6, phase: "analysis", title: "6. Package the same fit as a workflow result", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 6, phase: "analysis", title: "Step 6. Package the same fit as a workflow result", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="7">

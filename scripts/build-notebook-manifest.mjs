@@ -37,7 +37,7 @@ const overrides = {
     order: 8,
   },
   "msig-sdk-resource-portability.onb.html": {
-    title: "Resource portability",
+    title: "Move data between resources",
     summary: "Move data between mSigPortal, TCGA/GDC, common table formats, and reports.",
     image: "images/mSigPortal.png",
     workflowGroup: "input",
@@ -86,14 +86,14 @@ const overrides = {
     order: 40,
   },
   "msig-sdk-panel-evidence-tiers.onb.html": {
-    title: "Panel evidence tiers",
+    title: "Panel/WES evidence review",
     summary: "Review what panel or WES data can and cannot support before reporting signatures.",
     image: "images/datasetSummary.png",
     workflowGroup: "core",
     order: 35,
   },
   "msig-sdk-multi-engine-comparison.onb.html": {
-    title: "Multi-engine comparison",
+    title: "Multi-tool comparison",
     summary: "Compare mSigSDK with SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls on the same data.",
     image: "images/signatureComparison.png",
     workflowGroup: "reliability",

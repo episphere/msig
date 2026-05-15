@@ -86,7 +86,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "cohort-panel", step: 1, phase: "analysis", title: "Step 1. Fit the cohort with metadata", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "cohort-panel", step: 1, phase: "analysis", title: "Step 1. Fit the cohort with sample details", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -142,9 +142,9 @@
   <script type="text/markdown">
     ## Step 2. Inspect cohort evidence before reporting group results
 
-    The next decision is whether the cohort fit is strong enough to summarize. Fit-quality modes, warning codes, recommended actions, and figure descriptors explain which outputs can be shown routinely and which need caveats. This section turns a table of exposures into a reportable evidence object.
+    The next decision is whether the cohort fit is strong enough to summarize. Fit-quality modes, warning codes, suggested review steps, and figure descriptors explain which outputs can be shown routinely and which need caveats. This section turns a table of signature contributions into a reportable evidence object.
 
-    When adapting the workflow, review this section before creating figures. A group difference is not convincing if it is driven by low-burden samples or poor reconstruction.
+    When adapting the workflow, review this section before creating figures. A group difference is not convincing if it is driven by low mutation-count samples or poor reconstruction.
   </script>
 
   <script type="module" pinned id="interactive-step-2">
@@ -223,8 +223,8 @@
 
     display(metrics([
       { label: "Panel workflow", value: cpPanelResult.workflow },
-      { label: "Opportunity source", value: cpPanelResult.opportunityMetadata.opportunitySource },
-      { label: "Opportunity coverage", value: cpPanelResult.opportunityMetadata.opportunityCoverage },
+      { label: "Coverage source", value: cpPanelResult.opportunityMetadata.opportunitySource },
+      { label: "Coverage score", value: cpPanelResult.opportunityMetadata.opportunityCoverage },
       { label: "Evidence calls", value: cpPanelResult.panel.evidenceSummary.callCount },
       { label: "Warnings", value: cpPanelResult.warnings.length },
     ]));
@@ -232,9 +232,9 @@
     display(table(
       panelValidationSummary,
       [
-        { key: "callableContextCount", label: "Callable contexts" },
+        { key: "callableContextCount", label: "Covered contexts" },
         { key: "truthExposureBin", label: "Truth exposure bin" },
-        { key: "panelBurdenBin", label: "Panel burden bin" },
+        { key: "panelBurdenBin", label: "Panel mutation-count bin" },
         { key: "calls", label: "Validation calls" },
         { key: "tierAccuracy", label: "Tier accuracy" },
         { key: "meanPanelVsWgsExposureCosine", label: "Mean panel-WGS cosine" },
@@ -263,7 +263,7 @@
       {
         filename: "cohort_panel_exposures.csv",
         text: rowsToCsv(exposureRows(cpCohortResult.fit.exposures, { minExposure: 0, topN: 100 })),
-        label: "Download cohort exposures CSV",
+        label: "Download cohort signature contributions CSV",
       },
       {
         filename: "panel_evidence_calls.csv",

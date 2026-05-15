@@ -22,7 +22,7 @@ const DEFAULT_NOTEBOOKS = [
   },
   {
     file: "msig-sdk-resource-portability.onb.html",
-    title: "Resource portability",
+    title: "Move data between resources",
     summary: "Move data between mSigPortal, TCGA/GDC, common table formats, and reports.",
     workflowGroup: "input",
     workflowGroupLabel: "Load Data",
@@ -57,7 +57,7 @@ const DEFAULT_NOTEBOOKS = [
   },
   {
     file: "msig-sdk-panel-evidence-tiers.onb.html",
-    title: "Panel evidence tiers",
+    title: "Panel/WES evidence review",
     summary: "Review what panel or WES data can and cannot support before reporting signatures.",
     workflowGroup: "core",
     workflowGroupLabel: "Analyze Data",
@@ -78,7 +78,7 @@ const DEFAULT_NOTEBOOKS = [
   },
   {
     file: "msig-sdk-multi-engine-comparison.onb.html",
-    title: "Multi-engine comparison",
+    title: "Multi-tool comparison",
     summary: "Compare mSigSDK with SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls on the same data.",
     workflowGroup: "reliability",
     workflowGroupLabel: "Review And Report",
@@ -201,6 +201,16 @@ function setStatus(message, mode = "") {
   status.className = `runner-status ${mode}`.trim();
 }
 
+function refreshEditor(editorState) {
+  if (editorState?.type !== "codemirror") return;
+  const editor = editorState.editor;
+  if (!editor?.refresh) return;
+  window.requestAnimationFrame(() => {
+    editor.refresh();
+    window.setTimeout(() => editor.refresh(), 50);
+  });
+}
+
 function setCodeCellExpanded(cell, expanded) {
   if (!cell) return;
   cell.element?.classList.toggle("code-expanded", expanded);
@@ -218,8 +228,8 @@ function setCodeCellExpanded(cell, expanded) {
     cell.toggleSourceButton.textContent = expanded ? "Hide code" : "Show code";
     cell.toggleSourceButton.setAttribute("aria-expanded", String(expanded));
   }
-  if (expanded && cell.editor?.refresh) {
-    window.requestAnimationFrame(() => cell.editor.refresh());
+  if (expanded) {
+    refreshEditor(cell.editor);
   }
 }
 
@@ -563,13 +573,132 @@ function metrics(items) {
   return grid;
 }
 
+function pluralizeRows(count) {
+  return `${count} row${count === 1 ? "" : "s"}`;
+}
+
+function columnKeysForDescription(data, columns) {
+  if (Array.isArray(columns) && columns.length) {
+    return columns
+      .map((column) => (typeof column === "string" ? column : column?.key))
+      .filter(Boolean);
+  }
+  return Object.keys(data?.[0] || {});
+}
+
+function inferTableDescription(data, columns) {
+  const rowCount = Array.isArray(data) ? data.length : 0;
+  const keys = columnKeysForDescription(data, columns);
+  const keySet = new Set(keys);
+  const has = (...required) => required.every((key) => keySet.has(key));
+  const hasAny = (...candidates) => candidates.some((key) => keySet.has(key));
+
+  if (has("sample", "signature", "exposure")) {
+    return {
+      title: "Signature contribution estimates",
+      caption:
+        "Shows fitted signature contribution estimates by sample and signature. Read these with the quality checks and warnings.",
+    };
+  }
+  if (has("sample", "mutations") || has("sample", "totalMutations")) {
+    return {
+      title: "Mutation-count summary",
+      caption:
+        "Shows mutation counts and low-count review cues for each sample.",
+    };
+  }
+  if (has("sample", "cosineSimilarity", "rmse")) {
+    return {
+      title: "Reconstruction quality values",
+      caption:
+        "Shows how closely fitted signatures reconstruct each sample. Higher cosine and lower RMSE are reassuring, but not conclusive alone.",
+    };
+  }
+  if (has("sample", "reportingMode") || has("sample", "reviewFlagCodes")) {
+    return {
+      title: "Fit-quality evidence",
+      caption:
+        "Shows the reporting mode and review cues that qualify each sample's fitted signature estimates.",
+    };
+  }
+  if (hasAny("cue", "SDK code", "recommended action", "reviewFlagCodes") || has("code", "message")) {
+    return {
+      title: "Review cues and suggested checks",
+      caption:
+        "Shows why the workflow raised cautionary review cues.",
+    };
+  }
+  if (has("number", "action") || has("action")) {
+    return {
+      title: "Suggested review steps",
+      caption:
+        "Shows follow-up checks to consider before reporting results.",
+    };
+  }
+  if (hasAny("tool", "tool or package", "files", "supporting details")) {
+    return {
+      title: "Tool export summary",
+      caption:
+        "Shows which external-tool files or package outputs are prepared.",
+    };
+  }
+  if (has("file") || has("filename")) {
+    return {
+      title: "Files produced by this step",
+      caption:
+        "Shows files available for rerun, review, or sharing.",
+    };
+  }
+  if (has("section") && hasAny("contents", "summary")) {
+    return {
+      title: "Report sections",
+      caption:
+        "Shows the major report fields preserved in the workflow output.",
+    };
+  }
+  if (has("field", "value")) {
+    return {
+      title: "Key settings and values",
+      caption:
+        "Shows the selected settings or run details used by this step.",
+    };
+  }
+  if (hasAny("output", "check", "column", "table") && hasAny("meaning", "value")) {
+    return {
+      title: "How to read this output",
+      caption:
+        "Defines the fields shown in this step.",
+    };
+  }
+  return {
+    title: "Result table",
+    caption: `Shows ${pluralizeRows(rowCount)} of structured output from this notebook step.`,
+  };
+}
+
 function table(rows, columns = null, options = {}) {
   const maxRows = Number.isFinite(options.maxRows) ? options.maxRows : 12;
   const data = Array.isArray(rows) ? rows : [];
   const wrapper = document.createElement("div");
   wrapper.className = "output-table-wrap";
+  const inferredDescription = inferTableDescription(data, columns);
+  const tableTitle = options.title === false ? "" : options.title || inferredDescription.title;
+  const tableCaption = options.caption === false ? "" : options.caption || inferredDescription.caption;
+
+  if (tableTitle) {
+    const title = document.createElement("h4");
+    title.className = "output-table-title";
+    title.textContent = tableTitle;
+    wrapper.append(title);
+  }
 
   if (!data.length) {
+    if (tableCaption) {
+      const caption = document.createElement("p");
+      caption.className = "output-caption";
+      caption.textContent = tableCaption;
+      wrapper.append(caption);
+    }
     wrapper.append(note("No rows to display."));
     return wrapper;
   }
@@ -582,6 +711,10 @@ function table(rows, columns = null, options = {}) {
     }));
   const tableElement = document.createElement("table");
   tableElement.className = "output-table";
+  if (tableCaption) {
+    const caption = tableElement.createCaption();
+    caption.textContent = tableCaption;
+  }
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
@@ -610,10 +743,10 @@ function table(rows, columns = null, options = {}) {
   wrapper.append(tableElement);
 
   if (data.length > maxRows) {
-    const caption = document.createElement("p");
-    caption.className = "output-caption";
-    caption.textContent = `Showing ${maxRows} of ${data.length} rows.`;
-    wrapper.append(caption);
+    const rowCountCaption = document.createElement("p");
+    rowCountCaption.className = "output-caption";
+    rowCountCaption.textContent = `Showing ${maxRows} of ${data.length} rows.`;
+    wrapper.append(rowCountCaption);
   }
 
   return wrapper;

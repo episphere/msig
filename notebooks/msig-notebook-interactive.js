@@ -98,11 +98,11 @@ const NOTEBOOK_LINKS = [
   ["Bring your own spectra", "msig-sdk-bring-your-own-spectra.onb.html", "Local data"],
   ["MAF to report", "msig-sdk-maf-fit-report.onb.html", "Variant rows"],
   ["Cohort and panel", "msig-sdk-cohort-panel-workflow.onb.html", "Sample groups and assays"],
-  ["Panel evidence tiers", "msig-sdk-panel-evidence-tiers.onb.html", "Restricted assays"],
+  ["Panel/WES evidence review", "msig-sdk-panel-evidence-tiers.onb.html", "Restricted assays"],
   ["Discovery extraction (NMF)", "msig-sdk-nmf-extraction.onb.html", "Discovery screening"],
   ["Export and reports", "msig-sdk-export-report.onb.html", "Saved outputs"],
-  ["Resource portability", "msig-sdk-resource-portability.onb.html", "Round trips"],
-  ["Multi-engine comparison", "msig-sdk-multi-engine-comparison.onb.html", "Cross-tool review"],
+  ["Move data between resources", "msig-sdk-resource-portability.onb.html", "Round trips"],
+  ["Multi-tool comparison", "msig-sdk-multi-engine-comparison.onb.html", "Cross-tool review"],
   ["Experimental sandbox", "msig-sdk-experimental-sandbox.onb.html", "Exploratory outputs"],
 ];
 
@@ -1432,7 +1432,8 @@ export function renderInteractiveStep({
   const header = document.createElement("div");
   header.className = "workflow-step-header";
   const heading = document.createElement("strong");
-  heading.textContent = `Interactive step ${step}${title ? `: ${title}` : ""}`;
+  const cleanTitle = String(title || "").replace(new RegExp(`^\\s*(?:Step\\s+)?${step}\\.\\s*`, "i"), "");
+  heading.textContent = `Interactive Step ${step}${cleanTitle ? `: ${cleanTitle}` : ""}`;
   const description = document.createElement("span");
   description.textContent = phaseInfo.helper;
   header.append(heading, description);

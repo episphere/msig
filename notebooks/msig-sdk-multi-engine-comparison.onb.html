@@ -1,29 +1,16 @@
 <!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>mSigSDK multi-engine comparison workspace</title>
-</head>
-<body>
 <notebook theme="air">
 
-<title>mSigSDK multi-engine comparison workspace</title>
+<title>mSigSDK multi-tool comparison</title>
 
 <script type="text/markdown">
-# Multi-tool signature comparison
+# Multi-tool comparison
 
 Run a single mutational spectrum table through the built-in mSigSDK fit, load package outputs from SigProfilerAssignment, deconstructSigs, MuSiCal, and independent R NNLS, and compare every result on the same samples and the same COSMIC SBS96 reference catalog.
 
 The workspace uses 38 cached PCAWG lung adenocarcinoma WGS spectra and nine COSMIC SBS96 signatures (`SBS1`, `SBS2`, `SBS4`, `SBS5`, `SBS13`, `SBS17a`, `SBS17b`, `SBS18`, `SBS40`). The same pattern applies to a researcher-owned cohort: replace the spectrum table and package-output CSVs, then rerun the notebook to inspect agreement, disagreement, and tool-specific outputs in one place.
 
-Workflow:
-
-1. Fix the spectra and reference catalog so every tool receives the same input.
-2. Run the built-in mSigSDK fit and load package outputs produced outside the browser.
-3. Normalize all outputs into one sample-by-signature contribution shape.
-4. Compare agreement across tools at package and sample level.
-5. Inspect samples where top signatures disagree.
-6. Export tables that document the comparison.
+Read this as a reproducibility review rather than a leaderboard. The workflow fixes the input spectra and reference catalog, normalizes every package output into one contribution shape, reviews agreement at package and sample level, highlights disagreements, and exports the run files needed to reproduce the comparison.
 </script>
 
 <script type="module" pinned>
@@ -213,7 +200,7 @@ function engineExposureLongRows(engineExposureSets, sampleNames, signatures) {
   <script type="text/markdown">
     ## Interactive workspace
 
-    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
   </script>
 
   <script type="module" pinned id="interactive-workspace">
@@ -283,7 +270,7 @@ const engineRegistryRows = [
   {
     engine: "deconstructSigs",
     task: "Known-signature refit",
-    browser_execution: "R package handoff/import",
+    browser_execution: "R package output import",
     package_output: "Cached deconstructSigs v1.8.0 result",
     comparison_role: "R package benchmark"
   },
@@ -304,7 +291,7 @@ const engineRegistryRows = [
   {
     engine: "SigProfilerExtractor",
     task: "De novo extraction",
-    browser_execution: "Python handoff/import",
+    browser_execution: "Python package output import",
     package_output: "Input bundle prepared; no package output loaded",
     comparison_role: "Production extraction engine target"
   }
@@ -630,7 +617,7 @@ display(engineTable(engineDisagreementRows, {
 <script type="text/markdown">
 ## Step 5. Inspect exposure profiles for samples requiring interpretation
 
-The long exposure table keeps each package output in a common shape: engine, sample, signature, exposure. Downstream review tools can filter this table by sample, signature family, or engine pair.
+The long contribution table keeps each package output in a common shape: tool, sample, signature, contribution. Downstream review tools can filter this table by sample, signature family, or tool pair.
 </script>
 
   <script type="module" pinned id="interactive-step-5">
@@ -709,7 +696,7 @@ const engineExtractionRows = [
   },
   {
     engine: "SigProfilerExtractor",
-    execution: "Python package handoff",
+    execution: "Python package run files",
     output: `${engineExtractorInput.files?.length || 0} prepared files`,
     comparison_use: "Run extraction externally, import extracted signatures and activities"
   }
@@ -807,7 +794,7 @@ display(engineTable(engineBundleRows, {
     { key: "code_snippets", label: "Code snippets" },
     { key: "output_to_import", label: "Output to import" }
   ],
-  title: "Prepared package handoffs",
+  title: "Prepared package run files",
   maxRows: engineBundleRows.length
 }));
 
@@ -859,7 +846,7 @@ const engineArtifacts = [
   {
     filename: "multi_engine_exposure_long.csv",
     text: rowsToCsv(engineExposureLongRows(engineExposureSets, engineSampleNames, engineSignatureNames)),
-    label: "Download long-format exposures CSV"
+    label: "Download long-format signature contributions CSV"
   },
   {
     filename: "multi_engine_workspace.json",
@@ -884,5 +871,3 @@ display(downloadMany(engineArtifacts));
 </script>
 
 </notebook>
-</body>
-</html>

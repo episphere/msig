@@ -13,7 +13,7 @@
   </script>
 
   <script type="module" pinned id="1">
-    const workflowSdkUrl = new URL("../main.js?v=2026-05-15-engine-selection", location.href).href;
+    const workflowSdkUrl = new URL("../main.js?v=2026-05-15-table-captions", location.href).href;
     const { mSigSDK } = await import(workflowSdkUrl);
     const {
       crossToolSummary,
@@ -320,7 +320,7 @@
         }));
     }
 
-    function catalogAmbiguityTable(analysis, maxRows = 20) {
+    function catalogAmbiguityTable(analysis, maxRows = 20, options = {}) {
       return tooltipTable(
         signatureAmbiguityEvidenceRows(analysis, maxRows),
         [
@@ -361,11 +361,17 @@
             tooltip: "How broad or flat the reference signature profile is. Broad signatures may absorb related signal and should be reviewed cautiously.",
           },
         ],
-        { maxRows }
+        {
+          maxRows,
+          title: options.title || "Reference-signature similarity evidence",
+          caption:
+            options.caption ||
+            "Shows which reference signatures have catalog-level similarity cues. These cues describe possible exchangeability among signatures and do not by themselves mean a sample fit is wrong.",
+        }
       );
     }
 
-    function workflowWarningTable(warnings, maxRows = 12) {
+    function workflowWarningTable(warnings, maxRows = 12, options = {}) {
       return tooltipTable(
         workflowWarningRows(warnings),
         [
@@ -374,7 +380,13 @@
           { key: "message", label: "Why this cue appeared" },
           { key: "recommended action", label: "Suggested review step" },
         ],
-        { maxRows }
+        {
+          maxRows,
+          title: options.title || "Workflow review cues",
+          caption:
+            options.caption ||
+            "Shows warning and review cues raised by the workflow, why each cue appeared, and what to inspect next. These are conservative review prompts, not final conclusions.",
+        }
       );
     }
 
@@ -1254,14 +1266,20 @@
         { field: "Selected public study", value: workflowState.publicSelection ? `${workflowState.publicSelection.study} ${workflowState.publicSelection.cancer}` : "not public API data" },
         { field: "Profile and table size", value: workflowState.publicSelection ? `${workflowState.publicSelection.profile}${workflowState.publicSelection.matrix}` : `${workflowState.contexts.length} contexts` },
         { field: "Signature catalog", value: workflowState.publicSelection?.signatureSetName || "user supplied" },
-      ]));
+      ], null, {
+        title: "Active data source",
+        caption: "Records where the current tutorial data came from and which public dataset or user-supplied tables will be analyzed.",
+      }));
       inputSummary.append(note("Read the source table as the run record: it records whether this run came from mSigPortal public APIs, pasted/uploaded local data, or the offline fixture.", "info"));
       inputSummary.append(table([
         { check: "Spectra issues", value: validation.spectra.issues.length },
         { check: "Signature issues", value: validation.signatures.issues.length },
         { check: "Low mutation-count samples", value: validation.burden.overall.lowBurdenSampleCount },
         { check: "Context coverage complete", value: validation.contextCoverage.complete ? "Yes" : "Review" },
-      ]));
+      ], null, {
+        title: "Input check counts",
+        caption: "Summarizes structural input checks before fitting. Any nonzero issue count should be resolved or explained before interpreting fitted signatures.",
+      }));
       inputSummary.append(workflowOutputGuide(
         "Input checks",
         "These checks decide whether the loaded tables can be compared. They do not prove that the fitted biology is correct; they only confirm the inputs are coherent enough to analyze.",
@@ -1605,7 +1623,10 @@
           { output: "Low-count cutoff", meaning: "The mutation-count value currently used to raise low-count review cues." },
         ]
       ));
-      runOutput.append(table(burdenSampleRows(validation.burden)));
+      runOutput.append(table(burdenSampleRows(validation.burden), null, {
+        title: "Mutation-count review table",
+        caption: "Shows each sample's mutation count and whether it falls below the current low-count cutoff. Low-count samples usually need more cautious interpretation.",
+      }));
       runOutput.append(note("In the mutation-count table, Low-count review cue = Yes means the sample can still be analyzed, but later signature contribution estimates should be read with more caution.", "warning"));
     });
 
@@ -1647,6 +1668,8 @@
         runOutput.append(fitQualityEvidenceTable(analysis.fitQualityEvidence, {
           includeActiveSignatures: true,
           maxRows: 12,
+          title: "Fit-quality evidence after fitting",
+          caption: "Shows the reporting mode and review cues assigned after the selected fitting method runs. Use this table before interpreting signature contribution estimates.",
         }));
         runOutput.append(workflowOutputGuide(
           "Reference-signature similarity evidence",
@@ -1797,19 +1820,29 @@
       await plotSection(
         "Mutation count",
         (id) => mSigSDK.qcPlots.plotMutationBurdenSummary(id, analysis.qc.mutationBurden),
-        table(burdenSampleRows(analysis.qc.mutationBurden)),
+        table(burdenSampleRows(analysis.qc.mutationBurden), null, {
+          title: "Mutation-count values behind the plot",
+          caption: "Lists the same sample-level mutation-count evidence used in the mutation-count figure.",
+        }),
         "Shows total mutation counts per sample and which samples fall below the configured low-count cutoff. Low-count samples are more sensitive to sampling noise."
       );
       await plotSection(
         "Reconstruction error",
         (id) => mSigSDK.qcPlots.plotReconstructionError(id, analysis.qc.reconstructionError),
-        table(reconstructionRows(analysis.qc.reconstructionError)),
-        "Shows how closely the fitted signatures reconstruct each observed spectrum. Better reconstruction is reassuring but not conclusive; poorer reconstruction is a reason to inspect residuals, signal level, catalog choice, and input compatibility."
+        table(reconstructionRows(analysis.qc.reconstructionError), null, {
+          title: "Reconstruction values behind the plot",
+          caption: "Lists cosine similarity and RMSE for each sample. Higher cosine and lower RMSE are reassuring, but should be read with residuals and review cues.",
+        }),
+        "Shows how closely the fitted signatures reconstruct each observed spectrum. RMSE is the average context-by-context mismatch on the normalized profile scale: closer to 0 is better, and a value such as 0.003 is usually small for an SBS96 relative profile, but it is not a universal pass/fail cutoff. Read it with cosine similarity, residual shape, mutation count, catalog choice, and input compatibility."
       );
       await plotSection(
         "Fit quality",
         (id) => mSigSDK.qcPlots.plotFitQualityEvidenceDashboard(id, analysis.fitQualityEvidence),
-        fitQualityEvidenceTable(analysis.fitQualityEvidence, { maxRows: 8 }),
+        fitQualityEvidenceTable(analysis.fitQualityEvidence, {
+          maxRows: 8,
+          title: "Fit-quality values behind the plot",
+          caption: "Lists the reporting mode and review cues shown in the fit-quality figure.",
+        }),
         "Summarizes the review mode and caution cues for each sample. This is the main place to decide how much caution and supporting evidence should accompany fitted signature contributions."
       );
       await plotSection(
@@ -1838,7 +1871,10 @@
           status.textContent = `Showing uncertainty intervals for sample ${sample}.`;
         },
         (sample) => analysis.exposureEngine?.supportsBootstrap
-          ? table(bootstrapRows(workflowState.bootstrapBySample?.[sample] || workflowState.bootstrap))
+          ? table(bootstrapRows(workflowState.bootstrapBySample?.[sample] || workflowState.bootstrap), null, {
+            title: "Uncertainty values for the selected sample",
+            caption: "Lists bootstrap interval and selection-frequency values for the sample selected above.",
+          })
           : note("Uncertainty intervals are intentionally not shown for this selected fitting method. Use that package's own uncertainty workflow, or switch the fitting method to mSigSDK quick fit to see notebook-level uncertainty intervals.", "warning"),
         "Shows uncertainty for the selected sample under resampling when the selected fitting method supports the notebook's uncertainty path. External packages should use their package-specific uncertainty workflows.",
         {
@@ -1860,7 +1896,10 @@
           return mSigSDK.qcPlots.plotThresholdSensitivity(id, analysis.thresholdSensitivity);
         },
         analysis.thresholdSensitivity
-          ? table(thresholdRows(analysis.thresholdSensitivity))
+          ? table(thresholdRows(analysis.thresholdSensitivity), null, {
+            title: "Cutoff sensitivity values",
+            caption: "Lists how reconstruction, active signatures, and contribution estimates change across the cutoff values tested in this workflow.",
+          })
           : note("Cutoff sensitivity is not recomputed for this selected fitting method because different packages may apply cutoffs differently. Review that package's sensitivity settings or switch to mSigSDK quick fit for this notebook check.", "warning"),
         "Shows whether fitted signatures remain present as the minimum contribution cutoff changes when the selected method supports this notebook check."
       );
@@ -1882,11 +1921,16 @@
         ]
       ));
       tableStack.append(note("Signature contribution rows should not be copied into a result section without the reporting mode, warning codes, and cutoff/uncertainty context.", "warning"));
-      tableStack.append(table(exposureRows(analysis.fit.exposures, { minExposure: 0, topN: 30 })));
+      tableStack.append(table(exposureRows(analysis.fit.exposures, { minExposure: 0, topN: 30 }), null, {
+        title: "Signature contribution estimates",
+        caption: "Shows the fitted contribution estimates produced by the selected fitting method. These are model estimates and should be read with the fit-quality and warning tables below.",
+      }));
       tableStack.append(fitQualityMethodGuide());
       tableStack.append(fitQualityEvidenceTable(analysis.fitQualityEvidence, {
         includeActiveSignatures: true,
         maxRows: 12,
+        title: "Fit-quality evidence for reporting",
+        caption: "Shows how cautiously each sample should be interpreted and which review cues should accompany the contribution estimates.",
       }));
       tableStack.append(workflowOutputGuide(
         "Reference-signature similarity evidence",
@@ -1895,7 +1939,10 @@
       ));
       tableStack.append(workflowWarningTable(analysis.warnings));
       tableStack.append(note("Warnings are review safeguards. They explain which configured rule was triggered and why the result may need caveats, residual review, a broader catalog, more mutations, or a different analysis strategy.", "warning"));
-      tableStack.append(table(actionRows(analysis.recommendedActions)));
+      tableStack.append(table(actionRows(analysis.recommendedActions), null, {
+        title: "Suggested review steps",
+        caption: "Lists the follow-up checks generated from the workflow review evidence. Treat these as a practical checklist before reporting.",
+      }));
       tableStack.append(note("Suggested review steps are generated from the review evidence. Treat them as the checklist for adapting this notebook to a publication or project report.", "info"));
       tableStack.append(details("Full workflow result", analysis));
     }
@@ -1922,9 +1969,33 @@
 
     function handoffRows(bundle) {
       return Object.entries(bundle?.tools || {}).map(([tool, value]) => ({
-        tool,
+        "tool or package": tool,
         files: Array.isArray(value.files) ? value.files.length : 0,
-        recordedFields: Object.keys(value.manifest || {}).length,
+        "supporting details": Object.keys(value.manifest || {}).length,
+      }));
+    }
+
+    function readableReportFieldRows(report) {
+      const fieldLabels = {
+        schemaVersion: "Report format version",
+        title: "Report title",
+        summary: "Summary",
+        generatedAt: "Created time",
+        parameters: "Run settings",
+        validation: "Input checks",
+        qc: "Quality checks",
+        warnings: "Cautions",
+        recommendedActions: "Suggested follow-up",
+        fitQualityEvidence: "Fit-quality evidence",
+        thresholdSensitivity: "Cutoff sensitivity",
+        bootstrap: "Uncertainty estimates",
+        provenance: "Run record",
+        citations: "Citations",
+        notes: "Notes",
+      };
+      return reportFieldRows(report).map((row) => ({
+        section: fieldLabels[row.field] || row.field,
+        contents: row.summary,
       }));
     }
 
@@ -1977,29 +2048,38 @@
         { file: "signature TSV", reason: "Record the reference catalog" },
         { file: "signature contributions CSV", reason: "Share fitted contribution estimates" },
         { file: "workflow report JSON", reason: "Preserve checks, warnings, report fields, and run record" },
-      ]));
+      ], null, {
+        title: "Downloadable files",
+        caption: "Explains which files the workflow can save and why each file matters for review or rerun.",
+      }));
       exportStack.append(note("Do not share the signature contributions CSV by itself when the run has warnings or needs cautious interpretation. Share the workflow report JSON with it.", "warning"));
       exportStack.append(workflowOutputGuide(
         "Tool export table",
         "This table states which external-tool file formats were prepared. It does not mean those external tools were run here; it means the current tables were organized so the analysis can be compared or rerun elsewhere.",
         [
-          { column: "tool", meaning: "Target ecosystem or adapter." },
+          { column: "tool or package", meaning: "External package or file format prepared." },
           { column: "files", meaning: "Number of generated files for that target." },
-          { column: "recordedFields", meaning: "How much supporting information is recorded with the export." },
+          { column: "supporting details", meaning: "How much supporting information is recorded with the export." },
         ]
       ));
-      exportStack.append(table(handoffRows(workflowState.interoperability)));
+      exportStack.append(table(handoffRows(workflowState.interoperability), null, {
+        title: "External-tool export formats",
+        caption: "Shows which tool/package formats were prepared so the same data can be compared or rerun outside this notebook.",
+      }));
       exportStack.append(workflowOutputGuide(
-        "Report field table",
-        "These are the top-level fields in the structured report. They show what evidence is preserved before download.",
+        "Report section table",
+        "These are the major sections in the structured report. They show what evidence is preserved before download.",
         [
-          { field: "settings (parameters)", meaning: "Cutoffs and workflow settings used for this run." },
-          { field: "validation/qc", meaning: "Input checks, mutation-count review, reconstruction, residual, and fit-quality evidence." },
-          { field: "warnings/recommendedActions", meaning: "Interpretive cautions and follow-up steps." },
-          { field: "run record (provenance)", meaning: "SDK version, data source, and run record." },
+          { section: "Run settings", meaning: "Cutoffs and workflow settings used for this run." },
+          { section: "Input checks and quality checks", meaning: "Input checks, mutation-count review, reconstruction, residual, and fit-quality evidence." },
+          { section: "Cautions and suggested follow-up", meaning: "Interpretive cautions and follow-up steps." },
+          { section: "Run record", meaning: "SDK version, data source, and run details." },
         ]
       ));
-      exportStack.append(table(reportFieldRows(analysis.report)));
+      exportStack.append(table(readableReportFieldRows(analysis.report), null, {
+        title: "Structured report sections",
+        caption: "Shows the main report sections preserved in the workflow JSON so another reader can inspect the run context, checks, warnings, and results.",
+      }));
       exportStack.append(downloadMany([
         { filename: "end_to_end_spectra.tsv", text: spectraTsv, label: "Download spectra TSV" },
         { filename: "end_to_end_signatures.tsv", text: signaturesTsv, label: "Download signatures TSV" },

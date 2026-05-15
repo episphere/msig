@@ -41,11 +41,23 @@ function ensurePresentationStyles() {
     .msigsdk-output-table-wrap {
       overflow-x: auto;
     }
+    .msigsdk-output-table-title {
+      margin: 0 0 4px;
+      color: #17201d;
+      font: 800 14px/1.3 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
     .msigsdk-output-table {
       width: 100%;
       border-collapse: collapse;
       color: #17201d;
       font: 13px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .msigsdk-output-table caption {
+      caption-side: top;
+      padding: 0 0 8px;
+      color: #5f6d67;
+      text-align: left;
+      font: 12px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     .msigsdk-output-table th,
     .msigsdk-output-table td {
@@ -179,11 +191,17 @@ function ensureTooltipBehavior() {
     const targetRect = target.getBoundingClientRect();
     const tooltipRect = popover.getBoundingClientRect();
     const margin = 10;
-    const left = Math.min(
-      Math.max(targetRect.left, margin),
+    const offset = 8;
+    let left = targetRect.right + offset;
+    if (left + tooltipRect.width > window.innerWidth - margin) {
+      left = targetRect.left - tooltipRect.width - offset;
+    }
+    left = Math.min(
+      Math.max(left, margin),
       Math.max(margin, window.innerWidth - tooltipRect.width - margin)
     );
-    let top = targetRect.bottom + 8;
+
+    let top = targetRect.top;
     if (top + tooltipRect.height > window.innerHeight - margin) {
       top = targetRect.top - tooltipRect.height - 8;
     }
@@ -578,6 +596,144 @@ function metrics(items) {
   return grid;
 }
 
+function pluralizeRows(count) {
+  return `${count} row${count === 1 ? "" : "s"}`;
+}
+
+function columnKeysForDescription(data, columns) {
+  if (Array.isArray(columns) && columns.length) {
+    return columns
+      .map((column) => (typeof column === "string" ? column : column?.key))
+      .filter(Boolean);
+  }
+  return Object.keys(data?.[0] || {});
+}
+
+function inferTableDescription(data, columns) {
+  const rowCount = Array.isArray(data) ? data.length : 0;
+  const keys = columnKeysForDescription(data, columns);
+  const keySet = new Set(keys);
+  const has = (...required) => required.every((key) => keySet.has(key));
+  const hasAny = (...candidates) => candidates.some((key) => keySet.has(key));
+
+  if (has("sample", "signature", "exposure")) {
+    return {
+      title: "Signature contribution estimates",
+      caption:
+        "Shows fitted signature contribution estimates by sample and signature. These are model estimates, so read them with the fit-quality evidence and warnings.",
+    };
+  }
+
+  if (has("sample", "mutations") || has("sample", "totalMutations")) {
+    return {
+      title: "Mutation-count summary",
+      caption:
+        "Shows mutation counts and low-count review cues for each sample. Low-count samples can still be analyzed, but their fitted contributions are less stable.",
+    };
+  }
+
+  if (has("sample", "cosineSimilarity", "rmse")) {
+    return {
+      title: "Reconstruction quality values",
+      caption:
+        "Shows how closely the fitted signatures reconstruct each sample. Higher cosine and lower RMSE are reassuring, but neither is a stand-alone proof of correctness.",
+    };
+  }
+
+  if (has("sample", "reportingMode") || has("sample", "reviewFlagCodes")) {
+    return {
+      title: "Fit-quality evidence",
+      caption:
+        "Shows the reporting mode and review cues for each sample. Use this table to decide what caveats should accompany signature contribution estimates.",
+    };
+  }
+
+  if (hasAny("cue", "SDK code", "recommended action", "reviewFlagCodes") || has("code", "message")) {
+    return {
+      title: "Review cues and suggested checks",
+      caption:
+        "Shows why the workflow raised cautionary review cues. These are prompts for inspection, not conclusions by themselves.",
+    };
+  }
+
+  if (has("number", "action") || has("action")) {
+    return {
+      title: "Suggested review steps",
+      caption:
+        "Shows follow-up checks generated from the review evidence. Use these as a practical checklist before reporting results.",
+    };
+  }
+
+  if (hasAny("threshold", "cutoff", "thresholdLabel")) {
+    return {
+      title: "Cutoff sensitivity values",
+      caption:
+        "Shows how results change as the minimum signature contribution cutoff changes. Stable results should change gradually rather than abruptly.",
+    };
+  }
+
+  if (has("signature") && hasAny("lower", "upper", "selectedFrequency", "selectionFrequency")) {
+    return {
+      title: "Uncertainty interval values",
+      caption:
+        "Shows resampling-based uncertainty for fitted signature contributions. Wide intervals or inconsistent selection suggest extra caution.",
+    };
+  }
+
+  if (hasAny("similarity cues", "nearest-neighbor similarity", "similarity risk score")) {
+    return {
+      title: "Reference-signature similarity evidence",
+      caption:
+        "Shows catalog-level similarity cues for reference signatures. These cues describe possible exchangeability among signatures, not sample reconstruction quality.",
+    };
+  }
+
+  if (hasAny("tool", "tool or package", "files", "supporting details")) {
+    return {
+      title: "Tool export summary",
+      caption:
+        "Shows which external-tool file formats or package outputs are prepared for comparison, rerun, or export.",
+    };
+  }
+
+  if (has("file") || has("filename")) {
+    return {
+      title: "Files produced by this step",
+      caption:
+        "Shows the files available from this workflow step and why each one is useful for rerun, review, or sharing.",
+    };
+  }
+
+  if (has("section") && hasAny("contents", "summary")) {
+    return {
+      title: "Report sections",
+      caption:
+        "Shows the major report fields preserved in the structured workflow output.",
+    };
+  }
+
+  if (has("field", "value")) {
+    return {
+      title: "Key settings and values",
+      caption:
+        "Shows the selected settings or run details used by this step.",
+    };
+  }
+
+  if (hasAny("output", "check", "column", "table") && hasAny("meaning", "value")) {
+    return {
+      title: "How to read this output",
+      caption:
+        "Defines the fields shown in this step so the table can be interpreted without a separate glossary.",
+    };
+  }
+
+  return {
+    title: "Result table",
+    caption: `Shows ${pluralizeRows(rowCount)} of structured output from this notebook step.`,
+  };
+}
+
 function table(rows, columns = null, options = {}) {
   requireDom("table");
   const maxRows = Number.isFinite(options.maxRows) ? options.maxRows : 12;
@@ -587,8 +743,24 @@ function table(rows, columns = null, options = {}) {
   const data = Array.isArray(rows) ? rows : [];
   const wrapper = document.createElement("div");
   wrapper.className = "msigsdk-output-table-wrap";
+  const inferredDescription = inferTableDescription(data, columns);
+  const tableTitle = options.title === false ? "" : options.title || inferredDescription.title;
+  const tableCaption = options.caption === false ? "" : options.caption || inferredDescription.caption;
+
+  if (tableTitle) {
+    const title = document.createElement("h4");
+    title.className = "msigsdk-output-table-title";
+    title.textContent = tableTitle;
+    wrapper.append(title);
+  }
 
   if (!data.length) {
+    if (tableCaption) {
+      const caption = document.createElement("p");
+      caption.className = "msigsdk-output-caption";
+      caption.textContent = tableCaption;
+      wrapper.append(caption);
+    }
     wrapper.append(note("No rows to display."));
     return wrapper;
   }
@@ -607,6 +779,10 @@ function table(rows, columns = null, options = {}) {
     }));
   const tableElement = document.createElement("table");
   tableElement.className = "msigsdk-output-table";
+  if (tableCaption) {
+    const caption = tableElement.createCaption();
+    caption.textContent = tableCaption;
+  }
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
@@ -643,10 +819,10 @@ function table(rows, columns = null, options = {}) {
   wrapper.append(tableElement);
 
   if (data.length > maxRows) {
-    const caption = document.createElement("p");
-    caption.className = "msigsdk-output-caption";
-    caption.textContent = `Showing ${maxRows} of ${data.length} rows.`;
-    wrapper.append(caption);
+    const rowCountCaption = document.createElement("p");
+    rowCountCaption.className = "msigsdk-output-caption";
+    rowCountCaption.textContent = `Showing ${maxRows} of ${data.length} rows.`;
+    wrapper.append(rowCountCaption);
   }
 
   return wrapper;
@@ -779,6 +955,10 @@ function fitQualityEvidenceTable(fitQualityEvidence, options = {}) {
   return tooltipTable(rows, columns, {
     maxRows: Number.isFinite(options.maxRows) ? options.maxRows : 12,
     tooltipTerms: options.tooltipTerms,
+    title: options.title || "Fit-quality evidence",
+    caption:
+      options.caption ||
+      "Shows the reporting mode and review cues that qualify each sample's fitted signature estimates.",
   });
 }
 
@@ -828,6 +1008,10 @@ function panelEvidenceTable(panelWorkflowResultOrCalls, options = {}) {
     {
       maxRows: Number.isFinite(options.maxRows) ? options.maxRows : 12,
       tooltipTerms: options.tooltipTerms,
+      title: options.title || "Panel/WES evidence review",
+      caption:
+        options.caption ||
+        "Shows which panel/WES evidence tier was assigned for each sample and signature, along with assessability reasons.",
     }
   );
 }

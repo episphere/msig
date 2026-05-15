@@ -685,6 +685,27 @@ const mSigSDK = (function () {
     return Number(value.toFixed(digits));
   }
 
+  function describeRmseForPlot(value) {
+    if (!Number.isFinite(value)) {
+      return "Not available for this sample.";
+    }
+
+    if (value <= 0.005) {
+      return "Small on the normalized SBS96 profile scale; reassuring when cosine is high and residuals are not structured.";
+    }
+
+    if (value <= 0.02) {
+      return "Noticeable on the normalized SBS96 profile scale; inspect residuals, mutation count, and catalog choice.";
+    }
+
+    return "Relatively large on the normalized SBS96 profile scale; review residuals and consider whether the catalog or inputs fit this sample.";
+  }
+
+  function rmseScaleNote(value) {
+    const valueText = Number.isFinite(value) ? `An RMSE of ${formatPlotNumber(value, 5)}` : "RMSE";
+    return `${valueText} is not a universal pass/fail threshold. Lower values mean smaller average context-by-context residuals after normalizing the spectrum.`;
+  }
+
   function uniqueStringsForPlot(values) {
     return [...new Set(values.filter((value) => value !== undefined && value !== null).map(String))];
   }
@@ -880,7 +901,9 @@ const mSigSDK = (function () {
         pointer-events: none;
         position: absolute;
         z-index: 20;
-        max-width: 340px;
+        box-sizing: border-box;
+        width: max-content;
+        max-width: min(380px, calc(100vw - 20px));
         opacity: 0;
         transform: translateY(-6px);
         border: 1px solid #d1d5db;
@@ -892,20 +915,19 @@ const mSigSDK = (function () {
         font: 12px/1.35 Arial, sans-serif;
       }
       .msig-d3-tooltip div {
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: max-content minmax(120px, 1fr);
         align-items: flex-start;
-        gap: 16px;
+        gap: 12px;
         white-space: normal;
       }
       .msig-d3-tooltip span {
-        flex: 0 0 auto;
         color: #6b7280;
       }
       .msig-d3-tooltip strong {
-        max-width: 220px;
+        max-width: 270px;
         font-weight: 700;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
         text-align: right;
       }
       .msig-d3-axis path,
@@ -1008,13 +1030,39 @@ const mSigSDK = (function () {
 
     const showTooltip = (event, html) => {
       const bounds = container.getBoundingClientRect();
+      const margin = 10;
+      const offset = 14;
       tooltip.innerHTML = html;
       tooltip.style.opacity = "1";
-      tooltip.style.left = `${event.clientX - bounds.left + 14}px`;
-      tooltip.style.top = `${event.clientY - bounds.top + 14}px`;
+      tooltip.style.visibility = "hidden";
+      tooltip.style.left = "0px";
+      tooltip.style.top = "0px";
+
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const viewportWidth =
+        window.innerWidth || document.documentElement?.clientWidth || bounds.right;
+      const viewportHeight =
+        window.innerHeight || document.documentElement?.clientHeight || bounds.bottom;
+      let left = event.clientX + offset;
+      if (left + tooltipRect.width > viewportWidth - margin) {
+        left = event.clientX - tooltipRect.width - offset;
+      }
+      left = Math.max(margin, Math.min(left, viewportWidth - tooltipRect.width - margin));
+
+      let top = event.clientY + offset;
+      if (top + tooltipRect.height > viewportHeight - margin) {
+        top = event.clientY - tooltipRect.height - offset;
+      }
+      top = Math.max(margin, Math.min(top, viewportHeight - tooltipRect.height - margin));
+
+      tooltip.dataset.placement = left < event.clientX ? "left" : "right";
+      tooltip.style.left = `${left - bounds.left}px`;
+      tooltip.style.top = `${top - bounds.top}px`;
+      tooltip.style.visibility = "visible";
     };
     const hideTooltip = () => {
       tooltip.style.opacity = "0";
+      tooltip.style.visibility = "hidden";
     };
 
     return { container, chart, tooltip, showTooltip, hideTooltip };
@@ -2861,7 +2909,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
       title: "Reconstruction quality",
       subtitle:
-        "Known-signature fitting is evaluated with paired diagnostics: cosine similarity should approach 1, while RMSE should approach 0.",
+        "Known-signature fitting is evaluated with paired diagnostics: cosine similarity should approach 1, while RMSE should approach 0. RMSE is on the normalized profile scale, so read it with cosine similarity, residual shape, mutation count, and catalog choice rather than as a universal pass/fail threshold.",
       badges: [
         {
           label: "Median cosine",
@@ -2997,6 +3045,8 @@ Renders a plot of the mutational spectra for one or more patients in a given div
             ["Cosine similarity", formatPlotNumber(row.cosineSimilarity, 4)],
             ["1 - cosine", formatPlotNumber(row.cosineGap, 4)],
             ["RMSE", formatPlotNumber(row.rmse, 5)],
+            ["How to read RMSE", describeRmseForPlot(row.rmse)],
+            ["Scale note", rmseScaleNote(row.rmse)],
           ])
         )
       )
@@ -3021,6 +3071,8 @@ Renders a plot of the mutational spectra for one or more patients in a given div
             ["Sample", row.sample],
             ["RMSE", formatPlotNumber(row.rmse, 5)],
             ["Cosine similarity", formatPlotNumber(row.cosineSimilarity, 4)],
+            ["How to read RMSE", describeRmseForPlot(row.rmse)],
+            ["Scale note", rmseScaleNote(row.rmse)],
           ])
         )
       )
@@ -3101,11 +3153,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
 
     const components = [
       { key: "burden", label: "Burden" },
-      { key: "reconstruction", label: "Recon." },
+      { key: "reconstruction", label: "Fit" },
       { key: "residual", label: "Residual" },
       { key: "bootstrap", label: "Bootstrap" },
-      { key: "threshold", label: "Threshold" },
-      { key: "ambiguity", label: "Identif." },
+      { key: "threshold", label: "Cutoff" },
+      { key: "ambiguity", label: "Similarity" },
       { key: "catalog", label: "Catalog" },
     ];
     const classLabel = {
@@ -3153,8 +3205,8 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       reconstruction: "Reconstruction fit",
       residual: "Residual structure",
       bootstrap: "Bootstrap stability",
-      threshold: "Threshold sensitivity",
-      ambiguity: "Signature identifiability",
+      threshold: "Cutoff sensitivity",
+      ambiguity: "Reference-signature similarity",
       catalog: "Catalog sufficiency",
     };
     const componentLabel = Object.fromEntries(
@@ -3354,6 +3406,8 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         return [
           ["Cosine", formatEvidenceNumber(evidence.cosineSimilarity, 4)],
           ["RMSE", formatEvidenceNumber(evidence.rmse, 5)],
+          ["How to read RMSE", describeRmseForPlot(evidence.rmse)],
+          ["Scale note", rmseScaleNote(evidence.rmse)],
         ];
       }
       if (component === "residual") {
@@ -3433,7 +3487,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
       title: "Fit-quality evidence summary",
       subtitle:
-        "QC evidence summarizes burden, reconstruction, residuals, bootstrap stability, threshold sensitivity, catalog-relative signature identifiability, and catalog sufficiency. Hover cells for definitions and full values.",
+        "Quality-check evidence summarizes mutation count, reconstruction fit, residuals, bootstrap stability, cutoff sensitivity, reference-signature similarity, and catalog fit. Hover cells for definitions, full values, and conservative interpretation guidance.",
       badges: [
         {
           label: "Samples",

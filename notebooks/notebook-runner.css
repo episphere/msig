@@ -368,6 +368,11 @@ h2 {
   border-bottom: 0;
 }
 
+.cell.code.code-collapsed .code-editor-host,
+.code-editor-host[hidden] {
+  display: none !important;
+}
+
 .dirty-badge {
   border: 1px solid rgba(184, 92, 56, 0.38);
   border-radius: 999px;
@@ -520,10 +525,27 @@ h2 {
   overflow-x: auto;
 }
 
+.output-table-title {
+  margin: 0 0 4px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
 .output-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+}
+
+.output-table caption {
+  caption-side: top;
+  padding: 0 0 8px;
+  color: var(--muted);
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .output-table th,

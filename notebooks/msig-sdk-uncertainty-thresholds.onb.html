@@ -3,7 +3,7 @@
   <title>mSigSDK uncertainty and cutoffs</title>
 
   <script type="text/markdown">
-    # Uncertainty and cutoff sensitivity
+    # Uncertainty and cutoffs
 
     Use this notebook after you understand the basic known-signature fitting workflow. It teaches two questions that come up immediately after fitting: are the estimated signature contributions stable, and do the conclusions depend on the minimum contribution cutoff?
 
@@ -60,7 +60,7 @@
   </script>
 
   <script type="text/markdown">
-    ## 1. Set the analysis grid
+    ## Step 1. Set the analysis grid
 
     Uncertainty and cutoff analyses can be expensive because they repeat fitting. Keep the defaults small while learning the API. Increase `uncBootstrapIterations` for smoother intervals, edit `uncThresholdGrid` to match the cutoffs you plan to report, or replace `uncExampleSampleNames` with samples from your cohort.
 
@@ -68,7 +68,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 1, phase: "data", title: "1. Set the analysis grid", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 1, phase: "data", title: "Step 1. Set the analysis grid", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -193,7 +193,7 @@
       { label: "Signatures", value: uncSelectedSignatureNames.length },
       { label: "Bootstrap sample", value: uncBootstrapSample },
       { label: "Bootstrap iterations", value: uncBootstrapIterations },
-      { label: "Thresholds tested", value: uncThresholdGrid.length },
+      { label: "Cutoffs tested", value: uncThresholdGrid.length },
     ]));
     display(table(
       burdenSampleRows(uncAllBurden, uncSelectedSampleNames),
@@ -210,22 +210,22 @@
         meaning: threshold === 0 ? "Keep every fitted exposure" : `Zero exposures below ${threshold}`,
       })),
       [
-        { key: "threshold", label: "Exposure threshold" },
+        { key: "threshold", label: "Contribution cutoff" },
         { key: "meaning", label: "Interpretation" },
       ]
     ));
   </script>
 
   <script type="text/markdown">
-    ## 2. Run bootstrap resampling and a threshold sweep
+    ## Step 2. Run uncertainty resampling and a cutoff sweep
 
-    Bootstrap resampling repeatedly perturbs one sample and refits exposures. Threshold sensitivity fits the cohort across a grid of exposure floors. Read the returned objects first; the plots in the next cells are wrappers around these data structures.
+    Bootstrap resampling repeatedly perturbs one sample and refits signature contributions. Cutoff sensitivity fits the cohort across a grid of minimum contribution values. Read the returned objects first; the plots in the next cells are wrappers around these data structures.
 
     These computations are not alternative signature calls. They are checks on how much confidence to place in the fitted call from the main workflow.
   </script>
 
   <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 2, phase: "visualize", title: "2. Run bootstrap resampling and a threshold sweep", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 2, phase: "visualize", title: "Step 2. Run uncertainty resampling and a cutoff sweep", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="3">
@@ -254,7 +254,7 @@
 
     display(metrics([
       { label: "Bootstrap signatures", value: uncBootstrapResult.signatures.length },
-      { label: "Threshold runs", value: uncThresholdSensitivityResult.runs.length },
+      { label: "Cutoff runs", value: uncThresholdSensitivityResult.runs.length },
       { label: "Confidence level", value: "95%" },
       { label: "Seed", value: 42 },
     ]));
@@ -271,7 +271,7 @@
     display(table(
       uncThresholdRows,
       [
-        { key: "threshold", label: "Threshold" },
+        { key: "threshold", label: "Cutoff" },
         { key: "averageCosineSimilarity", label: "Mean cosine" },
         { key: "averageRmse", label: "Mean RMSE" },
         { key: "averageActiveSignatures", label: "Mean active signatures" },
@@ -284,7 +284,7 @@
   </script>
 
   <script type="text/markdown">
-    ## 3. Read bootstrap exposure uncertainty
+    ## Step 3. Read signature contribution uncertainty
 
     The plot shows bootstrap draws, confidence intervals, mean exposures, and selection frequencies. Stable signatures have narrow intervals and high selection frequency. Wide intervals or low selection frequency suggest that a fitted exposure should be reported cautiously.
 
@@ -292,7 +292,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 3, phase: "visualize", title: "3. Read bootstrap exposure uncertainty", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 3, phase: "visualize", title: "Step 3. Read signature contribution uncertainty", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="4">
@@ -306,7 +306,7 @@
   </script>
 
   <script type="text/markdown">
-    ## 4. Check threshold stability
+    ## Step 4. Check cutoff stability
 
     The sensitivity plot compares every cutoff against the baseline cutoff. Large drift means the interpretation depends strongly on the cutoff choice. In your own analyses, this is a useful place to document why you chose a reporting cutoff.
 
@@ -314,7 +314,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 4, phase: "visualize", title: "4. Check cutoff stability", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 4, phase: "visualize", title: "Step 4. Check cutoff stability", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">
@@ -328,15 +328,15 @@
   </script>
 
   <script type="text/markdown">
-    ## 5. Convert uncertainty output into reporting decisions
+    ## Step 5. Convert uncertainty output into reporting decisions
 
-    Confidence intervals, selection frequency, and threshold drift should be translated into a short decision table before exposures are reported. This table is a compact pattern for manuscript supplements, review memos, or application tooltips.
+    Confidence intervals, selection frequency, and cutoff drift should be translated into a short decision table before signature contributions are reported. This table is a compact pattern for manuscript supplements, review memos, or application tooltips.
 
     The final decision table is where uncertainty becomes usable guidance: report, caveat, review manually, or omit from the main interpretation.
   </script>
 
   <script type="module" pinned id="interactive-step-5">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 5, phase: "review", title: "5. Convert uncertainty output into reporting decisions", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 5, phase: "review", title: "Step 5. Convert uncertainty output into reporting decisions", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="6">
@@ -389,7 +389,7 @@
       {
         filename: "uncertainty_thresholds.csv",
         text: rowsToCsv(uncThresholdRows),
-        label: "Download threshold CSV",
+        label: "Download cutoff CSV",
       },
       {
         filename: "uncertainty_report.json",

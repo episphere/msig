@@ -3,7 +3,7 @@
   <title>mSigSDK export and reports</title>
 
   <script type="text/markdown">
-    # Export, reports, and workflow helpers
+    # Export and reports
 
     This workflow teaches the utility layer that turns exploratory analysis into reusable files. It covers SigProfiler-style table export/import, run records, structured reports, and the high-level workflow helper that bundles input checks, fitting, quality checks, and reporting.
 
@@ -59,15 +59,15 @@
   </script>
 
   <script type="text/markdown">
-    ## 1. Load a small dataset for reporting
+    ## Step 1. Load a small dataset for reporting
 
     The reporting workflow starts from the same input shape as fitting: count spectra by sample and signatures by signature name. This cell uses a compact set of public PCAWG WGS Lung-AdenoCA spectra with both adequate and low mutation counts, so the report demonstrates useful input-check and quality-check fields.
 
-    At this point, the researcher is not judging signatures yet. The question is whether the inputs, sample count, signature count, and source metadata are clear enough to make the rest of the report interpretable.
+    At this point, the researcher is not judging signatures yet. The question is whether the inputs, sample count, signature count, and source details are clear enough to make the rest of the report interpretable.
   </script>
 
   <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 1, phase: "data", title: "1. Load a small dataset for reporting", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 1, phase: "data", title: "Step 1. Load a small dataset for reporting", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -183,14 +183,14 @@
       { label: "Data source", value: repDataSourceStatus },
       { label: "Samples", value: repSelectedSampleNames.length },
       { label: "Reference signatures", value: repSelectedSignatureNames.length },
-      { label: "Burden cutoff", value: repMutationBurdenThreshold },
+      { label: "Mutation-count cutoff", value: repMutationBurdenThreshold },
       {
-        label: "Low-burden samples",
+        label: "Low mutation-count samples",
         value: repSelectedBurdenSamples.filter(
           (sample) => sample.totalMutations < repMutationBurdenThreshold
         ).length,
       },
-      { label: "Exposure floor", value: repExposureThreshold },
+      { label: "Minimum signature contribution", value: repExposureThreshold },
     ]));
     display(table(
       burdenSampleRows(repAllBurden, repSelectedSampleNames),
@@ -198,13 +198,13 @@
         { key: "sample", label: "Selected sample" },
         { key: "mutations", label: "Total mutations" },
         { key: "nonZeroContexts", label: "Nonzero contexts" },
-        { key: "lowBurden", label: "Low-burden review cue" },
+        { key: "lowBurden", label: "Low mutation-count review cue" },
       ]
     ));
   </script>
 
   <script type="text/markdown">
-    ## 2. Export and read back a SigProfiler-style table
+    ## Step 2. Export and read back a SigProfiler-style table
 
     Tool compatibility matters because signature analysts often move between mSigSDK, SigProfiler, COSMIC tables, R/Bioconductor workflows, and supplemental tables. Exporting and reading back is a practical check that the exported table can be parsed back into the SDK's object shape.
 
@@ -212,7 +212,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 2, phase: "export", title: "2. Export and read back a SigProfiler-style table", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 2, phase: "export", title: "Step 2. Export and read back a SigProfiler-style table", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="3">
@@ -233,7 +233,7 @@
   </script>
 
   <script type="text/markdown">
-    ## 3. Use the high-level workflow helper
+    ## Step 3. Use the high-level workflow helper
 
     The workflow helper performs fitting, input checking, quality-check object creation, run-record creation, and report assembly in one call. Use this when you want a consistent result bundle. Use the lower-level functions when you need finer control over one step.
 
@@ -241,7 +241,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 3, phase: "analysis", title: "3. Use the high-level workflow helper", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 3, phase: "analysis", title: "Step 3. Use the high-level workflow helper", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="4">
@@ -271,7 +271,7 @@
       { label: "Spectra validation", value: repWorkflowAnalysis.validation.spectra.valid ? "Pass" : "Review" },
       { label: "Signature validation", value: repWorkflowAnalysis.validation.signatures.valid ? "Pass" : "Review" },
       { label: "Report title", value: repWorkflowAnalysis.report.title },
-      { label: "Provenance SDK version", value: repWorkflowAnalysis.provenance.sdk?.version || mSigSDK.version },
+      { label: "Run record SDK version", value: repWorkflowAnalysis.provenance.sdk?.version || mSigSDK.version },
     ]));
     display(table(
       reconstructionRows(repWorkflowAnalysis.qc.reconstructionError),
@@ -285,7 +285,7 @@
   </script>
 
   <script type="text/markdown">
-    ## 4. Assemble a report manually
+    ## Step 4. Assemble a report manually
 
     You can also build a report from individual pieces when you want full control over what gets included. This pattern is useful for notebooks, manuscripts, or applications where you want to keep the analysis result, settings, SDK version, source URLs, and warnings together.
 
@@ -293,7 +293,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 4, phase: "analysis", title: "4. Assemble a report manually", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 4, phase: "analysis", title: "Step 4. Assemble a report manually", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">
@@ -315,7 +315,7 @@
       ],
     });
     const repManualReport = mSigSDK.reports.createAnalysisReport({
-      title: "Focused mSigSDK interoperability report",
+      title: "Focused mSigSDK tool-compatible report",
       validation: repWorkflowAnalysis.validation,
       qc: repWorkflowAnalysis.qc,
       provenance: repProvenance,
@@ -326,18 +326,33 @@
       { label: "Top-level fields", value: Object.keys(repManualReport).length },
       { label: "Generated at", value: repManualReport.generatedAt || "recorded" },
     ]));
+    const repManualFieldLabels = {
+      schemaVersion: "Report format version",
+      title: "Report title",
+      summary: "Summary",
+      generatedAt: "Created time",
+      parameters: "Run settings",
+      validation: "Input checks",
+      qc: "Quality checks",
+      provenance: "Run record",
+      citations: "Citations",
+      notes: "Notes",
+    };
     display(table(
-      reportFieldRows(repManualReport),
+      reportFieldRows(repManualReport).map((row) => ({
+        section: repManualFieldLabels[row.field] || row.field,
+        contents: row.summary,
+      })),
       [
-        { key: "field", label: "Report field" },
-        { key: "summary", label: "Contents" },
+        { key: "section", label: "Report section" },
+        { key: "contents", label: "Contents" },
       ]
     ));
     display(details("Full manual report object", repManualReport));
   </script>
 
   <script type="text/markdown">
-    ## 5. Check required report fields and save the bundle
+    ## Step 5. Check required report fields and save the bundle
 
     A reusable report should include input settings, input checks, quality checks, a run record, warnings or caveats, and the table export needed to rerun the analysis outside the notebook.
 
@@ -345,7 +360,7 @@
   </script>
 
   <script type="module" pinned id="interactive-step-5">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 5, phase: "export", title: "5. Check required report fields and save the bundle", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 5, phase: "export", title: "Step 5. Check required report fields and save the bundle", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="6">
@@ -361,8 +376,21 @@
       "citations",
       "notes",
     ];
+    const repFieldLabels = {
+      schemaVersion: "Report format version",
+      title: "Report title",
+      summary: "Summary",
+      generatedAt: "Created time",
+      parameters: "Run settings",
+      validation: "Input checks",
+      qc: "Quality checks",
+      provenance: "Run record",
+      citations: "Citations",
+      notes: "Notes",
+    };
     const repFieldChecklist = repRequiredFields.map((field) => ({
       field,
+      fieldLabel: repFieldLabels[field] || field,
       presentInWorkflowReport: repWorkflowAnalysis.report?.[field] !== undefined,
       presentInManualReport: repManualReport?.[field] !== undefined,
     }));
@@ -376,7 +404,7 @@
     display(table(
       repFieldChecklist,
       [
-        { key: "field", label: "Report field" },
+        { key: "fieldLabel", label: "Report section" },
         { key: "presentInWorkflowReport", label: "Workflow report" },
         { key: "presentInManualReport", label: "Manual report" },
       ]
@@ -384,7 +412,7 @@
     display(table(
       repReproducibilityRows,
       [
-        { key: "artifact", label: "Artifact" },
+        { key: "file", label: "File" },
         { key: "purpose", label: "Purpose" },
       ]
     ));

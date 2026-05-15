@@ -3,7 +3,7 @@
   <title>mSigSDK public cohort exploration</title>
 
   <script type="text/markdown">
-    # Public cohort exploration before signature fitting
+    # Public cohort exploration
 
     A signature analysis should start by understanding the spectra before fitting any signature contributions. This workflow loads public SBS96 spectra when mSigPortal is reachable, falls back to embedded SBS96 tables when offline, and inspects mutation counts, context coverage, similarity structure, input issues, and tables ready for downstream workflows.
 
@@ -136,7 +136,7 @@
         { key: "sample", label: "Sample" },
         { key: "mutations", label: "Mutations" },
         { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
-        { key: "lowBurden", label: "Low-burden review cue" },
+        { key: "lowBurden", label: "Low mutation-count review cue" },
       ],
       { maxRows: 12 }
     ));
@@ -208,15 +208,15 @@
   <script type="module" pinned id="4">
     display(table(
       [
-        { nextWorkflow: "Known-signature quality check", notebook: "msig-sdk-qc-walkthrough.onb.html", objectToPass: "cohortSpectra as spectra; COSMIC or local signatures as signatures" },
-        { nextWorkflow: "Uncertainty and cutoffs", notebook: "msig-sdk-uncertainty-thresholds.onb.html", objectToPass: "cohortSpectra plus selected reference signatures and cutoff grid" },
-        { nextWorkflow: "Cohort and panel workflow", notebook: "msig-sdk-cohort-panel-workflow.onb.html", objectToPass: "cohortSpectra plus cohortMetadata and coverage opportunities when restricted assays are used" },
-        { nextWorkflow: "Discovery extraction (NMF)", notebook: "msig-sdk-nmf-extraction.onb.html", objectToPass: "cohortSpectra for exploratory discovery after checking mutation count and sample count" },
+        { nextWorkflow: "Known-signature quality check", notebook: "msig-sdk-qc-walkthrough.onb.html", objectToPass: "The sample-by-mutation table, plus COSMIC or local signature tables" },
+        { nextWorkflow: "Uncertainty and cutoffs", notebook: "msig-sdk-uncertainty-thresholds.onb.html", objectToPass: "The sample-by-mutation table, selected reference signatures, and cutoff values to test" },
+        { nextWorkflow: "Cohort and panel workflow", notebook: "msig-sdk-cohort-panel-workflow.onb.html", objectToPass: "The sample-by-mutation table, sample details, and a coverage table when panel or exome data are used" },
+        { nextWorkflow: "Discovery extraction (NMF)", notebook: "msig-sdk-nmf-extraction.onb.html", objectToPass: "The sample-by-mutation table after checking mutation count and sample count" },
       ],
       [
         { key: "nextWorkflow", label: "Next workflow" },
         { key: "notebook", label: "Notebook" },
-        { key: "objectToPass", label: "Reusable object" },
+        { key: "objectToPass", label: "Reusable data" },
       ]
     ));
     display(downloadMany([
@@ -228,7 +228,7 @@
       {
         filename: "public_cohort_metadata.csv",
         text: rowsToCsv(cohortMetadata),
-        label: "Download metadata CSV",
+        label: "Download sample details CSV",
       },
       {
         filename: "public_cohort_validation.json",

@@ -11,7 +11,7 @@
     {
       "file": "msig-sdk-end-to-end-workflow.onb.html",
       "title": "End-to-end workflow",
-      "summary": "Follow one realistic analysis from input setup through QC, uncertainty, reports, and interoperability.",
+      "summary": "Follow one realistic analysis from loading data to checks, plots, reports, and tool comparison files.",
       "image": "images/datasetSummary.png",
       "workflowGroup": "orientation",
       "workflowGroupLabel": "Orientation"
@@ -19,98 +19,98 @@
     {
       "file": "msig-sdk-public-cohort-exploration.onb.html",
       "title": "Public cohort exploration",
-      "summary": "Fetch public spectra, review burden, and inspect similarity structure before fitting.",
+      "summary": "Load public mutation spectra, review mutation counts, and compare samples before fitting signatures.",
       "image": "images/CosineSimilarityHeatmap.png",
       "workflowGroup": "orientation",
       "workflowGroupLabel": "Orientation"
     },
     {
       "file": "msig-sdk-resource-portability.onb.html",
-      "title": "Resource portability",
-      "summary": "Bridge mSigPortal, TCGA/GDC, matrices, and exports.",
+      "title": "Move data between resources",
+      "summary": "Move data between mSigPortal, TCGA/GDC, common table formats, and reports.",
       "image": "images/mSigPortal.png",
       "workflowGroup": "input",
-      "workflowGroupLabel": "Input and resource setup"
+      "workflowGroupLabel": "Load Data"
     },
     {
       "file": "msig-sdk-bring-your-own-spectra.onb.html",
       "title": "Bring your own spectra",
-      "summary": "Start from a local SBS96 matrix, validate it, fit signatures, and export a reproducible report.",
+      "summary": "Start from your own mutation-count table, check it, fit signatures, and save a report.",
       "image": "images/Mutational%20Burden.png",
       "workflowGroup": "input",
-      "workflowGroupLabel": "Input and resource setup"
+      "workflowGroupLabel": "Load Data"
     },
     {
       "file": "msig-sdk-maf-fit-report.onb.html",
       "title": "MAF to report",
-      "summary": "Convert MAF rows, fit signatures, inspect QC, and render report-ready outputs.",
+      "summary": "Convert variant rows into mutation spectra, fit signatures, review checks, and save results.",
       "image": "images/Mutational%20Burden.png",
       "workflowGroup": "input",
-      "workflowGroupLabel": "Input and resource setup"
+      "workflowGroupLabel": "Load Data"
     },
     {
       "file": "msig-sdk-qc-walkthrough.onb.html",
-      "title": "Known-signature QC",
-      "summary": "Import, fetch, reshape, fit, and assess spectra.",
+      "title": "Known-signature quality check",
+      "summary": "Load spectra, fit known signatures, and learn how to read the main quality checks.",
       "image": "images/Mutational%20Burden.png",
       "workflowGroup": "core",
-      "workflowGroupLabel": "Core analysis"
+      "workflowGroupLabel": "Analyze Data"
     },
     {
       "file": "msig-sdk-cohort-panel-workflow.onb.html",
       "title": "Cohort and panel workflow",
-      "summary": "Run cohort fitting and panel evidence review with metadata, assay territory, warnings, and report outputs.",
+      "summary": "Fit a cohort, compare sample groups, and review panel/WES limits with report outputs.",
       "image": "images/datasetSummary.png",
       "workflowGroup": "core",
-      "workflowGroupLabel": "Core analysis"
+      "workflowGroupLabel": "Analyze Data"
     },
     {
       "file": "msig-sdk-panel-evidence-tiers.onb.html",
-      "title": "Panel evidence tiers",
-      "summary": "Review panel and WES assessability, evidence tiers, and callable-territory limits.",
+      "title": "Panel/WES evidence review",
+      "summary": "Review what panel or WES data can and cannot support before reporting signatures.",
       "image": "images/datasetSummary.png",
       "workflowGroup": "core",
-      "workflowGroupLabel": "Core analysis"
+      "workflowGroupLabel": "Analyze Data"
     },
     {
       "file": "msig-sdk-nmf-extraction.onb.html",
-      "title": "NMF extraction",
-      "summary": "Run exploratory extraction without fixed signatures.",
+      "title": "Discovery extraction (NMF)",
+      "summary": "Explore patterns in the data without choosing fixed reference signatures first.",
       "image": "images/signatureComparison.png",
       "workflowGroup": "core",
-      "workflowGroupLabel": "Core analysis"
+      "workflowGroupLabel": "Analyze Data"
     },
     {
       "file": "msig-sdk-uncertainty-thresholds.onb.html",
-      "title": "Uncertainty thresholds",
-      "summary": "Quantify uncertainty and threshold dependence.",
+      "title": "Uncertainty and cutoffs",
+      "summary": "See how signature estimates change when uncertainty and cutoffs are varied.",
       "image": "images/CosineSimilarityHeatmap.png",
       "workflowGroup": "reliability",
-      "workflowGroupLabel": "Reliability, reporting, and interoperability"
+      "workflowGroupLabel": "Review And Report"
     },
     {
       "file": "msig-sdk-export-report.onb.html",
       "title": "Export and reports",
-      "summary": "Round-trip matrices and create reproducible reports.",
+      "summary": "Save the tables, checks, settings, and report files needed to rerun or review an analysis.",
       "image": "images/datasetSummary.png",
       "workflowGroup": "reliability",
-      "workflowGroupLabel": "Reliability, reporting, and interoperability"
+      "workflowGroupLabel": "Review And Report"
     },
     {
       "file": "msig-sdk-multi-engine-comparison.onb.html",
-      "title": "Multi-engine comparison",
-      "summary": "Run or import outputs from mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls on one shared dataset.",
+      "title": "Multi-tool comparison",
+      "summary": "Compare mSigSDK with SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls on the same data.",
       "image": "images/signatureComparison.png",
       "workflowGroup": "reliability",
-      "workflowGroupLabel": "Reliability, reporting, and interoperability"
+      "workflowGroupLabel": "Review And Report"
     },
     {
       "file": "msig-sdk-experimental-sandbox.onb.html",
       "title": "Experimental sandbox",
-      "summary": "Inspect explicitly experimental workflow outputs and scope statements.",
+      "summary": "Try early-stage exploratory outputs while keeping their limits visible.",
       "image": "images/mSigPortal.png",
       "workflowGroup": "advanced",
-      "workflowGroupLabel": "Advanced or experimental"
+      "workflowGroupLabel": "Experimental"
     }
   ]
 }
