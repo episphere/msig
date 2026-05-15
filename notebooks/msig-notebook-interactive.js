@@ -13,94 +13,94 @@ const MODE_COPY = {
   "public-cohort": {
     title: "Interactive public cohort explorer",
     summary:
-      "Load sample or public spectra, tune burden thresholds, validate context coverage, and inspect burden and similarity plots before fitting.",
+      "Load sample or public mutation spectra, choose mutation-count cutoffs, check coverage, and compare samples before fitting signatures.",
     kind: "spectra",
   },
   "end-to-end": {
     title: "Interactive end-to-end workflow lab",
     summary:
-      "Load data, tune workflow settings, run fitting and uncertainty checks, inspect plots, and export a reproducibility bundle.",
+      "Load data, choose analysis settings, run signature fitting and uncertainty checks, inspect plots, and save the files needed to rerun the analysis.",
     kind: "report",
   },
   "qc-walkthrough": {
-    title: "Interactive known-signature QC",
+    title: "Interactive known-signature quality check",
     summary:
-      "Load spectra and signatures, set thresholds, fit exposures, and inspect validation, reconstruction, residual, and warning evidence.",
+      "Load spectra and signatures, choose cutoffs, estimate signature contributions, and review the main warning signs before interpreting results.",
     kind: "fit",
   },
   "resource-portability": {
-    title: "Interactive resource portability check",
+    title: "Interactive data transfer check",
     summary:
-      "Round-trip spectra and signatures through common formats, then verify that the same objects can feed fitting and reports.",
+      "Move spectra and signatures through common table formats, then verify that the same data can be used for fitting and reports.",
     kind: "portability",
   },
   "bring-your-own-spectra": {
     title: "Interactive bring-your-own spectra workflow",
     summary:
-      "Paste or upload a local SBS96 matrix, choose a reference catalog, tune thresholds, and export a reusable report bundle.",
+      "Paste or upload your own SBS96 mutation-count table, choose reference signatures, adjust cutoffs, and save a reusable report.",
     kind: "fit",
   },
   "maf-fit-report": {
     title: "Interactive MAF to report workflow",
     summary:
-      "Paste or upload MAF-like rows, choose grouping and context settings, convert to SBS96, fit signatures, and review QC.",
+      "Paste or upload variant rows, choose grouping and context settings, convert them to SBS96 spectra, fit signatures, and review checks.",
     kind: "maf",
   },
   "cohort-panel": {
     title: "Interactive cohort and panel review",
     summary:
-      "Run cohort fitting with metadata, then test how restricted assay settings affect panel evidence tiers.",
+      "Fit a cohort with sample details, then see how panel or WES settings change what can be reported.",
     kind: "cohort-panel",
   },
   "panel-evidence": {
-    title: "Interactive panel/WES evidence tiers",
+    title: "Interactive panel/WES evidence review",
     summary:
-      "Tune callable-territory and evidence thresholds, then review which signatures are supported, limited, or not assessable.",
+      "Adjust panel/WES coverage and evidence cutoffs, then review which signatures are well supported, limited, or not ready to report.",
     kind: "panel",
   },
   "nmf-extraction": {
-    title: "Interactive NMF extraction sandbox",
+    title: "Interactive discovery workflow",
     summary:
-      "Choose spectra, rank, starts, and iterations, then inspect extracted profiles, exposure heatmaps, rank diagnostics, and handoffs.",
+      "Choose spectra and discovery settings, then inspect learned patterns, sample contributions, stability checks, and export files.",
     kind: "nmf",
   },
   "uncertainty-thresholds": {
-    title: "Interactive uncertainty and threshold review",
+    title: "Interactive uncertainty and cutoff review",
     summary:
-      "Choose a sample, bootstrap settings, and exposure-threshold grid, then inspect interval and threshold-sensitivity plots.",
+      "Choose a sample and uncertainty settings, then see how the estimates change across confidence intervals and cutoffs.",
     kind: "uncertainty",
   },
   "export-report": {
     title: "Interactive export and report builder",
     summary:
-      "Run a fit, round-trip matrices, assemble provenance, and download a report bundle with the exact parameters you selected.",
+      "Run a fit, save the input/output tables, and download a report that records the exact settings you selected.",
     kind: "report",
   },
   "multi-engine": {
     title: "Interactive multi-engine comparison",
     summary:
-      "Compare browser mSigSDK fitting with sparse-NNLS diagnostics and package handoff files on the same spectra and signatures.",
+      "Compare mSigSDK with other fitting tools on the same spectra and reference signatures.",
     kind: "engine",
   },
   experimental: {
     title: "Interactive experimental sandbox",
     summary:
-      "Edit variant rows and localized-mutagenesis parameters, then keep exploratory status, warnings, and validation needs visible.",
+      "Edit variant rows and early-stage clustering settings while keeping the limits and required follow-up visible.",
     kind: "experimental",
   },
 };
 
 const NOTEBOOK_LINKS = [
   ["End-to-end workflow", "msig-sdk-end-to-end-workflow.onb.html", "Full guided workflow"],
-  ["Public cohort exploration", "msig-sdk-public-cohort-exploration.onb.html", "Input QC"],
-  ["Known-signature QC", "msig-sdk-qc-walkthrough.onb.html", "Validation and fitting"],
-  ["Uncertainty thresholds", "msig-sdk-uncertainty-thresholds.onb.html", "Stability review"],
+  ["Public cohort exploration", "msig-sdk-public-cohort-exploration.onb.html", "Input checks"],
+  ["Known-signature quality check", "msig-sdk-qc-walkthrough.onb.html", "Validation and fitting"],
+  ["Uncertainty and cutoffs", "msig-sdk-uncertainty-thresholds.onb.html", "Stability review"],
   ["Bring your own spectra", "msig-sdk-bring-your-own-spectra.onb.html", "Local data"],
   ["MAF to report", "msig-sdk-maf-fit-report.onb.html", "Variant rows"],
-  ["Cohort and panel", "msig-sdk-cohort-panel-workflow.onb.html", "Metadata and assays"],
+  ["Cohort and panel", "msig-sdk-cohort-panel-workflow.onb.html", "Sample groups and assays"],
   ["Panel evidence tiers", "msig-sdk-panel-evidence-tiers.onb.html", "Restricted assays"],
-  ["NMF extraction", "msig-sdk-nmf-extraction.onb.html", "Discovery screening"],
-  ["Export and reports", "msig-sdk-export-report.onb.html", "Artifacts"],
+  ["Discovery extraction (NMF)", "msig-sdk-nmf-extraction.onb.html", "Discovery screening"],
+  ["Export and reports", "msig-sdk-export-report.onb.html", "Saved outputs"],
   ["Resource portability", "msig-sdk-resource-portability.onb.html", "Round trips"],
   ["Multi-engine comparison", "msig-sdk-multi-engine-comparison.onb.html", "Cross-tool review"],
   ["Experimental sandbox", "msig-sdk-experimental-sandbox.onb.html", "Exploratory outputs"],
@@ -113,39 +113,39 @@ const PHASE_COPY = {
   },
   data: {
     action: "Check data and validation",
-    helper: "Edit or upload data for this step, then preview shape, burden, and validation checks.",
+    helper: "Edit or upload data for this step, then preview the data shape, mutation counts, and validation checks.",
   },
   analysis: {
     action: "Run step with current data",
-    helper: "Change thresholds and parameters, rerun the SDK call, and inspect the tables produced by this step.",
+    helper: "Change cutoffs and settings, rerun the SDK call, and inspect the tables produced by this step.",
   },
   visualize: {
     action: "Render plots with current data",
-    helper: "Choose the current parameters, rerun the workflow, and inspect the plots generated from the result objects.",
+    helper: "Choose the current settings, rerun the workflow, and inspect the plots generated from the results.",
   },
   review: {
     action: "Review current results",
-    helper: "Review warnings, evidence tiers, fit quality, uncertainty, or cross-tool agreement with editable settings.",
+    helper: "Review warnings, confidence levels, fit quality, uncertainty, or agreement between tools with editable settings.",
   },
   export: {
     action: "Build downloads from current data",
-    helper: "Generate downloadable artifacts from the current data and parameters.",
+    helper: "Generate downloadable files from the current data and settings.",
   },
 };
 
 const DATA_GUIDES = {
   spectra: {
     sample:
-      "The built-in demo data contains four small SBS96 spectra with high, moderate, and low mutation-burden examples plus metadata. The counts are toy spectra created from a few signature-like context patterns so the tutorial is fast and predictable.",
+      "The built-in demo data contains four small SBS96 spectra with high, moderate, and low mutation-count examples plus sample labels. The counts are toy spectra created from a few signature-like context patterns so the tutorial is fast and predictable.",
     format:
-      "Use a spectra JSON object keyed by sample, where each sample contains SBS96 context counts, or upload a SigProfiler-style TSV matrix. Metadata is optional CSV, TSV, or JSON with a sample column.",
+      "Use a spectra JSON object keyed by sample, where each sample contains SBS96 context counts, or upload a SigProfiler-style TSV table. Sample details are optional CSV, TSV, or JSON with a sample column.",
     example: '{ "sample_1": { "A[C>A]A": 12, "T[C>T]T": 4 } }',
   },
   matrixFit: {
     sample:
       "The built-in demo data pairs four toy SBS96 spectra with three normalized toy signatures: smoking-like, clock-like, and APOBEC-like. It is synthetic tutorial data from the notebook fixtures, not a biological reference cohort.",
     format:
-      "Spectra should be JSON or SigProfiler-style TSV. Signatures should be JSON or COSMIC-style TSV keyed by signature name and SBS96 context. Metadata is optional but should include a sample column when supplied.",
+      "Spectra should be JSON or SigProfiler-style TSV. Signatures should be JSON or COSMIC-style TSV keyed by signature name and SBS96 context. Sample details are optional but should include a sample column when supplied.",
     example: '{ "SBS_demo_clock_like": { "T[C>T]T": 0.49, "A[C>T]G": 0.18 } }',
   },
   maf: {
@@ -158,16 +158,16 @@ const DATA_GUIDES = {
   },
   panel: {
     sample:
-      "The built-in panel demo uses the same toy SBS96 spectra and signatures, plus a synthetic callable-opportunity mask that hides or downweights selected contexts to mimic restricted panel or WES territory.",
+      "The built-in panel demo uses the same toy SBS96 spectra and signatures, plus a synthetic coverage mask that hides or downweights selected contexts to mimic panel or WES data.",
     format:
-      "Provide spectra and signatures as JSON or TSV. Callable opportunities are context weights from 0 to 1; this notebook exposes a scale control for the built-in mask.",
+      "Provide spectra and signatures as JSON or TSV. Coverage weights are context values from 0 to 1; this notebook exposes a scale control for the built-in mask.",
     example: '{ "T[C>T]A": 0.5, "T[C>G]A": 0.35, "G[C>G]G": 0 }',
   },
   nmf: {
     sample:
-      "The built-in NMF demo uses the four toy SBS96 spectra and the three toy reference signatures only for post hoc annotation of extracted components.",
+      "The built-in discovery demo uses the four toy SBS96 spectra and the three toy reference signatures only to label similar learned patterns after the run.",
     format:
-      "Provide a spectra matrix with multiple samples and enough mutation burden for extraction. Reference signatures are optional for matching extracted profiles to known signatures.",
+      "Provide a spectra table with multiple samples and enough mutations for discovery. Reference signatures are optional for matching learned patterns to known signatures.",
     example: '{ "tumor_a": { "A[C>A]A": 420 }, "tumor_b": { "T[C>T]A": 165 } }',
   },
   experimental: {
@@ -286,7 +286,7 @@ function renderSourceChoice(config, { loadSample, apply, fetchPublic = null }) {
     publicTitle.textContent = "Fetch public spectra";
     const publicText = document.createElement("p");
     publicText.textContent =
-      "For the public cohort notebook, you can also fetch a small mSigPortal cohort and inspect the same QC controls.";
+      "For the public cohort notebook, you can also fetch a small mSigPortal cohort and inspect the same quality-check controls.";
     publicBlock.append(publicTitle, publicText, fetchPublic);
     source.append(publicBlock);
   }
@@ -437,7 +437,7 @@ function normalizeMetadata(rows) {
 
 function parseMatrix(mSigSDK, text, kind) {
   const trimmed = String(text || "").trim();
-  if (!trimmed) throw new Error(`${kind} matrix input is empty.`);
+  if (!trimmed) throw new Error(`${kind} input table is empty.`);
   try {
     const parsed = JSON.parse(trimmed);
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
@@ -735,17 +735,17 @@ async function runSpectraExplorer(app) {
   outputs.summary.append(presentation.metrics([
     { label: "Samples", value: Object.keys(spectra).length },
     { label: "Validation", value: validation.valid ? "Pass" : "Review" },
-    { label: "Low-burden samples", value: burden.overall.lowBurdenSampleCount },
+    { label: "Low mutation-count samples", value: burden.overall.lowBurdenSampleCount },
     { label: "Context coverage", value: missingContexts.complete ? "Complete" : "Review" },
   ]));
   outputs.summary.append(presentation.table(presentation.burdenSampleRows(burden), undefined, { maxRows: 12 }));
   outputs.summary.append(presentation.table(metadata.length ? metadata : sampleRows(spectra), undefined, { maxRows: 12 }));
   outputs.summary.append(presentation.table((validation.issues || []).map((issue) => ({
-    sample: issue.sample || "matrix",
+    sample: issue.sample || "table",
     code: issue.code || issue.type || "issue",
     message: issue.message || String(issue),
   })), undefined, { maxRows: 10 }));
-  await plotCard(outputs.plots, "Mutation burden", (host) =>
+  await plotCard(outputs.plots, "Mutation count", (host) =>
     mSigSDK.qcPlots.plotMutationBurdenSummary(host, burden),
     presentation.table(presentation.burdenSampleRows(burden))
   );
@@ -763,8 +763,8 @@ async function runSpectraExplorer(app) {
   );
   outputs.exports.append(renderDownloads([
     { filename: "interactive_spectra.tsv", text: mSigSDK.io.exportSigProfilerMatrix(spectra, { contexts }), label: "Download spectra TSV" },
-    { filename: "interactive_metadata.csv", text: rowsToCsv(metadata), label: "Download metadata CSV" },
-    { filename: "interactive_cohort_qc.json", type: "json", value: { params, validation, burden, missingContexts }, label: "Download QC JSON" },
+    { filename: "interactive_metadata.csv", text: rowsToCsv(metadata), label: "Download sample details CSV" },
+    { filename: "interactive_cohort_qc.json", type: "json", value: { params, validation, burden, missingContexts }, label: "Download quality-check JSON" },
   ]));
 }
 
@@ -825,7 +825,7 @@ async function runKnownFit(app, extra = {}) {
   outputs.summary.append(presentation.table(presentation.reconstructionRows(analysis.fit.reconstructionError), undefined, { maxRows: 12 }));
   outputs.summary.append(presentation.fitQualityEvidenceTable(analysis.fitQualityEvidence, { maxRows: 12 }));
   outputs.summary.append(presentation.table(warningRowList(analysis.warnings), undefined, { maxRows: 12 }));
-  await plotCard(outputs.plots, "Mutation burden", (host) =>
+  await plotCard(outputs.plots, "Mutation count", (host) =>
     mSigSDK.qcPlots.plotMutationBurdenSummary(host, analysis.qc.mutationBurden)
   );
   await plotCard(outputs.plots, "Reconstruction error", (host) =>
@@ -857,7 +857,7 @@ async function runKnownFit(app, extra = {}) {
       (sample) => presentation.table(presentation.bootstrapRows(bootstrapBySample[sample] || bootstrap)),
       "Changing this runs or reuses bootstrap intervals for one sample."
     );
-    await plotCard(outputs.plots, "Threshold sensitivity", (host) =>
+    await plotCard(outputs.plots, "Cutoff sensitivity", (host) =>
       mSigSDK.qcPlots.plotThresholdSensitivity(host, analysis.thresholdSensitivity),
       presentation.table(presentation.thresholdRows(analysis.thresholdSensitivity))
     );
@@ -868,7 +868,7 @@ async function runKnownFit(app, extra = {}) {
   outputs.exports.append(renderDownloads([
     { filename: "interactive_spectra.tsv", text: mSigSDK.io.exportSigProfilerMatrix(spectra, { contexts }), label: "Download spectra TSV" },
     { filename: "interactive_signatures.tsv", text: mSigSDK.io.exportCOSMICSignatureMatrix(signatures, { contexts }), label: "Download signatures TSV" },
-    { filename: "interactive_exposures.csv", text: rowsToCsv(presentation.exposureRows(analysis.fit.exposures, { minExposure: 0, topN: 1000 })), label: "Download exposures CSV" },
+    { filename: "interactive_exposures.csv", text: rowsToCsv(presentation.exposureRows(analysis.fit.exposures, { minExposure: 0, topN: 1000 })), label: "Download signature contributions CSV" },
     { filename: "interactive_fit_report.json", type: "json", value: { params, analysis, bootstrap }, label: "Download fit report JSON" },
   ]));
   return { spectra, signatures, metadata, params, analysis, bootstrap };
@@ -894,17 +894,17 @@ function renderPortability(app, { spectra, signatures, analysis, params }) {
     { check: "Spectra round trip samples", value: Object.keys(spectraRoundTrip).length },
     { check: "Signature round trip signatures", value: Object.keys(signatureRoundTrip).length },
     { check: "Long-form spectra rows", value: mSigSDK.io.spectraToRows(spectra).length },
-    { check: "Interoperability tools", value: Object.keys(bundle.tools || {}).length },
+    { check: "Tool export targets", value: Object.keys(bundle.tools || {}).length },
   ]));
   outputs.summary.append(presentation.table(Object.entries(bundle.tools || {}).map(([tool, value]) => ({
     tool,
     files: (value.files || value.input?.files || []).length,
     manifestFields: Object.keys(value.manifest || {}).length,
   }))));
-  outputs.summary.append(presentation.details("Provenance", provenance));
+  outputs.summary.append(presentation.details("Run record", provenance));
   outputs.exports.append(renderDownloads([
-    { filename: "interactive_interoperability_bundle.json", type: "json", value: bundle, label: "Download handoff bundle JSON" },
-    { filename: "interactive_provenance.json", type: "json", value: provenance, label: "Download provenance JSON" },
+    { filename: "interactive_interoperability_bundle.json", type: "json", value: bundle, label: "Download tool export bundle JSON" },
+    { filename: "interactive_provenance.json", type: "json", value: provenance, label: "Download run record JSON" },
     { filename: "interactive_report_fields.csv", text: rowsToCsv(presentation.reportFieldRows(analysis.report)), label: "Download report fields CSV" },
   ]));
 }
@@ -947,7 +947,7 @@ async function runMafWorkflow(app) {
   ]));
   outputs.summary.append(presentation.table(presentation.exposureRows(analysis.fit.exposures, { minExposure: 0, topN: 24 }), undefined, { maxRows: 24 }));
   outputs.summary.append(presentation.table(warningRowList(analysis.warnings), undefined, { maxRows: 12 }));
-  await plotCard(outputs.plots, "Mutation burden", (host) =>
+  await plotCard(outputs.plots, "Mutation count", (host) =>
     mSigSDK.qcPlots.plotMutationBurdenSummary(host, analysis.qc.mutationBurden)
   );
   await plotCard(outputs.plots, "Converted SBS96 spectrum", (host) =>
@@ -1010,13 +1010,13 @@ async function runPanelWorkflow(app, includeCohort = false) {
   outputs.summary.append(presentation.metrics([
     { label: "Panel workflow", value: panel.workflow },
     { label: "Evidence calls", value: panel.panel?.evidenceSummary?.callCount },
-    { label: "Opportunity coverage", value: panel.opportunityMetadata?.opportunityCoverage },
+    { label: "Coverage score", value: panel.opportunityMetadata?.opportunityCoverage },
     { label: "Warnings", value: panel.warnings.length },
   ]));
   outputs.summary.append(presentation.panelEvidenceTable(panel, { maxRows: 24 }));
   outputs.summary.append(presentation.table(panelValidationSummary, undefined, { maxRows: 8 }));
   outputs.summary.append(presentation.table(warningRowList(panel.warnings), undefined, { maxRows: 12 }));
-  await plotCard(outputs.plots, "Panel evidence matrix", (host) =>
+  await plotCard(outputs.plots, "Panel evidence heatmap", (host) =>
     mSigSDK.qcPlots.plotPanelEvidenceMatrix(host, panel),
     presentation.panelEvidenceTable(panel)
   );
@@ -1059,11 +1059,11 @@ async function runNmfWorkflow(app) {
     { label: "Average sample cosine", value: presentation.formatNumber(result.averageSampleCosineSimilarity) },
   ]));
   outputs.summary.append(presentation.table(presentation.nmfMatchRows(matches, { maxRows: 12 }), undefined, { maxRows: 12 }));
-  outputs.summary.append(presentation.details("Full NMF result", { result, matches, rankSelection }));
+  outputs.summary.append(presentation.details("Full discovery result", { result, matches, rankSelection }));
   await plotCard(outputs.plots, "Extracted signature profiles", (host) =>
     mSigSDK.signatureExtractionPlots.plotNMFSignatureProfiles(host, result)
   );
-  await plotCard(outputs.plots, "NMF exposure heatmap", (host) =>
+  await plotCard(outputs.plots, "Pattern contribution heatmap", (host) =>
     mSigSDK.signatureExtractionPlots.plotNMFExposureHeatmap(host, result, { relative: true })
   );
   await plotCard(outputs.plots, "Rank diagnostics", (host) =>
@@ -1079,7 +1079,7 @@ async function runNmfWorkflow(app) {
       text: file.text,
       label: `Download ${file.path.split("/").pop()}`,
     })),
-    { filename: "interactive_nmf_report.json", type: "json", value: { params, result, matches, rankSelection }, label: "Download NMF report JSON" },
+    { filename: "interactive_nmf_report.json", type: "json", value: { params, result, matches, rankSelection }, label: "Download discovery report JSON" },
   ]));
 }
 
@@ -1130,7 +1130,7 @@ async function runEngineWorkflow(app) {
     { label: "Samples", value: Object.keys(spectra).length },
     { label: "Reference signatures", value: signaturesList.length },
     { label: "Cross-tool fixtures", value: crossToolSummary.length },
-    { label: "Handoff tools", value: Object.keys(bundle.tools || {}).length },
+    { label: "Tool export targets", value: Object.keys(bundle.tools || {}).length },
   ]));
   outputs.summary.append(presentation.table(comparisonRows, undefined, { maxRows: 24 }));
   outputs.summary.append(presentation.table(crossToolSummary, undefined, { maxRows: 8 }));
@@ -1141,8 +1141,8 @@ async function runEngineWorkflow(app) {
   }))));
   outputs.exports.append(renderDownloads([
     { filename: "interactive_engine_comparison.csv", text: rowsToCsv(comparisonRows), label: "Download comparison CSV" },
-    { filename: "interactive_engine_handoff_bundle.json", type: "json", value: bundle, label: "Download handoff bundle JSON" },
-    { filename: "interactive_engine_report.json", type: "json", value: { params, standardExposures, sparseExposures, comparisonRows }, label: "Download engine report JSON" },
+    { filename: "interactive_engine_handoff_bundle.json", type: "json", value: bundle, label: "Download tool export bundle JSON" },
+    { filename: "interactive_engine_report.json", type: "json", value: { params, standardExposures, sparseExposures, comparisonRows }, label: "Download tool comparison report JSON" },
   ]));
 }
 
@@ -1183,7 +1183,7 @@ function buildControls(config) {
   const controls = {};
   controls.spectraText = textArea("Paste spectra JSON or SigProfiler-style TSV");
   controls.signaturesText = textArea("Paste signature JSON or COSMIC-style TSV");
-  controls.metadataText = textArea("Optional metadata CSV/TSV/JSON", 5);
+  controls.metadataText = textArea("Optional sample details CSV/TSV/JSON", 5);
   controls.mafText = textArea("Paste MAF-like CSV/TSV/JSON rows", 7);
   controls.variantText = textArea("Paste variant CSV/TSV/JSON rows", 7);
   controls.lowBurdenInput = input(100, "number", 10);
@@ -1211,7 +1211,7 @@ function buildControls(config) {
 function appendDataControls(grid, controls, kind) {
   if (kind !== "maf" && kind !== "experimental") {
     grid.append(
-      field("Spectra matrix", controls.spectraText, "JSON object or SigProfiler-style TSV."),
+      field("Spectra table", controls.spectraText, "JSON object or SigProfiler-style TSV."),
       field("Upload spectra", fileInput(controls.spectraText))
     );
   }
@@ -1223,8 +1223,8 @@ function appendDataControls(grid, controls, kind) {
   }
   if (["fit", "portability", "cohort-panel", "report", "spectra"].includes(kind)) {
     grid.append(
-      field("Metadata", controls.metadataText, "Optional CSV/TSV/JSON with sample names."),
-      field("Upload metadata", fileInput(controls.metadataText))
+      field("Sample details", controls.metadataText, "Optional CSV/TSV/JSON with sample names."),
+      field("Upload sample details", fileInput(controls.metadataText))
     );
   }
   if (kind === "maf") {
@@ -1244,15 +1244,15 @@ function appendDataControls(grid, controls, kind) {
 function appendParameterControls(grid, controls, kind) {
   if (kind !== "experimental") {
     grid.append(
-      field("Low-burden threshold", controls.lowBurdenInput),
-      field("Moderate-burden threshold", controls.moderateBurdenInput)
+      field("Low mutation-count cutoff", controls.lowBurdenInput),
+      field("Moderate mutation-count cutoff", controls.moderateBurdenInput)
     );
   }
   if (["fit", "portability", "maf", "cohort-panel", "panel", "uncertainty", "report", "engine"].includes(kind)) {
     grid.append(
-      field("Exposure threshold", controls.exposureThresholdInput),
-      field("Threshold grid", controls.thresholdGridInput, "Comma-separated relative thresholds."),
-      field("Metadata group key", controls.groupKeyInput),
+      field("Minimum signature contribution", controls.exposureThresholdInput),
+      field("Contribution cutoffs to test", controls.thresholdGridInput, "Comma-separated relative cutoffs."),
+      field("Sample group column", controls.groupKeyInput),
       field("Representative sample", controls.sampleSelect)
     );
   }
@@ -1264,16 +1264,16 @@ function appendParameterControls(grid, controls, kind) {
   }
   if (kind === "panel" || kind === "cohort-panel") {
     grid.append(
-      field("Min assessable mutations", controls.minAssessableInput),
-      field("Limited support threshold", controls.limitedSupportInput),
-      field("Higher support threshold", controls.higherSupportInput),
-      field("Callable opportunity scale", controls.callableScaleInput),
+      field("Minimum mutations to review", controls.minAssessableInput),
+      field("Limited-support cutoff", controls.limitedSupportInput),
+      field("Higher-support cutoff", controls.higherSupportInput),
+      field("Panel/WES coverage scale", controls.callableScaleInput),
       field("Genome build", controls.genomeBuildInput)
     );
   }
   if (kind === "nmf") {
     grid.append(
-      field("NMF rank", controls.nmfRankInput),
+      field("Number of patterns to learn", controls.nmfRankInput),
       field("Random starts", controls.nmfRunsInput),
       field("Max iterations", controls.nmfIterationsInput),
       field("Random seed", controls.seedInput)
@@ -1282,7 +1282,7 @@ function appendParameterControls(grid, controls, kind) {
   if (kind === "experimental") {
     grid.append(
       field("Genome build", controls.genomeBuildInput),
-      field("Max intermutation distance", controls.localizedDistanceInput),
+      field("Maximum distance between nearby variants", controls.localizedDistanceInput),
       field("Minimum clustered mutations", controls.localizedMinMutationsInput)
     );
   }
@@ -1356,13 +1356,13 @@ export function renderInteractiveNotebook({ mode, mSigSDK, display }) {
   const app = { mSigSDK, controls, outputs: { summary, plots, exports }, presentation, config };
   loadSample.addEventListener("click", () => {
     fillSampleData(mSigSDK, controls, config.kind);
-    resetOutputs(app.outputs, "Built-in demo data loaded. Adjust parameters, apply your own data instead, or run the workflow.");
+    resetOutputs(app.outputs, "Built-in demo data loaded. Adjust settings, apply your own data instead, or run the workflow.");
   });
   fetchPublic.addEventListener("click", async () => {
     try {
       await fetchPublicCohort(mSigSDK, controls, summary);
     } catch (error) {
-      summary.replaceChildren(placeholder(`Public fetch failed: ${error.message}. Load the built-in demo data or paste your own matrix.`));
+      summary.replaceChildren(placeholder(`Public fetch failed: ${error.message}. Load the built-in demo data or paste your own spectra table.`));
     }
   });
   apply.addEventListener("click", () => {
@@ -1385,7 +1385,7 @@ export function renderInteractiveNotebook({ mode, mSigSDK, display }) {
   run.addEventListener("click", async () => {
     run.disabled = true;
     run.textContent = "Running...";
-    summary.replaceChildren(placeholder("Running selected SDK workflow with the current data and parameters."));
+    summary.replaceChildren(placeholder("Running selected SDK workflow with the current data and settings."));
     plots.replaceChildren();
     exports.replaceChildren();
     try {
@@ -1407,7 +1407,7 @@ export function renderInteractiveNotebook({ mode, mSigSDK, display }) {
     controls.sampleSelect.replaceChildren();
     resetOutputs(app.outputs, "Inputs cleared.");
   });
-  summary.append(placeholder("Choose a data source, adjust parameters, then run."));
+  summary.append(placeholder("Choose a data source, adjust settings, then run."));
   root.append(header, renderDataGuide(config), sourceChoice, dataGrid, parameterGrid, workflowActions, summary, plots, exports);
   display(root);
 }
@@ -1529,7 +1529,7 @@ export function renderInteractiveStep({
   });
   clear.addEventListener("click", () => resetOutputs(outputs, "Step output cleared."));
 
-  resetOutputs(outputs, "This step is ready. Choose a data source, review or edit parameters, then run.");
+  resetOutputs(outputs, "This step is ready. Choose a data source, review or edit settings, then run.");
   root.append(header, renderDataGuide(config), sourceChoice, dataDetails, parameterGrid, workflowActions, outputs.summary, outputs.plots, outputs.exports);
   display(root);
 }
@@ -1539,11 +1539,11 @@ export function renderNotebookIndex({ display }) {
   root.className = "workflow-panel";
   const controls = document.createElement("div");
   controls.className = "workflow-control-grid compact";
-  const goal = select(["Full workflow", "Input QC", "Validation and fitting", "Stability review", "Local data", "Variant rows", "Restricted assays", "Discovery screening", "Artifacts", "Cross-tool review", "Exploratory outputs"]);
+  const goal = select(["Full workflow", "Input checks", "Validation and fitting", "Stability review", "Local data", "Variant rows", "Restricted assays", "Discovery screening", "Saved outputs", "Cross-tool review", "Exploratory outputs"]);
   const filter = input("");
   const output = document.createElement("div");
   output.className = "workflow-output-stack";
-  controls.append(field("Learning goal", goal), field("Filter notebooks", filter, "Type any term, such as panel, MAF, NMF, export, or uncertainty."));
+  controls.append(field("Learning goal", goal), field("Filter notebooks", filter, "Type any term, such as panel, MAF, discovery, export, or uncertainty."));
   function render() {
     const query = filter.value.trim().toLowerCase();
     const selected = goal.value;

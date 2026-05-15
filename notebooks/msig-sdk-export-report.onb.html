@@ -5,9 +5,9 @@
   <script type="text/markdown">
     # Export, reports, and workflow helpers
 
-    This workflow teaches the utility layer that turns exploratory analysis into reusable artifacts. It covers SigProfiler-style matrix export/import, provenance, structured reports, and the high-level workflow helper that bundles validation, fitting, QC, and reporting.
+    This workflow teaches the utility layer that turns exploratory analysis into reusable files. It covers SigProfiler-style table export/import, run records, structured reports, and the high-level workflow helper that bundles input checks, fitting, quality checks, and reporting.
 
-    Follow the story from input to artifact. First load a small analysis, then prove that the matrix can round trip, then compare the high-level workflow helper with manual report assembly, and finally save the bundle that another researcher would need to reproduce the run.
+    Follow the story from input to saved output. First load a small analysis, then prove that the table can be exported and read back, then compare the high-level workflow helper with manual report assembly, and finally save the bundle that another researcher would need to reproduce the run.
   </script>
 
   <script type="module" pinned id="1">
@@ -34,10 +34,10 @@
     ]));
     display(table(
       [
-        { functionName: "io.exportSigProfilerMatrix", workflowValue: "Exports spectra to a common matrix format" },
+        { functionName: "io.exportSigProfilerMatrix", workflowValue: "Exports spectra to a common table format" },
         { functionName: "io.importSigProfilerMatrix", workflowValue: "Reads the same format back into SDK objects" },
-        { functionName: "workflows.analyzeSpectraWithSignatures", workflowValue: "Bundles validation, fitting, QC, provenance, and reports" },
-        { functionName: "reports.createAnalysisReport", workflowValue: "Creates a structured artifact that can be saved or rendered" },
+        { functionName: "workflows.analyzeSpectraWithSignatures", workflowValue: "Bundles input checks, fitting, quality checks, run records, and reports" },
+        { functionName: "reports.createAnalysisReport", workflowValue: "Creates a structured report that can be saved or rendered" },
         { functionName: "presentation.reportFieldRows", workflowValue: "Summarizes report objects without dumping nested JSON" },
       ],
       [
@@ -50,7 +50,7 @@
   <script type="text/markdown">
     ## Interactive workspace
 
-    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
   </script>
 
   <script type="module" pinned id="interactive-workspace">
@@ -61,7 +61,7 @@
   <script type="text/markdown">
     ## 1. Load a small dataset for reporting
 
-    The reporting workflow starts from the same input shape as fitting: count spectra by sample and signatures by signature name. This cell uses a compact set of public PCAWG WGS Lung-AdenoCA spectra with both adequate and low mutation burdens, so the report demonstrates useful validation and QC fields.
+    The reporting workflow starts from the same input shape as fitting: count spectra by sample and signatures by signature name. This cell uses a compact set of public PCAWG WGS Lung-AdenoCA spectra with both adequate and low mutation counts, so the report demonstrates useful input-check and quality-check fields.
 
     At this point, the researcher is not judging signatures yet. The question is whether the inputs, sample count, signature count, and source metadata are clear enough to make the rest of the report interpretable.
   </script>
@@ -198,21 +198,21 @@
         { key: "sample", label: "Selected sample" },
         { key: "mutations", label: "Total mutations" },
         { key: "nonZeroContexts", label: "Nonzero contexts" },
-        { key: "lowBurden", label: "Low burden flag" },
+        { key: "lowBurden", label: "Low-burden review cue" },
       ]
     ));
   </script>
 
   <script type="text/markdown">
-    ## 2. Export and round trip a SigProfiler-style matrix
+    ## 2. Export and read back a SigProfiler-style table
 
-    Interoperability matters because signature analysts often move between mSigSDK, SigProfiler, COSMIC tables, R/Bioconductor workflows, and supplemental tables. A round trip is a practical check that the exported matrix can be parsed back into the SDK's object shape.
+    Tool compatibility matters because signature analysts often move between mSigSDK, SigProfiler, COSMIC tables, R/Bioconductor workflows, and supplemental tables. Exporting and reading back is a practical check that the exported table can be parsed back into the SDK's object shape.
 
-    If the row and column counts change after import, stop here. A report built on a non-round-trippable matrix will be difficult to reproduce or compare with external tools.
+    If the row and column counts change after import, stop here. A report built on a table that cannot be read back will be difficult to reproduce or compare with external tools.
   </script>
 
   <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 2, phase: "export", title: "2. Export and round trip a SigProfiler-style matrix", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 2, phase: "export", title: "2. Export and read back a SigProfiler-style table", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="3">
@@ -235,9 +235,9 @@
   <script type="text/markdown">
     ## 3. Use the high-level workflow helper
 
-    The workflow helper performs fitting, validation, QC object creation, provenance, and report assembly in one call. Use this when you want a consistent result bundle. Use the lower-level functions when you need finer control over one step.
+    The workflow helper performs fitting, input checking, quality-check object creation, run-record creation, and report assembly in one call. Use this when you want a consistent result bundle. Use the lower-level functions when you need finer control over one step.
 
-    Read the workflow output as the standard project artifact: parameters, validation, warnings, fit evidence, report fields, and provenance together. The helper is useful when consistency matters more than hand-building every intermediate object.
+    Read the workflow output as the standard project bundle: settings, input checks, warnings, fit evidence, report fields, and run record together. The helper is useful when consistency matters more than hand-building every intermediate object.
   </script>
 
   <script type="module" pinned id="interactive-step-3">
@@ -287,9 +287,9 @@
   <script type="text/markdown">
     ## 4. Assemble a report manually
 
-    You can also build a report from individual pieces when you want full control over what gets included. This pattern is useful for notebooks, manuscripts, or applications where you want to keep the analysis result, parameters, SDK version, source URLs, and warnings together.
+    You can also build a report from individual pieces when you want full control over what gets included. This pattern is useful for notebooks, manuscripts, or applications where you want to keep the analysis result, settings, SDK version, source URLs, and warnings together.
 
-    Manual assembly is most useful when an application has already computed some pieces itself or needs to attach study-specific metadata. The responsibility is the same: do not export exposures without the QC and provenance fields that explain them.
+    Manual assembly is most useful when an application has already computed some pieces itself or needs to attach study-specific sample details. The responsibility is the same: do not export signature contributions without the quality-check and run-record fields that explain them.
   </script>
 
   <script type="module" pinned id="interactive-step-4">
@@ -339,7 +339,7 @@
   <script type="text/markdown">
     ## 5. Check required report fields and save the bundle
 
-    A reusable report should include input parameters, validation, QC, provenance, warnings or caveats, and the matrix export needed to rerun the analysis outside the notebook.
+    A reusable report should include input settings, input checks, quality checks, a run record, warnings or caveats, and the table export needed to rerun the analysis outside the notebook.
 
     Treat the final download list as a reproducibility checklist. If a collaborator received only these files, they should be able to identify the inputs, rerun the fit, inspect warnings, and understand how the report was generated.
   </script>
@@ -367,10 +367,10 @@
       presentInManualReport: repManualReport?.[field] !== undefined,
     }));
     const repReproducibilityRows = [
-      { artifact: "spectra TSV", purpose: "Input matrix for rerun or external tool handoff" },
-      { artifact: "workflow report JSON", purpose: "Validation, QC, fitting, provenance, and report fields" },
-      { artifact: "manual report JSON", purpose: "Minimal structured report assembled from selected pieces" },
-      { artifact: "field checklist CSV", purpose: "Schema-style presence check for required report fields" },
+      { file: "spectra TSV", purpose: "Input table for rerun or external tool comparison" },
+      { file: "workflow report JSON", purpose: "Input checks, quality checks, fitting, run record, and report fields" },
+      { file: "manual report JSON", purpose: "Minimal structured report assembled from selected pieces" },
+      { file: "field checklist CSV", purpose: "Presence check for required report fields" },
     ];
 
     display(table(

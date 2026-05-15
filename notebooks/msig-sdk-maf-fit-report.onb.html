@@ -3,9 +3,9 @@
   <title>mSigSDK MAF to report</title>
 
   <script type="text/markdown">
-    # MAF to spectra, fit, QC, and report
+    # MAF to spectra, fit, checks, and report
 
-    Many projects start from variant rows rather than a finished signature matrix. This workflow converts local MAF-like rows into SBS96 spectra, checks whether the conversion preserved the expected SNV counts, fits a compatible reference catalog, reviews QC evidence, renders plots, and exports report-ready objects.
+    Many projects start from variant rows rather than a finished signature table. This workflow converts local MAF-like rows into SBS96 spectra, checks whether the conversion preserved the expected SNV counts, fits a compatible reference catalog, reviews quality-check evidence, renders plots, and exports report-ready objects.
 
     The example uses row-supplied trinucleotide contexts so it runs without a genome sequence request. In a production pipeline, the same checkpoints apply after genome-backed context annotation: count reconciliation first, fitting second, interpretation third.
   </script>
@@ -47,7 +47,7 @@
         { notebookObject: "mafRows", replaceWith: "MAF rows with chromosome, position, alleles, sample/project field, and context source" },
         { notebookObject: "mafOptions.groupBy", replaceWith: "Tumor_Sample_Barcode, project_code, sample, or another sample identifier" },
         { notebookObject: "mafOptions.offline", replaceWith: "true for a pinned context table; false for live UCSC context lookup" },
-        { notebookObject: "mafSignatures", replaceWith: "COSMIC or project-specific reference signature matrix" },
+        { notebookObject: "mafSignatures", replaceWith: "COSMIC or project-specific reference signature table" },
       ],
       [
         { key: "notebookObject", label: "Object to edit" },
@@ -59,7 +59,7 @@
   <script type="text/markdown">
     ## Interactive workspace
 
-    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
   </script>
 
   <script type="module" pinned id="interactive-workspace">
@@ -68,15 +68,15 @@
   </script>
 
   <script type="text/markdown">
-    ## Step 1. Convert variant rows into an SBS96 matrix
+    ## Step 1. Convert variant rows into an SBS96 table
 
     `analyzeMafFiles` accepts either a flat row array or nested per-file arrays. The conversion record stores the genome build, context source, lookup mode, timestamp, and a count reconciliation check between convertible SNV rows and observed SBS96 counts.
 
-    Before reading exposures, confirm that the number of convertible SNVs agrees with the total SBS96 counts. A mismatch here points to context annotation, filtering, sample naming, or input-shape problems.
+    Before reading signature contributions, confirm that the number of convertible SNVs agrees with the total SBS96 counts. A mismatch here points to context annotation, filtering, sample naming, or input-shape problems.
   </script>
 
   <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 1, phase: "data", title: "Step 1. Convert variant rows into an SBS96 matrix", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 1, phase: "data", title: "Step 1. Convert variant rows into an SBS96 table", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -140,9 +140,9 @@
   <script type="text/markdown">
     ## Step 2. Inspect fit evidence after conversion
 
-    The same result object contains fitted exposures, mutation-burden QC, reconstruction metrics, warning codes, recommended actions, and figure descriptors. This is the minimum evidence trail to keep with a converted MAF analysis.
+    The same result object contains fitted signature contributions, mutation-count checks, reconstruction metrics, warning codes, suggested review steps, and figure descriptors. This is the minimum evidence trail to keep with a converted MAF analysis.
 
-    Interpret the tables in order: mutation burden tells whether the spectra contain enough signal, reconstruction metrics tell whether the catalog explains the spectra, and exposures tell which signatures contribute after those checks pass.
+    Interpret the tables in order: mutation counts tell whether the spectra contain enough signal, reconstruction metrics tell whether the catalog explains the spectra, and signature contributions tell which signatures contribute after those checks pass.
   </script>
 
   <script type="module" pinned id="interactive-step-2">
@@ -187,13 +187,13 @@
   </script>
 
   <script type="text/markdown">
-    ## Step 3. Render QC plots for visual review
+    ## Step 3. Render quality-check plots for visual review
 
-    Plots help identify problems that summary tables can hide: a low-burden sample, a systematic residual pattern, or an exposure profile dominated by a questionable signature. Use the plots to decide which samples need manual review before the report is exported.
+    Plots help identify problems that summary tables can hide: a low-count sample, a systematic residual pattern, or a contribution profile dominated by a questionable signature. Use the plots to decide which samples need manual review before the report is exported.
   </script>
 
   <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 3, phase: "visualize", title: "Step 3. Render QC plots for visual review", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 3, phase: "visualize", title: "Step 3. Render quality-check plots for visual review", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="4">
@@ -215,7 +215,7 @@
   <script type="text/markdown">
     ## Step 4. Save the converted spectra and report
 
-    The saved bundle should include the MAF conversion summary, SBS96 matrix, fitted exposures, QC evidence, warnings, recommended actions, report fields, and provenance. These pieces let another researcher trace the result from variant rows to signature interpretation.
+    The saved bundle should include the MAF conversion summary, SBS96 table, fitted signature contributions, quality-check evidence, warnings, suggested review steps, report fields, and a run record. These pieces let another researcher trace the result from variant rows to signature interpretation.
   </script>
 
   <script type="module" pinned id="interactive-step-4">
@@ -232,7 +232,7 @@
       {
         filename: "maf_exposures.csv",
         text: rowsToCsv(exposureRows(mafAnalysis.fit.exposures, { minExposure: 0, topN: 100 })),
-        label: "Download exposures CSV",
+        label: "Download signature contributions CSV",
       },
       {
         filename: "maf_report.json",

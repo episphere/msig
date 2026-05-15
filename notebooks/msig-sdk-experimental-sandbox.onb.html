@@ -49,7 +49,7 @@
   <script type="text/markdown">
     ## Interactive workspace
 
-    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
   </script>
 
   <script type="module" pinned id="interactive-workspace">
@@ -95,7 +95,7 @@
   <script type="text/markdown">
     ## Step 2. Inspect exploratory rainfall evidence
 
-    Rainfall-style summaries highlight clustered mutation patterns and focal regions that may deserve follow-up. These tables are useful for triage, but they do not establish mechanism by themselves. Treat dense local clusters as leads to validate with orthogonal evidence, sample-level QC, and study-specific thresholds.
+    Rainfall-style summaries highlight clustered mutation patterns and focal regions that may deserve follow-up. These tables are useful for triage, but they do not establish mechanism by themselves. Treat dense local clusters as leads to validate with independent evidence, sample-level quality checks, and study-specific cutoffs.
   </script>
 
   <script type="module" pinned id="interactive-step-2">
@@ -162,8 +162,8 @@
   <script type="module" pinned id="4">
     const localizedRoadmapRows = [
       { item: "Input validation", requirement: "Confirm chromosome, position, genome build, and context labels against a pinned variant source." },
-      { item: "Null model", requirement: "Replace the descriptive distance threshold with a calibrated background model for the assay and callable territory." },
-      { item: "Focal spectrum", requirement: "Compare focal contexts against matched genomic background and sequencing artifact filters." },
+      { item: "Null model", requirement: "Replace the descriptive distance cutoff with a calibrated background model for the assay and covered territory." },
+      { item: "Focal spectrum", requirement: "Compare focal contexts against matched genomic background and sequencing technical-effect filters." },
       { item: "External validation", requirement: "Benchmark candidate foci against known localized mutagenesis datasets before inferential use." },
       { item: "Reporting", requirement: "Keep experimental status visible in figures, tables, and application outputs." },
     ];

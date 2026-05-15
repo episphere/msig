@@ -93,7 +93,7 @@ const QC_WARNING_CODES = {
 
 const QC_SCOPE_STATEMENTS = {
   mutationBurden:
-    "Descriptive sample-level mutation-count summary. Burden flags are configurable QC prompts and do not classify biological validity.",
+    "Descriptive sample-level mutation-count summary. Burden review cues are configurable QC prompts and do not classify biological validity.",
   contextCoverage:
     "Structural context-completeness check for matrix compatibility. Missing or extra contexts identify input-format issues, not biological absence.",
   residuals:
@@ -255,7 +255,7 @@ function classifyBurden(
 }
 
 /**
- * Summarizes per-sample mutation burden and flags low-burden spectra.
+ * Summarizes per-sample mutation burden and raises review cues for low-burden spectra.
  *
  * @function summarizeMutationBurden
  * @memberof qc
@@ -387,7 +387,7 @@ function summarizeMutationBurden(
       thresholdBasis:
         "The low-burden threshold is a configurable QC setting. It is reported so downstream text can distinguish configured review defaults from literature-derived cutoffs.",
       thresholdRationale:
-        "The default 50-mutation low-burden flag is anchored to the SDK synthetic validation table: 50 mutations had mean exposure cosine 0.912 and mean reconstruction cosine 0.884, while 100 mutations improved to 0.952 and 0.930, respectively.",
+        "The default 50-mutation low-burden review cue is anchored to the SDK synthetic validation table: 50 mutations had mean exposure cosine 0.912 and mean reconstruction cosine 0.884, while 100 mutations improved to 0.952 and 0.930, respectively.",
       validationAnchor: [
         SYNTHETIC_VALIDATION_ANCHORS.burden50,
         SYNTHETIC_VALIDATION_ANCHORS.burden100,
@@ -406,7 +406,7 @@ function summarizeMutationBurden(
       ],
     }),
     thresholdRationale:
-      "The default 50-mutation low-burden flag is anchored to the SDK synthetic validation table: 50 mutations had mean exposure cosine 0.912 and mean reconstruction cosine 0.884, while 100 mutations improved to 0.952 and 0.930, respectively.",
+      "The default 50-mutation low-burden review cue is anchored to the SDK synthetic validation table: 50 mutations had mean exposure cosine 0.912 and mean reconstruction cosine 0.884, while 100 mutations improved to 0.952 and 0.930, respectively.",
     validationAnchor: [
       SYNTHETIC_VALIDATION_ANCHORS.burden50,
       SYNTHETIC_VALIDATION_ANCHORS.burden100,

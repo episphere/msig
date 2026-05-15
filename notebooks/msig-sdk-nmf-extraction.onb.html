@@ -1,15 +1,15 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK NMF extraction</title>
+  <title>mSigSDK discovery extraction (NMF)</title>
 
   <script type="text/markdown">
-    # Exploratory NMF signature extraction
+    # Exploratory signature discovery (NMF)
 
-    This notebook demonstrates mSigSDK's exploratory de novo extraction path. Instead of fitting known reference signatures, non-negative matrix factorization (NMF) learns a small set of component profiles and sample exposures directly from the spectra.
+    This notebook demonstrates mSigSDK's exploratory discovery path. Instead of fitting known reference signatures, non-negative matrix factorization (NMF) learns a small set of candidate signature patterns and sample contributions directly from the spectra.
 
     Use this as a browser-sized teaching example, not as a full production extraction recipe. For your own data, increase the sample count, rank grid, number of random starts, and maximum iterations only after confirming that the browser can handle the workload.
 
-    The narrative is deliberately different from known-signature fitting. First choose whether the cohort has enough signal for extraction, then inspect extracted profiles, then ask whether sample exposures and rank diagnostics support a stable interpretation, and finally prepare a handoff for production extraction.
+    The narrative is deliberately different from known-signature fitting. First choose whether the cohort has enough signal for discovery, then inspect learned profiles, then ask whether sample contributions and rank checks support a stable interpretation, and finally prepare files for production extraction.
   </script>
 
   <script type="module" pinned id="1">
@@ -36,8 +36,8 @@
     ]));
     display(table(
       [
-        { functionName: "extractSignaturesNMF", workflowValue: "Runs de novo extraction directly in the browser" },
-        { functionName: "compareExtractedToReference", workflowValue: "Compares extracted components to known COSMIC profiles" },
+        { functionName: "extractSignaturesNMF", workflowValue: "Runs exploratory discovery directly in the browser" },
+        { functionName: "compareExtractedToReference", workflowValue: "Compares learned patterns to known COSMIC profiles" },
         { functionName: "selectNMFRank", workflowValue: "Provides rank diagnostics instead of a fixed black-box rank" },
         { functionName: "presentation.nmfMatchRows", workflowValue: "Formats reference matching as a compact table" },
       ],
@@ -51,7 +51,7 @@
   <script type="text/markdown">
     ## Interactive workspace
 
-    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
   </script>
 
   <script type="module" pinned id="interactive-workspace">
@@ -62,11 +62,11 @@
   <script type="text/markdown">
     ## 1. Choose data and NMF settings
 
-    NMF is more sensitive to cohort size, mutation burden, rank, and random starts than known-signature fitting. This example fetches specific high-burden PCAWG WGS Lung-AdenoCA spectra so the browser has enough count-scale signal to extract simple components quickly.
+    NMF is more sensitive to cohort size, mutation count, number of patterns, and random starts than known-signature fitting. This example fetches specific high-count PCAWG WGS Lung-AdenoCA spectra so the browser has enough count-scale signal to learn simple patterns quickly.
 
     Edit `nmfRank`, `nmfRuns`, and `nmfMaxIterations` to see the speed and stability tradeoff. In a larger analysis, use more random starts and a broader rank grid.
 
-    If this first step feels underpowered, that is the intended lesson: extraction depends on cohort size, burden, and repeated optimization far more than a quick refit does.
+    If this first step feels underpowered, that is the intended lesson: discovery depends on cohort size, mutation count, and repeated optimization far more than a quick refit does.
   </script>
 
   <script type="module" pinned id="interactive-step-1">
@@ -172,7 +172,7 @@
         { key: "sample", label: "Selected sample" },
         { key: "mutations", label: "Total mutations" },
         { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
-        { key: "lowBurden", label: "Low burden flag" },
+        { key: "lowBurden", label: "Low-burden review cue" },
       ]
     ));
   </script>
@@ -268,15 +268,15 @@
   </script>
 
   <script type="text/markdown">
-    ## 4. Inspect sample exposures
+    ## 4. Inspect sample contributions
 
-    The exposure heatmap shows whether extracted signatures are broad cohort processes or concentrated in a few samples. A component driven by only one or two samples may still be useful, but it should be interpreted differently from a component distributed across the cohort.
+    The contribution heatmap shows whether learned patterns are broad cohort processes or concentrated in a few samples. A component driven by only one or two samples may still be useful, but it should be interpreted differently from a component distributed across the cohort.
 
-    This is where the extraction story becomes sample-specific: broad components suggest cohort-wide processes, while concentrated components suggest outliers, artifacts, or rare biology that needs follow-up.
+    This is where the discovery story becomes sample-specific: broad components suggest cohort-wide processes, while concentrated components suggest outliers, technical effects, or rare biology that needs follow-up.
   </script>
 
   <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "nmf-extraction", step: 4, phase: "visualize", title: "4. Inspect sample exposures", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "nmf-extraction", step: 4, phase: "visualize", title: "4. Inspect sample contributions", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">
@@ -323,15 +323,15 @@
   </script>
 
   <script type="text/markdown">
-    ## 6. Prepare production extraction handoff
+    ## 6. Prepare files for production extraction
 
-    Browser NMF is a screening tool. The same spectra can be exported as matrix-mode input for SigProfilerExtractor so production extraction and stability analysis can be run outside the browser.
+    Browser NMF is a screening tool. The same spectra can be exported as table-mode input for SigProfilerExtractor so production extraction and stability analysis can be run outside the browser.
 
-    The handoff keeps the story connected: the browser identifies whether extraction is worth pursuing, and the production engine runs the heavier stability analysis.
+    The export keeps the story connected: the browser identifies whether discovery is worth pursuing, and the production tool runs the heavier stability analysis.
   </script>
 
   <script type="module" pinned id="interactive-step-6">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "nmf-extraction", step: 6, phase: "export", title: "6. Prepare production extraction handoff", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "nmf-extraction", step: 6, phase: "export", title: "6. Prepare files for production extraction", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="7">
@@ -347,7 +347,7 @@
     const nmfHandoffRows = nmfExtractorInput.files.map((file) => ({
       path: file.path,
       bytes: file.text.length,
-      role: "SigProfilerExtractor matrix-mode input",
+      role: "SigProfilerExtractor table-mode input",
     }));
     display(table(
       nmfHandoffRows,
@@ -358,7 +358,7 @@
       ]
     ));
 
-    display(details("SigProfilerExtractor Python handoff snippet", nmfExtractorInput.pythonSnippet, {
+    display(details("SigProfilerExtractor Python run snippet", nmfExtractorInput.pythonSnippet, {
       open: true,
     }));
     display(downloadMany([

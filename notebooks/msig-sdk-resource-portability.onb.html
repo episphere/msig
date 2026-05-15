@@ -7,9 +7,9 @@
 
     This notebook shows mSigSDK as a bridge around public mutational-signature resources, not only as a fitting library. It demonstrates how mSigPortal resources and TCGA/GDC resource indexes become ordinary JavaScript objects that can be validated, analyzed, exported, documented, and reused in another environment.
 
-    Use this workflow when you need to document where public data come from, what shape the SDK expects, and how the same spectra can move between mSigPortal-style rows, SDK matrices, SigProfiler-style files, reports, and TCGA-derived mutation spectra.
+    Use this workflow when you need to document where public data come from, what shape the SDK expects, and how the same spectra can move between mSigPortal-style rows, SDK tables, SigProfiler-style files, reports, and TCGA-derived mutation spectra.
 
-    The story is about custody of data objects. A researcher discovers resources, converts them into a common matrix shape, proves they can be exported and reloaded, then connects a second public data source to the same analysis path.
+    The story is about keeping track of data objects. A researcher discovers resources, converts them into a common table shape, proves they can be exported and reloaded, then connects a second public data source to the same analysis path.
   </script>
 
   <script type="module" pinned id="1">
@@ -41,17 +41,17 @@
         {
           source: "mSigPortal spectra",
           sdkPath: "mSigPortalData.getMutationalSpectrumData -> extractMutationalSpectra",
-          portableObject: "sample x mutation-context count matrix",
+          portableObject: "sample x mutation-context count table",
         },
         {
           source: "mSigPortal signatures",
           sdkPath: "mSigPortalData.getMutationalSignaturesData -> extractMutationalSpectra(..., 'signatureName')",
-          portableObject: "signature x mutation-context reference matrix",
+          portableObject: "signature x mutation-context reference table",
         },
         {
           source: "TCGA/GDC MAF resources",
           sdkPath: "TCGA.getMafInformationFromProjects -> getVariantInformationFromMafFiles",
-          portableObject: "TCGA-derived mutational spectra in the same SDK matrix shape",
+          portableObject: "TCGA-derived mutational spectra in the same SDK table shape",
         },
         {
           source: "Portable files",
@@ -70,7 +70,7 @@
   <script type="text/markdown">
     ## Interactive workspace
 
-    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
   </script>
 
   <script type="module" pinned id="interactive-workspace">
@@ -186,15 +186,15 @@
   </script>
 
   <script type="text/markdown">
-    ## 2. Turn public spectra and signatures into SDK matrices
+    ## 2. Turn public spectra and signatures into SDK tables
 
-    mSigPortal returns long API rows. The SDK converts those rows into two reusable matrices: one keyed by sample and one keyed by signature. After that conversion, the source of the data no longer matters to validation, fitting, QC, export, or reporting.
+    mSigPortal returns long API rows. The SDK converts those rows into two reusable tables: one keyed by sample and one keyed by signature. After that conversion, the source of the data no longer matters to input checks, fitting, quality checks, export, or reporting.
 
-    This is the handoff from public resource access to local analysis. Once the matrices are built, the same downstream workflow can be used for public, private, or simulated spectra.
+    This is the bridge from public resource access to local analysis. Once the tables are built, the same downstream workflow can be used for public, private, or simulated spectra.
   </script>
 
   <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "resource-portability", step: 2, phase: "data", title: "2. Turn public spectra and signatures into SDK matrices", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "resource-portability", step: 2, phase: "data", title: "2. Turn public spectra and signatures into SDK tables", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="3">
@@ -301,7 +301,7 @@
         { key: "sample", label: "Sample" },
         { key: "mutations", label: "Total mutations" },
         { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
-        { key: "lowBurden", label: "Low-burden flag" },
+        { key: "lowBurden", label: "Low mutation-count review cue" },
       ],
       { maxRows: 6 }
     ));
@@ -319,7 +319,7 @@
   <script type="text/markdown">
     ## 3. Export, reload, and document the same resource-derived objects
 
-    Once spectra are in the SDK matrix shape, they can be exported as a SigProfiler-style TSV, imported back into the SDK, converted to long rows, paired with a COSMIC-style signature matrix, and packaged with provenance. This is the portability layer that makes the workflow independent of one hosted notebook runtime.
+    Once spectra are in the SDK table shape, they can be exported as a SigProfiler-style TSV, imported back into the SDK, converted to long rows, paired with a COSMIC-style signature table, and packaged with a run record. This is the portability layer that makes the workflow independent of one hosted notebook runtime.
 
     The round trip should preserve sample names, contexts, and counts. If it does not, the analysis is not yet portable enough for a collaborator or external engine.
   </script>
@@ -382,7 +382,7 @@
       "COSMIC-style signature TSV preview",
       portCosmicTsv.split("\n").slice(0, 8).join("\n")
     ));
-    display(details("Provenance object", portProvenance));
+    display(details("Run record", portProvenance));
     display(downloadMany([
       {
         filename: "resource_portability_spectra.tsv",
@@ -406,7 +406,7 @@
             signatures: portSignatureValidation,
           },
         },
-        label: "Download provenance JSON",
+        label: "Download run record JSON",
       },
     ]));
   </script>
@@ -418,7 +418,7 @@
 
     The full MAF download/conversion is intentionally not run automatically here because it can be slow in a browser session. The cell below shows the live GDC index and demonstrates the shared row schema using the already-loaded spectra.
 
-    The important connection is conceptual: TCGA/GDC begins with variant files, mSigPortal begins with signature resources, and both can converge on the same SDK matrix and report objects.
+    The important connection is conceptual: TCGA/GDC begins with variant files, mSigPortal begins with signature resources, and both can converge on the same SDK table and report objects.
   </script>
 
   <script type="module" pinned id="interactive-step-4">
@@ -496,7 +496,7 @@ const tcgaSpectra =
       { maxRows: 8 }
     ));
     display(note(
-      "The same validation, fitting, QC, export, and report calls used for mSigPortal spectra can be reused after TCGA MAFs are converted into spectra."
+      "The same input-check, fitting, quality-check, export, and report calls used for mSigPortal spectra can be reused after TCGA MAFs are converted into spectra."
     ));
     display(details("Full TCGA conversion pattern", portFullTcgaPattern, {
       open: true,

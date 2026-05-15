@@ -5,15 +5,15 @@
   <script type="text/markdown">
     # End-to-end workflow
 
-    This is the recommended first complete mSigSDK tutorial. It walks from project inputs to an auditable signature-review package: load spectra and signatures, tune parameters, validate matrices, run cohort fitting, inspect warnings and QC plots, prepare external-tool handoffs, and download a reproducibility bundle.
+    This is the recommended first complete mSigSDK tutorial. It walks from project data to a reviewable result: load mutation spectra and reference signatures, choose settings, check the input tables, fit signatures, inspect warnings and plots, compare or export to other tools, and download the files needed to rerun the analysis.
 
-    Start by loading a real public cohort through the mSigPortal APIs. The default selection is TCGA WES Lung-AdenoCa SBS96, but the menu exposes the available public studies, cancer types, strategies, profiles, matrix sizes, and compatible reference signature catalogs. You can still paste or upload your own spectra and signature catalog when adapting the workflow.
+    Start by loading a real public cohort through the mSigPortal APIs. The default selection is TCGA WES Lung-AdenoCa SBS96, but the menu lets you choose the public study, cancer type, sequencing strategy, mutational profile, table size, and compatible reference signature catalog. You can also paste or upload your own spectra and signature catalog when adapting the workflow.
 
-    A central interpretive caveat in this tutorial is signature identifiability. That is a property of the selected reference catalog, not a property invented by one sample: COSMIC SBS96 contains signatures with similar, crowded, or broad profiles. The notebook therefore shows continuous catalog-level identifiability cues and the sample-level review cues that appear when those signatures are active in a fitted sample. These cues are reasons to inspect the result, not conclusions about etiology or biological truth.
+    One important caution is that some COSMIC SBS96 signatures look similar to each other. That similarity comes from the reference catalog itself, not from one sample. The notebook therefore shows catalog-level similarity cues and sample-level review cues when those signatures appear in a fit. These cues are reasons to inspect the result; they are not conclusions about cause or biology.
   </script>
 
   <script type="module" pinned id="1">
-    const workflowSdkUrl = new URL("../main.js?v=2026-05-15-conservative-review-cues", location.href).href;
+    const workflowSdkUrl = new URL("../main.js?v=2026-05-15-engine-selection", location.href).href;
     const { mSigSDK } = await import(workflowSdkUrl);
     const {
       crossToolSummary,
@@ -44,6 +44,7 @@
       signatures: null,
       metadata: [],
       parameters: {
+        fitEngine: "sdk_nnls",
         exposureThreshold: 0.01,
         lowBurdenThreshold: 100,
         moderateBurdenThreshold: 1000,
@@ -51,6 +52,14 @@
         bootstrapIterations: 100,
         bootstrapSeed: 14,
         groupKey: "group",
+        pyodideTimeoutMs: 300000,
+        sigProfilerAssignmentPackage: "SigProfilerAssignment==1.1.3",
+        sigProfilerGenomeBuild: "GRCh37",
+        sigProfilerCosmicVersion: 3.5,
+        sigProfilerExome: false,
+        musicalPackage: "",
+        musicalMethod: "likelihood_bidirectional",
+        musicalThreshold: 0.001,
       },
       selectedSample: null,
       visualSamples: {
@@ -63,7 +72,55 @@
       bootstrapBySample: {},
       interoperability: null,
       provenance: null,
+      exposureEngineResult: null,
     };
+
+    const FIT_ENGINE_DEFINITIONS = Object.freeze({
+      sdk_nnls: {
+        label: "mSigSDK quick fit (built in)",
+        shortLabel: "mSigSDK quick fit",
+        runtime: "Runs in this browser",
+        command: "workflows.runCohortFit",
+        exposureSource: "mSigSDK built-in non-negative least squares fit",
+        supportsThresholdSensitivity: true,
+        supportsBootstrap: true,
+        description:
+          "Fast built-in fit for interactive review. Use this when you want mSigSDK to estimate signature contributions and then run the full checking, plotting, and reporting workflow.",
+      },
+      sigprofilerassignment_pyodide: {
+        label: "SigProfilerAssignment package (runs in browser)",
+        shortLabel: "SigProfilerAssignment",
+        runtime: "Python package in the browser with Pyodide",
+        command: "adapters.sigProfilerAssignment.run",
+        exposureSource: "SigProfilerAssignment Python package",
+        supportsThresholdSensitivity: false,
+        supportsBootstrap: false,
+        description:
+          "Runs the established SigProfilerAssignment package in the browser when Pyodide and the package are available. mSigSDK then checks, plots, and reports the resulting signature contributions.",
+      },
+      musical_pyodide: {
+        label: "MuSiCal package (runs in browser)",
+        shortLabel: "MuSiCal package",
+        runtime: "Python package in the browser with Pyodide",
+        command: "adapters.musical.runRefit({ runtime: 'pyodide' })",
+        exposureSource: "MuSiCal Python package",
+        supportsThresholdSensitivity: false,
+        supportsBootstrap: false,
+        description:
+          "Runs a Pyodide-compatible MuSiCal package or wheel supplied by the user. mSigSDK then checks, plots, and reports the resulting signature contributions.",
+      },
+      musical_sparse_nnls: {
+        label: "MuSiCal-style comparison fit (browser fallback)",
+        shortLabel: "MuSiCal-style comparison",
+        runtime: "Runs in this browser",
+        command: "adapters.musical.runSparseNnlsRefit",
+        exposureSource: "Browser comparison fit with MuSiCal-style inputs and outputs",
+        supportsThresholdSensitivity: false,
+        supportsBootstrap: false,
+        description:
+          "Uses MuSiCal-style input/output conventions for a browser comparison fit. This is useful for comparison, but it is not execution of the official MuSiCal Python package.",
+      },
+    });
 
     function parseNumber(value, fallback) {
       const parsed = Number(value);
@@ -77,6 +134,18 @@
         .filter(Number.isFinite)
         .sort((a, b) => a - b);
       return parsed.length ? [...new Set(parsed)] : [0, 0.01, 0.03, 0.05, 0.1];
+    }
+
+    function parsePackageList(value, fallback = []) {
+      const packages = String(value || "")
+        .split(/[\n,]+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      return packages.length ? packages : fallback;
+    }
+
+    function currentFitEngine() {
+      return FIT_ENGINE_DEFINITIONS[workflowState.parameters.fitEngine] || FIT_ENGINE_DEFINITIONS.sdk_nnls;
     }
 
     function stringify(value) {
@@ -111,7 +180,7 @@
 
     function parseMatrix(text, kind) {
       const trimmed = String(text || "").trim();
-      if (!trimmed) throw new Error(`${kind} matrix input is empty.`);
+      if (!trimmed) throw new Error(`${kind} input table is empty.`);
       try {
         const parsed = JSON.parse(trimmed);
         if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
@@ -166,6 +235,7 @@
       workflowState.bootstrapBySample = {};
       workflowState.interoperability = null;
       workflowState.provenance = null;
+      workflowState.exposureEngineResult = null;
       validateCurrentInputs();
       document.dispatchEvent(new CustomEvent("msig:endToEndInputs"));
     }
@@ -200,10 +270,10 @@
         HIGH_RESIDUAL_STRUCTURE: "structured-residual review cue",
         INCOMPLETE_CONTEXTS: "context-basis review cue",
         INSUFFICIENT_SIGNAL: "low-signal review cue",
-        LOW_BURDEN: "low-burden review cue",
+        LOW_BURDEN: "low mutation-count review cue",
         PANEL_SIGNATURE_NOT_ASSESSABLE: "restricted-assay review cue",
-        SIGNATURE_AMBIGUITY: "identifiability review cue",
-        THRESHOLD_DEPENDENT: "threshold-sensitivity review cue",
+        SIGNATURE_AMBIGUITY: "similar-reference-signature review cue",
+        THRESHOLD_DEPENDENT: "cutoff-sensitivity review cue",
       };
       return (Array.isArray(warnings) ? warnings : []).map((warning) => ({
         cue: warningLabels[warning.code || warning.warningCode || warning.status] || "review cue",
@@ -235,18 +305,18 @@
         .map((signature) => ({
           signature: signature.signatureName,
           "active in loaded samples": activeSignatures.has(signature.signatureName) ? "Yes" : "No",
-          "identifiability cues": (signature.evidenceTags || []).map((tag) => ({
-            catalog_neighbor_confusable: "near-neighbor similarity cue",
+          "similarity cues": (signature.evidenceTags || []).map((tag) => ({
+            catalog_neighbor_confusable: "nearest-neighbor similarity cue",
             neighbor_crowded_catalog_region: "crowded-catalog-region cue",
-            broad_or_flat_signature: "broad/flat-profile cue",
+            broad_or_flat_signature: "broad-profile cue",
             low_specificity_profile: "low-specificity-profile cue",
             near_review_boundary: "near-review-boundary cue",
-          }[tag] || tag)).join(", ") || "no identifiability cue",
-          "confusability score": formatEvidenceNumber(signature.confusabilityScore),
+          }[tag] || tag)).join(", ") || "no similarity cue",
+          "similarity risk score": formatEvidenceNumber(signature.confusabilityScore),
           "catalog percentile": formatEvidenceNumber(signature.confusabilityPercentile),
           "nearest catalog neighbor": signature.nearestNeighbor || "",
-          "nearest-neighbor cosine": formatEvidenceNumber(signature.nearestCosineSimilarity),
-          "flatness / entropy": formatEvidenceNumber(signature.flatnessScore ?? signature.entropy),
+          "nearest-neighbor similarity": formatEvidenceNumber(signature.nearestCosineSimilarity),
+          "profile broadness": formatEvidenceNumber(signature.flatnessScore ?? signature.entropy),
         }));
     }
 
@@ -257,38 +327,38 @@
           { key: "signature", label: "Signature" },
           { key: "active in loaded samples", label: "Active" },
           {
-            key: "identifiability cues",
-            label: "Identifiability cues",
-            tooltip: "Catalog-relative review cues from continuous signature-identifiability scoring. They explain why a fitted signature should be inspected, not that a specific biological process has been proven.",
+            key: "similarity cues",
+            label: "Similarity cues",
+            tooltip: "Reference-catalog review cues from continuous scoring. They explain why a fitted signature should be inspected, not that a specific biological process has been proven.",
             tooltipTerms: {
-              "near-neighbor similarity cue": "Assigned because this reference signature is unusually similar to its nearest catalog neighbor under the configured rule. Treat fitted exposure as potentially exchangeable with nearby signatures.",
+              "nearest-neighbor similarity cue": "Assigned because this reference signature is unusually similar to its nearest catalog neighbor under the configured rule. Treat fitted contribution as potentially exchangeable with nearby signatures.",
               "crowded-catalog-region cue": "Assigned because several nearby reference signatures have similar profiles under the configured rule. This is a review cue, not a distinct biological conclusion.",
-              "broad/flat-profile cue": "Assigned because this reference signature meets the broad/flat-profile criterion relative to the selected catalog.",
+              "broad-profile cue": "Assigned because this reference signature is broad or flat relative to the selected catalog.",
               "low-specificity-profile cue": "Assigned because this reference signature meets the low-specificity criterion under the configured summary statistic.",
               "near-review-boundary cue": "Assigned because the continuous score is close to the configured review boundary. Do not treat the boundary as a scientific cliff.",
-              "no identifiability cue": "No configured catalog-relative identifiability cue was active for this table entry.",
+              "no similarity cue": "No configured catalog-relative similarity cue was active for this table entry.",
             },
           },
           {
-            key: "confusability score",
+            key: "similarity risk score",
             label: "Score",
-            tooltip: "Continuous catalog-relative score combining robustly scaled neighbor similarity, top-neighbor crowding, flatness, and low specificity. Higher values indicate more reason to review exchangeability; they are not etiology claims.",
+            tooltip: "Continuous catalog-relative score combining nearest-neighbor similarity, nearby-signature crowding, broadness, and low specificity. Higher values indicate more reason to review exchangeability; they are not cause-of-mutation claims.",
           },
           {
             key: "catalog percentile",
             label: "Percentile",
-            tooltip: "Empirical percentile of the continuous confusability score within the selected catalog.",
+            tooltip: "Empirical percentile of the continuous similarity risk score within the selected catalog.",
           },
           { key: "nearest catalog neighbor", label: "Nearest neighbor" },
           {
-            key: "nearest-neighbor cosine",
-            label: "Neighbor cosine",
+            key: "nearest-neighbor similarity",
+            label: "Neighbor similarity",
             tooltip: "Cosine similarity between this reference signature and its nearest reference-signature neighbor.",
           },
           {
-            key: "flatness / entropy",
-            label: "Flatness",
-            tooltip: "Normalized Shannon entropy of the reference signature profile. Broad, flat signatures may absorb related signal and should be reviewed cautiously.",
+            key: "profile broadness",
+            label: "Profile broadness",
+            tooltip: "How broad or flat the reference signature profile is. Broad signatures may absorb related signal and should be reviewed cautiously.",
           },
         ],
         { maxRows }
@@ -301,7 +371,7 @@
         [
           { key: "cue", label: "Review cue" },
           { key: "SDK code", label: "SDK code" },
-          { key: "message", label: "Why it was flagged" },
+          { key: "message", label: "Why this cue appeared" },
           { key: "recommended action", label: "Suggested review step" },
         ],
         { maxRows }
@@ -334,8 +404,8 @@
 
     function fitQualityMethodGuide() {
       return workflowOutputGuide(
-        "Hover to read SDK criteria",
-        "The compact reporting tables below are rendered with mSigSDK.presentation.fitQualityEvidenceTable(...) and mSigSDK.presentation.tooltipTable(...). Hover or keyboard-focus reporting modes, warning/review cues, burden classes, identifiability evidence tags, continuous scores, catalog statuses, and table headers to see the SDK definitions without adding glossary columns."
+        "Hover to read definitions",
+        "Hover or keyboard-focus reporting modes, warning cues, mutation-count classes, similarity cues, continuous scores, catalog statuses, and table headers to see definitions without adding glossary columns. Technical readers can open the code to see the reusable SDK table calls."
       );
     }
 
@@ -353,16 +423,16 @@
 
     async function getBootstrapForSample(sample, statusElement = null) {
       if (!sample) {
-        throw new Error("Choose a sample before rendering bootstrap intervals.");
+        throw new Error("Choose a sample before rendering uncertainty intervals.");
       }
       if (workflowState.bootstrapBySample?.[sample]) {
         return workflowState.bootstrapBySample[sample];
       }
       if (!workflowState.spectra?.[sample]) {
-        throw new Error(`Sample ${sample} is not present in the active spectra matrix.`);
+        throw new Error(`Sample ${sample} is not present in the active spectra table.`);
       }
       if (statusElement) {
-        statusElement.textContent = `Running ${workflowState.parameters.bootstrapIterations} bootstrap refits for ${sample}...`;
+        statusElement.textContent = `Running ${workflowState.parameters.bootstrapIterations} uncertainty refits for ${sample}...`;
       }
       const bootstrap = await mSigSDK.qc.bootstrapSignatureFit(
         workflowState.signatures,
@@ -383,37 +453,396 @@
       return annotated;
     }
 
+    function uniqueValues(values = []) {
+      return [...new Set(values.filter((value) => value !== undefined && value !== null && value !== ""))];
+    }
+
+    function dedupeWarnings(warnings = []) {
+      const seen = new Set();
+      return (Array.isArray(warnings) ? warnings : []).filter((warning) => {
+        const key = `${warning?.code || warning?.warningCode || warning?.status || "warning"}|${warning?.message || ""}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function metadataBySample() {
+      return Object.fromEntries((workflowState.metadata || []).map((row) => [row.sample, row]));
+    }
+
+    function completeExposureMatrix(exposures, { relative = true } = {}) {
+      const sampleNames = Object.keys(workflowState.spectra || {});
+      const signatureNames = Object.keys(workflowState.signatures || {});
+      const source = exposures || {};
+      const completed = Object.fromEntries(sampleNames.map((sample) => {
+        const row = source[sample] || {};
+        return [
+          sample,
+          Object.fromEntries(signatureNames.map((signature) => [
+            signature,
+            parseNumber(row[signature], 0),
+          ])),
+        ];
+      }));
+      return relative
+        ? mSigSDK.qc.normalizeExposures(completed, { relative: true })
+        : completed;
+    }
+
+    function pyodideRuntimeRows() {
+      const runtime = mSigSDK.runners?.pyodide?.detect
+        ? mSigSDK.runners.pyodide.detect()
+        : { available: false, missing: ["mSigSDK.runners.pyodide.detect"] };
+      return [
+        { item: "Can run work in the background", value: runtime.missing?.includes("Worker") ? "missing" : "available" },
+        { item: "Can create temporary package files", value: runtime.missing?.includes("Blob") ? "missing" : "available" },
+        { item: "Can load temporary package files", value: runtime.missing?.includes("URL.createObjectURL") ? "missing" : "available" },
+        { item: "Pyodide source", value: runtime.defaultIndexURL || runtime.pyodideIndexURL || "configured by runner" },
+      ];
+    }
+
+    function engineRows(analysis = workflowState.analysis) {
+      const engine = analysis?.exposureEngine || currentFitEngine();
+      const result = analysis?.exposureEngineResult || workflowState.exposureEngineResult;
+      return [
+        { field: "Selected fitting method", value: engine.label || engine.shortLabel },
+        { field: "Where it runs", value: engine.runtime },
+        { field: "Reusable SDK call", value: engine.command },
+        { field: "Who estimated signature contributions", value: engine.exposureSource },
+        { field: "Run status", value: result?.status || analysis?.status || "completed" },
+        { field: "Contribution table", value: result?.exposures ? "available" : engine.command === "workflows.runCohortFit" ? "created by mSigSDK workflow" : "not available" },
+        { field: "Cutoff sensitivity", value: engine.supportsThresholdSensitivity ? "shown in this notebook" : "not shown for this selected package" },
+        { field: "Uncertainty intervals", value: engine.supportsBootstrap ? "shown for selected sample" : "use the package's own uncertainty workflow or switch to mSigSDK quick fit" },
+      ];
+    }
+
+    async function runSelectedExposureEngine() {
+      const engineKey = workflowState.parameters.fitEngine;
+      const engine = currentFitEngine();
+      if (engineKey === "sdk_nnls") {
+        const analysis = await mSigSDK.workflows.runCohortFit(
+          {
+            spectra: workflowState.spectra,
+            signatures: workflowState.signatures,
+            metadata: workflowState.metadata,
+          },
+          {
+            contexts: workflowState.contexts,
+            groupKey: workflowState.parameters.groupKey,
+            exposureThreshold: workflowState.parameters.exposureThreshold,
+            lowBurdenThreshold: workflowState.parameters.lowBurdenThreshold,
+            moderateBurdenThreshold: workflowState.parameters.moderateBurdenThreshold,
+            thresholds: workflowState.parameters.thresholdGrid,
+            runThresholdSensitivity: true,
+            runBootstrap: false,
+            reportFormat: "object",
+          }
+        );
+        analysis.exposureEngine = engine;
+        analysis.exposureEngineResult = {
+          status: "completed",
+          runtime: engine.runtime,
+          exposures: analysis.fit?.exposures,
+          provenance: {
+            tool: "mSigSDK",
+            runtime: engine.runtime,
+            parameters: analysis.parameters?.fitOptions || {},
+          },
+        };
+        return analysis;
+      }
+
+      const pyodideEngine = engineKey.includes("pyodide");
+      if (pyodideEngine) {
+        const runtime = mSigSDK.runners?.pyodide?.detect?.();
+        if (runtime && runtime.available === false) {
+          throw new Error(`Browser Python workers are not available in this browser. Missing: ${(runtime.missing || []).join(", ")}`);
+        }
+      }
+
+      if (engineKey === "sigprofilerassignment_pyodide") {
+        return await mSigSDK.adapters.sigProfilerAssignment.run(
+          {
+            spectra: workflowState.spectra,
+            signatures: workflowState.signatures,
+          },
+          {
+            contexts: workflowState.contexts,
+            micropipPackages: parsePackageList(
+              workflowState.parameters.sigProfilerAssignmentPackage,
+              ["SigProfilerAssignment==1.1.3"]
+            ),
+            genomeBuild: workflowState.parameters.sigProfilerGenomeBuild,
+            cosmicVersion: workflowState.parameters.sigProfilerCosmicVersion,
+            exome: workflowState.parameters.sigProfilerExome,
+            timeoutMs: workflowState.parameters.pyodideTimeoutMs,
+          }
+        );
+      }
+
+      if (engineKey === "musical_pyodide") {
+        return await mSigSDK.adapters.musical.runRefit(
+          {
+            spectra: workflowState.spectra,
+            signatures: workflowState.signatures,
+          },
+          {
+            contexts: workflowState.contexts,
+            runtime: "pyodide",
+            method: workflowState.parameters.musicalMethod,
+            threshold: workflowState.parameters.musicalThreshold,
+            micropipPackages: parsePackageList(workflowState.parameters.musicalPackage, []),
+            timeoutMs: workflowState.parameters.pyodideTimeoutMs,
+          }
+        );
+      }
+
+      if (engineKey === "musical_sparse_nnls") {
+        return await mSigSDK.adapters.musical.runSparseNnlsRefit(
+          {
+            spectra: workflowState.spectra,
+            signatures: workflowState.signatures,
+          },
+          {
+            contexts: workflowState.contexts,
+            threshold: workflowState.parameters.musicalThreshold,
+          }
+        );
+      }
+
+      throw new Error(`Unknown fitting method: ${engineKey}`);
+    }
+
+    function buildAnalysisFromExposureEngine(engineResult) {
+      const engine = currentFitEngine();
+      if (!engineResult?.exposures) {
+        throw new Error(`${engine.label} completed without a parsed sample-by-signature contribution table. Inspect the collected output files or use the tool export bundle to review the package output manually.`);
+      }
+      const exposures = completeExposureMatrix(engineResult.exposures);
+      const positiveExposureCount = Object.values(exposures)
+        .flatMap((row) => Object.values(row || {}))
+        .filter((value) => Number(value) > 0).length;
+      if (positiveExposureCount === 0) {
+        throw new Error(`${engine.label} returned signature contributions, but none matched the active sample/signature names after import. Check sample IDs, signature names, and table orientation before reviewing fit evidence.`);
+      }
+      const advisor = mSigSDK.advisor.recommendAnalysisStrategy(workflowState.spectra, {
+        expectedContexts: workflowState.contexts,
+        lowBurdenThreshold: workflowState.parameters.lowBurdenThreshold,
+        moderateBurdenThreshold: workflowState.parameters.moderateBurdenThreshold,
+      });
+      const residualOptions = {
+        contexts: workflowState.contexts,
+        normalizeMode: "relative",
+        lowBurdenThreshold: workflowState.parameters.lowBurdenThreshold,
+        moderateBurdenThreshold: workflowState.parameters.moderateBurdenThreshold,
+      };
+      const residuals = mSigSDK.qc.calculateFitResiduals(
+        workflowState.signatures,
+        workflowState.spectra,
+        exposures,
+        residualOptions
+      );
+      const reconstructionError = mSigSDK.qc.calculateReconstructionError(
+        workflowState.signatures,
+        workflowState.spectra,
+        exposures,
+        residualOptions
+      );
+      const ambiguity = mSigSDK.advisor.computeSignatureIdentifiability(
+        workflowState.signatures,
+        { contexts: workflowState.contexts }
+      );
+      const catalogCheck = mSigSDK.advisor.detectOutOfReferenceSignal(
+        {
+          signatures: workflowState.signatures,
+          spectra: workflowState.spectra,
+          exposures,
+          residuals,
+          reconstructionError,
+          contexts: workflowState.contexts,
+        },
+        residualOptions
+      );
+      const fitQualityEvidence = mSigSDK.advisor.computeFitQualityEvidence(
+        {
+          signatures: workflowState.signatures,
+          spectra: workflowState.spectra,
+          exposures,
+          burdenSummary: advisor.mutationBurden,
+          residuals,
+          reconstructionError,
+          bootstrap: {},
+          thresholdSensitivity: null,
+          ambiguity,
+          catalogCheck,
+          contexts: workflowState.contexts,
+        },
+        residualOptions
+      );
+      const groupComparison =
+        workflowState.parameters.groupKey && workflowState.metadata.length
+          ? mSigSDK.advisor.compareSignatureExposures(exposures, metadataBySample(), {
+              groupKey: workflowState.parameters.groupKey,
+              permutationIterations: 0,
+            })
+          : null;
+      const warnings = dedupeWarnings([
+        ...(advisor.warnings || []),
+        ...(fitQualityEvidence.warnings || []),
+        ...(catalogCheck.warnings || []),
+        ...(groupComparison?.warnings || []),
+      ]);
+      const recommendedActions = uniqueValues([
+        ...(advisor.recommendedActions || []),
+        ...(fitQualityEvidence.recommendedActions || []),
+        ...(catalogCheck.recommendedActions || []),
+        ...(groupComparison?.recommendedActions || []),
+        `Signature contribution estimates in this run came from ${engine.label}. mSigSDK is being used here to check inputs, review fit quality, make plots, and prepare reports around that contribution table.`,
+        engine.supportsBootstrap
+          ? null
+          : "For uncertainty intervals with this selected fitting method, use that package's own uncertainty workflow or switch the notebook to mSigSDK quick fit.",
+      ]);
+      const report = mSigSDK.reports.createAnalysisReport(
+        {
+          title: `${engine.shortLabel} Cohort Signature Fit Report`,
+          summary:
+            `Cohort signature workflow using ${engine.label} to estimate signature contributions and mSigSDK to check, plot, and report the result.`,
+          workflowRole: "cohort_fit_external_engine",
+          scopeStatement:
+            "The selected fitting method estimated the signature contributions. mSigSDK reviewed the inputs and outputs without claiming it replaced that method.",
+          methodBasis: {
+            exposureEngine: engine.description,
+            reviewLayer:
+              "mSigSDK computes input checks, mutation-count review, reconstruction checks, residuals, catalog-similarity cues, catalog-coverage cues, and reporting tables around the selected contribution table.",
+          },
+          primaryInterpretationFields: [
+            "exposureEngine",
+            "fitQualityEvidence.samples[].reportingMode",
+            "fit.exposures",
+          ],
+          parameters: {
+            workflow: engine.command,
+            fitEngine: workflowState.parameters.fitEngine,
+            exposureThreshold: workflowState.parameters.exposureThreshold,
+            lowBurdenThreshold: workflowState.parameters.lowBurdenThreshold,
+            moderateBurdenThreshold: workflowState.parameters.moderateBurdenThreshold,
+            pyodideTimeoutMs: workflowState.parameters.pyodideTimeoutMs,
+          },
+          validation: workflowState.validation,
+          qc: {
+            mutationBurden: advisor.mutationBurden,
+            contextCoverage: advisor.contextCoverage || workflowState.validation?.contextCoverage,
+            reconstructionError,
+            residuals,
+            fitQualityEvidence: fitQualityEvidence.summary,
+            catalogCheck: catalogCheck.summary,
+            groupComparison:
+              groupComparison && {
+                groupKey: groupComparison.groupKey,
+                groups: groupComparison.groups,
+                topSignals: groupComparison.topSignals,
+                reportingMode: groupComparison.reportingMode,
+              },
+          },
+          exposures,
+          notes: [
+            "Running external packages in the browser depends on browser support, package availability, and memory limits.",
+            "Signature contribution estimates depend on the selected spectra, reference catalog, mutation context type, and fitting settings.",
+          ],
+        },
+        { format: "object" }
+      );
+
+      return {
+        schemaVersion: "msig.notebook.workflow.v0.3",
+        workflow: "cohort_fit",
+        workflowRole: "cohort_fit_external_engine",
+        scopeStatement:
+          "Signature contribution estimation used the selected fitting method; mSigSDK adds input checks, review plots, reports, and tool export files around the result.",
+        methodBasis: {
+          exposureEngine: engine.description,
+          reviewLayer:
+            "mSigSDK computes review evidence around the selected contribution table without claiming that the built-in mSigSDK fitting method was used.",
+        },
+        parameters: {
+          workflow: engine.command,
+          fitEngine: workflowState.parameters.fitEngine,
+          thresholdOptions: null,
+        },
+        validation: workflowState.validation,
+        qc: {
+          mutationBurden: advisor.mutationBurden,
+          contextCoverage: advisor.contextCoverage || workflowState.validation?.contextCoverage,
+          reconstructionError,
+          residuals,
+          thresholdSensitivity: null,
+          bootstrap: {},
+          fitQualityEvidence: fitQualityEvidence.summary,
+          catalogCheck: catalogCheck.summary,
+          groupComparison:
+            groupComparison && {
+              groupKey: groupComparison.groupKey,
+              groups: groupComparison.groups,
+              topSignals: groupComparison.topSignals,
+              reportingMode: groupComparison.reportingMode,
+            },
+        },
+        warnings,
+        primaryWarnings: warnings,
+        advisor,
+        cohort: advisor.cohort,
+        groupComparison,
+        fit: {
+          method: engine.shortLabel,
+          solverVariant: engine.command,
+          exposures,
+          parameters: {
+            fitEngine: workflowState.parameters.fitEngine,
+            exposureThreshold: workflowState.parameters.exposureThreshold,
+          },
+          reconstructionError,
+        },
+        exposureEngine: engine,
+        exposureEngineResult: engineResult,
+        fitQualityEvidence,
+        ambiguity,
+        residuals,
+        catalogCheck,
+        thresholdSensitivity: null,
+        bootstrap: {},
+        recommendedActions,
+        publicationFigures: [
+          { id: "mutation_burden", title: "Mutation count", recommendedRenderer: "mSigSDK.qcPlots.plotMutationBurdenSummary" },
+          { id: "reconstruction_error", title: "Reconstruction error", recommendedRenderer: "mSigSDK.qcPlots.plotReconstructionError" },
+          { id: "fit_quality_evidence", title: "Fit-quality evidence", recommendedRenderer: "mSigSDK.qcPlots.plotFitQualityEvidenceDashboard" },
+          { id: "residual_spectrum", title: "Residual spectrum", recommendedRenderer: "mSigSDK.qcPlots.plotFitResiduals" },
+          { id: "catalog_identifiability", title: "Reference-signature similarity evidence", recommendedRenderer: "mSigSDK.presentation.fitQualityEvidenceTable" },
+        ],
+        report,
+      };
+    }
+
     async function runWorkflow() {
       if (!workflowState.spectra || !workflowState.signatures) {
         throw new Error("Load a public API dataset or apply your own matrices first.");
       }
       validateCurrentInputs();
       workflowState.bootstrapBySample = {};
+      workflowState.exposureEngineResult = null;
       const started = performance.now();
-      const analysis = await mSigSDK.workflows.runCohortFit(
-        {
-          spectra: workflowState.spectra,
-          signatures: workflowState.signatures,
-          metadata: workflowState.metadata,
-        },
-        {
-          contexts: workflowState.contexts,
-          groupKey: workflowState.parameters.groupKey,
-          exposureThreshold: workflowState.parameters.exposureThreshold,
-          lowBurdenThreshold: workflowState.parameters.lowBurdenThreshold,
-          moderateBurdenThreshold: workflowState.parameters.moderateBurdenThreshold,
-          thresholds: workflowState.parameters.thresholdGrid,
-          runThresholdSensitivity: true,
-          runBootstrap: false,
-          reportFormat: "object",
-        }
-      );
+      const engineResult = await runSelectedExposureEngine();
+      const analysis = workflowState.parameters.fitEngine === "sdk_nnls"
+        ? engineResult
+        : buildAnalysisFromExposureEngine(engineResult);
       const sample = workflowState.selectedSample || Object.keys(workflowState.spectra)[0];
       workflowState.visualSamples = {
         residual: sample,
         bootstrap: sample,
       };
-      const bootstrap = await getBootstrapForSample(sample);
+      const bootstrap = analysis.exposureEngine?.supportsBootstrap
+        ? await getBootstrapForSample(sample)
+        : null;
       const interoperability = mSigSDK.adapters.createInteroperabilityBundle(
         {
           spectra: workflowState.spectra,
@@ -435,13 +864,15 @@
           },
         ],
         notes: [
-          "Known-signature exposures are conditional on the supplied spectra, signature catalog, context basis, and thresholds.",
+          `Fitting method: ${analysis.exposureEngine?.label || currentFitEngine().label}.`,
+          "Known-signature contribution estimates depend on the supplied spectra, signature catalog, mutation context type, fitting settings, and cutoffs.",
         ],
       });
       workflowState.analysis = analysis;
       workflowState.bootstrap = bootstrap;
       workflowState.interoperability = interoperability;
       workflowState.provenance = provenance;
+      workflowState.exposureEngineResult = analysis.exposureEngineResult || engineResult;
       workflowState.runtimeMs = performance.now() - started;
       document.dispatchEvent(new CustomEvent("msig:endToEndRun"));
       return analysis;
@@ -449,8 +880,8 @@
 
     display(metrics([
       { label: "SDK", value: mSigSDK.version, note: "Imported from ../main.js" },
-      { label: "Context basis", value: "Selected by data", note: "Defaults to TCGA WES Lung-AdenoCa SBS96" },
-      { label: "Main workflow", value: "runCohortFit", note: "Known-signature cohort review" },
+      { label: "Mutation context type", value: "Selected by data", note: "Defaults to TCGA WES Lung-AdenoCa SBS96" },
+      { label: "Fitting method", value: "Selectable", note: "Built-in mSigSDK, SigProfilerAssignment, MuSiCal, or comparison fit" },
       { label: "Status", value: "Waiting for data", note: "Use the next cell" },
     ]));
   </script>
@@ -458,9 +889,9 @@
   <script type="text/markdown">
     ## Step 1. Load or replace data
 
-    Use **Load selected public dataset** to retrieve real public spectra and a compatible reference catalog through the mSigPortal APIs. The default is TCGA WES Lung-AdenoCa SBS96 with a small sample cap so the tutorial runs quickly; change the menu to load another public study, cancer type, sequencing strategy, profile, matrix size, or signature catalog.
+    Use **Load selected public dataset** to retrieve real public spectra and a compatible reference catalog through the mSigPortal APIs. The default is TCGA WES Lung-AdenoCa SBS96 with a small sample cap so the tutorial runs quickly; change the menu to load another public study, cancer type, sequencing strategy, mutational profile, table size, or signature catalog.
 
-    Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 12 } }` or a SigProfiler-style TSV matrix. Your signatures can be a JSON object keyed by signature name or a COSMIC-style TSV matrix. Metadata is optional CSV, TSV, or JSON, but if supplied it should include a `sample` column that matches the spectra sample names.
+    Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 12 } }` or a SigProfiler-style TSV table. Your signatures can be a JSON object keyed by signature name or a COSMIC-style TSV table. Sample details are optional CSV, TSV, or JSON, but if supplied they should include a `sample` column that matches the spectra sample names.
   </script>
 
   <script type="module" pinned id="2">
@@ -532,7 +963,7 @@
     const signaturesText = document.createElement("textarea");
     signaturesText.placeholder = "Paste signature JSON or COSMIC-style TSV";
     const metadataText = document.createElement("textarea");
-    metadataText.placeholder = "Optional metadata CSV/TSV/JSON";
+    metadataText.placeholder = "Optional sample details CSV/TSV/JSON";
 
     const studySelect = document.createElement("select");
     const cancerSelect = document.createElement("select");
@@ -556,13 +987,13 @@
     publicOption.className = "workflow-source-option";
     publicOption.innerHTML = `
       <strong>Load public API data</strong>
-      <p>Choose a public study, cancer type, strategy, mutational profile, matrix size, signature set, and sample count. The default loads real TCGA WES Lung-AdenoCa SBS96 spectra.</p>
+      <p>Choose a public study, cancer type, strategy, mutational profile, table size, signature set, and sample count. The default loads real TCGA WES Lung-AdenoCa SBS96 spectra.</p>
     `;
     const ownOption = document.createElement("div");
     ownOption.className = "workflow-source-option";
     ownOption.innerHTML = `
       <strong>Use my own data</strong>
-      <p>Paste JSON or TSV/CSV data below, or upload files, then apply it here. The notebook previews sample names, context coverage, and validation before analysis.</p>
+      <p>Paste JSON or TSV/CSV data below, or upload files, then apply it here. The notebook previews sample names, context coverage, and input checks before analysis.</p>
     `;
     const demoOption = document.createElement("div");
     demoOption.className = "workflow-source-option";
@@ -747,7 +1178,7 @@
         sampleCount: selectedSamples.length,
       };
       if (!selection.signatureSetName) {
-        throw new Error("No compatible reference signature set is available for the selected profile and matrix.");
+        throw new Error("No compatible reference signature set is available for the selected profile and table size.");
       }
       inputSummary.replaceChildren(placeholder(`Fetching ${selection.sampleCount} public spectra and ${selection.signatureSetName} from the API...`));
       const spectrumRowGroups = await Promise.all(
@@ -805,40 +1236,40 @@
         { label: "Samples", value: Object.keys(workflowState.spectra).length },
         { label: "Signatures", value: Object.keys(workflowState.signatures).length },
         { label: "Contexts", value: workflowState.contexts.length },
-        { label: "Metadata rows", value: workflowState.metadata.length },
-        { label: "Spectra valid", value: validation.spectra.valid ? "Yes" : "Review" },
+        { label: "Sample detail rows", value: workflowState.metadata.length },
+        { label: "Spectra table valid", value: validation.spectra.valid ? "Yes" : "Review" },
       ]));
       inputSummary.append(workflowOutputGuide(
         "What this input summary means",
-        "This confirms what data are now active in the notebook before any fitting happens. A valid spectra matrix means the selected contexts are present, counts are finite, and the object is shaped correctly for the SDK.",
+        "This confirms what data are now active in the notebook before any fitting happens. A valid spectra table means the selected contexts are present, counts are finite, and the object is shaped correctly for the SDK.",
         [
           { output: "Samples", meaning: "Number of tumors or spectra that will be fitted." },
           { output: "Signatures", meaning: "Number of reference signatures available to explain each spectrum." },
           { output: "Contexts", meaning: "Mutation channels in the selected profile, such as 96 for SBS96." },
-          { output: "Spectra valid", meaning: "Yes means the matrix passed structural checks. Review means fix the input before trusting downstream fitting." },
+          { output: "Spectra table valid", meaning: "Yes means the table passed structural checks. Review means fix the input before trusting downstream fitting." },
         ]
       ));
       inputSummary.append(table([
         { field: "Data source", value: workflowState.source || "user supplied" },
         { field: "Selected public study", value: workflowState.publicSelection ? `${workflowState.publicSelection.study} ${workflowState.publicSelection.cancer}` : "not public API data" },
-        { field: "Profile and matrix", value: workflowState.publicSelection ? `${workflowState.publicSelection.profile}${workflowState.publicSelection.matrix}` : `${workflowState.contexts.length} contexts` },
+        { field: "Profile and table size", value: workflowState.publicSelection ? `${workflowState.publicSelection.profile}${workflowState.publicSelection.matrix}` : `${workflowState.contexts.length} contexts` },
         { field: "Signature catalog", value: workflowState.publicSelection?.signatureSetName || "user supplied" },
       ]));
-      inputSummary.append(note("Read the source table as provenance: it records whether this run came from mSigPortal public APIs, pasted/uploaded local data, or the offline fixture.", "info"));
+      inputSummary.append(note("Read the source table as the run record: it records whether this run came from mSigPortal public APIs, pasted/uploaded local data, or the offline fixture.", "info"));
       inputSummary.append(table([
         { check: "Spectra issues", value: validation.spectra.issues.length },
         { check: "Signature issues", value: validation.signatures.issues.length },
-        { check: "Low-burden samples", value: validation.burden.overall.lowBurdenSampleCount },
+        { check: "Low mutation-count samples", value: validation.burden.overall.lowBurdenSampleCount },
         { check: "Context coverage complete", value: validation.contextCoverage.complete ? "Yes" : "Review" },
       ]));
       inputSummary.append(workflowOutputGuide(
-        "Validation checks",
-        "These checks decide whether the loaded matrices can be compared. They do not prove that the fitted biology is correct; they only confirm the inputs are coherent enough to analyze.",
+        "Input checks",
+        "These checks decide whether the loaded tables can be compared. They do not prove that the fitted biology is correct; they only confirm the inputs are coherent enough to analyze.",
         [
-          { check: "Spectra issues", meaning: "Structural problems in the sample-by-context matrix." },
+          { check: "Spectra issues", meaning: "Structural problems in the sample-by-context table." },
           { check: "Signature issues", meaning: "Structural problems in the reference signature catalog." },
-          { check: "Low-burden samples", meaning: "Samples below the configured mutation-count threshold; these often require caveats." },
-          { check: "Context coverage complete", meaning: "Whether every expected context appears in the matrix." },
+          { check: "Low mutation-count samples", meaning: "Samples below the configured mutation-count cutoff; these often require caveats." },
+          { check: "Context coverage complete", meaning: "Whether every expected context appears in the table." },
         ]
       ));
       inputSummary.append(details("Current spectra object", workflowState.spectra));
@@ -928,17 +1359,17 @@
       field("Cancer type or group", cancerSelect),
       field("Experimental strategy", strategySelect),
       field("Mutational profile", profileSelect),
-      field("Matrix size", matrixSelect),
+      field("Table size", matrixSelect),
       field("Reference signature set", signatureSetSelect),
       field("Max samples to load", maxSamplesInput, "Small defaults keep the tutorial responsive; increase for larger cohorts.")
     );
     inputGrid.append(
-      field("Spectra matrix", spectraText, "JSON object or SigProfiler-style TSV."),
+      field("Spectra table", spectraText, "JSON object or SigProfiler-style TSV."),
       field("Signature catalog", signaturesText, "JSON object or COSMIC-style TSV."),
-      field("Metadata", metadataText, "Optional CSV/TSV/JSON with sample names."),
+      field("Sample details", metadataText, "Optional CSV/TSV/JSON with sample names."),
       field("Upload spectra", fileInput(spectraText)),
       field("Upload signatures", fileInput(signaturesText)),
-      field("Upload metadata", fileInput(metadataText))
+      field("Upload sample details", fileInput(metadataText))
     );
     document.addEventListener("msig:endToEndInputs", renderInputSummary);
     inputSummary.append(placeholder("No active dataset yet. Load a public API dataset or apply your own matrices."));
@@ -950,9 +1381,9 @@
   </script>
 
   <script type="text/markdown">
-    ## Step 2. Tune parameters and run
+    ## Step 2. Choose settings and run
 
-    These controls update the real SDK call. Validate first when adapting the notebook, then run the complete workflow. Bootstrap iterations are intentionally editable: keep them small for speed, then increase them for final review.
+    These controls update the real analysis. Check the input first when adapting the notebook, then choose the fitting method and run the complete workflow. You can use mSigSDK's built-in fit, or you can choose established packages such as SigProfilerAssignment and MuSiCal when the browser Python setup is available. Keep uncertainty iterations small while exploring, then increase them for final review when using the mSigSDK quick fit.
   </script>
 
   <script type="module" pinned id="3">
@@ -973,39 +1404,37 @@
       const heading = document.createElement("h3");
       heading.textContent = "What the end-to-end workflow runs";
       const intro = document.createElement("p");
-      intro.textContent = "This button turns the loaded spectra, selected reference catalog, and editable parameters into a complete review package. It runs locally in the browser after the data are loaded.";
+      intro.textContent = "This run turns the loaded spectra, selected reference signatures, selected fitting method, and editable settings into a complete review package. mSigSDK can estimate the signature contributions itself, or it can use package adapters and then apply the same input checks, plots, tables, and export steps to those results.";
       const list = document.createElement("ol");
       list.className = "workflow-step-list";
       [
         {
-          title: "Validate inputs",
-          body: "Checks matrix shape, SBS context coverage, numeric values, and mutation burden before fitting.",
-          sdk: "validation.validateSpectra, validation.validateSignatureMatrix, qc.summarizeMutationBurden",
+          title: "Choose the fitting method",
+          body: "Select whether signature contributions come from the built-in mSigSDK fit, SigProfilerAssignment, MuSiCal, or a browser comparison fit that uses MuSiCal-style inputs and outputs.",
+        },
+        {
+          title: "Check the input tables",
+          body: "Checks table shape, SBS context coverage, numeric values, and mutation counts before fitting.",
         },
         {
           title: "Fit known signatures",
-          body: "Fits each sample against the selected reference catalog and returns exposure estimates and reconstructed spectra.",
-          sdk: "workflows.runCohortFit",
+          body: "Runs the selected fitting method against the selected reference catalog and returns estimated signature contributions.",
         },
         {
-          title: "Build QC evidence",
-          body: "Computes burden classes, reconstruction cosine/RMSE, residual structure, catalog sufficiency, threshold sensitivity, and sample reporting modes.",
-          sdk: "qc + advisor evidence inside runCohortFit",
+          title: "Build review evidence",
+          body: "Summarizes mutation counts, reconstruction quality, residual patterns, catalog coverage, cutoff sensitivity, and how cautiously each sample should be reported.",
         },
         {
-          title: "Score catalog identifiability",
-          body: "Computes continuous, catalog-relative review cues for similar neighbors, crowded catalog regions, broad/flat profiles, and low-specificity signatures, then marks samples whose active fitted signatures should be inspected for identifiability.",
-          sdk: "advisor.computeSignatureIdentifiability, advisor.computeFitQualityEvidence",
+          title: "Check for similar reference signatures",
+          body: "Looks for reference signatures that are similar, broad, or hard to separate, then marks fitted samples that should be inspected more carefully.",
         },
         {
           title: "Estimate uncertainty for one sample",
-          body: "Bootstraps the representative sample so users can see how exposure intervals and selection frequency change under resampling.",
-          sdk: "qc.bootstrapSignatureFit",
+          body: "Repeats the fit on resampled data for the selected sample so users can see how signature contributions vary.",
         },
         {
           title: "Prepare review and export outputs",
-          body: "Updates plots, tooltip reporting tables, recommended actions, report fields, provenance, and external-tool handoff bundles.",
-          sdk: "qcPlots, presentation, reports, provenance, adapters",
+          body: "Updates plots, tooltip reporting tables, suggested review steps, report fields, run records, and files for other tools.",
         },
       ].forEach((step, index) => {
         const item = document.createElement("li");
@@ -1013,13 +1442,11 @@
         title.textContent = `${index + 1}. ${step.title}`;
         const body = document.createElement("span");
         body.textContent = step.body;
-        const sdk = document.createElement("code");
-        sdk.textContent = step.sdk;
-        item.append(title, body, sdk);
+        item.append(title, body);
         list.append(item);
       });
       const validateNote = document.createElement("p");
-      validateNote.textContent = "Use Validate current input when you only want to check the loaded matrices and burden thresholds. Use Run end-to-end workflow when you want the full fitting, QC, uncertainty, visualization, and export pipeline.";
+      validateNote.textContent = "Use Check current input when you only want to inspect the loaded tables and mutation-count cutoffs. Use Run selected fitting method when you want the chosen fitting method plus the review, visualization, reporting, and export steps.";
       section.append(heading, intro, list, validateNote);
       return section;
     }
@@ -1042,6 +1469,48 @@
     const groupKeyInput = document.createElement("input");
     groupKeyInput.value = workflowState.parameters.groupKey;
     const sampleSelect = document.createElement("select");
+    const engineSelect = document.createElement("select");
+    engineSelect.replaceChildren(...Object.entries(FIT_ENGINE_DEFINITIONS).map(([value, engine]) => optionNode(engine.label, value)));
+    engineSelect.value = workflowState.parameters.fitEngine;
+    const spaPackageInput = document.createElement("input");
+    spaPackageInput.value = workflowState.parameters.sigProfilerAssignmentPackage;
+    const spaGenomeInput = document.createElement("input");
+    spaGenomeInput.value = workflowState.parameters.sigProfilerGenomeBuild;
+    const spaCosmicInput = numberInput(workflowState.parameters.sigProfilerCosmicVersion, 0.1);
+    const spaExomeInput = document.createElement("input");
+    spaExomeInput.type = "checkbox";
+    spaExomeInput.checked = workflowState.parameters.sigProfilerExome;
+    const pyodideTimeoutInput = numberInput(workflowState.parameters.pyodideTimeoutMs, 30000);
+    const musicalPackageInput = document.createElement("textarea");
+    musicalPackageInput.placeholder = "Optional wheel URL/package spec, one per line. Leave blank only if MuSiCal is preloaded in the worker.";
+    musicalPackageInput.value = workflowState.parameters.musicalPackage;
+    const musicalMethodInput = document.createElement("input");
+    musicalMethodInput.value = workflowState.parameters.musicalMethod;
+    const musicalThresholdInput = numberInput(workflowState.parameters.musicalThreshold, 0.001);
+    const engineSummary = document.createElement("div");
+    engineSummary.className = "workflow-output-stack";
+
+    const engineField = field(
+      "Fitting method",
+      engineSelect,
+      "Choose which method estimates signature contributions. mSigSDK still checks inputs, makes plots, builds reports, and prepares exports around the selected method."
+    );
+    const spaPackageField = field(
+      "SigProfilerAssignment package name",
+      spaPackageInput,
+      "Package name or wheel URL used by browser Python. Default: SigProfilerAssignment==1.1.3."
+    );
+    const spaGenomeField = field("SigProfiler genome build", spaGenomeInput);
+    const spaCosmicField = field("COSMIC version", spaCosmicInput);
+    const spaExomeField = field("SigProfiler exome/WES mode", spaExomeInput, "Check this for exome/WES-style SigProfilerAssignment settings.");
+    const pyodideTimeoutField = field("Browser Python time limit (ms)", pyodideTimeoutInput);
+    const musicalPackageField = field(
+      "MuSiCal package name or wheel URL",
+      musicalPackageInput,
+      "Running the official MuSiCal package requires a Pyodide-compatible package or wheel. The browser comparison fit does not need this."
+    );
+    const musicalMethodField = field("MuSiCal method", musicalMethodInput);
+    const musicalThresholdField = field("MuSiCal-style minimum contribution", musicalThresholdInput);
 
     function refreshSamples() {
       const samples = Object.keys(workflowState.spectra || {});
@@ -1057,6 +1526,7 @@
     }
 
     function readParameters() {
+      workflowState.parameters.fitEngine = engineSelect.value;
       workflowState.parameters.exposureThreshold = parseNumber(exposureThresholdInput.value, 0.01);
       workflowState.parameters.lowBurdenThreshold = parseNumber(lowBurdenInput.value, 100);
       workflowState.parameters.moderateBurdenThreshold = parseNumber(moderateBurdenInput.value, 1000);
@@ -1064,37 +1534,79 @@
       workflowState.parameters.bootstrapIterations = parseNumber(bootstrapInput.value, 100);
       workflowState.parameters.groupKey = groupKeyInput.value.trim() || "group";
       workflowState.selectedSample = sampleSelect.value || workflowState.selectedSample;
+      workflowState.parameters.sigProfilerAssignmentPackage = spaPackageInput.value.trim() || "SigProfilerAssignment==1.1.3";
+      workflowState.parameters.sigProfilerGenomeBuild = spaGenomeInput.value.trim() || "GRCh37";
+      workflowState.parameters.sigProfilerCosmicVersion = parseNumber(spaCosmicInput.value, 3.5);
+      workflowState.parameters.sigProfilerExome = Boolean(spaExomeInput.checked);
+      workflowState.parameters.pyodideTimeoutMs = parseNumber(pyodideTimeoutInput.value, 300000);
+      workflowState.parameters.musicalPackage = musicalPackageInput.value.trim();
+      workflowState.parameters.musicalMethod = musicalMethodInput.value.trim() || "likelihood_bidirectional";
+      workflowState.parameters.musicalThreshold = parseNumber(musicalThresholdInput.value, 0.001);
     }
 
-    const validateButton = button("Validate current input");
-    const runButton = button("Run end-to-end workflow", "primary");
+    function renderEngineSummary() {
+      readParameters();
+      const engine = currentFitEngine();
+      const isSpa = workflowState.parameters.fitEngine === "sigprofilerassignment_pyodide";
+      const isMusical = workflowState.parameters.fitEngine === "musical_pyodide";
+      const isPyodide = workflowState.parameters.fitEngine.includes("pyodide");
+      spaPackageField.hidden = !isSpa;
+      spaGenomeField.hidden = !isSpa;
+      spaCosmicField.hidden = !isSpa;
+      spaExomeField.hidden = !isSpa;
+      pyodideTimeoutField.hidden = !isPyodide;
+      musicalPackageField.hidden = !isMusical;
+      musicalMethodField.hidden = !isMusical;
+      musicalThresholdField.hidden = !isMusical && workflowState.parameters.fitEngine !== "musical_sparse_nnls";
+      engineSummary.replaceChildren(workflowOutputGuide(
+        "Selected fitting method",
+        engine.description,
+        [
+          { field: "Method", value: engine.label },
+          { field: "Where it runs", value: engine.runtime },
+          { field: "Reusable SDK call", value: engine.command },
+          { field: "Who estimates signature contributions", value: engine.exposureSource },
+          { field: "Uncertainty in this notebook", value: engine.supportsBootstrap ? "uncertainty intervals available here" : "use that package's uncertainty workflow or switch to mSigSDK quick fit" },
+        ]
+      ));
+      if (isPyodide) {
+        engineSummary.append(workflowOutputGuide(
+          "Browser Python check",
+          "Pyodide runs Python packages inside the browser. Package installation and memory limits depend on the browser, so this table is shown before launching an external package.",
+          pyodideRuntimeRows()
+        ));
+      }
+    }
+
+    const validateButton = button("Check current input");
+    const runButton = button("Run selected fitting method", "primary");
 
     validateButton.addEventListener("click", () => {
       readParameters();
       runOutput.replaceChildren();
       const validation = validateCurrentInputs();
       if (!validation) {
-        runOutput.append(placeholder("Load a public API dataset or apply your own data before validating."));
+        runOutput.append(placeholder("Load a public API dataset or apply your own data before checking inputs."));
         return;
       }
       runOutput.append(metrics([
-        { label: "Spectra valid", value: validation.spectra.valid ? "Yes" : "Review" },
-        { label: "Signatures valid", value: validation.signatures.valid ? "Yes" : "Review" },
-        { label: "Low-burden samples", value: validation.burden.overall.lowBurdenSampleCount },
-        { label: "Threshold", value: workflowState.parameters.lowBurdenThreshold },
+        { label: "Spectra table valid", value: validation.spectra.valid ? "Yes" : "Review" },
+        { label: "Signature catalog valid", value: validation.signatures.valid ? "Yes" : "Review" },
+        { label: "Low mutation-count samples", value: validation.burden.overall.lowBurdenSampleCount },
+        { label: "Low-count cutoff", value: workflowState.parameters.lowBurdenThreshold },
       ]));
       runOutput.append(workflowOutputGuide(
-        "How to read validation",
-        "Validation answers whether the current matrices are suitable for fitting. If spectra or signatures show Review, fix that before interpreting any exposure estimates.",
+        "How to read the input check",
+        "This check answers whether the current tables are suitable for fitting. If spectra or signatures show Review, fix that before interpreting any signature contribution estimates.",
         [
-          { output: "Spectra valid", meaning: "The sample matrix has the expected context shape and numeric counts." },
-          { output: "Signatures valid", meaning: "The reference signatures have compatible contexts and numeric weights." },
-          { output: "Low-burden samples", meaning: "Samples below the mutation-count threshold; their fitted exposures are noisier." },
-          { output: "Threshold", meaning: "The mutation-count cutoff currently used to flag low-burden samples." },
+          { output: "Spectra table valid", meaning: "The sample table has the expected context shape and numeric counts." },
+          { output: "Signature catalog valid", meaning: "The reference signatures have compatible contexts and numeric weights." },
+          { output: "Low mutation-count samples", meaning: "Samples below the mutation-count cutoff; their fitted contributions are noisier." },
+          { output: "Low-count cutoff", meaning: "The mutation-count value currently used to raise low-count review cues." },
         ]
       ));
       runOutput.append(table(burdenSampleRows(validation.burden)));
-      runOutput.append(note("In the burden table, lowBurden = Yes means the sample can still be analyzed, but later exposure estimates should be read with more caution.", "warning"));
+      runOutput.append(note("In the mutation-count table, Low-count review cue = Yes means the sample can still be analyzed, but later signature contribution estimates should be read with more caution.", "warning"));
     });
 
     runButton.addEventListener("click", async () => {
@@ -1102,25 +1614,32 @@
       runButton.disabled = true;
       runButton.textContent = "Running...";
       runOutput.dataset.state = "running";
-      runOutput.replaceChildren(placeholder("Running fitting, QC evidence, bootstrap, and handoff preparation."));
+      const engine = currentFitEngine();
+      runOutput.replaceChildren(placeholder(`Running ${engine.label}, review checks, plots, and export preparation.`));
       try {
         const analysis = await runWorkflow();
         runOutput.dataset.state = "complete";
         runOutput.replaceChildren();
-        runOutput.append(note("Workflow complete. Review the QC plots, interpretation tables, and export bundle below."));
+        runOutput.append(note("Workflow complete. Review the plots, interpretation tables, and export bundle below."));
         runOutput.append(metrics([
-          { label: "Runtime", value: `${workflowState.runtimeMs.toFixed(1)} ms` },
+          { label: "Fitting method", value: analysis.exposureEngine?.shortLabel || currentFitEngine().shortLabel },
+          { label: "Run time", value: `${workflowState.runtimeMs.toFixed(1)} ms` },
           { label: "Warnings", value: analysis.warnings.length },
           { label: "Actions", value: analysis.recommendedActions.length },
           { label: "Figures", value: analysis.publicationFigures.length },
         ]));
         runOutput.append(workflowOutputGuide(
+          "Fitting method used",
+          "This table separates the method that estimated signature contributions from the mSigSDK layer that checks inputs, reviews fit quality, renders plots, prepares export files, and builds reports.",
+          engineRows(analysis)
+        ));
+        runOutput.append(workflowOutputGuide(
           "What the run summary means",
-          "The workflow summary tells you whether computation finished and how much interpretive review is needed. Warnings and actions are expected with real public cohorts; they are the QC evidence, not a failure by themselves.",
+          "The workflow summary tells you whether computation finished and how much review is needed. Warnings and suggested steps are expected with real public cohorts; they are review evidence, not a failure by themselves.",
           [
-            { output: "Runtime", meaning: "Browser-local computation time after data are loaded." },
-            { output: "Warnings", meaning: "Count of QC caveats emitted by the SDK." },
-            { output: "Actions", meaning: "Recommended next steps generated from those caveats." },
+            { output: "Run time", meaning: "Browser-local computation time after data are loaded." },
+            { output: "Warnings", meaning: "Count of review cautions emitted by the SDK." },
+            { output: "Actions", meaning: "Suggested next steps generated from those cautions." },
             { output: "Figures", meaning: "Plot/report descriptors produced by the workflow." },
           ]
         ));
@@ -1130,11 +1649,11 @@
           maxRows: 12,
         }));
         runOutput.append(workflowOutputGuide(
-          "Catalog-level identifiability evidence",
-          "This table is computed from the selected signature catalog before interpreting any sample. COSMIC SBS96 includes similar and broad signatures, so this table explains which catalog signatures can trigger sample-level identifiability review cues when they are fitted as active.",
+          "Reference-signature similarity evidence",
+          "This table is computed from the selected signature catalog before interpreting any sample. COSMIC SBS96 includes similar and broad signatures, so this table explains which reference signatures can trigger sample-level similarity review cues when they are fitted as active.",
           catalogAmbiguityTable(analysis)
         ));
-        runOutput.append(note("Hover over reporting modes, review cues, identifiability cues, continuous scores, and catalog statuses for definitions. A sample can receive an identifiability review cue at any reconstruction cosine because the cue is driven by catalog-relative evidence for active reference signatures, not observed-vs-reconstructed sample similarity. Treat it as a reason to inspect exchangeability, not as a conclusion that the fitted exposure is wrong.", "warning"));
+        runOutput.append(note("Hover over reporting modes, warning cues, similarity cues, continuous scores, and catalog statuses for definitions. A sample can receive a similarity review cue even when reconstruction cosine is high because the cue is driven by similarities among active reference signatures, not by observed-vs-reconstructed sample similarity. Treat it as a reason to inspect whether similar signatures could be exchanged, not as a conclusion that the fitted contribution is wrong.", "warning"));
       } catch (error) {
         const pre = document.createElement("pre");
         pre.className = "output-error";
@@ -1143,31 +1662,42 @@
         runOutput.replaceChildren(pre);
       } finally {
         runButton.disabled = false;
-        runButton.textContent = "Run end-to-end workflow";
+        runButton.textContent = "Run selected fitting method";
       }
     });
 
     parameterGrid.append(
-      field("Exposure threshold", exposureThresholdInput),
-      field("Low-burden threshold", lowBurdenInput),
-      field("Moderate-burden threshold", moderateBurdenInput),
-      field("Threshold grid", thresholdGridInput, "Comma-separated relative thresholds."),
-      field("Bootstrap iterations", bootstrapInput),
-      field("Metadata group key", groupKeyInput),
-      field("Representative sample", sampleSelect)
+      engineField,
+      field("Minimum signature contribution", exposureThresholdInput),
+      field("Low mutation-count cutoff", lowBurdenInput),
+      field("Moderate mutation-count cutoff", moderateBurdenInput),
+      field("Contribution cutoffs to test", thresholdGridInput, "Comma-separated relative cutoffs."),
+      field("Uncertainty iterations", bootstrapInput),
+      field("Sample group column", groupKeyInput),
+      field("Sample for one-sample plots", sampleSelect),
+      spaPackageField,
+      spaGenomeField,
+      spaCosmicField,
+      spaExomeField,
+      musicalPackageField,
+      musicalMethodField,
+      musicalThresholdField,
+      pyodideTimeoutField
     );
     runButtons.append(validateButton, runButton);
     document.addEventListener("msig:endToEndInputs", refreshSamples);
+    engineSelect.addEventListener("change", renderEngineSummary);
     refreshSamples();
-    runOutput.append(placeholder("Load a public API dataset or apply your own data, validate inputs, then run the workflow stages described above."));
-    runPanel.append(workflowRunGuide(), parameterGrid, runButtons, runOutput);
+    renderEngineSummary();
+    runOutput.append(placeholder("Load a public API dataset or apply your own data, check inputs, then run the workflow stages described above."));
+    runPanel.append(workflowRunGuide(), parameterGrid, engineSummary, runButtons, runOutput);
     display(runPanel);
   </script>
 
   <script type="text/markdown">
-    ## Step 3. Inspect visual QC and interpretation tables
+    ## Step 3. Inspect visual checks and interpretation tables
 
-    Read these before using exposure estimates as evidence. The plots show burden, reconstruction quality, fit-quality reporting mode, residuals, bootstrap intervals, and threshold sensitivity.
+    Read these before using signature contribution estimates as evidence. The plots show mutation counts, reconstruction quality, fit quality, residuals, uncertainty intervals, and cutoff sensitivity.
   </script>
 
   <script type="module" pinned id="4">
@@ -1265,10 +1795,10 @@
         return;
       }
       await plotSection(
-        "Mutation burden",
+        "Mutation count",
         (id) => mSigSDK.qcPlots.plotMutationBurdenSummary(id, analysis.qc.mutationBurden),
         table(burdenSampleRows(analysis.qc.mutationBurden)),
-        "Shows total mutation counts per sample and which samples fall below the configured low-burden threshold. Low-burden samples are more sensitive to sampling noise."
+        "Shows total mutation counts per sample and which samples fall below the configured low-count cutoff. Low-count samples are more sensitive to sampling noise."
       );
       await plotSection(
         "Reconstruction error",
@@ -1277,10 +1807,10 @@
         "Shows how closely the fitted signatures reconstruct each observed spectrum. Better reconstruction is reassuring but not conclusive; poorer reconstruction is a reason to inspect residuals, signal level, catalog choice, and input compatibility."
       );
       await plotSection(
-        "Fit-quality evidence",
+        "Fit quality",
         (id) => mSigSDK.qcPlots.plotFitQualityEvidenceDashboard(id, analysis.fitQualityEvidence),
         fitQualityEvidenceTable(analysis.fitQualityEvidence, { maxRows: 8 }),
-        "Summarizes the rule-based reporting mode and review cues for each sample. This is the main place to decide how much caution and supporting evidence should accompany fitted exposures."
+        "Summarizes the review mode and caution cues for each sample. This is the main place to decide how much caution and supporting evidence should accompany fitted signature contributions."
       );
       await plotSection(
         "Residual spectrum",
@@ -1298,43 +1828,60 @@
         }
       );
       await plotSection(
-        "Bootstrap intervals",
+        "Uncertainty intervals",
         async (id, sample, status) => {
+          if (!analysis.exposureEngine?.supportsBootstrap) {
+            throw new Error("Uncertainty intervals are not run in this notebook for the selected external fitting method.");
+          }
           const bootstrap = await getBootstrapForSample(sample, status);
           await mSigSDK.qcPlots.plotBootstrapConfidenceIntervals(id, bootstrap);
-          status.textContent = `Showing bootstrap uncertainty for sample ${sample}.`;
+          status.textContent = `Showing uncertainty intervals for sample ${sample}.`;
         },
-        (sample) => table(bootstrapRows(workflowState.bootstrapBySample?.[sample] || workflowState.bootstrap)),
-        "Shows empirical uncertainty for the selected sample under resampling. Use the dropdown to switch samples; selecting a sample that has not been bootstrapped yet runs the same bootstrap settings for that sample.",
+        (sample) => analysis.exposureEngine?.supportsBootstrap
+          ? table(bootstrapRows(workflowState.bootstrapBySample?.[sample] || workflowState.bootstrap))
+          : note("Uncertainty intervals are intentionally not shown for this selected fitting method. Use that package's own uncertainty workflow, or switch the fitting method to mSigSDK quick fit to see notebook-level uncertainty intervals.", "warning"),
+        "Shows uncertainty for the selected sample under resampling when the selected fitting method supports the notebook's uncertainty path. External packages should use their package-specific uncertainty workflows.",
         {
           sampleControl: true,
           sample: workflowState.visualSamples?.bootstrap || workflowState.selectedSample,
-          sampleLabel: "Bootstrap sample",
-          sampleHelp: "Changing this runs or reuses bootstrap intervals for one sample.",
+          sampleLabel: "Uncertainty sample",
+          sampleHelp: "Changing this runs or reuses uncertainty intervals for one sample.",
           onSampleChange: (sample) => {
             workflowState.visualSamples.bootstrap = sample;
           },
         }
       );
       await plotSection(
-        "Threshold sensitivity",
-        (id) => mSigSDK.qcPlots.plotThresholdSensitivity(id, analysis.thresholdSensitivity),
-        table(thresholdRows(analysis.thresholdSensitivity)),
-        "Shows whether fitted signatures remain present as the exposure cutoff changes. Threshold-dependent calls should not be presented as robust without caveats."
+        "Cutoff sensitivity",
+        (id) => {
+          if (!analysis.thresholdSensitivity) {
+            throw new Error("Cutoff sensitivity is not run for the selected external fitting method.");
+          }
+          return mSigSDK.qcPlots.plotThresholdSensitivity(id, analysis.thresholdSensitivity);
+        },
+        analysis.thresholdSensitivity
+          ? table(thresholdRows(analysis.thresholdSensitivity))
+          : note("Cutoff sensitivity is not recomputed for this selected fitting method because different packages may apply cutoffs differently. Review that package's sensitivity settings or switch to mSigSDK quick fit for this notebook check.", "warning"),
+        "Shows whether fitted signatures remain present as the minimum contribution cutoff changes when the selected method supports this notebook check."
       );
 
-      tableStack.append(note("Exposure estimates are conditional on the supplied catalog, spectra, thresholds, and QC evidence."));
+      tableStack.append(note("Signature contribution estimates depend on the supplied catalog, spectra, cutoffs, and review evidence."));
+      tableStack.append(workflowOutputGuide(
+        "Fitting method used",
+        "The contribution table below comes from the selected fitting method. mSigSDK then adds input checks, review evidence, plots, tooltip reporting tables, run records, and tool export files around that table.",
+        engineRows(analysis)
+      ));
       tableStack.append(workflowOutputGuide(
         "How to read the interpretation tables",
-        "Read these tables in order. Start with exposures only after the fit-quality evidence describes how much caution to apply to each sample.",
+        "Read these tables in order. Start with signature contributions only after the fit-quality evidence describes how much caution to apply to each sample.",
         [
-          { table: "Exposure estimates", meaning: "Which signatures were fitted to each sample. These are model estimates, not direct observations." },
-          { table: "Fit-quality evidence", meaning: "The reporting mode and review cues that qualify those exposure estimates." },
-          { table: "Warnings", meaning: "Rule-triggered caveats emitted by the workflow." },
-          { table: "Recommended actions", meaning: "Suggested review steps before using the output in a report." },
+          { table: "Signature contribution estimates", meaning: "Which signatures were fitted to each sample. These are model estimates, not direct observations." },
+          { table: "Fit-quality evidence", meaning: "The reporting mode and review cues that qualify those estimates." },
+          { table: "Warnings", meaning: "Rule-triggered review cautions emitted by the workflow." },
+          { table: "Suggested review steps", meaning: "Suggested checks before using the output in a report." },
         ]
       ));
-      tableStack.append(note("Exposure rows should not be copied into a result section without the reporting mode, warning codes, and threshold/uncertainty context.", "warning"));
+      tableStack.append(note("Signature contribution rows should not be copied into a result section without the reporting mode, warning codes, and cutoff/uncertainty context.", "warning"));
       tableStack.append(table(exposureRows(analysis.fit.exposures, { minExposure: 0, topN: 30 })));
       tableStack.append(fitQualityMethodGuide());
       tableStack.append(fitQualityEvidenceTable(analysis.fitQualityEvidence, {
@@ -1342,14 +1889,14 @@
         maxRows: 12,
       }));
       tableStack.append(workflowOutputGuide(
-        "Catalog-level identifiability evidence",
-        "This is the catalog-side evidence behind identifiability review cues. It is not recomputed from the sample cosine; it comes from continuous, catalog-relative scoring of neighbor similarity, catalog crowding, flatness, and profile specificity.",
+        "Reference-signature similarity evidence",
+        "This is the reference-catalog evidence behind similarity review cues. It is not recomputed from the sample cosine; it comes from continuous scoring of similar neighboring signatures, crowded catalog regions, broad profiles, and low-specificity signatures.",
         catalogAmbiguityTable(analysis)
       ));
       tableStack.append(workflowWarningTable(analysis.warnings));
       tableStack.append(note("Warnings are review safeguards. They explain which configured rule was triggered and why the result may need caveats, residual review, a broader catalog, more mutations, or a different analysis strategy.", "warning"));
       tableStack.append(table(actionRows(analysis.recommendedActions)));
-      tableStack.append(note("Recommended actions are generated from the QC evidence. Treat them as the checklist for adapting this notebook to a publication or project report.", "info"));
+      tableStack.append(note("Suggested review steps are generated from the review evidence. Treat them as the checklist for adapting this notebook to a publication or project report.", "info"));
       tableStack.append(details("Full workflow result", analysis));
     }
 
@@ -1360,9 +1907,9 @@
   </script>
 
   <script type="text/markdown">
-    ## Step 4. Save the reproducibility bundle
+    ## Step 4. Save files needed to rerun or review
 
-    A complete result includes the input matrices, fitted exposures, validation, QC, uncertainty, warnings, recommended actions, report fields, provenance, and interoperability metadata.
+    A complete result includes the input tables, fitted signature contributions, input checks, review plots and tables, uncertainty results, warnings, suggested review steps, report fields, a run record, and files that help compare or rerun the analysis in other tools.
   </script>
 
   <script type="module" pinned id="5">
@@ -1377,7 +1924,7 @@
       return Object.entries(bundle?.tools || {}).map(([tool, value]) => ({
         tool,
         files: Array.isArray(value.files) ? value.files.length : 0,
-        manifestFields: Object.keys(value.manifest || {}).length,
+        recordedFields: Object.keys(value.manifest || {}).length,
       }));
     }
 
@@ -1400,6 +1947,15 @@
         recommendedActions: analysis.recommendedActions,
         bootstrap: workflowState.bootstrap,
         thresholdSensitivity: analysis.thresholdSensitivity,
+        exposureEngine: analysis.exposureEngine,
+        exposureEngineResult: {
+          status: workflowState.exposureEngineResult?.status || null,
+          runtime: workflowState.exposureEngineResult?.runtime || analysis.exposureEngine?.runtime || null,
+          provenance: workflowState.exposureEngineResult?.provenance || null,
+          preparedInput: workflowState.exposureEngineResult?.preparedInput || null,
+          candidateExposureTables: workflowState.exposureEngineResult?.candidateExposureTables || null,
+          methodBoundary: workflowState.exposureEngineResult?.methodBoundary || null,
+        },
         report: analysis.report,
         provenance: workflowState.provenance,
         interoperability: workflowState.interoperability,
@@ -1407,29 +1963,29 @@
       };
       exportStack.append(workflowOutputGuide(
         "What the export bundle preserves",
-        "These downloads are the audit trail for the run. They keep the inputs, fitted outputs, QC evidence, warnings, parameters, and provenance together so another person can reproduce and review the analysis.",
+        "These downloads are the review trail for the run. They keep the inputs, fitted outputs, review evidence, warnings, settings, and run record together so another person can reproduce and review the analysis.",
         [
-          { artifact: "spectra TSV", meaning: "The active sample-by-context mutation-count matrix." },
-          { artifact: "signature TSV", meaning: "The reference catalog used for fitting." },
-          { artifact: "exposures CSV", meaning: "The fitted signature estimates. Read only with the QC evidence." },
-          { artifact: "workflow report JSON", meaning: "The full structured report, including validation, warnings, recommended actions, bootstrap, threshold sensitivity, and provenance." },
-          { artifact: "handoff bundle JSON", meaning: "Interoperability metadata for external tools such as SigProfiler-style workflows." },
+          { file: "spectra TSV", meaning: "The active sample-by-context mutation-count table." },
+          { file: "signature TSV", meaning: "The reference catalog used for fitting." },
+          { file: "signature contributions CSV", meaning: "The fitted signature estimates. Read only with the review evidence." },
+          { file: "workflow report JSON", meaning: "The full structured report, including input checks, warnings, suggested review steps, uncertainty, cutoff sensitivity, and run record." },
+          { file: "tool export bundle JSON", meaning: "Information and files for other tools such as SigProfiler-style workflows." },
         ]
       ));
       exportStack.append(table([
-        { artifact: "spectra TSV", reason: "Rerun or hand off the sample-by-context matrix" },
-        { artifact: "signature TSV", reason: "Pin the reference catalog" },
-        { artifact: "exposures CSV", reason: "Share fitted exposures" },
-        { artifact: "workflow report JSON", reason: "Preserve QC, warnings, report, and provenance" },
+        { file: "spectra TSV", reason: "Rerun or share the sample-by-context table" },
+        { file: "signature TSV", reason: "Record the reference catalog" },
+        { file: "signature contributions CSV", reason: "Share fitted contribution estimates" },
+        { file: "workflow report JSON", reason: "Preserve checks, warnings, report fields, and run record" },
       ]));
-      exportStack.append(note("Do not share the exposures CSV by itself when the run has warnings or restricted interpretation. Share the workflow report JSON with it.", "warning"));
+      exportStack.append(note("Do not share the signature contributions CSV by itself when the run has warnings or needs cautious interpretation. Share the workflow report JSON with it.", "warning"));
       exportStack.append(workflowOutputGuide(
-        "External-tool handoff table",
-        "This table states which external-tool package formats were prepared. It does not mean those external tools were run here; it means the current matrices were organized for reproducible handoff.",
+        "Tool export table",
+        "This table states which external-tool file formats were prepared. It does not mean those external tools were run here; it means the current tables were organized so the analysis can be compared or rerun elsewhere.",
         [
           { column: "tool", meaning: "Target ecosystem or adapter." },
-          { column: "files", meaning: "Number of generated handoff files for that target." },
-          { column: "manifestFields", meaning: "How much metadata is recorded with the handoff." },
+          { column: "files", meaning: "Number of generated files for that target." },
+          { column: "recordedFields", meaning: "How much supporting information is recorded with the export." },
         ]
       ));
       exportStack.append(table(handoffRows(workflowState.interoperability)));
@@ -1437,21 +1993,21 @@
         "Report field table",
         "These are the top-level fields in the structured report. They show what evidence is preserved before download.",
         [
-          { field: "parameters", meaning: "Thresholds and workflow settings used for this run." },
-          { field: "validation/qc", meaning: "Input checks, burden review, reconstruction, residual, and fit-quality evidence." },
-          { field: "warnings/recommendedActions", meaning: "Interpretive caveats and follow-up steps." },
-          { field: "provenance", meaning: "SDK version, data source, and reproducibility metadata." },
+          { field: "settings (parameters)", meaning: "Cutoffs and workflow settings used for this run." },
+          { field: "validation/qc", meaning: "Input checks, mutation-count review, reconstruction, residual, and fit-quality evidence." },
+          { field: "warnings/recommendedActions", meaning: "Interpretive cautions and follow-up steps." },
+          { field: "run record (provenance)", meaning: "SDK version, data source, and run record." },
         ]
       ));
       exportStack.append(table(reportFieldRows(analysis.report)));
       exportStack.append(downloadMany([
         { filename: "end_to_end_spectra.tsv", text: spectraTsv, label: "Download spectra TSV" },
         { filename: "end_to_end_signatures.tsv", text: signaturesTsv, label: "Download signatures TSV" },
-        { filename: "end_to_end_exposures.csv", text: exposuresCsv, label: "Download exposures CSV" },
+        { filename: "end_to_end_exposures.csv", text: exposuresCsv, label: "Download signature contributions CSV" },
         { filename: "end_to_end_workflow_report.json", type: "json", value: reportBundle, label: "Download workflow report JSON" },
-        { filename: "end_to_end_interoperability_bundle.json", type: "json", value: workflowState.interoperability, label: "Download handoff bundle JSON" },
+        { filename: "end_to_end_interoperability_bundle.json", type: "json", value: workflowState.interoperability, label: "Download tool export bundle JSON" },
       ]));
-      exportStack.append(details("Provenance", workflowState.provenance));
+      exportStack.append(details("Run record", workflowState.provenance));
     }
 
     document.addEventListener("msig:endToEndRun", renderExports);

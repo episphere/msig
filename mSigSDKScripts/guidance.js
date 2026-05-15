@@ -1188,7 +1188,7 @@ function recommendAnalysisStrategy(spectra, options = {}) {
     extractionCandidate
       ? "Run rank selection and NMF extraction, then match extracted signatures to a reference catalog and refit with a shortlist."
       : sampleCount > 1
-        ? "Use known-signature refitting with fit-quality flags; reserve extraction for higher-burden subgroups."
+        ? "Use known-signature refitting with fit-quality review cues; reserve extraction for higher-burden subgroups."
         : null,
     assay === "panel"
       ? "Use panel-specific review evidence tiers and avoid overinterpreting absent flat signatures."
@@ -2375,7 +2375,7 @@ async function runSingleSampleFit(input = {}, options = {}) {
     (thresholdSensitivity?.warnings || []).some(
       (warning) => warning.code === WARNING_CODES.THRESHOLD_DEPENDENT
     )
-      ? "Run bootstrapSignatureFit because threshold sensitivity flagged a threshold-dependent fit."
+      ? "Run bootstrapSignatureFit because threshold sensitivity raised a threshold-dependence review cue."
       : null;
   const report = createAnalysisReport(
     {

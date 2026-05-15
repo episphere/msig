@@ -9,93 +9,93 @@ const DEFAULT_NOTEBOOKS = [
   {
     file: "msig-sdk-end-to-end-workflow.onb.html",
     title: "End-to-end workflow",
-    summary: "Follow one realistic analysis from input setup through QC, uncertainty, reports, and interoperability.",
+    summary: "Follow one realistic analysis from loading data to checks, plots, reports, and tool comparison files.",
     workflowGroup: "orientation",
     workflowGroupLabel: "Orientation",
   },
   {
     file: "msig-sdk-public-cohort-exploration.onb.html",
     title: "Public cohort exploration",
-    summary: "Fetch public spectra, review burden, and inspect similarity structure before fitting.",
+    summary: "Load public mutation spectra, review mutation counts, and compare samples before fitting signatures.",
     workflowGroup: "orientation",
     workflowGroupLabel: "Orientation",
   },
   {
     file: "msig-sdk-resource-portability.onb.html",
     title: "Resource portability",
-    summary: "Bridge mSigPortal, TCGA/GDC, matrices, and exports.",
+    summary: "Move data between mSigPortal, TCGA/GDC, common table formats, and reports.",
     workflowGroup: "input",
-    workflowGroupLabel: "Input and resource setup",
+    workflowGroupLabel: "Load Data",
   },
   {
     file: "msig-sdk-bring-your-own-spectra.onb.html",
     title: "Bring your own spectra",
-    summary: "Start from a local SBS96 matrix, validate it, fit signatures, and export a reproducible report.",
+    summary: "Start from your own mutation-count table, check it, fit signatures, and save a report.",
     workflowGroup: "input",
-    workflowGroupLabel: "Input and resource setup",
+    workflowGroupLabel: "Load Data",
   },
   {
     file: "msig-sdk-maf-fit-report.onb.html",
     title: "MAF to report",
-    summary: "Convert MAF rows, fit signatures, inspect QC, and render report-ready outputs.",
+    summary: "Convert variant rows into mutation spectra, fit signatures, review checks, and save results.",
     workflowGroup: "input",
-    workflowGroupLabel: "Input and resource setup",
+    workflowGroupLabel: "Load Data",
   },
   {
     file: "msig-sdk-qc-walkthrough.onb.html",
-    title: "Known-signature QC",
-    summary: "Import, fetch, reshape, fit, and assess spectra.",
+    title: "Known-signature quality check",
+    summary: "Load spectra, fit known signatures, and learn how to read the main quality checks.",
     workflowGroup: "core",
-    workflowGroupLabel: "Core analysis",
+    workflowGroupLabel: "Analyze Data",
   },
   {
     file: "msig-sdk-nmf-extraction.onb.html",
-    title: "NMF extraction",
-    summary: "Run exploratory extraction without fixed signatures.",
+    title: "Discovery extraction (NMF)",
+    summary: "Explore patterns in the data without choosing fixed reference signatures first.",
     workflowGroup: "core",
-    workflowGroupLabel: "Core analysis",
+    workflowGroupLabel: "Analyze Data",
   },
   {
     file: "msig-sdk-panel-evidence-tiers.onb.html",
     title: "Panel evidence tiers",
-    summary: "Review panel and WES assessability, evidence tiers, and callable-territory limits.",
+    summary: "Review what panel or WES data can and cannot support before reporting signatures.",
     workflowGroup: "core",
-    workflowGroupLabel: "Core analysis",
+    workflowGroupLabel: "Analyze Data",
   },
   {
     file: "msig-sdk-cohort-panel-workflow.onb.html",
     title: "Cohort and panel workflow",
-    summary: "Run cohort fitting and panel evidence review with metadata, assay territory, warnings, and report outputs.",
+    summary: "Fit a cohort, compare sample groups, and review panel/WES limits with report outputs.",
     workflowGroup: "core",
-    workflowGroupLabel: "Core analysis",
+    workflowGroupLabel: "Analyze Data",
   },
   {
     file: "msig-sdk-uncertainty-thresholds.onb.html",
-    title: "Uncertainty thresholds",
-    summary: "Quantify uncertainty and threshold dependence.",
+    title: "Uncertainty and cutoffs",
+    summary: "See how signature estimates change when uncertainty and cutoffs are varied.",
     workflowGroup: "reliability",
-    workflowGroupLabel: "Reliability, reporting, and interoperability",
+    workflowGroupLabel: "Review And Report",
   },
   {
     file: "msig-sdk-multi-engine-comparison.onb.html",
     title: "Multi-engine comparison",
-    summary: "Run or import outputs from mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls on one shared dataset.",
+    summary: "Compare mSigSDK with SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls on the same data.",
     workflowGroup: "reliability",
-    workflowGroupLabel: "Reliability, reporting, and interoperability",
+    workflowGroupLabel: "Review And Report",
   },
   {
     file: "msig-sdk-export-report.onb.html",
     title: "Export and reports",
-    summary: "Round-trip matrices and create reproducible reports.",
+    summary: "Save the tables, checks, settings, and report files needed to rerun or review an analysis.",
     workflowGroup: "reliability",
-    workflowGroupLabel: "Reliability, reporting, and interoperability",
+    workflowGroupLabel: "Review And Report",
   },
   {
     file: "msig-sdk-experimental-sandbox.onb.html",
     title: "Experimental sandbox",
-    summary: "Inspect explicitly experimental workflow outputs and scope statements.",
+    summary: "Try early-stage exploratory outputs while keeping their limits visible.",
     workflowGroup: "advanced",
-    workflowGroupLabel: "Advanced or experimental",
+    workflowGroupLabel: "Experimental",
   },
 ];
 
@@ -106,6 +106,7 @@ const state = {
   moduleCells: [],
   activeModuleIndex: -1,
   isRunning: false,
+  showCode: false,
 };
 
 const menu = document.getElementById("notebook-menu");
@@ -114,6 +115,7 @@ const title = document.getElementById("notebook-title");
 const status = document.getElementById("runner-status");
 const runButton = document.getElementById("run-button");
 const resetButton = document.getElementById("reset-button");
+const toggleCodeButton = document.getElementById("toggle-code-button");
 const sourceLink = document.getElementById("source-link");
 
 function normalizeNotebookEntry(entry) {
@@ -199,11 +201,48 @@ function setStatus(message, mode = "") {
   status.className = `runner-status ${mode}`.trim();
 }
 
+function setCodeCellExpanded(cell, expanded) {
+  if (!cell) return;
+  cell.element?.classList.toggle("code-expanded", expanded);
+  cell.element?.classList.toggle("code-collapsed", !expanded);
+  if (cell.editorHost) {
+    cell.editorHost.hidden = !expanded;
+  }
+  if (cell.runCellButton) {
+    cell.runCellButton.hidden = !expanded;
+  }
+  if (cell.resetCellButton) {
+    cell.resetCellButton.hidden = !expanded;
+  }
+  if (cell.toggleSourceButton) {
+    cell.toggleSourceButton.textContent = expanded ? "Hide code" : "Show code";
+    cell.toggleSourceButton.setAttribute("aria-expanded", String(expanded));
+  }
+  if (expanded && cell.editor?.refresh) {
+    window.requestAnimationFrame(() => cell.editor.refresh());
+  }
+}
+
+function setAllCodeExpanded(expanded) {
+  state.showCode = expanded;
+  state.moduleCells.forEach((cell) => setCodeCellExpanded(cell, expanded));
+  syncGlobalCodeToggle();
+}
+
+function syncGlobalCodeToggle() {
+  if (!toggleCodeButton) return;
+  const hasCode = state.moduleCells.length > 0;
+  toggleCodeButton.hidden = !hasCode;
+  toggleCodeButton.textContent = state.showCode ? "Hide all code" : "Show all code";
+  toggleCodeButton.setAttribute("aria-expanded", String(state.showCode));
+}
+
 async function loadNotebook(entry) {
   state.activeNotebook = entry;
   state.cells = [];
   state.moduleCells = [];
   state.activeModuleIndex = -1;
+  state.showCode = false;
   title.textContent = entry.title;
   sourceLink.href = `https://github.com/episphere/msig/blob/main/notebooks/${entry.file}`;
   renderMenu(entry.file);
@@ -239,33 +278,44 @@ async function loadNotebook(entry) {
     if (type === "module") {
       const moduleIndex = state.moduleCells.length;
       const cell = document.createElement("article");
-      cell.className = "cell code";
+      cell.className = "cell code code-collapsed";
 
       const header = document.createElement("div");
       header.className = "code-cell-header";
       const label = document.createElement("span");
-      label.textContent = `JavaScript cell ${moduleIndex + 1}`;
+      label.textContent = `Technical details ${moduleIndex + 1}`;
+      const hint = document.createElement("span");
+      hint.className = "code-cell-hint";
+      hint.textContent = "Code is hidden by default. Open it only if you want to inspect or edit this step.";
       const dirtyBadge = document.createElement("span");
       dirtyBadge.className = "dirty-badge";
       dirtyBadge.textContent = "Edited, not run";
       dirtyBadge.hidden = true;
       const labelWrap = document.createElement("div");
       labelWrap.className = "code-cell-label";
-      labelWrap.append(label, dirtyBadge);
+      labelWrap.append(label, hint, dirtyBadge);
       const actions = document.createElement("div");
       actions.className = "code-cell-actions";
+      const toggleSourceButton = document.createElement("button");
+      toggleSourceButton.type = "button";
+      toggleSourceButton.className = "code-source-toggle";
+      toggleSourceButton.textContent = "Show code";
+      toggleSourceButton.setAttribute("aria-expanded", "false");
       const runCellButton = document.createElement("button");
       runCellButton.type = "button";
       runCellButton.textContent = "Run edits";
+      runCellButton.hidden = true;
       const resetCellButton = document.createElement("button");
       resetCellButton.type = "button";
       resetCellButton.textContent = "Reset cell";
-      actions.append(runCellButton, resetCellButton);
+      resetCellButton.hidden = true;
+      actions.append(toggleSourceButton, runCellButton, resetCellButton);
       header.append(labelWrap, actions);
 
       const editorHost = document.createElement("div");
       editorHost.className = "code-editor-host";
-      editorHost.setAttribute("aria-label", `JavaScript cell ${moduleIndex + 1}`);
+      editorHost.hidden = true;
+      editorHost.setAttribute("aria-label", `Technical code for cell ${moduleIndex + 1}`);
 
       const output = document.createElement("div");
       output.className = "cell-output";
@@ -278,8 +328,12 @@ async function loadNotebook(entry) {
         source,
         element: cell,
         editor: null,
+        editorHost,
         output,
         dirtyBadge,
+        toggleSourceButton,
+        runCellButton,
+        resetCellButton,
       };
       const editor = createCodeEditor(
         editorHost,
@@ -288,6 +342,13 @@ async function loadNotebook(entry) {
         runNotebook
       );
       cellState.editor = editor;
+      setCodeCellExpanded(cellState, state.showCode);
+      toggleSourceButton.addEventListener("click", () => {
+        const expanded = toggleSourceButton.getAttribute("aria-expanded") === "true";
+        setCodeCellExpanded(cellState, !expanded);
+        state.showCode = state.moduleCells.every((entry) => entry.editorHost && !entry.editorHost.hidden);
+        syncGlobalCodeToggle();
+      });
       runCellButton.addEventListener("click", runNotebook);
       resetCellButton.addEventListener("click", () => {
         setEditorSource(editor, source);
@@ -298,6 +359,7 @@ async function loadNotebook(entry) {
     }
   });
 
+  syncGlobalCodeToggle();
   setStatus("Notebook loaded. Running cells...");
   await runNotebook();
 }
@@ -812,6 +874,9 @@ function escapeAttribute(value) {
 }
 
 runButton.addEventListener("click", runNotebook);
+toggleCodeButton?.addEventListener("click", () => {
+  setAllCodeExpanded(!state.showCode);
+});
 resetButton.addEventListener("click", async () => {
   state.moduleCells.forEach((cell) => {
     setEditorSource(cell.editor, cell.source);

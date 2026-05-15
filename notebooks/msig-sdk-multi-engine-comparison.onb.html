@@ -10,18 +10,18 @@
 <title>mSigSDK multi-engine comparison workspace</title>
 
 <script type="text/markdown">
-# Multi-engine signature workflow
+# Multi-tool signature comparison
 
-Run a single mutational spectrum matrix through the browser-native mSigSDK refit, load package outputs from SigProfilerAssignment, deconstructSigs, MuSiCal, and independent R NNLS, and compare every result on the same samples and the same COSMIC SBS96 reference catalog.
+Run a single mutational spectrum table through the built-in mSigSDK fit, load package outputs from SigProfilerAssignment, deconstructSigs, MuSiCal, and independent R NNLS, and compare every result on the same samples and the same COSMIC SBS96 reference catalog.
 
-The workspace uses 38 cached PCAWG lung adenocarcinoma WGS spectra and nine COSMIC SBS96 signatures (`SBS1`, `SBS2`, `SBS4`, `SBS5`, `SBS13`, `SBS17a`, `SBS17b`, `SBS18`, `SBS40`). The same pattern applies to a researcher-owned cohort: replace the spectrum matrix and package-output CSVs, then rerun the notebook to inspect concordance, disagreement, and tool-specific outputs in one place.
+The workspace uses 38 cached PCAWG lung adenocarcinoma WGS spectra and nine COSMIC SBS96 signatures (`SBS1`, `SBS2`, `SBS4`, `SBS5`, `SBS13`, `SBS17a`, `SBS17b`, `SBS18`, `SBS40`). The same pattern applies to a researcher-owned cohort: replace the spectrum table and package-output CSVs, then rerun the notebook to inspect agreement, disagreement, and tool-specific outputs in one place.
 
 Workflow:
 
-1. Fix the spectra and reference catalog so every engine receives the same input.
-2. Run the browser-native mSigSDK refit and load package outputs produced outside the browser.
-3. Normalize all outputs into one sample-by-signature exposure shape.
-4. Compare concordance across engines at package and sample level.
+1. Fix the spectra and reference catalog so every tool receives the same input.
+2. Run the built-in mSigSDK fit and load package outputs produced outside the browser.
+3. Normalize all outputs into one sample-by-signature contribution shape.
+4. Compare agreement across tools at package and sample level.
 5. Inspect samples where top signatures disagree.
 6. Export tables that document the comparison.
 </script>
@@ -746,13 +746,13 @@ if (engineNmfAnalysis?.rankSummaries?.length) {
 </script>
 
 <script type="text/markdown">
-## Step 7. Prepare package handoffs
+## Step 7. Prepare package run files
 
-The bundle records the exact input objects and code handoffs needed to run package engines outside the browser or in an available Pyodide environment. Package outputs return to the workspace as exposure CSVs with `sample` in the first column and one column per signature.
+The bundle records the exact input objects and code snippets needed to run package tools outside the browser or in an available Pyodide environment. Package outputs return to the workspace as contribution CSVs with `sample` in the first column and one column per signature.
 </script>
 
   <script type="module" pinned id="interactive-step-7">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "multi-engine", step: 7, phase: "export", title: "Step 7. Prepare package handoffs", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "multi-engine", step: 7, phase: "export", title: "Step 7. Prepare package run files", mSigSDK, display });
   </script>
 
 <script type="module">

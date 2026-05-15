@@ -1,13 +1,13 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK panel evidence tiers</title>
+  <title>mSigSDK panel/WES evidence review</title>
 
   <script type="text/markdown">
-    # Panel and WES evidence tiers
+    # Panel and WES evidence review
 
-    Panel and WES data do not observe the same mutational territory as WGS. This workflow shows how mSigSDK reports that limitation explicitly through callable-opportunity metadata, restricted-assay evidence, evidence tiers, assessability reasons, and report fields.
+    Panel and WES data do not observe the same mutation contexts as WGS. This workflow shows how mSigSDK reports that limitation explicitly through coverage information, restricted-assay evidence, support levels, review reasons, and report fields.
 
-    Read the notebook as an evidence review, not a WGS-equivalent decomposition. The central question is whether a signature is assessable under the assay design and whether the reported tier is supported by validation, burden, and callable territory.
+    Read the notebook as an evidence review, not a WGS-equivalent decomposition. The central question is whether a signature can be reviewed under the assay design and whether the reported support level is backed by input checks, mutation counts, and panel/WES coverage.
   </script>
 
   <script type="module" pinned id="1">
@@ -41,15 +41,15 @@
     display(metrics([
       { label: "Samples", value: Object.keys(panelSpectra).length },
       { label: "Reference signatures", value: Object.keys(panelSignatures).length },
-      { label: "Callable contexts", value: Object.values(callableOpportunities).filter((value) => Number(value) > 0).length },
+      { label: "Covered contexts", value: Object.values(callableOpportunities).filter((value) => Number(value) > 0).length },
       { label: "Assay type", value: "panel/WES review" },
     ]));
     display(tooltipTable(
       [
-        { tier: "higher_review_support", definition: "Assessable sample with exposure at or above the configured higher-support threshold and acceptable fit evidence." },
-        { tier: "limited_review_support", definition: "Assessable sample with exposure at or above the lower review threshold but below the higher-support threshold." },
-        { tier: "not_detected_within_review_settings", definition: "Assessable sample with fitted exposure below the configured review threshold." },
-        { tier: "not_assessable", definition: "Burden, callable territory, or fit-quality evidence does not support an interpretable tier." },
+        { tier: "higher_review_support", definition: "Reviewable sample with signature contribution at or above the configured higher-support cutoff and acceptable fit evidence." },
+        { tier: "limited_review_support", definition: "Reviewable sample with signature contribution at or above the lower review cutoff but below the higher-support cutoff." },
+        { tier: "not_detected_within_review_settings", definition: "Reviewable sample with fitted contribution below the configured review cutoff." },
+        { tier: "not_assessable", definition: "Mutation count, panel/WES coverage, or fit-quality evidence does not support an interpretable support level." },
       ],
       [
         { key: "tier", label: "Tier" },
@@ -61,7 +61,7 @@
   <script type="text/markdown">
     ## Interactive workspace
 
-    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
   </script>
 
   <script type="module" pinned id="interactive-workspace">
@@ -72,9 +72,9 @@
   <script type="text/markdown">
     ## Step 1. Run panel/WES evidence review
 
-    The panel workflow combines spectra, signatures, assay metadata, and callable opportunity summaries. It returns fitted exposures plus evidence tiers that explain whether each signature can be assessed under the restricted assay.
+    The panel workflow combines spectra, signatures, assay details, and coverage summaries. It returns fitted signature contributions plus support levels that explain whether each signature can be reviewed under the restricted assay.
 
-    Start with the evidence tier and assessability fields before interpreting exposure magnitude. A high exposure can still be weak evidence if the assay has poor opportunity for the relevant contexts.
+    Start with the support level and review-reason fields before interpreting contribution magnitude. A high contribution can still have limited review support if the assay has poor coverage for the relevant contexts.
   </script>
 
   <script type="module" pinned id="interactive-step-1">
@@ -117,13 +117,13 @@
   </script>
 
   <script type="text/markdown">
-    ## Step 2. Read the evidence matrix and assessability table
+    ## Step 2. Read the evidence heatmap and review table
 
-    The evidence matrix explains which signatures are supported, limited, or not assessable and why. This is the section that should travel with any panel-derived signature call. It prevents a downstream reader from interpreting a restricted-assay fit as if it came from complete WGS coverage.
+    The evidence heatmap explains which signatures are supported, limited, or not reviewable and why. This is the section that should travel with any panel-derived signature call. It prevents a downstream reader from interpreting a restricted-assay fit as if it came from complete WGS coverage.
   </script>
 
   <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "panel-evidence", step: 2, phase: "review", title: "Step 2. Read the evidence matrix and assessability table", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "panel-evidence", step: 2, phase: "review", title: "Step 2. Read the evidence heatmap and review table", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="3">
@@ -152,9 +152,9 @@
   <script type="text/markdown">
     ## Step 3. Review validation evidence and limitations
 
-    The validation summary below is a compact fixture that mirrors the kind of WGS-to-panel sensitivity table a project should include when using restricted-assay evidence tiers. Replace these rows with study-specific simulation, dilution, or matched WGS validation results before making inferential detection claims.
+    The validation summary below is a compact fixture that mirrors the kind of WGS-to-panel sensitivity table a project should include when using restricted-assay support levels. Replace these rows with study-specific simulation, dilution, or matched WGS validation results before making inferential detection claims.
 
-    If a signature is marked limited or not assessable, the limitation is part of the result. The correct adaptation is not to hide the row, but to calibrate or replace the evidence model with assay-specific validation.
+    If a signature is marked limited or not reviewable, the limitation is part of the result. The correct adaptation is not to hide the row, but to calibrate or replace the evidence model with assay-specific validation.
   </script>
 
   <script type="module" pinned id="interactive-step-3">
@@ -165,7 +165,7 @@
     display(table(
       panelValidationSummary,
       [
-        { key: "callableContextCount", label: "Callable contexts" },
+        { key: "callableContextCount", label: "Covered contexts" },
         { key: "truthExposureBin", label: "Truth exposure bin" },
         { key: "panelBurdenBin", label: "Panel burden bin" },
         { key: "calls", label: "Validation calls" },
@@ -193,7 +193,7 @@
   <script type="text/markdown">
     ## Step 4. Save evidence calls and report fields
 
-    The exported bundle should include the assay definition, evidence tiers, assessability reasons, limitations, validation rows, warnings, recommended actions, and report fields. These files allow a panel or WES interpretation to be reviewed without losing the assay context.
+    The exported bundle should include the assay definition, support levels, review reasons, limitations, validation rows, warnings, suggested review steps, and report fields. These files allow a panel or WES interpretation to be reviewed without losing the assay context.
   </script>
 
   <script type="module" pinned id="interactive-step-4">

@@ -316,9 +316,9 @@ Outputs:
 
 - `schemaVersion = "msig.qc.v0.3"`.
 - `workflowRole = "mutation_burden_qc"`.
-- `scopeStatement`: burden flags are configurable QC prompts, not biological classifications.
+- `scopeStatement`: burden review cues are configurable QC prompts, not biological classifications.
 - `methodBasis`: threshold basis, threshold rationale, validation anchors, configurable defaults, and references.
-- `thresholdRationale`: default 50-mutation flag anchored to the SDK synthetic validation table, where 50 mutations had mean exposure cosine 0.912 and mean reconstruction cosine 0.884, while 100 mutations improved to 0.952 and 0.930.
+- `thresholdRationale`: default 50-mutation review cue anchored to the SDK synthetic validation table, where 50 mutations had mean exposure cosine 0.912 and mean reconstruction cosine 0.884, while 100 mutations improved to 0.952 and 0.930.
 - `validationAnchor`: burden 50 and burden 100 synthetic validation rows.
 - `contexts`.
 - `samples[]`: `sample`, `totalMutations`, `contexts`, `nonZeroContexts`, `zeroContexts`, `maxContext`, `maxContextCount`, `meanContextCount`, `burdenClass`, `burdenInterpretation`, `flags.emptySpectrum`, `flags.lowBurden`, and `recommendedAction`.
@@ -530,7 +530,7 @@ Methodological support:
 |---|---|---|
 | `plotMutationBurdenSummary(divID, burdenSummary)` | Output from `summarizeMutationBurden`. | Horizontal bar chart of total mutations by sample, low-burden threshold marker, low/empty status colors, and badges for threshold, low-burden review cues, and empty spectra. Returns `{ data, threshold }`. |
 | `plotReconstructionError(divID, reconstructionError, { cosineReferenceLines = [] })` | Output from `calculateReconstructionError`. | Paired sample-level view of cosine similarity and RMSE, sorted by cosine. Returns rendered rows and reference-line metadata. |
-| `plotFitQualityEvidenceDashboard(divID, fitQualityEvidenceResult)` | Output from `advisor.computeFitQualityEvidence`. | Sample-level dashboard with reporting mode, review-flag count, and evidence components for burden, reconstruction, residual, bootstrap, threshold, ambiguity, and catalog. Returns `{ data, components }`. |
+| `plotFitQualityEvidenceDashboard(divID, fitQualityEvidenceResult)` | Output from `advisor.computeFitQualityEvidence`. | Sample-level dashboard with reporting mode, review-cue count, and evidence components for burden, reconstruction, residual, bootstrap, threshold, ambiguity, and catalog. Returns `{ data, components }`. |
 | `plotCohortGroupComparison(divID, comparisonResult)` | Output from `advisor.compareSignatureExposures`. | Bar chart of comparison-group minus reference-group mean exposure differences for top signals, with effect size, p value, and q value in tooltips. |
 | `plotPanelEvidenceMatrix(divID, panelResultOrEvidenceCalls)` | Output from `pipelines.runPanelWorkflow` or an `evidenceCalls` object. | Sample-by-signature matrix colored by panel/WES tier: higher review tier, limited review tier, below review threshold, or not assessable. |
 | `plotFitResiduals(divID, residualResult, sampleName = null)` | Output from `calculateFitResiduals`. | SBS96 observed-versus-reconstructed profile comparison for a selected sample. |
@@ -705,7 +705,7 @@ Outputs:
   - `flags`, `evidenceFlags`, `warnings`.
   - `caveats`.
   - `recommendedActions`.
-- `summary`: sample count, mean review flag count, and counts for each reporting mode.
+- `summary`: sample count, mean review-cue count, and counts for each reporting mode.
 - `warnings`.
 - `recommendedActions`.
 
@@ -1369,7 +1369,7 @@ These helpers are intended for browser notebooks, reports, and teaching pages. D
 | `panelEvidenceTable(panelWorkflowResultOrCalls, options = {})` | Output from `pipelines.runPanelWorkflow` or an `evidenceCalls` object; optional `maxRows`, `columns`, and `tooltipTerms`. | Reproducible tooltip reporting table for panel/WES evidence tiers. |
 | `note(text, tone = "info")` | Text and tone. | DOM note paragraph. |
 | `details(label, value, { open = false } = {})` | Label, value, and open flag. | DOM details/summary inspector. |
-| `burdenSampleRows(burden, sampleNames = null)` | Burden summary and optional sample allow-list. | Rows with sample, mutations, non-zero contexts, and low-burden flag. |
+| `burdenSampleRows(burden, sampleNames = null)` | Burden summary and optional sample allow-list. | Rows with sample, mutations, non-zero contexts, and low-burden review-cue display value. |
 | `reconstructionRows(reconstruction)` | Reconstruction-error output. | Rows with sample, normalization mode, cosine similarity, RMSE, and total observed. |
 | `exposureRows(exposures, { minExposure = 0, topN = 10 })` | Exposure matrix. | Top exposure rows sorted descending. |
 | `bootstrapRows(bootstrap, { topN = 8 })` | Bootstrap output. | Rows with signature, mean, lower/upper interval bounds, and selection frequency. |
@@ -1404,7 +1404,7 @@ These helpers are intended for browser notebooks, reports, and teaching pages. D
 - mSigSDK outputs are research-use analytical summaries, not clinical decision rules.
 - NNLS and NMF outputs are conditional on the supplied catalog, spectra, context basis, thresholds, and assay territory.
 - Residual matches are candidate signals for review and do not identify causal mutational processes.
-- Fit-quality evidence uses rule-based reporting modes and explicit flags; no calibrated composite confidence score is returned.
+- Fit-quality evidence uses rule-based reporting modes and explicit review cues; no calibrated composite confidence score is returned.
 - Restricted-assay outputs expose burden, fitted exposure, callable territory, and ambiguity descriptors; they do not estimate calibrated panel/WES detection probability.
 - Localized mutagenesis context labels describe observed clustering and context enrichment; they are hypothesis-generating and do not assign etiology.
 - Browser-native NMF extraction and rank selection are exploratory and should be validated with production extraction workflows for manuscript-grade discovery.

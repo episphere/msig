@@ -1,15 +1,15 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK uncertainty and thresholds</title>
+  <title>mSigSDK uncertainty and cutoffs</title>
 
   <script type="text/markdown">
-    # Bootstrap uncertainty and threshold sensitivity
+    # Uncertainty and cutoff sensitivity
 
-    Use this notebook after you understand the basic known-signature fitting workflow. It teaches two questions that come up immediately after fitting: are the estimated exposures stable, and do the conclusions depend on the exposure threshold?
+    Use this notebook after you understand the basic known-signature fitting workflow. It teaches two questions that come up immediately after fitting: are the estimated signature contributions stable, and do the conclusions depend on the minimum contribution cutoff?
 
-    The code uses count-scale public mSigPortal spectra selected from moderate-to-high burden PCAWG WGS Lung-AdenoCA samples, but the same functions work with your own spectra and reference signatures. Replace the loading block with your own matrices, keep the bootstrap and threshold cells, and tune the iteration count and threshold grid for your analysis plan.
+    The code uses count-scale public mSigPortal spectra selected from moderate-to-high mutation-count PCAWG WGS Lung-AdenoCA samples, but the same functions work with your own spectra and reference signatures. Replace the loading block with your own tables, keep the uncertainty and cutoff cells, and tune the iteration count and cutoff grid for your analysis plan.
 
-    The story begins after a fit already exists. A researcher now asks which fitted signatures are stable enough to report and which depend too strongly on sampling noise or threshold choice.
+    The story begins after a fit already exists. A researcher now asks which fitted signatures are stable enough to report and which depend too strongly on sampling noise or cutoff choice.
   </script>
 
   <script type="module" pinned id="1">
@@ -31,13 +31,13 @@
     display(metrics([
       { label: "SDK", value: mSigSDK.name },
       { label: "Version", value: mSigSDK.version },
-      { label: "Question", value: "Are exposures stable?" },
+      { label: "Question", value: "Are signature contributions stable?" },
       { label: "Main namespace", value: "qc" },
     ]));
     display(table(
       [
         { functionName: "qc.bootstrapSignatureFit", workflowValue: "Shows confidence intervals and selection frequency for one sample" },
-        { functionName: "qc.runThresholdSensitivity", workflowValue: "Tests whether exposure conclusions depend on the reporting floor" },
+        { functionName: "qc.runThresholdSensitivity", workflowValue: "Tests whether signature contribution conclusions depend on the reporting floor" },
         { functionName: "qcPlots.*", workflowValue: "Turns the returned objects into interpretable figures" },
         { functionName: "presentation.*", workflowValue: "Formats compact evidence tables" },
       ],
@@ -51,7 +51,7 @@
   <script type="text/markdown">
     ## Interactive workspace
 
-    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
   </script>
 
   <script type="module" pinned id="interactive-workspace">
@@ -62,9 +62,9 @@
   <script type="text/markdown">
     ## 1. Set the analysis grid
 
-    Bootstrap and threshold analyses can be expensive because they repeat fitting. Keep the defaults small while learning the API. Increase `uncBootstrapIterations` for smoother intervals, edit `uncThresholdGrid` to match the thresholds you plan to report, or replace `uncExampleSampleNames` with samples from your cohort.
+    Uncertainty and cutoff analyses can be expensive because they repeat fitting. Keep the defaults small while learning the API. Increase `uncBootstrapIterations` for smoother intervals, edit `uncThresholdGrid` to match the cutoffs you plan to report, or replace `uncExampleSampleNames` with samples from your cohort.
 
-    This step defines the stress test. A confusing uncertainty result is often a sign that the grid does not match the thresholds the project intends to use.
+    This step defines the stress test. A confusing uncertainty result is often a sign that the grid does not match the cutoffs the project intends to use.
   </script>
 
   <script type="module" pinned id="interactive-step-1">
@@ -308,13 +308,13 @@
   <script type="text/markdown">
     ## 4. Check threshold stability
 
-    The sensitivity plot compares every threshold against the baseline threshold. Large drift means the interpretation depends strongly on the threshold choice. In your own analyses, this is a useful place to document why you chose a reporting threshold.
+    The sensitivity plot compares every cutoff against the baseline cutoff. Large drift means the interpretation depends strongly on the cutoff choice. In your own analyses, this is a useful place to document why you chose a reporting cutoff.
 
-    If a signature disappears or changes rank across reasonable thresholds, report the dependence explicitly or revise the reporting threshold before producing final figures.
+    If a signature disappears or changes rank across reasonable cutoffs, report the dependence explicitly or revise the reporting cutoff before producing final figures.
   </script>
 
   <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 4, phase: "visualize", title: "4. Check threshold stability", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 4, phase: "visualize", title: "4. Check cutoff stability", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">

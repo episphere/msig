@@ -5,7 +5,7 @@
   <script type="text/markdown">
     # mSigSDK focused notebooks
 
-    Start here for the SDK workflow map. The notebooks are organized as a researcher path rather than a function catalog: understand the input shape, validate spectra, run the analysis, inspect warnings and evidence objects, compare or adapt the result, then export the files needed to reproduce the workflow.
+    Start here for the SDK workflow map. The notebooks are organized as a researcher path rather than a function catalog: understand the input table, check spectra, run the analysis, inspect warnings and review evidence, compare or adapt the result, then save the files needed to reproduce the workflow.
 
     Each notebook should be read as a small analysis story. The first section establishes the decision being made, the middle sections generate evidence, and the final section saves enough context for another researcher to rerun or review the result.
 
@@ -14,11 +14,11 @@
     Follow this order when learning the SDK from scratch. It starts with public spectra, moves into fitting and uncertainty, then branches into project-specific inputs and specialized workflows.
 
     1. [Public cohort exploration](./viewer.html?notebook=msig-sdk-public-cohort-exploration.onb.html)
-    2. [Known-signature QC](./viewer.html?notebook=msig-sdk-qc-walkthrough.onb.html)
-    3. [Uncertainty thresholds](./viewer.html?notebook=msig-sdk-uncertainty-thresholds.onb.html)
+    2. [Known-signature quality check](./viewer.html?notebook=msig-sdk-qc-walkthrough.onb.html)
+    3. [Uncertainty and cutoffs](./viewer.html?notebook=msig-sdk-uncertainty-thresholds.onb.html)
     4. [Export and reports](./viewer.html?notebook=msig-sdk-export-report.onb.html)
     5. [Resource portability](./viewer.html?notebook=msig-sdk-resource-portability.onb.html) or [MAF to report](./viewer.html?notebook=msig-sdk-maf-fit-report.onb.html)
-    6. [Panel evidence tiers](./viewer.html?notebook=msig-sdk-panel-evidence-tiers.onb.html), [NMF extraction](./viewer.html?notebook=msig-sdk-nmf-extraction.onb.html), or [Multi-engine comparison](./viewer.html?notebook=msig-sdk-multi-engine-comparison.onb.html)
+    6. [Panel/WES evidence review](./viewer.html?notebook=msig-sdk-panel-evidence-tiers.onb.html), [Discovery extraction (NMF)](./viewer.html?notebook=msig-sdk-nmf-extraction.onb.html), or [Multi-tool comparison](./viewer.html?notebook=msig-sdk-multi-engine-comparison.onb.html)
 
     ## Workflow stages
 
@@ -30,40 +30,40 @@
     - [End-to-end workflow](./viewer.html?notebook=msig-sdk-end-to-end-workflow.onb.html)
     - [Public cohort exploration](./viewer.html?notebook=msig-sdk-public-cohort-exploration.onb.html)
 
-    Input and resource setup:
+    Load data:
 
     - [Resource portability](./viewer.html?notebook=msig-sdk-resource-portability.onb.html)
     - [Bring your own spectra](./viewer.html?notebook=msig-sdk-bring-your-own-spectra.onb.html)
     - [MAF to report](./viewer.html?notebook=msig-sdk-maf-fit-report.onb.html)
 
-    Core analysis:
+    Analyze data:
 
-    - [Known-signature QC](./viewer.html?notebook=msig-sdk-qc-walkthrough.onb.html)
+    - [Known-signature quality check](./viewer.html?notebook=msig-sdk-qc-walkthrough.onb.html)
     - [Cohort and panel workflow](./viewer.html?notebook=msig-sdk-cohort-panel-workflow.onb.html)
-    - [Panel evidence tiers](./viewer.html?notebook=msig-sdk-panel-evidence-tiers.onb.html)
-    - [NMF extraction](./viewer.html?notebook=msig-sdk-nmf-extraction.onb.html)
+    - [Panel/WES evidence review](./viewer.html?notebook=msig-sdk-panel-evidence-tiers.onb.html)
+    - [Discovery extraction (NMF)](./viewer.html?notebook=msig-sdk-nmf-extraction.onb.html)
 
-    Reliability, reporting, and interoperability:
+    Review and report:
 
-    - [Uncertainty thresholds](./viewer.html?notebook=msig-sdk-uncertainty-thresholds.onb.html)
+    - [Uncertainty and cutoffs](./viewer.html?notebook=msig-sdk-uncertainty-thresholds.onb.html)
     - [Export and reports](./viewer.html?notebook=msig-sdk-export-report.onb.html)
     - [Multi-engine comparison](./viewer.html?notebook=msig-sdk-multi-engine-comparison.onb.html)
 
-    Advanced or experimental:
+    Experimental:
 
     - [Experimental sandbox](./viewer.html?notebook=msig-sdk-experimental-sandbox.onb.html)
 
     ## Inspect before trusting results
 
-    The recurring lesson across the notebooks is that signature exposure estimates should not be read alone. Look for validation results, mutation burden, reconstruction quality, residual structure, warnings, recommended actions, report fields, and provenance before treating an output as reportable.
+    The recurring lesson across the notebooks is that signature contribution estimates should not be read alone. Look for input checks, mutation counts, reconstruction quality, residual structure, warnings, suggested review steps, report fields, and a run record before treating an output as reportable.
 
-    Check the SDK import path, data provenance, validation result, warning table, recommended actions, local computation boundary, report/provenance output, and any external-tool handoff. Plots should be read together with the returned JavaScript objects and thresholds that generated them.
+    Check the SDK import path, data source, input-check result, warning table, suggested review steps, local computation boundary, report/run-record output, and any files prepared for other tools. Plots should be read together with the returned result objects and cutoffs that generated them.
 
     ## Replace for a local project
 
-    For a local project, replace the input-loading cell first and leave the validation, QC, warning, report, and export sections in place. After the adapted notebook runs cleanly, tighten thresholds, expand uncertainty settings, or add external-engine comparisons to match the project question.
+    For a local project, replace the input-loading step first and leave the input-check, warning, report, and export sections in place. After the adapted notebook runs cleanly, tighten cutoffs, expand uncertainty settings, or add package comparisons to match the project question.
 
-    Replace sample spectra, signature catalog, mutation-burden thresholds, exposure thresholds, metadata, panel opportunity masks, and report parameters. Keep the validation, burden, reconstruction, residual, uncertainty, warning, and export cells in place so the adapted notebook still produces a complete analysis record.
+    Replace sample spectra, signature catalog, mutation-count cutoffs, minimum signature contribution cutoffs, sample details, panel/WES coverage masks, and report settings. Keep the input-check, mutation-count, reconstruction, residual, uncertainty, warning, and export steps in place so the adapted notebook still produces a complete analysis record.
 
     For local development, keep the SDK server running while you use the notebooks:
 

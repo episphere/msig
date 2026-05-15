@@ -593,11 +593,17 @@ function table(rows, columns = null, options = {}) {
     return wrapper;
   }
 
+  const defaultColumnLabel = (key) =>
+    ({
+      lowBurden: "Low-burden review cue",
+      reviewFlagCodes: "Review cue codes",
+      reviewFlagCount: "Review cue count",
+    }[key] || key);
   const normalizedColumns =
     columns ||
     Object.keys(data[0]).map((key) => ({
       key,
-      label: key,
+      label: defaultColumnLabel(key),
     }));
   const tableElement = document.createElement("table");
   tableElement.className = "msigsdk-output-table";

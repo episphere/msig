@@ -3,11 +3,11 @@
   <title>mSigSDK public cohort exploration</title>
 
   <script type="text/markdown">
-    # Public cohort exploration before exposure fitting
+    # Public cohort exploration before signature fitting
 
-    A signature analysis should start by understanding the spectra before fitting any exposures. This workflow loads public SBS96 spectra when mSigPortal is reachable, falls back to embedded SBS96 matrices when offline, and inspects mutation burden, context coverage, similarity structure, validation issues, and downstream-ready matrix objects.
+    A signature analysis should start by understanding the spectra before fitting any signature contributions. This workflow loads public SBS96 spectra when mSigPortal is reachable, falls back to embedded SBS96 tables when offline, and inspects mutation counts, context coverage, similarity structure, input issues, and tables ready for downstream workflows.
 
-    Use this notebook as the first pass on a cohort. The questions are simple: do the samples have enough mutations, do the spectra look valid, are there obvious outliers or duplicated profiles, and is the matrix ready for known-signature fitting, uncertainty analysis, or multi-engine comparison?
+    Use this notebook as the first pass on a cohort. The questions are simple: do the samples have enough mutations, do the spectra look valid, are there obvious outliers or duplicated profiles, and is the table ready for known-signature fitting, uncertainty analysis, or multi-tool comparison?
   </script>
 
   <script type="module" pinned id="1">
@@ -92,18 +92,18 @@
     display(metrics([
       { label: "Data source", value: cohortData.sourceStatus },
       { label: "Samples", value: cohortSelectedSamples.length },
-      { label: "Matrix", value: "SBS96" },
-      { label: "Validation", value: cohortValidation.valid ? "Pass" : "Review" },
+      { label: "Table type", value: "SBS96" },
+      { label: "Input check", value: cohortValidation.valid ? "Pass" : "Review" },
     ]));
     if (!cohortValidation.valid) {
-      display(note("Validation issues are shown below and should be resolved before fitting signatures.", "warning"));
+      display(note("Input issues are shown below and should be resolved before fitting signatures.", "warning"));
     }
   </script>
 
   <script type="text/markdown">
     ## Interactive workspace
 
-    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
   </script>
 
   <script type="module" pinned id="interactive-workspace">
@@ -112,15 +112,15 @@
   </script>
 
   <script type="text/markdown">
-    ## Step 1. Review burden, metadata, and validation
+    ## Step 1. Review mutation counts, sample details, and input checks
 
-    The first table describes what was loaded and whether the fallback path was used. The burden and validation outputs tell whether each spectrum contains enough signal and has the expected SBS96 context structure.
+    The first table describes what was loaded and whether the fallback path was used. The mutation-count and input-check outputs tell whether each spectrum contains enough signal and has the expected SBS96 context structure.
 
-    Do not move directly to fitting if this section shows low mutation burden, missing contexts, or unexpected sample metadata. Those issues should be resolved or carried as caveats before exposure estimates are interpreted.
+    Do not move directly to fitting if this section shows low mutation counts, missing contexts, or unexpected sample details. Those issues should be resolved or carried as caveats before signature contribution estimates are interpreted.
   </script>
 
   <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "public-cohort", step: 1, phase: "analysis", title: "Step 1. Review burden, metadata, and validation", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "public-cohort", step: 1, phase: "analysis", title: "Step 1. Review mutation counts, sample details, and input checks", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -136,7 +136,7 @@
         { key: "sample", label: "Sample" },
         { key: "mutations", label: "Mutations" },
         { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
-        { key: "lowBurden", label: "Low-burden flag" },
+        { key: "lowBurden", label: "Low-burden review cue" },
       ],
       { maxRows: 12 }
     ));
@@ -196,22 +196,22 @@
   </script>
 
   <script type="text/markdown">
-    ## Step 3. Move the matrix into downstream workflows
+    ## Step 3. Move the table into downstream workflows
 
-    Once the spectra pass the initial review, the same matrix can feed known-signature QC, uncertainty analysis, panel review, NMF screening, export/report workflows, or multi-engine comparison. This final section makes the handoff explicit so exploration does not become a dead-end table.
+    Once the spectra pass the initial review, the same table can feed known-signature quality checks, uncertainty analysis, panel review, NMF screening, export/report workflows, or multi-tool comparison. This final section makes the next step explicit so exploration does not become a dead-end table.
   </script>
 
   <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "public-cohort", step: 3, phase: "visualize", title: "Step 3. Move the matrix into downstream workflows", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "public-cohort", step: 3, phase: "visualize", title: "Step 3. Move the table into downstream workflows", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="4">
     display(table(
       [
-        { nextWorkflow: "Known-signature QC", notebook: "msig-sdk-qc-walkthrough.onb.html", objectToPass: "cohortSpectra as spectra; COSMIC or local signatures as signatures" },
-        { nextWorkflow: "Uncertainty thresholds", notebook: "msig-sdk-uncertainty-thresholds.onb.html", objectToPass: "cohortSpectra plus selected reference signatures and threshold grid" },
-        { nextWorkflow: "Cohort and panel workflow", notebook: "msig-sdk-cohort-panel-workflow.onb.html", objectToPass: "cohortSpectra plus cohortMetadata and callable opportunities when restricted assays are used" },
-        { nextWorkflow: "NMF extraction", notebook: "msig-sdk-nmf-extraction.onb.html", objectToPass: "cohortSpectra for exploratory extraction after checking burden and sample count" },
+        { nextWorkflow: "Known-signature quality check", notebook: "msig-sdk-qc-walkthrough.onb.html", objectToPass: "cohortSpectra as spectra; COSMIC or local signatures as signatures" },
+        { nextWorkflow: "Uncertainty and cutoffs", notebook: "msig-sdk-uncertainty-thresholds.onb.html", objectToPass: "cohortSpectra plus selected reference signatures and cutoff grid" },
+        { nextWorkflow: "Cohort and panel workflow", notebook: "msig-sdk-cohort-panel-workflow.onb.html", objectToPass: "cohortSpectra plus cohortMetadata and coverage opportunities when restricted assays are used" },
+        { nextWorkflow: "Discovery extraction (NMF)", notebook: "msig-sdk-nmf-extraction.onb.html", objectToPass: "cohortSpectra for exploratory discovery after checking mutation count and sample count" },
       ],
       [
         { key: "nextWorkflow", label: "Next workflow" },

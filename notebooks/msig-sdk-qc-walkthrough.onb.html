@@ -1,13 +1,13 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK known-signature QC</title>
+  <title>mSigSDK known-signature quality check</title>
 
   <script type="text/markdown">
-    # Known-signature fitting and QC
+    # Known-signature fitting and quality checks
 
-    Use this notebook first if you are new to mSigSDK. It demonstrates the complete known-signature fitting workflow: import the SDK, define an SBS96 analysis, load count-scale public spectra and COSMIC reference signatures, reshape the API rows into SDK matrices, validate inputs, fit exposures, and inspect QC plots.
+    Use this notebook first if you are new to mSigSDK. It demonstrates the complete known-signature fitting workflow: import the SDK, define an SBS96 analysis, load count-scale public spectra and COSMIC reference signatures, reshape the API rows into SDK tables, check inputs, estimate signature contributions, and inspect quality-check plots.
 
-    The story is intentionally sequential. A researcher chooses an analysis profile, validates the matrix, checks mutation burden, fits signatures, inspects reconstruction and residuals, then packages the same logic as a reusable workflow result. To reuse the pattern with your own data, replace the mSigPortal loading block and keep the validation and QC sections intact.
+    The story is intentionally sequential. A researcher chooses an analysis profile, checks the table, reviews mutation counts, fits signatures, inspects reconstruction and residuals, then packages the same logic as a reusable workflow result. To reuse the pattern with your own data, replace the mSigPortal loading block and keep the input-check and quality-check sections intact.
   </script>
 
   <script type="module" pinned id="1">
@@ -38,10 +38,10 @@
     display(table(
       [
         { namespace: "mSigPortal", role: "Fetch public example spectra and signatures" },
-        { namespace: "validation", role: "Check matrix shape and missing contexts" },
-        { namespace: "signatureFitting", role: "Estimate relative signature exposures" },
+        { namespace: "validation", role: "Check table shape and missing contexts" },
+        { namespace: "signatureFitting", role: "Estimate relative signature contributions" },
         { namespace: "qc", role: "Create burden, reconstruction, and residual objects" },
-        { namespace: "qcPlots", role: "Render QC figures for reports and notebooks" },
+        { namespace: "qcPlots", role: "Render quality-check figures for reports and notebooks" },
         { namespace: "presentation", role: "Create reusable metrics, tables, and object summaries" },
       ],
       [
@@ -54,7 +54,7 @@
   <script type="text/markdown">
     ## Interactive workspace
 
-    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
   </script>
 
   <script type="module" pinned id="interactive-workspace">
@@ -63,15 +63,15 @@
   </script>
 
   <script type="text/markdown">
-    ## 1. Choose the profile, example data, and fitting parameters
+    ## 1. Choose the profile, example data, and fitting settings
 
-    The first analysis decision is the mutation matrix. Here we use SBS96, so `getExpectedContexts` returns the 96 trinucleotide contexts used to check spectra and signatures. The mSigPortal calls fetch specific PCAWG WGS Lung-AdenoCA samples with real mutation counts, including high-burden and low-burden examples so the QC flags are visible. In your own project, replace `qcExampleSampleNames` with your local sample IDs or replace the fetch with your own spectra object.
+    The first analysis decision is the mutation table. Here we use SBS96, so `getExpectedContexts` returns the 96 trinucleotide contexts used to check spectra and signatures. The mSigPortal calls fetch specific PCAWG WGS Lung-AdenoCA samples with real mutation counts, including high-count and low-count examples so the review cues are visible. In your own project, replace `qcExampleSampleNames` with your local sample IDs or replace the fetch with your own spectra object.
 
-    Edit `qcSampleLimit`, `qcMutationBurdenThreshold`, or `qcPreferredSignatureNames` to see how the analysis changes. In a real project, these parameters should come from the assay design, expected mutation burden, and the reference catalog being tested.
+    Edit `qcSampleLimit`, `qcMutationBurdenThreshold`, or `qcPreferredSignatureNames` to see how the analysis changes. In a real project, these settings should come from the assay design, expected mutation count, and the reference catalog being tested.
   </script>
 
   <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 1, phase: "data", title: "1. Choose the profile, example data, and fitting parameters", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 1, phase: "data", title: "1. Choose the profile, example data, and fitting settings", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -145,7 +145,7 @@
           "signatureName"
         );
       if (Object.keys(qcAllGroupedSpectra).length < 2 || Object.keys(qcAllReferenceSignatures).length < 3) {
-        throw new Error("mSigPortal returned too few matrices for QC review.");
+        throw new Error("mSigPortal returned too few tables for quality-check review.");
       }
     } catch (error) {
       qcDataSourceStatus = `embedded fallback: ${error.message}`;
@@ -195,14 +195,14 @@
       { label: "Cancer type", value: qcCancerType },
       { label: "Samples selected", value: qcSelectedSampleNames.length },
       { label: "Reference signatures", value: qcSelectedSignatureNames.length },
-      { label: "Burden cutoff", value: qcMutationBurdenThreshold },
+      { label: "Mutation-count cutoff", value: qcMutationBurdenThreshold },
       {
-        label: "Low-burden samples",
+        label: "Low mutation-count samples",
         value: qcSelectedBurdenSamples.filter(
           (sample) => sample.totalMutations < qcMutationBurdenThreshold
         ).length,
       },
-      { label: "Exposure floor", value: qcExposureThreshold },
+      { label: "Minimum signature contribution", value: qcExposureThreshold },
     ]));
     display(table(
       burdenSampleRows(qcAllBurden, qcSelectedSampleNames),
@@ -210,22 +210,22 @@
         { key: "sample", label: "Selected sample" },
         { key: "mutations", label: "Total mutations" },
         { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
-        { key: "lowBurden", label: "Low burden flag" },
+        { key: "lowBurden", label: "Low mutation-count review cue" },
       ],
       { maxRows: 8 }
     ));
   </script>
 
   <script type="text/markdown">
-    ## 2. Validate, fit, and build QC objects
+    ## 2. Check inputs, fit, and build review objects
 
-    Validation is not optional boilerplate. It confirms that spectra and signatures share the expected contexts before fitting. The fitting call estimates relative exposures, and the QC functions return plain JavaScript objects that can be inspected, saved, or passed into plotting functions.
+    Input checking is not optional boilerplate. It confirms that spectra and signatures share the expected contexts before fitting. The fitting call estimates relative signature contributions, and the quality-check functions return plain result objects that can be inspected, saved, or passed into plotting functions.
 
     If validation fails, interpretation stops here. A fit produced from mismatched contexts can look numerical and still be biologically meaningless.
   </script>
 
   <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 2, phase: "analysis", title: "2. Validate, fit, and build QC objects", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 2, phase: "analysis", title: "2. Check inputs, fit, and build review objects", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="3">
@@ -310,15 +310,15 @@
   </script>
 
   <script type="text/markdown">
-    ## 3. Check mutation burden
+    ## 3. Check mutation counts
 
-    Mutation burden affects how much information is available for fitting. Samples below the threshold marker should be interpreted cautiously, especially for weak or rare signatures. In your own workflow, set this threshold from your study design or assay characteristics rather than treating this example value as universal.
+    Mutation count affects how much information is available for fitting. Samples below the cutoff marker should be interpreted cautiously, especially for weak or rare signatures. In your own workflow, set this cutoff from your study design or assay characteristics rather than treating this example value as universal.
 
-    A low-burden warning does not always require removing a sample. It does require that downstream exposure estimates be reported with more caution.
+    A low-count warning does not always require removing a sample. It does require that downstream signature contribution estimates be reported with more caution.
   </script>
 
   <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 3, phase: "visualize", title: "3. Check mutation burden", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 3, phase: "visualize", title: "3. Check mutation counts", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="4">
@@ -331,9 +331,9 @@
   <script type="text/markdown">
     ## 4. Inspect reconstruction quality
 
-    Cosine similarity measures profile-shape agreement; RMSE measures residual magnitude on the relative-profile scale used for fitting. Inspect both because a fit can have good shape agreement while still leaving systematic residuals in specific mutation contexts. Use the mutation-burden table above for count totals.
+    Cosine similarity measures profile-shape agreement; RMSE measures residual magnitude on the relative-profile scale used for fitting. Inspect both because a fit can have good shape agreement while still leaving systematic residuals in specific mutation contexts. Use the mutation-count table above for count totals.
 
-    This is the main checkpoint before reading exposure values as evidence. A poor reconstruction usually means the catalog is incomplete, the sample is noisy, or the matrix needs additional QC.
+    This is the main checkpoint before reading signature contribution values as evidence. A poor reconstruction usually means the catalog is incomplete, the sample is noisy, or the table needs additional review.
   </script>
 
   <script type="module" pinned id="interactive-step-4">
@@ -353,7 +353,7 @@
   <script type="text/markdown">
     ## 5. Inspect residual spectra
 
-    Residual plots show where the fitted signature mixture does not reconstruct the observed spectrum. Positive residuals are underfit contexts; negative residuals are overfit contexts. This is often where you identify missing reference signatures, context-specific artifacts, or samples that need a different analysis strategy.
+    Residual plots show where the fitted signature mixture does not reconstruct the observed spectrum. Positive residuals are underfit contexts; negative residuals are overfit contexts. This is often where you identify missing reference signatures, context-specific technical effects, or samples that need a different analysis strategy.
 
     Read residuals as diagnostic evidence, not as a decorative plot. Repeated residual structure across samples may point to a missing signature or a systematic preprocessing issue.
   </script>
@@ -376,9 +376,9 @@
   <script type="text/markdown">
     ## 6. Package the same fit as a workflow result
 
-    The lower-level cells above teach each QC step. The high-level workflow returns the same analysis as an auditable bundle with warnings, recommended actions, fit-quality evidence, publication figure descriptors, report fields, and exports.
+    The lower-level cells above teach each review step. The high-level workflow returns the same analysis as a reviewable bundle with warnings, suggested review steps, fit-quality evidence, figure descriptors, report fields, and exports.
 
-    The workflow result is the object to hand to an application or report generator because it keeps the exposure estimates connected to the evidence that qualifies them.
+    The workflow result is the object to give an application or report generator because it keeps the signature contribution estimates connected to the evidence that qualifies them.
   </script>
 
   <script type="module" pinned id="interactive-step-6">
@@ -437,7 +437,7 @@
       {
         filename: "known_signature_qc_exposures.csv",
         text: rowsToCsv(qcExposureRows),
-        label: "Download exposures CSV",
+        label: "Download signature contributions CSV",
       },
       {
         filename: "known_signature_qc_report.json",
