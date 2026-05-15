@@ -690,21 +690,21 @@ const mSigSDK = (function () {
       return "Not available for this sample.";
     }
 
-    if (value <= 0.005) {
-      return "Small on the normalized SBS96 profile scale; reassuring when cosine is high and residuals are not structured.";
-    }
+	    if (value <= 0.005) {
+	      return "Small average leftover mismatch after rebuilding the sample; reassuring when cosine is high and residuals are not structured.";
+	    }
 
-    if (value <= 0.02) {
-      return "Noticeable on the normalized SBS96 profile scale; inspect residuals, mutation count, and catalog choice.";
-    }
+	    if (value <= 0.02) {
+	      return "Noticeable average leftover mismatch after rebuilding the sample; inspect residuals, mutation count, and catalog choice.";
+	    }
 
-    return "Relatively large on the normalized SBS96 profile scale; review residuals and consider whether the catalog or inputs fit this sample.";
-  }
+	    return "Relatively large average leftover mismatch after rebuilding the sample; review residuals and consider whether the catalog or inputs fit this sample.";
+	  }
 
-  function rmseScaleNote(value) {
-    const valueText = Number.isFinite(value) ? `An RMSE of ${formatPlotNumber(value, 5)}` : "RMSE";
-    return `${valueText} is not a universal pass/fail threshold. Lower values mean smaller average context-by-context residuals after normalizing the spectrum.`;
-  }
+	  function rmseScaleNote(value) {
+	    const valueText = Number.isFinite(value) ? `An RMSE of ${formatPlotNumber(value, 5)}` : "RMSE";
+	    return `${valueText} is not a universal pass/fail threshold. Lower values mean the reconstructed recipe leaves less average mismatch across mutation channels after normalizing the spectrum.`;
+	  }
 
   function uniqueStringsForPlot(values) {
     return [...new Set(values.filter((value) => value !== undefined && value !== null).map(String))];
@@ -2906,10 +2906,10 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       }))
       .filter((line) => Number.isFinite(line.value));
 
-    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
-      title: "Reconstruction quality",
-      subtitle:
-        "Known-signature fitting is evaluated with paired diagnostics: cosine similarity should approach 1, while RMSE should approach 0. RMSE is on the normalized profile scale, so read it with cosine similarity, residual shape, mutation count, and catalog choice rather than as a universal pass/fail threshold.",
+	    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+	      title: "Reconstruction quality",
+	      subtitle:
+	        "After the fitting method guesses a mixture of signatures, the reconstruction remixes those signatures and compares the rebuilt pattern with the observed sample. Cosine closer to 1 and RMSE closer to 0 are reassuring, but they are checks on the recipe, not proof of biology by themselves.",
       badges: [
         {
           label: "Median cosine",
@@ -3040,11 +3040,12 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       .on("mousemove", (event, row) =>
         showTooltip(
           event,
-          tooltipRows([
-            ["Sample", row.sample],
-            ["Cosine similarity", formatPlotNumber(row.cosineSimilarity, 4)],
-            ["1 - cosine", formatPlotNumber(row.cosineGap, 4)],
-            ["RMSE", formatPlotNumber(row.rmse, 5)],
+	          tooltipRows([
+	            ["Sample", row.sample],
+	            ["What this checks", "Can the fitted signature recipe recreate the observed mutation pattern?"],
+	            ["Cosine similarity", formatPlotNumber(row.cosineSimilarity, 4)],
+	            ["1 - cosine", formatPlotNumber(row.cosineGap, 4)],
+	            ["RMSE", formatPlotNumber(row.rmse, 5)],
             ["How to read RMSE", describeRmseForPlot(row.rmse)],
             ["Scale note", rmseScaleNote(row.rmse)],
           ])
@@ -3067,10 +3068,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       .on("mousemove", (event, row) =>
         showTooltip(
           event,
-          tooltipRows([
-            ["Sample", row.sample],
-            ["RMSE", formatPlotNumber(row.rmse, 5)],
-            ["Cosine similarity", formatPlotNumber(row.cosineSimilarity, 4)],
+	          tooltipRows([
+	            ["Sample", row.sample],
+	            ["What this checks", "Average leftover mismatch after rebuilding the sample from the fitted recipe."],
+	            ["RMSE", formatPlotNumber(row.rmse, 5)],
+	            ["Cosine similarity", formatPlotNumber(row.cosineSimilarity, 4)],
             ["How to read RMSE", describeRmseForPlot(row.rmse)],
             ["Scale note", rmseScaleNote(row.rmse)],
           ])
@@ -3484,10 +3486,10 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       ...samples.map((sample) => reviewFlagCountFor(sample))
     );
 
-    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
-      title: "Fit-quality evidence summary",
-      subtitle:
-        "Quality-check evidence summarizes mutation count, reconstruction fit, residuals, bootstrap stability, cutoff sensitivity, reference-signature similarity, and catalog fit. Hover cells for definitions, full values, and conservative interpretation guidance.",
+	    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+	      title: "Review evidence summary",
+	      subtitle:
+	        "This review panel summarizes whether each fitted recipe has enough support to discuss confidently: mutation count, reconstruction match, leftover residual pattern, uncertainty, cutoff sensitivity, similar reference signatures, and catalog fit. Hover cells for definitions and conservative guidance.",
       badges: [
         {
           label: "Samples",
@@ -3501,7 +3503,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         },
       ],
     });
-    const svg = appendResponsiveSvg(chart, width, height, "Fit-quality evidence summary");
+	    const svg = appendResponsiveSvg(chart, width, height, "Review evidence summary");
     const y = d3
       .scaleBand()
       .domain(samples.map((sample) => sample.sample))

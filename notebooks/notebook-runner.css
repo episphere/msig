@@ -122,6 +122,11 @@ textarea {
   position: sticky;
   top: 82px;
   align-self: start;
+  max-height: calc(100vh - 106px);
+  max-height: calc(100dvh - 106px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   border: 1px solid var(--rule);
   border-radius: 8px;
   background: var(--surface);
@@ -491,7 +496,7 @@ h2 {
 
 .output-metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
   gap: 10px;
 }
 
@@ -500,11 +505,14 @@ h2 {
   border-radius: 8px;
   background: #f4f6f2;
   padding: 12px;
+  min-width: 0;
 }
 
 .output-metric span,
 .output-metric small {
   display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--muted);
   font-size: 12px;
 }
@@ -512,6 +520,10 @@ h2 {
 .output-metric strong {
   display: block;
   margin-top: 4px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   color: var(--ink);
   font-size: 18px;
   line-height: 1.2;
@@ -899,9 +911,119 @@ h2 {
   color: #fff;
 }
 
+.workflow-button.primary.success {
+  border-color: var(--green);
+  background: var(--green);
+}
+
 .workflow-button:disabled {
   cursor: wait;
   opacity: 0.72;
+}
+
+.workflow-status-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--teal);
+  border-radius: 8px;
+  background: #fbfcfa;
+  padding: 11px 12px;
+}
+
+.workflow-status-card strong,
+.workflow-status-card span,
+.workflow-status-card small {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.workflow-status-card strong {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.workflow-status-card span,
+.workflow-status-card small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.workflow-status-card small {
+  margin-top: 3px;
+}
+
+.workflow-status-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: var(--teal);
+}
+
+.workflow-status-card.running {
+  border-left-color: var(--teal);
+  background: #edf7f7;
+}
+
+.workflow-status-card.running .workflow-status-dot {
+  animation: workflow-status-pulse 0.9s ease-in-out infinite;
+}
+
+.workflow-status-card.success {
+  border-left-color: var(--green);
+  background: #edf6f1;
+}
+
+.workflow-status-card.success .workflow-status-dot {
+  background: var(--green);
+}
+
+.workflow-status-card.warning {
+  border-left-color: var(--coral);
+  background: #fff8f2;
+}
+
+.workflow-status-card.warning .workflow-status-dot,
+.workflow-status-card.error .workflow-status-dot {
+  background: var(--coral);
+}
+
+.workflow-status-card.error {
+  border-left-color: var(--error);
+  background: #fff3f2;
+}
+
+.workflow-updated {
+  animation: workflow-updated-flash 1.35s ease-out;
+}
+
+@keyframes workflow-status-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes workflow-updated-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(20, 125, 127, 0.32);
+  }
+
+  100% {
+    box-shadow: 0 0 0 12px rgba(20, 125, 127, 0);
+  }
 }
 
 .workflow-output-stack,
@@ -971,6 +1093,8 @@ h2 {
   }
 
   .notebook-sidebar {
+    max-height: none;
+    overflow: visible;
     position: static;
   }
 }

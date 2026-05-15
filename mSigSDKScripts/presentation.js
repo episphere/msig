@@ -13,7 +13,7 @@ function ensurePresentationStyles() {
   style.textContent = `
     .msigsdk-output-metrics {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
       gap: 10px;
       margin: 0;
     }
@@ -22,16 +22,23 @@ function ensurePresentationStyles() {
       border-radius: 8px;
       background: #f4f6f2;
       padding: 12px;
+      min-width: 0;
     }
     .msigsdk-output-metric span,
     .msigsdk-output-metric small {
       display: block;
+      min-width: 0;
+      overflow-wrap: anywhere;
       color: #5f6d67;
       font: 12px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     .msigsdk-output-metric strong {
       display: block;
       margin-top: 4px;
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
       color: #17201d;
       font: 700 18px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
@@ -616,13 +623,13 @@ function inferTableDescription(data, columns) {
   const has = (...required) => required.every((key) => keySet.has(key));
   const hasAny = (...candidates) => candidates.some((key) => keySet.has(key));
 
-  if (has("sample", "signature", "exposure")) {
-    return {
-      title: "Signature contribution estimates",
-      caption:
-        "Shows fitted signature contribution estimates by sample and signature. These are model estimates, so read them with the fit-quality evidence and warnings.",
-    };
-  }
+	  if (has("sample", "signature", "exposure")) {
+	    return {
+	      title: "Signature recipe estimates",
+	      caption:
+	        "Shows the fitted signature recipe by sample and signature. These are model estimates, so read them with the review evidence and warnings.",
+	    };
+	  }
 
   if (has("sample", "mutations") || has("sample", "totalMutations")) {
     return {
@@ -632,21 +639,21 @@ function inferTableDescription(data, columns) {
     };
   }
 
-  if (has("sample", "cosineSimilarity", "rmse")) {
-    return {
-      title: "Reconstruction quality values",
-      caption:
-        "Shows how closely the fitted signatures reconstruct each sample. Higher cosine and lower RMSE are reassuring, but neither is a stand-alone proof of correctness.",
-    };
-  }
+	  if (has("sample", "cosineSimilarity", "rmse")) {
+	    return {
+	      title: "Reconstruction quality values",
+	      caption:
+	        "Shows whether the guessed signature recipe can recreate each observed sample pattern. Higher cosine and lower RMSE are reassuring, but neither is a stand-alone proof of correctness.",
+	    };
+	  }
 
-  if (has("sample", "reportingMode") || has("sample", "reviewFlagCodes")) {
-    return {
-      title: "Fit-quality evidence",
-      caption:
-        "Shows the reporting mode and review cues for each sample. Use this table to decide what caveats should accompany signature contribution estimates.",
-    };
-  }
+	  if (has("sample", "reportingMode") || has("sample", "reviewFlagCodes")) {
+	    return {
+	      title: "Review evidence",
+	      caption:
+	        "Shows the reporting mode and review cues for each sample. Use this table to decide what caveats should accompany the fitted signature recipe.",
+	    };
+	  }
 
   if (hasAny("cue", "SDK code", "recommended action", "reviewFlagCodes") || has("code", "message")) {
     return {
@@ -676,7 +683,7 @@ function inferTableDescription(data, columns) {
     return {
       title: "Uncertainty interval values",
       caption:
-        "Shows resampling-based uncertainty for fitted signature contributions. Wide intervals or inconsistent selection suggest extra caution.",
+	        "Shows resampling-based uncertainty for fitted signature recipe estimates. Wide intervals or inconsistent selection suggest extra caution.",
     };
   }
 
@@ -887,17 +894,17 @@ function fitQualityEvidenceTable(fitQualityEvidence, options = {}) {
     [
       { key: "sample", label: "Sample" },
       {
-        key: "reportingMode",
-        label: "Reporting mode",
-        tooltip:
-          "Primary fit-quality interpretation field. Hover each value for the exact SDK code, triggering rule, and interpretation boundary.",
+	        key: "reportingMode",
+	        label: "Reporting mode",
+	        tooltip:
+	          "Plain-language reporting recommendation for the sample. Hover each value for the SDK code, triggering rule, and interpretation boundary.",
         tooltipTerms: REPORTING_MODE_TOOLTIPS,
       },
       {
-        key: "reviewFlagCodes",
-        label: "Review cues",
-        tooltip:
-          "Rule-based review cues emitted by fit-quality evidence. Hover each cue for the exact SDK code and why it was triggered.",
+	        key: "reviewFlagCodes",
+	        label: "Review cues",
+	        tooltip:
+	          "Rule-based reasons to inspect the fitted recipe more carefully. Hover each cue for the SDK code and why it was triggered.",
         tooltipTerms: REVIEW_FLAG_TOOLTIPS,
       },
       {
@@ -914,29 +921,29 @@ function fitQualityEvidenceTable(fitQualityEvidence, options = {}) {
         tooltipTerms: BURDEN_CLASS_TOOLTIPS,
       },
       {
-        key: "reconstructionCosine",
-        label: "Reconstruction cosine",
-        tooltip:
-          "Cosine similarity between the observed sample spectrum and fitted reconstruction. This is not the rule that emits SIGNATURE_AMBIGUITY.",
+	        key: "reconstructionCosine",
+	        label: "Reconstruction cosine",
+	        tooltip:
+	          "Shape-match score between the observed sample pattern and the pattern rebuilt from the fitted signature recipe. Closer to 1 is better. This is not the rule that emits SIGNATURE_AMBIGUITY.",
       },
       {
-        key: "activeIdentifiabilityEvidence",
-        label: "Identifiability cues",
-        tooltip:
-          "Catalog-relative review cues for active fitted signatures. These cues come from continuous signature-identifiability scoring, not a single hard cosine cutoff.",
+	        key: "activeIdentifiabilityEvidence",
+	        label: "Identifiability cues",
+	        tooltip:
+	          "Catalog-relative review cues for active fitted signatures. They mean some reference ingredients are similar or hard to separate; they do not come from a single hard sample-cosine cutoff.",
         tooltipTerms: IDENTIFIABILITY_EVIDENCE_TOOLTIPS,
       },
       {
-        key: "maxConfusabilityScore",
-        label: "Max confusability",
-        tooltip:
-          "Maximum continuous catalog-relative confusability score among active fitted signatures. Higher values indicate more reason to review exchangeability with nearby or broad signatures; they are not etiology claims.",
+	        key: "maxConfusabilityScore",
+	        label: "Max confusability",
+	        tooltip:
+	          "Maximum continuous catalog-relative similarity score among active fitted signatures. Higher values mean more reason to review whether similar signatures could be exchanged; they are not cause-of-mutation claims.",
       },
       {
-        key: "catalogStatus",
-        label: "Catalog status",
-        tooltip:
-          "Catalog review status from residual and reconstruction checks. A cue indicates a reason to inspect residuals or catalog choice, not proof of a missing process.",
+	        key: "catalogStatus",
+	        label: "Catalog status",
+	        tooltip:
+	          "Catalog review status from leftover-pattern and reconstruction checks. A cue indicates a reason to inspect residuals or catalog choice, not proof of a missing process.",
         tooltipTerms: CATALOG_STATUS_TOOLTIPS,
       },
     ]
@@ -945,22 +952,22 @@ function fitQualityEvidenceTable(fitQualityEvidence, options = {}) {
   if (options.includeActiveSignatures) {
     const insertAt = columns.findIndex((column) => column.key === "activeIdentifiabilityEvidence");
     columns.splice(Math.max(insertAt, 0), 0, {
-      key: "activeSignatures",
-      label: "Active signatures",
-      tooltip:
-        "Signatures with non-zero fitted exposure in the sample. Identifiability review cues refer to these active fitted signatures.",
+	      key: "activeSignatures",
+	      label: "Active signatures",
+	      tooltip:
+	        "Reference signatures with non-zero fitted contribution in the sample. Identifiability review cues refer to these active fitted signatures.",
     });
   }
 
   return tooltipTable(rows, columns, {
     maxRows: Number.isFinite(options.maxRows) ? options.maxRows : 12,
     tooltipTerms: options.tooltipTerms,
-    title: options.title || "Fit-quality evidence",
-    caption:
-      options.caption ||
-      "Shows the reporting mode and review cues that qualify each sample's fitted signature estimates.",
-  });
-}
+	    title: options.title || "Review evidence",
+	    caption:
+	      options.caption ||
+	      "Shows the reporting mode and review cues that qualify each sample's fitted signature recipe.",
+	  });
+	}
 
 function panelEvidenceRows(panelWorkflowResultOrCalls) {
   const evidenceCalls =

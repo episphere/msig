@@ -1,37 +1,36 @@
 # mSigSDK Observable Kit notebooks
 
-Focused Observable Kit notebooks for learning, testing, and adapting mSigSDK workflows without loading every example into one runtime. Start with the end-to-end workflow, then use the focused notebooks as smaller versions of the same pattern. The examples use count-scale SBS96 matrices, cached fallback fixtures, and public-resource loaders so the same notebooks can run on GitHub Pages, a local checkout, or an offline browser session.
+Focused Observable Kit notebooks for learning, testing, and adapting mSigSDK workflows without loading every example into one runtime. Start with the end-to-end workflow to understand the complete arc, then move to the notebook whose unique goal matches the next decision. The examples use count-scale SBS96 matrices, cached fallback fixtures, and public-resource loaders so the same notebooks can run on GitHub Pages, a local checkout, or an offline browser session.
 
 The notebooks expose the structured outputs that make an analysis reviewable: input checks, fit-quality evidence, cautions, suggested follow-up, portable table exports, figure descriptions, reports, and run records. New examples should enter through the primary `mSigSDK.workflows` surface before expanding into `mSigSDK.pipelines`, `mSigSDK.quickstart`, or advanced namespace-specific calls.
 
-Each notebook should read as a stepwise researcher workflow. Narrative cells should explain the decision being made, the output that answers it, the common failure mode, and the next step in the analysis. Tables and plots should not appear without interpretation guidance.
+Each notebook should read as a stepwise researcher workflow. Narrative cells should explain the decision being made, the output that answers it, the common failure mode, and the next step in the analysis. Tables and plots should not appear without interpretation guidance. A new notebook should add a distinct goal; otherwise it should be folded into an existing notebook.
 
 ## Notebook index
 
 ### Orientation
 
-- `msig-sdk-notebooks.onb.html`: workflow-stage index.
-- `msig-sdk-end-to-end-workflow.onb.html`: local spectra to validation, fitting, uncertainty, interoperability, and report exports.
-- `msig-sdk-public-cohort-exploration.onb.html`: public or cached spectra, mutation counts, sample details, input checks, and similarity review before fitting.
+- `msig-sdk-notebooks.onb.html`: curriculum map and uniqueness contract for the notebook set.
+- `msig-sdk-end-to-end-workflow.onb.html`: complete fit-review-export arc for first-time readers.
+- `msig-sdk-public-cohort-exploration.onb.html`: public mSigPortal and TCGA/GDC resource discovery, cohort loading, and first-pass public-cohort visualization.
 
 ### Input and resource setup
 
-- `msig-sdk-resource-portability.onb.html`: mSigPortal, TCGA/GDC, table portability, fallback resources, and run-record exports.
-- `msig-sdk-bring-your-own-spectra.onb.html`: local SBS96 spectra, reference signatures, fit-quality evidence, warnings, and downloadable analysis bundle.
-- `msig-sdk-maf-fit-report.onb.html`: MAF rows to spectra, count reconciliation, fitting, quality checks, plots, cautions, and report sections.
+- `msig-sdk-resource-portability.onb.html`: SDK object shape, source metadata, file round trips, and handoff packages.
+- `msig-sdk-maf-fit-report.onb.html`: MAF field mapping, grouping, context provenance, count reconciliation, and converted-spectra handoff.
 
 ### Core analysis
 
-- `msig-sdk-qc-walkthrough.onb.html`: known-signature fitting quality checks with lower-level calls and high-level workflow packaging.
-- `msig-sdk-cohort-panel-workflow.onb.html`: cohort fitting with sample details plus panel/WES coverage evidence.
-- `msig-sdk-panel-evidence-tiers.onb.html`: panel/WES review levels, reasons, input-check summary, and limitations.
-- `msig-sdk-nmf-extraction.onb.html`: browser-sized NMF extraction, reference matching, rank diagnostics, and production run files.
+- `msig-sdk-qc-walkthrough.onb.html`: known-signature QC objects: burden, reconstruction, residuals, warnings, and review steps.
+- `msig-sdk-cohort-panel-workflow.onb.html`: cohort metadata, group interpretation, and restricted-assay limits in one applied workflow.
+- `msig-sdk-panel-evidence-tiers.onb.html`: standalone panel/WES support tiers and review reasons.
+- `msig-sdk-nmf-extraction.onb.html`: discovery extraction, rank diagnostics, learned profiles, sample contributions, and production run files.
 
 ### Reliability, reporting, and interoperability
 
-- `msig-sdk-uncertainty-thresholds.onb.html`: uncertainty intervals, cutoff sensitivity, decision table, and uncertainty exports.
-- `msig-sdk-export-report.onb.html`: import/export, reports, run records, report-section checks, and workflow helpers.
-- `msig-sdk-multi-engine-comparison.onb.html`: shared-input comparison of mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls outputs with package run files and disagreement review tables.
+- `msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals, cutoff sensitivity, stability decisions, and uncertainty exports.
+- `msig-sdk-export-report.onb.html`: import/export checks, required report fields, provenance, run records, and workflow helpers.
+- `msig-sdk-multi-engine-comparison.onb.html`: shared-input comparison of mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls outputs with disagreement review tables.
 
 ### Advanced or experimental
 

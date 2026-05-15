@@ -10,6 +10,12 @@
     The code uses count-scale public mSigPortal spectra selected from moderate-to-high mutation-count PCAWG WGS Lung-AdenoCA samples, but the same functions work with your own spectra and reference signatures. Replace the loading block with your own tables, keep the uncertainty and cutoff cells, and tune the iteration count and cutoff grid for your analysis plan.
 
     The story begins after a fit already exists. A researcher now asks which fitted signatures are stable enough to report and which depend too strongly on sampling noise or cutoff choice.
+
+    **Unique role:** stress-test fitted contributions with bootstrap intervals and reporting cutoff sweeps.
+
+    **Leave to focused notebooks:** input discovery, MAF conversion, panel coverage review, and report export mechanics.
+
+    **After running it you should know:** which signature calls are stable, borderline, cutoff-dependent, or too uncertain to report.
   </script>
 
   <script type="module" pinned id="1">

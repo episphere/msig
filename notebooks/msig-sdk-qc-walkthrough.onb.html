@@ -8,6 +8,12 @@
     Use this notebook first if you are new to mSigSDK. It demonstrates the complete known-signature fitting workflow: import the SDK, define an SBS96 analysis, load count-scale public spectra and COSMIC reference signatures, reshape the API rows into SDK tables, check inputs, estimate signature contributions, and inspect quality-check plots.
 
     The story is intentionally sequential. A researcher chooses an analysis profile, checks the table, reviews mutation counts, fits signatures, inspects reconstruction and residuals, then packages the same logic as a reusable workflow result. To reuse the pattern with your own data, replace the mSigPortal loading block and keep the input-check and quality-check sections intact.
+
+    **Unique role:** unpack the quality-control objects behind a known-signature fit instead of hiding them inside a larger workflow.
+
+    **Leave to focused notebooks:** public API browsing, MAF conversion, report export mechanics, uncertainty stress testing, and panel/WES evidence tiers.
+
+    **After running it you should know:** how to read mutation burden, reconstruction error, residual spectra, warnings, and suggested review steps together.
   </script>
 
   <script type="module" pinned id="1">

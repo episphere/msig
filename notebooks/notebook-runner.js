@@ -9,95 +9,92 @@ const DEFAULT_NOTEBOOKS = [
   {
     file: "msig-sdk-end-to-end-workflow.onb.html",
     title: "End-to-end workflow",
-    summary: "Follow one realistic analysis from loading data to checks, plots, reports, and tool comparison files.",
+    summary: "Learn the complete fit-review-export arc once, with plain-language guidance about what makes a result reportable.",
     workflowGroup: "orientation",
     workflowGroupLabel: "Orientation",
   },
   {
     file: "msig-sdk-public-cohort-exploration.onb.html",
-    title: "Public cohort exploration",
-    summary: "Load public mutation spectra, review mutation counts, and compare samples before fitting signatures.",
+    title: "Public API and TCGA cohort explorer",
+    summary: "Discover public mSigPortal and TCGA/GDC resources, load a cohort, visualize spectra, and choose a downstream workflow.",
     workflowGroup: "orientation",
     workflowGroupLabel: "Orientation",
   },
   {
     file: "msig-sdk-resource-portability.onb.html",
-    title: "Move data between resources",
-    summary: "Move data between mSigPortal, TCGA/GDC, common table formats, and reports.",
-    workflowGroup: "input",
-    workflowGroupLabel: "Load Data",
-  },
-  {
-    file: "msig-sdk-bring-your-own-spectra.onb.html",
-    title: "Bring your own spectra",
-    summary: "Start from your own mutation-count table, check it, fit signatures, and save a report.",
+    title: "Resource portability",
+    summary: "Prove that public resource data survive SDK table conversion, file export, reload, and handoff without losing metadata.",
     workflowGroup: "input",
     workflowGroupLabel: "Load Data",
   },
   {
     file: "msig-sdk-maf-fit-report.onb.html",
     title: "MAF to report",
-    summary: "Convert variant rows into mutation spectra, fit signatures, review checks, and save results.",
+    summary: "Audit MAF field mapping, grouping, context provenance, and count reconciliation before handing spectra to fitting.",
     workflowGroup: "input",
     workflowGroupLabel: "Load Data",
   },
   {
     file: "msig-sdk-qc-walkthrough.onb.html",
     title: "Known-signature quality check",
-    summary: "Load spectra, fit known signatures, and learn how to read the main quality checks.",
+    summary: "Unpack mutation burden, reconstruction, residuals, warnings, and review steps behind a known-signature fit.",
     workflowGroup: "core",
     workflowGroupLabel: "Analyze Data",
   },
   {
     file: "msig-sdk-nmf-extraction.onb.html",
     title: "Discovery extraction (NMF)",
-    summary: "Explore patterns in the data without choosing fixed reference signatures first.",
+    summary: "Learn candidate signatures from spectra, inspect rank checks, and prepare production extraction files.",
     workflowGroup: "core",
     workflowGroupLabel: "Analyze Data",
   },
   {
     file: "msig-sdk-panel-evidence-tiers.onb.html",
     title: "Panel/WES evidence review",
-    summary: "Review what panel or WES data can and cannot support before reporting signatures.",
+    summary: "Define restricted-assay support tiers and explain why a signature is supported, limited, or not assessable.",
     workflowGroup: "core",
     workflowGroupLabel: "Analyze Data",
   },
   {
     file: "msig-sdk-cohort-panel-workflow.onb.html",
     title: "Cohort and panel workflow",
-    summary: "Fit a cohort, compare sample groups, and review panel/WES limits with report outputs.",
+    summary: "Connect cohort metadata, group interpretation, and restricted-assay limits in one applied workflow.",
     workflowGroup: "core",
     workflowGroupLabel: "Analyze Data",
   },
   {
     file: "msig-sdk-uncertainty-thresholds.onb.html",
     title: "Uncertainty and cutoffs",
-    summary: "See how signature estimates change when uncertainty and cutoffs are varied.",
+    summary: "Stress-test fitted signature calls with bootstrap intervals and reporting cutoff sweeps.",
     workflowGroup: "reliability",
     workflowGroupLabel: "Review And Report",
   },
   {
     file: "msig-sdk-multi-engine-comparison.onb.html",
     title: "Multi-tool comparison",
-    summary: "Compare mSigSDK with SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls on the same data.",
+    summary: "Compare fitting engines on identical spectra and inspect package-level and sample-level disagreements.",
     workflowGroup: "reliability",
     workflowGroupLabel: "Review And Report",
   },
   {
     file: "msig-sdk-export-report.onb.html",
     title: "Export and reports",
-    summary: "Save the tables, checks, settings, and report files needed to rerun or review an analysis.",
+    summary: "Check round trips, required report fields, provenance, and run records needed to rerun or review an analysis.",
     workflowGroup: "reliability",
     workflowGroupLabel: "Review And Report",
   },
   {
     file: "msig-sdk-experimental-sandbox.onb.html",
     title: "Experimental sandbox",
-    summary: "Try early-stage exploratory outputs while keeping their limits visible.",
+    summary: "Expose experimental workflow status, warnings, limits, and validation requirements before any output is trusted.",
     workflowGroup: "advanced",
     workflowGroupLabel: "Experimental",
   },
 ];
+
+const NOTEBOOK_ALIASES = new Map([
+  ["msig-sdk-bring-your-own-spectra.onb.html", "msig-sdk-end-to-end-workflow.onb.html"],
+]);
 
 const state = {
   activeNotebook: null,
@@ -151,10 +148,19 @@ async function loadNotebookManifest() {
 function getRequestedNotebook() {
   const params = new URLSearchParams(window.location.search);
   const requested = params.get("notebook") || state.notebooks[0].file;
-  return (
-    state.notebooks.find((entry) => entry.file === requested) ||
+  const resolved = NOTEBOOK_ALIASES.get(requested) || requested;
+  const entry =
+    state.notebooks.find((item) => item.file === resolved) ||
     state.notebooks[0]
-  );
+  if (resolved !== requested) {
+    params.set("notebook", entry.file);
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}?${params.toString()}${window.location.hash}`
+    );
+  }
+  return entry;
 }
 
 function renderMenu(activeFile) {

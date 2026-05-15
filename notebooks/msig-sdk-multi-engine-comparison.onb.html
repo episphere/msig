@@ -11,6 +11,12 @@ Run a single mutational spectrum table through the built-in mSigSDK fit, load pa
 The workspace uses 38 cached PCAWG lung adenocarcinoma WGS spectra and nine COSMIC SBS96 signatures (`SBS1`, `SBS2`, `SBS4`, `SBS5`, `SBS13`, `SBS17a`, `SBS17b`, `SBS18`, `SBS40`). The same pattern applies to a researcher-owned cohort: replace the spectrum table and package-output CSVs, then rerun the notebook to inspect agreement, disagreement, and tool-specific outputs in one place.
 
 Read this as a reproducibility review rather than a leaderboard. The workflow fixes the input spectra and reference catalog, normalizes every package output into one contribution shape, reviews agreement at package and sample level, highlights disagreements, and exports the run files needed to reproduce the comparison.
+
+**Unique role:** compare refitting engines on identical inputs and expose where tools agree, disagree, or require separate run files.
+
+**Leave to focused notebooks:** beginner fitting instruction, report-field mechanics, panel support tiers, MAF conversion, and discovery extraction as the primary analysis.
+
+**After running it you should know:** whether a reported signature result is robust to the fitting engine or needs sample-level disagreement review.
 </script>
 
 <script type="module" pinned>

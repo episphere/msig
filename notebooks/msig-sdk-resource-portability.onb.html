@@ -1,25 +1,30 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK move data between resources</title>
+  <title>mSigSDK resource portability</title>
 
   <script type="text/markdown">
-    # Move data between resources
+    # Resource portability
 
-    This notebook shows mSigSDK as a bridge around public mutational-signature resources, not only as a fitting library. It demonstrates how mSigPortal resources and TCGA/GDC resource indexes become ordinary JavaScript objects that can be validated, analyzed, exported, documented, and reused in another environment.
+    This notebook answers one practical question: can a public mutational-signature resource be turned into stable SDK objects, checked, exported, reloaded, and handed to another workflow without changing what the data mean?
 
-    Use this workflow when you need to document where public data come from, what shape the SDK expects, and how the same spectra can move between mSigPortal-style rows, SDK tables, SigProfiler-style files, reports, and TCGA-derived mutation spectra.
+    The goal is not to teach every mSigPortal, TCGA/GDC, fitting, or reporting API. The goal is a short audit trail: source resource -> SDK table shape -> round-trip check -> downloadable handoff package.
 
-    The story is about keeping track of data objects. A researcher discovers resources, converts them into a common table shape, proves they can be exported and reloaded, then connects a second public data source to the same analysis path.
+    **Unique role:** prove that resource-derived spectra and signatures survive format changes and can be reused outside the notebook.
+
+    **Leave to focused notebooks:** biological interpretation, uncertainty review, package concordance, and variant-row conversion auditing.
+
+    **After running it you should know:** which object shape or file format to hand to the next workflow without losing source metadata.
   </script>
 
-  <script type="module" pinned id="1">
-    const portSdkUrl = new URL("../main.js?v=2026-05-13-resource-portability", location.href).href;
-    const { mSigSDK } = await import(portSdkUrl);
+  <script type="module" pinned id="setup">
+    const portabilitySdkUrl = new URL("../main.js?v=2026-05-15-resource-portability-redesign", location.href).href;
+    const { mSigSDK } = await import(portabilitySdkUrl);
     const {
       demoSignatures,
       demoSpectra,
       gdcResourceFallback,
     } = await import("./msig-notebook-fixtures.js");
+
     const {
       burdenSampleRows,
       details,
@@ -30,131 +35,333 @@
       table,
     } = mSigSDK.presentation;
 
+    const portabilityContexts = mSigSDK.validation.getExpectedContexts({
+      profile: "SBS",
+      matrix: 96,
+    });
+    const portabilityStudy = "PCAWG";
+    const portabilityGenomeDataType = "WGS";
+    const portabilityCancerType = "Lung-AdenoCA";
+    const portabilityMutationType = "SBS";
+    const portabilityMatrixSize = 96;
+    const portabilitySignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
+    const portabilitySummarySignatureSet = "COSMIC_v3.3_Signatures";
+    const portabilityTcgaProjectOptions = [
+      "TCGA-LUAD",
+      "TCGA-LUSC",
+      "TCGA-BRCA",
+      "TCGA-COAD",
+      "TCGA-SKCM",
+      "TCGA-UCEC",
+    ];
+    const portabilityGeneOptions = [
+      { value: "ENSG00000141510", label: "TP53 - ENSG00000141510" },
+      { value: "ENSG00000133703", label: "KRAS - ENSG00000133703" },
+      { value: "ENSG00000146648", label: "EGFR - ENSG00000146648" },
+      { value: "ENSG00000157764", label: "BRAF - ENSG00000157764" },
+      { value: "ENSG00000121879", label: "PIK3CA - ENSG00000121879" },
+      { value: "ENSG00000138413", label: "IDH1 - ENSG00000138413" },
+    ];
+    const portabilityQueryParams = new URLSearchParams(location.search);
+    const portabilityTcgaProject =
+      portabilityTcgaProjectOptions.includes(portabilityQueryParams.get("tcgaProject"))
+        ? portabilityQueryParams.get("tcgaProject")
+        : "TCGA-LUAD";
+    const portabilityGeneChoice =
+      portabilityGeneOptions.find((option) => option.value === portabilityQueryParams.get("geneId")) ||
+      portabilityGeneOptions[0];
+    const portabilityGeneIds = [portabilityGeneChoice.value];
+    const portabilityGeneLabel = portabilityGeneChoice.label;
+    const portabilityEndpointUrls = [
+      "https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum",
+      "https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature",
+      "https://api.gdc.cancer.gov/files",
+    ];
+
+    function pass(condition) {
+      return condition ? "Pass" : "Review";
+    }
+
+    function asArray(value) {
+      return Array.isArray(value) ? value : [];
+    }
+
+    function matrixTotal(matrix = {}, contexts = portabilityContexts) {
+      return Object.values(matrix || {}).reduce((sum, record) => {
+        const contextList = contexts?.length ? contexts : Object.keys(record || {});
+        return sum + contextList.reduce((recordSum, context) => recordSum + Number(record?.[context] || 0), 0);
+      }, 0);
+    }
+
+    function nonZeroContextCount(matrix = {}, contexts = portabilityContexts) {
+      const seen = new Set();
+      Object.values(matrix || {}).forEach((record) => {
+        (contexts?.length ? contexts : Object.keys(record || {})).forEach((context) => {
+          if (Number(record?.[context] || 0) > 0) seen.add(context);
+        });
+      });
+      return seen.size;
+    }
+
+    function sameSet(left = [], right = []) {
+      return left.length === right.length && left.every((value) => right.includes(value));
+    }
+
+    function maxAbsMatrixDelta(left = {}, right = {}, contexts = portabilityContexts) {
+      let maxDelta = 0;
+      for (const name of Object.keys(left || {})) {
+        const contextList = contexts?.length ? contexts : Object.keys(left[name] || {});
+        for (const context of contextList) {
+          const delta = Math.abs(Number(left?.[name]?.[context] || 0) - Number(right?.[name]?.[context] || 0));
+          if (delta > maxDelta) maxDelta = delta;
+        }
+      }
+      return maxDelta;
+    }
+
+    function tsvRowCount(text) {
+      return String(text || "").trim().split(/\r?\n/).filter(Boolean).length;
+    }
+
+    function previewText(text, rows = 8) {
+      return String(text || "").split(/\r?\n/).slice(0, rows).join("\n");
+    }
+
+    function optionLabel(option) {
+      return typeof option === "string" ? option : option.label;
+    }
+
+    function optionValue(option) {
+      return typeof option === "string" ? option : option.value;
+    }
+
+    function selectorField(label, control, helper = "") {
+      const field = document.createElement("label");
+      field.className = "workflow-field";
+      const title = document.createElement("span");
+      title.textContent = label;
+      field.append(title, control);
+      if (helper) {
+        const small = document.createElement("small");
+        small.textContent = helper;
+        field.append(small);
+      }
+      return field;
+    }
+
+    function dropdown(options, selectedValue) {
+      const select = document.createElement("select");
+      options.forEach((option) => {
+        const choice = document.createElement("option");
+        choice.value = optionValue(option);
+        choice.textContent = optionLabel(option);
+        select.append(choice);
+      });
+      select.value = selectedValue;
+      return select;
+    }
+
+    function renderResourceSelectors() {
+      const wrapper = document.createElement("div");
+      wrapper.className = "workflow-output-stack";
+      const grid = document.createElement("div");
+      grid.className = "workflow-control-grid compact";
+      const projectSelect = dropdown(portabilityTcgaProjectOptions, portabilityTcgaProject);
+      const geneSelect = dropdown(portabilityGeneOptions, portabilityGeneChoice.value);
+      const buttonRow = document.createElement("div");
+      buttonRow.className = "workflow-button-row";
+      const applyButton = document.createElement("button");
+      applyButton.type = "button";
+      applyButton.className = "workflow-button primary";
+      applyButton.textContent = "Apply selections";
+
+      function syncSelection() {
+        const nextParams = new URLSearchParams(location.search);
+        nextParams.set("tcgaProject", projectSelect.value);
+        nextParams.set("geneId", geneSelect.value);
+        history.replaceState(null, "", `${location.pathname}?${nextParams.toString()}`);
+      }
+
+      projectSelect.addEventListener("change", syncSelection);
+      geneSelect.addEventListener("change", syncSelection);
+      applyButton.addEventListener("click", () => {
+        syncSelection();
+        const runButton = document.getElementById("run-button");
+        if (runButton && !runButton.disabled) runButton.click();
+      });
+
+      grid.append(
+        selectorField("TCGA project", projectSelect, "Controls the GDC MAF index lookup."),
+        selectorField("Gene lookup", geneSelect, "Controls the GDC project-by-gene discovery call.")
+      );
+      buttonRow.append(applyButton);
+      wrapper.append(grid, buttonRow);
+      return wrapper;
+    }
+
+    display(note(
+      "Portability succeeds only if the resource identity is recorded, the SDK table shape validates, exported files reload to the same samples and counts, and the handoff package carries provenance."
+    ));
+    display(renderResourceSelectors());
     display(metrics([
       { label: "SDK", value: mSigSDK.name },
       { label: "Version", value: mSigSDK.version },
-      { label: "Question", value: "Can public resources become portable SDK objects?" },
-      { label: "Import target", value: "../main.js" },
+      { label: "TCGA project", value: portabilityTcgaProject },
+      { label: "Gene lookup", value: portabilityGeneLabel },
     ]));
     display(table(
       [
         {
-          source: "mSigPortal spectra",
-          sdkPath: "mSigPortalData.getMutationalSpectrumData -> extractMutationalSpectra",
-          portableObject: "sample x mutation-context count table",
+          checkpoint: "Source",
+          passCondition: "Public resource IDs, query settings, and fallback status are visible.",
+          whyItMatters: "A collaborator can tell which resource was used.",
         },
         {
-          source: "mSigPortal signatures",
-          sdkPath: "mSigPortalData.getMutationalSignaturesData -> extractMutationalSpectra(..., 'signatureName')",
-          portableObject: "signature x mutation-context reference table",
+          checkpoint: "Shape",
+          passCondition: "Spectra validate as sample x SBS96 counts; signatures validate as signature x SBS96 weights.",
+          whyItMatters: "Downstream analysis does not care whether data came from mSigPortal or a local file.",
         },
         {
-          source: "TCGA/GDC MAF resources",
-          sdkPath: "TCGA.getMafInformationFromProjects -> getVariantInformationFromMafFiles",
-          portableObject: "TCGA-derived mutational spectra in the same SDK table shape",
+          checkpoint: "Round trip",
+          passCondition: "Exported TSV files reload with the same names, contexts, and totals.",
+          whyItMatters: "The data can move between notebooks, scripts, and external tools.",
         },
         {
-          source: "Portable files",
-          sdkPath: "io.exportSigProfilerMatrix / io.importSigProfilerMatrix",
-          portableObject: "plain TSV that can leave the browser or be reloaded later",
+          checkpoint: "Handoff",
+          passCondition: "Downloads include spectra, signatures, an interoperability bundle, and provenance.",
+          whyItMatters: "The run can be reviewed or rerun outside this browser session.",
         },
       ],
       [
-        { key: "source", label: "Resource" },
-        { key: "sdkPath", label: "SDK path" },
-        { key: "portableObject", label: "Portable output" },
-      ]
+        { key: "checkpoint", label: "Checkpoint" },
+        { key: "passCondition", label: "Pass condition" },
+        { key: "whyItMatters", label: "Why it matters" },
+      ],
+      {
+        title: "Notebook success criteria",
+        caption: "These are the checks this notebook is built around.",
+      }
     ));
   </script>
 
   <script type="text/markdown">
-    ## Interactive workspace
+    ## 1. Snapshot the public resources
 
-    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
+    Before fetching full matrices, record the resource index. This is the reproducibility checkpoint: what was discoverable, which query parameters were used, and whether the notebook used live APIs or embedded fallback data.
   </script>
 
-  <script type="module" pinned id="interactive-workspace">
-    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
-    renderInteractiveNotebook({ mode: "resource-portability", mSigSDK, display });
-  </script>
+  <script type="module" pinned id="resource-snapshot">
+    let portabilityDiscoveryStatus = "live public APIs";
+    let portabilitySpectrumOptions;
+    let portabilitySignatureSummary;
+    let portabilityTcgaGeneProjects;
+    let portabilityTcgaMafIndex;
 
-  <script type="text/markdown">
-    ## Step 1. Discover public resources before fetching full data
-
-    The SDK exposes discovery calls so a user can inspect available resources before downloading spectra or MAF-derived variants. This cell queries mSigPortal for spectrum and signature availability, then queries the GDC through the TCGA namespace for project and MAF-file availability.
-
-    Discovery is the first reproducibility checkpoint. It records what resource exists and where it came from before a notebook silently depends on a remote dataset.
-  </script>
-
-  <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "resource-portability", step: 1, phase: "data", title: "Step 1. Discover public resources before fetching full data", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="2">
-    const portContexts = mSigSDK.validation.getExpectedContexts({
-      profile: "SBS",
-      matrix: 96,
-    });
-    const portStudy = "PCAWG";
-    const portGenomeDataType = "WGS";
-    const portCancerType = "Lung-AdenoCA";
-    const portMutationType = "SBS";
-    const portMatrixSize = 96;
-    const portSignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
-    const portSummarySignatureSet = "COSMIC_v3.3_Signatures";
-    const portTcgaProject = "TCGA-LUAD";
-    const portGeneIds = ["ENSG00000141510"];
-
-    let portDiscoveryStatus = "live public APIs";
-    let portSpectrumOptions;
-    let portSignatureSummary;
-    let portTcgaGeneProjects;
-    let portTcgaMafIndex;
     try {
       [
-        portSpectrumOptions,
-        portSignatureSummary,
-        portTcgaGeneProjects,
-        portTcgaMafIndex,
+        portabilitySpectrumOptions,
+        portabilitySignatureSummary,
+        portabilityTcgaGeneProjects,
+        portabilityTcgaMafIndex,
       ] = await Promise.all([
         mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumOptions(
-          portStudy,
-          portGenomeDataType,
-          portCancerType,
+          portabilityStudy,
+          portabilityGenomeDataType,
+          portabilityCancerType,
           10
         ),
         mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesSummary(
           10,
-          portSummarySignatureSet
+          portabilitySummarySignatureSet
         ),
-        mSigSDK.TCGA.getProjectsByGene(portGeneIds),
-        mSigSDK.TCGA.getMafInformationFromProjects([portTcgaProject]),
+        mSigSDK.TCGA.getProjectsByGene(portabilityGeneIds),
+        mSigSDK.TCGA.getMafInformationFromProjects([portabilityTcgaProject]),
       ]);
     } catch (error) {
-      portDiscoveryStatus = `embedded fallback: ${error.message}`;
-      portSpectrumOptions = gdcResourceFallback.spectrumOptions;
-      portSignatureSummary = gdcResourceFallback.signatureSummary;
-      portTcgaGeneProjects = gdcResourceFallback.tcgaGeneProjects;
-      portTcgaMafIndex = gdcResourceFallback.tcgaMafIndex;
+      portabilityDiscoveryStatus = `embedded fallback: ${error.message}`;
+      portabilitySpectrumOptions = gdcResourceFallback.spectrumOptions;
+      portabilitySignatureSummary = gdcResourceFallback.signatureSummary;
+      portabilityTcgaGeneProjects = gdcResourceFallback.tcgaGeneProjects;
+      portabilityTcgaMafIndex = gdcResourceFallback.tcgaMafIndex;
     }
 
-    const portTcgaMafFiles =
-      portTcgaMafIndex[portTcgaProject]?.maf_files || [];
-    const portTcgaSampleDescriptions =
-      portTcgaMafIndex[portTcgaProject]?.samples_description || [];
-    const portTcgaGeneProjectRows = (portTcgaGeneProjects.projects || [])
-      .slice(0, 10)
-      .map((project) => ({ gene: portGeneIds[0], project }));
+    portabilitySpectrumOptions = asArray(portabilitySpectrumOptions);
+    portabilitySignatureSummary = asArray(portabilitySignatureSummary);
+    const portabilityTcgaProjects = asArray(portabilityTcgaGeneProjects?.projects);
+    const portabilityTcgaMafFiles =
+      asArray(portabilityTcgaMafIndex?.[portabilityTcgaProject]?.maf_files);
+    const portabilityTcgaSampleDescriptions =
+      asArray(portabilityTcgaMafIndex?.[portabilityTcgaProject]?.samples_description);
+
+    const portabilitySourceManifest = {
+      status: portabilityDiscoveryStatus,
+      parameters: {
+        study: portabilityStudy,
+        genomeDataType: portabilityGenomeDataType,
+        cancerType: portabilityCancerType,
+        mutationType: portabilityMutationType,
+        matrixSize: portabilityMatrixSize,
+        signatureSetName: portabilitySignatureSetName,
+        tcgaProject: portabilityTcgaProject,
+        geneIds: portabilityGeneIds,
+        geneLabel: portabilityGeneLabel,
+      },
+      endpointUrls: portabilityEndpointUrls,
+      observedCounts: {
+        spectrumOptions: portabilitySpectrumOptions.length,
+        signatureSummaries: portabilitySignatureSummary.length,
+        tcgaProjectsForGene: portabilityTcgaProjects.length,
+        tcgaMafFiles: portabilityTcgaMafFiles.length,
+      },
+    };
 
     display(metrics([
-      { label: "Discovery source", value: portDiscoveryStatus },
-      { label: "mSigPortal spectrum rows", value: portSpectrumOptions.length },
-      { label: "Signature summaries", value: portSignatureSummary.length },
-      { label: "TCGA/GDC projects for gene", value: portTcgaGeneProjects.projects?.length || 0 },
-      { label: "TCGA-LUAD MAF files", value: portTcgaMafFiles.length },
+      { label: "Discovery source", value: portabilityDiscoveryStatus },
+      { label: "mSigPortal spectra", value: portabilitySpectrumOptions.length },
+      { label: "Signature summaries", value: portabilitySignatureSummary.length },
+      { label: "TCGA projects for gene", value: portabilityTcgaProjects.length },
+      { label: "TCGA/GDC MAF files", value: portabilityTcgaMafFiles.length },
     ]));
     display(table(
-      portSpectrumOptions.slice(0, 6),
+      [
+        {
+          resource: "mSigPortal spectra",
+          query: `${portabilityStudy} ${portabilityCancerType} ${portabilityGenomeDataType} ${portabilityMutationType}${portabilityMatrixSize}`,
+          found: portabilitySpectrumOptions.length,
+          nextObject: "sample spectra table",
+        },
+        {
+          resource: "mSigPortal signatures",
+          query: portabilitySignatureSetName,
+          found: portabilitySignatureSummary.length,
+          nextObject: "reference signature table",
+        },
+        {
+          resource: "GDC projects by gene",
+          query: portabilityGeneLabel,
+          found: portabilityTcgaProjects.length,
+          nextObject: "project candidates for MAF lookup",
+        },
+        {
+          resource: "TCGA/GDC MAF index",
+          query: portabilityTcgaProject,
+          found: portabilityTcgaMafFiles.length,
+          nextObject: "variant files that can be converted to spectra",
+        },
+      ],
+      [
+        { key: "resource", label: "Resource" },
+        { key: "query", label: "Query snapshot" },
+        { key: "found", label: "Found" },
+        { key: "nextObject", label: "Portable object" },
+      ],
+      {
+        title: "Resource manifest",
+        caption: "The notebook records resource identity before converting any data.",
+      }
+    ));
+    display(table(
+      portabilitySpectrumOptions.slice(0, 5),
       [
         { key: "study", label: "Study" },
         { key: "cancer", label: "Cancer" },
@@ -162,45 +369,25 @@
         { key: "profile", label: "Profile" },
         { key: "matrix", label: "Matrix" },
       ],
-      { maxRows: 6 }
+      {
+        maxRows: 5,
+        title: "mSigPortal spectra preview",
+        caption: "A small index preview is enough to confirm the resource before fetching full matrices.",
+      }
     ));
-    display(table(
-      portSignatureSummary,
-      [
-        { key: "signatureSetName", label: "Signature set" },
-        { key: "species", label: "Species" },
-        { key: "profile", label: "Profile" },
-        { key: "matrix", label: "Matrix" },
-        { key: "count", label: "Signatures" },
-      ],
-      { maxRows: 8 }
-    ));
-    display(table(
-      portTcgaGeneProjectRows,
-      [
-        { key: "gene", label: "GDC gene id" },
-        { key: "project", label: "Project with matching data" },
-      ],
-      { maxRows: 10 }
-    ));
+    display(details("Source manifest JSON", portabilitySourceManifest));
   </script>
 
   <script type="text/markdown">
-    ## Step 2. Turn public spectra and signatures into SDK tables
+    ## 2. Normalize resources into SDK table shapes
 
-    mSigPortal returns long API rows. The SDK converts those rows into two reusable tables: one keyed by sample and one keyed by signature. After that conversion, the source of the data no longer matters to input checks, fitting, quality checks, export, or reporting.
-
-    This is the bridge from public resource access to local analysis. Once the tables are built, the same downstream workflow can be used for public, private, or simulated spectra.
+    The central move is small: public API rows become ordinary JavaScript objects. Spectra are keyed by sample, signatures are keyed by signature name, and both share the same ordered SBS96 context list.
   </script>
 
-  <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "resource-portability", step: 2, phase: "data", title: "Step 2. Turn public spectra and signatures into SDK tables", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="3">
-    let portMatrixSourceStatus = "live mSigPortal";
-    let portSampleNames = ["SP50611", "SP50406", "SP55004"];
-    const portPreferredSignatureNames = [
+  <script type="module" pinned id="normalize-resources">
+    let portabilityMatrixStatus = "live mSigPortal data";
+    let portabilitySampleNames = ["SP50611", "SP50406", "SP55004"];
+    const portabilityPreferredSignatureNames = [
       "SBS1",
       "SBS2",
       "SBS4",
@@ -212,224 +399,369 @@
       "SBS40",
     ];
 
-    let portGroupedSpectra;
-    let portReferenceSignatures;
-    let portSelectedSignatureNames;
+    let portabilityGroupedSpectra;
+    let portabilityReferenceSignatures;
+    let portabilitySelectedSignatureNames;
+
     try {
-      const [portRawSpectrumRows, portRawSignatureRows] = await Promise.all([
+      const [rawSpectrumRows, rawSignatureRows] = await Promise.all([
         mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-          portStudy,
-          portSampleNames,
-          portGenomeDataType,
-          portCancerType,
-          portMutationType,
-          portMatrixSize
+          portabilityStudy,
+          portabilitySampleNames,
+          portabilityGenomeDataType,
+          portabilityCancerType,
+          portabilityMutationType,
+          portabilityMatrixSize
         ),
         mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
-          portGenomeDataType,
-          portSignatureSetName,
-          portMutationType,
-          portMatrixSize,
+          portabilityGenomeDataType,
+          portabilitySignatureSetName,
+          portabilityMutationType,
+          portabilityMatrixSize,
           10000
         ),
       ]);
-      const portSpectrumRows = Array.isArray(portRawSpectrumRows)
-        ? portRawSpectrumRows.flat()
-        : [];
-      const portSignatureRows = Array.isArray(portRawSignatureRows)
-        ? portRawSignatureRows.flat()
-        : [];
-      portGroupedSpectra =
-        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(portSpectrumRows);
-      const portAllReferenceSignatures =
+      const spectrumRows = asArray(rawSpectrumRows).flat();
+      const signatureRows = asArray(rawSignatureRows).flat();
+      if (!spectrumRows.length || !signatureRows.length) {
+        throw new Error("public APIs returned empty matrix rows");
+      }
+      portabilityGroupedSpectra =
+        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(spectrumRows);
+      const allReferenceSignatures =
         mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-          portSignatureRows,
+          signatureRows,
           "signatureName"
         );
-      portSelectedSignatureNames = portPreferredSignatureNames.filter(
-        (signature) => portAllReferenceSignatures[signature]
+      portabilitySelectedSignatureNames = portabilityPreferredSignatureNames.filter(
+        (signature) => allReferenceSignatures[signature]
       );
-      portReferenceSignatures = Object.fromEntries(
-        portSelectedSignatureNames.map((signature) => [
+      if (!portabilitySelectedSignatureNames.length) {
+        throw new Error("preferred SBS signatures were not present in the public catalog");
+      }
+      portabilityReferenceSignatures = Object.fromEntries(
+        portabilitySelectedSignatureNames.map((signature) => [
           signature,
-          portAllReferenceSignatures[signature],
+          allReferenceSignatures[signature],
         ])
       );
     } catch (error) {
-      portMatrixSourceStatus = `embedded fallback: ${error.message}`;
-      portGroupedSpectra = demoSpectra();
-      portReferenceSignatures = demoSignatures();
-      portSampleNames = Object.keys(portGroupedSpectra);
-      portSelectedSignatureNames = Object.keys(portReferenceSignatures);
+      portabilityMatrixStatus = `embedded fallback: ${error.message}`;
+      portabilityGroupedSpectra = demoSpectra();
+      portabilityReferenceSignatures = demoSignatures();
+      portabilitySampleNames = Object.keys(portabilityGroupedSpectra);
+      portabilitySelectedSignatureNames = Object.keys(portabilityReferenceSignatures);
     }
 
-    const portSpectraValidation = mSigSDK.validation.validateSpectra(
-      portGroupedSpectra,
-      { expectedContexts: portContexts, minTotalMutations: 500 }
+    const portabilitySpectraValidation = mSigSDK.validation.validateSpectra(
+      portabilityGroupedSpectra,
+      { expectedContexts: portabilityContexts, minTotalMutations: 500 }
     );
-    const portSignatureValidation = mSigSDK.validation.validateSignatureMatrix(
-      portReferenceSignatures,
-      { expectedContexts: portContexts }
+    const portabilitySignatureValidation = mSigSDK.validation.validateSignatureMatrix(
+      portabilityReferenceSignatures,
+      { expectedContexts: portabilityContexts }
     );
-    const portBurden = mSigSDK.qc.summarizeMutationBurden(portGroupedSpectra, {
-      expectedContexts: portContexts,
-      lowBurdenThresholdMode: "fixed",
-      lowBurdenThreshold: 5000,
-    });
-    const portExposures =
-      await mSigSDK.signatureFitting.fitMutationalSpectraToSignatures(
-        portReferenceSignatures,
-        portGroupedSpectra,
-        {
-          exposureThreshold: 0.01,
-          exposureType: "relative",
-          renormalize: true,
-        }
-      );
+    const portabilityBurden = mSigSDK.qc.summarizeMutationBurden(
+      portabilityGroupedSpectra,
+      {
+        expectedContexts: portabilityContexts,
+        lowBurdenThresholdMode: "fixed",
+        lowBurdenThreshold: 5000,
+      }
+    );
+    const portabilityLongRows = mSigSDK.io.spectraToRows(portabilityGroupedSpectra);
 
     display(metrics([
-      { label: "Matrix source", value: portMatrixSourceStatus },
-      { label: "Samples", value: Object.keys(portGroupedSpectra).length },
-      { label: "Reference signatures", value: portSelectedSignatureNames.length },
-      { label: "Spectra validation", value: portSpectraValidation.valid ? "Pass" : "Review" },
-      { label: "Signature validation", value: portSignatureValidation.valid ? "Pass" : "Review" },
-      { label: "Total mutations", value: formatNumber(portBurden.overall.totalMutations) },
+      { label: "Matrix source", value: portabilityMatrixStatus },
+      { label: "Samples", value: Object.keys(portabilityGroupedSpectra).length },
+      { label: "Reference signatures", value: Object.keys(portabilityReferenceSignatures).length },
+      { label: "Total mutations", value: formatNumber(matrixTotal(portabilityGroupedSpectra)) },
     ]));
     display(table(
-      burdenSampleRows(portBurden, portSampleNames),
+      [
+        {
+          object: "portabilityGroupedSpectra",
+          shape: "sample -> SBS96 context -> count",
+          count: Object.keys(portabilityGroupedSpectra).length,
+          validation: pass(portabilitySpectraValidation.valid),
+        },
+        {
+          object: "portabilityReferenceSignatures",
+          shape: "signature -> SBS96 context -> weight",
+          count: Object.keys(portabilityReferenceSignatures).length,
+          validation: pass(portabilitySignatureValidation.valid),
+        },
+        {
+          object: "portabilityLongRows",
+          shape: "sample, mutationType, mutations",
+          count: portabilityLongRows.length,
+          validation: `${nonZeroContextCount(portabilityGroupedSpectra)} non-zero contexts`,
+        },
+      ],
+      [
+        { key: "object", label: "SDK object" },
+        { key: "shape", label: "Shape" },
+        { key: "count", label: "Count" },
+        { key: "validation", label: "Check" },
+      ],
+      {
+        title: "Portable SDK objects",
+        caption: "Once data have these shapes, downstream SDK calls do not need to know the original resource.",
+      }
+    ));
+    display(table(
+      burdenSampleRows(portabilityBurden, portabilitySampleNames),
       [
         { key: "sample", label: "Sample" },
         { key: "mutations", label: "Total mutations" },
         { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
         { key: "lowBurden", label: "Low mutation-count review cue" },
       ],
-      { maxRows: 6 }
+      {
+        maxRows: 8,
+        title: "Spectra sanity check",
+        caption: "Mutation counts are the quickest way to notice an unexpected conversion.",
+      }
     ));
+    display(note(
+      "This is the notebook's main claim: resource-specific rows have been reduced to two stable table contracts."
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## 3. Prove the tables can leave and come back
+
+    Portability is not an idea until the files round trip. This cell exports spectra and signatures, imports them again, and checks the names and values that should survive the move.
+  </script>
+
+  <script type="module" pinned id="round-trip">
+    const portabilitySpectraTsv = mSigSDK.io.exportSigProfilerMatrix(
+      portabilityGroupedSpectra,
+      { contexts: portabilityContexts }
+    );
+    const portabilitySignaturesTsv = mSigSDK.io.exportCOSMICSignatureMatrix(
+      portabilityReferenceSignatures,
+      { contexts: portabilityContexts }
+    );
+    const portabilityRoundTripSpectra =
+      mSigSDK.io.importSigProfilerMatrix(portabilitySpectraTsv);
+    const portabilityRoundTripSignatures =
+      mSigSDK.io.importCOSMICSignatureMatrix(portabilitySignaturesTsv);
+
+    const spectraNames = Object.keys(portabilityGroupedSpectra);
+    const spectraRoundTripNames = Object.keys(portabilityRoundTripSpectra);
+    const signatureNames = Object.keys(portabilityReferenceSignatures);
+    const signatureRoundTripNames = Object.keys(portabilityRoundTripSignatures);
+    const spectraMaxDelta = maxAbsMatrixDelta(
+      portabilityGroupedSpectra,
+      portabilityRoundTripSpectra
+    );
+    const signatureMaxDelta = maxAbsMatrixDelta(
+      portabilityReferenceSignatures,
+      portabilityRoundTripSignatures
+    );
+    const portabilityRoundTripChecks = [
+      {
+        check: "Sample names preserved",
+        result: pass(sameSet(spectraNames, spectraRoundTripNames)),
+        evidence: `${spectraNames.length} original, ${spectraRoundTripNames.length} reloaded`,
+      },
+      {
+        check: "Signature names preserved",
+        result: pass(sameSet(signatureNames, signatureRoundTripNames)),
+        evidence: `${signatureNames.length} original, ${signatureRoundTripNames.length} reloaded`,
+      },
+      {
+        check: "Spectra counts preserved",
+        result: pass(spectraMaxDelta === 0),
+        evidence: `maximum cell delta ${formatNumber(spectraMaxDelta)}`,
+      },
+      {
+        check: "Signature weights preserved",
+        result: pass(signatureMaxDelta < 1e-12),
+        evidence: `maximum cell delta ${formatNumber(signatureMaxDelta)}`,
+      },
+      {
+        check: "Context order explicit",
+        result: pass(tsvRowCount(portabilitySpectraTsv) === portabilityContexts.length + 1),
+        evidence: `${portabilityContexts.length} SBS96 contexts plus header`,
+      },
+    ];
+    const portabilityRoundTripPassed =
+      portabilityRoundTripChecks.every((row) => row.result === "Pass");
+
+    display(metrics([
+      { label: "Round-trip verdict", value: pass(portabilityRoundTripPassed) },
+      { label: "Spectra TSV rows", value: tsvRowCount(portabilitySpectraTsv) },
+      { label: "Signature TSV rows", value: tsvRowCount(portabilitySignaturesTsv) },
+      { label: "Reloaded mutations", value: formatNumber(matrixTotal(portabilityRoundTripSpectra)) },
+    ]));
     display(table(
-      exposureRows(portExposures, { minExposure: 0, topN: 10 }),
+      portabilityRoundTripChecks,
+      [
+        { key: "check", label: "Check" },
+        { key: "result", label: "Result" },
+        { key: "evidence", label: "Evidence" },
+      ],
+      {
+        title: "Round-trip audit",
+        caption: "Every row should pass before treating the exported data as portable.",
+      }
+    ));
+    display(details(
+      "SigProfiler-style spectra TSV preview",
+      previewText(portabilitySpectraTsv),
+      { open: true }
+    ));
+    display(details(
+      "COSMIC-style signature TSV preview",
+      previewText(portabilitySignaturesTsv)
+    ));
+  </script>
+
+  <script type="text/markdown">
+    ## 4. Build the handoff package
+
+    A portable run needs more than TSV text. The bundle should include the exported tables, tool-specific file manifests, a provenance record, and a minimal downstream smoke test showing that the reloaded objects still fit.
+  </script>
+
+  <script type="module" pinned id="handoff-package">
+    const portabilityExposures =
+      await mSigSDK.signatureFitting.fitMutationalSpectraToSignatures(
+        portabilityRoundTripSignatures,
+        portabilityRoundTripSpectra,
+        {
+          exposureThreshold: 0.01,
+          exposureType: "relative",
+          renormalize: true,
+        }
+      );
+    const portabilityInteroperabilityBundle =
+      mSigSDK.adapters.createInteroperabilityBundle(
+        {
+          spectra: portabilityRoundTripSpectra,
+          signatures: portabilityRoundTripSignatures,
+        },
+        {
+          contexts: portabilityContexts,
+          include: [
+            "sigProfilerAssignment",
+            "sigProfilerExtractor",
+            "deconstructSigs",
+            "musical",
+          ],
+        }
+      );
+    const portabilityProvenance = mSigSDK.provenance.createProvenance({
+      analysis: "mSigSDK resource portability notebook",
+      parameters: portabilitySourceManifest.parameters,
+      sourceUrls: portabilityEndpointUrls,
+      dataSources: [
+        {
+          source: "mSigPortal mutational spectrum API",
+          status: portabilityMatrixStatus,
+          samples: Object.keys(portabilityGroupedSpectra).length,
+        },
+        {
+          source: "mSigPortal mutational signature API",
+          signatureSetName: portabilitySignatureSetName,
+          signatures: Object.keys(portabilityReferenceSignatures).length,
+        },
+        {
+          source: "TCGA/GDC MAF index",
+          project: portabilityTcgaProject,
+          geneLookup: portabilityGeneLabel,
+          mafFiles: portabilityTcgaMafFiles.length,
+        },
+      ],
+      notes: [
+        "Spectra and signatures were exported, reloaded, and checked before package creation.",
+      ],
+    });
+    const portabilityToolRows = Object.entries(portabilityInteroperabilityBundle.tools || {})
+      .map(([tool, value]) => ({
+        tool,
+        files: asArray(value.files || value.input?.files).length,
+        manifestFields: Object.keys(value.manifest || {}).length,
+      }));
+
+    display(metrics([
+      { label: "Fit smoke test", value: `${Object.keys(portabilityExposures).length} samples fit` },
+      { label: "External tool targets", value: portabilityToolRows.length },
+      { label: "Download files", value: 4 },
+      { label: "Run record", value: portabilityProvenance.generatedAt ? "Created" : "Missing" },
+    ]));
+    display(table(
+      exposureRows(portabilityExposures, { minExposure: 0, topN: 10 }),
       [
         { key: "sample", label: "Sample" },
         { key: "signature", label: "Signature" },
         { key: "exposure", label: "Relative exposure" },
       ],
-      { maxRows: 10 }
+      {
+        maxRows: 10,
+        title: "Reloaded-data fit smoke test",
+        caption: "This is only a smoke test. The notebook's purpose is to prove the reloaded objects are analysis-ready.",
+      }
     ));
-  </script>
-
-  <script type="text/markdown">
-    ## Step 3. Export, reload, and document the same resource-derived objects
-
-    Once spectra are in the SDK table shape, they can be exported as a SigProfiler-style TSV, imported back into the SDK, converted to long rows, paired with a COSMIC-style signature table, and packaged with a run record. This is the portability layer that makes the workflow independent of one hosted notebook runtime.
-
-    The round trip should preserve sample names, contexts, and counts. If it does not, the analysis is not yet portable enough for a collaborator or external engine.
-  </script>
-
-  <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "resource-portability", step: 3, phase: "export", title: "Step 3. Export, reload, and document the same resource-derived objects", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="4">
-    const portSigProfilerTsv = mSigSDK.io.exportSigProfilerMatrix(
-      portGroupedSpectra,
-      { contexts: portContexts }
-    );
-    const portRoundTripSpectra =
-      mSigSDK.io.importSigProfilerMatrix(portSigProfilerTsv);
-    const portCosmicTsv = mSigSDK.io.exportCOSMICSignatureMatrix(
-      portReferenceSignatures,
-      { contexts: portContexts }
-    );
-    const portRoundTripSignatures =
-      mSigSDK.io.importCOSMICSignatureMatrix(portCosmicTsv);
-    const portLongSpectrumRows = mSigSDK.io.spectraToRows(portGroupedSpectra);
-    const portRoundTripBurden = mSigSDK.qc.summarizeMutationBurden(
-      portRoundTripSpectra,
-      { expectedContexts: portContexts }
-    );
-    const portProvenance = mSigSDK.provenance.createProvenance({
-      analysis: "mSigSDK resource portability notebook",
-      parameters: {
-        study: portStudy,
-        genomeDataType: portGenomeDataType,
-        cancerType: portCancerType,
-        mutationType: portMutationType,
-        matrixSize: portMatrixSize,
-        signatureSetName: portSignatureSetName,
-        samples: portSampleNames,
-        signatures: portSelectedSignatureNames,
-      },
-      sourceUrls: [
-        portSdkUrl,
-        "https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum",
-        "https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature",
-        "https://api.gdc.cancer.gov/files",
+    display(table(
+      portabilityToolRows,
+      [
+        { key: "tool", label: "Tool target" },
+        { key: "files", label: "Files prepared" },
+        { key: "manifestFields", label: "Manifest fields" },
       ],
-    });
-
-    display(metrics([
-      { label: "SigProfiler TSV rows", value: portSigProfilerTsv.split("\n").length },
-      { label: "Long-form spectrum rows", value: portLongSpectrumRows.length },
-      { label: "Round-trip samples", value: Object.keys(portRoundTripSpectra).length },
-      { label: "Round-trip signatures", value: Object.keys(portRoundTripSignatures).length },
-      { label: "Round-trip mutations", value: formatNumber(portRoundTripBurden.overall.totalMutations) },
-    ]));
-    display(details(
-      "SigProfiler-style spectra TSV preview",
-      portSigProfilerTsv.split("\n").slice(0, 8).join("\n"),
-      { open: true }
+      {
+        title: "Interoperability bundle targets",
+        caption: "The same reloaded tables are packaged for common external tool inputs.",
+      }
     ));
-    display(details(
-      "COSMIC-style signature TSV preview",
-      portCosmicTsv.split("\n").slice(0, 8).join("\n")
-    ));
-    display(details("Run record", portProvenance));
+    display(details("Run record", portabilityProvenance));
     display(downloadMany([
       {
         filename: "resource_portability_spectra.tsv",
-        text: portSigProfilerTsv,
+        text: portabilitySpectraTsv,
         label: "Download spectra TSV",
       },
       {
         filename: "resource_portability_signatures.tsv",
-        text: portCosmicTsv,
+        text: portabilitySignaturesTsv,
         label: "Download signatures TSV",
+      },
+      {
+        filename: "resource_portability_bundle.json",
+        type: "json",
+        value: portabilityInteroperabilityBundle,
+        label: "Download interoperability bundle JSON",
       },
       {
         filename: "resource_portability_provenance.json",
         type: "json",
         value: {
-          discoveryStatus: portDiscoveryStatus,
-          matrixSourceStatus: portMatrixSourceStatus,
-          provenance: portProvenance,
+          sourceManifest: portabilitySourceManifest,
+          roundTripChecks: portabilityRoundTripChecks,
+          provenance: portabilityProvenance,
           validation: {
-            spectra: portSpectraValidation,
-            signatures: portSignatureValidation,
+            spectra: portabilitySpectraValidation,
+            signatures: portabilitySignatureValidation,
           },
         },
-        label: "Download run record JSON",
+        label: "Download provenance JSON",
       },
     ]));
   </script>
 
   <script type="text/markdown">
-    ## Step 4. Connect TCGA/GDC resources to the same analysis path
+    ## 5. Where TCGA/GDC enters the same path
 
-    TCGA/GDC starts from variant files rather than mSigPortal signature resources. `getMafInformationFromProjects` finds MAF file IDs and case details. A full TCGA mutation-spectrum run uses those IDs with `getVariantInformationFromMafFiles`, then converts the result into the same row shape used above.
-
-    The full MAF download/conversion is intentionally not run automatically here because it can be slow in a browser session. The cell below shows the live GDC index and demonstrates the shared row schema using the already-loaded spectra.
-
-    The important connection is practical: TCGA/GDC begins with variant files, mSigPortal begins with signature resources, and both can end up as the same SDK tables and reports.
+    TCGA/GDC begins with MAF files instead of mSigPortal spectra. The portable destination is still the same: variant files are converted into sample x SBS96 spectra, then the same validation, export, round-trip, and handoff checks apply.
   </script>
 
-  <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "resource-portability", step: 4, phase: "analysis", title: "Step 4. Connect TCGA/GDC resources to the same analysis path", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="5">
-    const portTcgaMafRows = portTcgaMafFiles.slice(0, 6).map((fileId, index) => {
-      const description = portTcgaSampleDescriptions[index] || {};
+  <script type="module" pinned id="tcga-bridge">
+    const portabilityTcgaMafRows = portabilityTcgaMafFiles.slice(0, 6).map((fileId, index) => {
+      const description = portabilityTcgaSampleDescriptions[index] || {};
       return {
-        project: portTcgaProject,
+        project: portabilityTcgaProject,
         fileId,
         case: description.case_submitter_id || description.case_id || "n/a",
         gender: description.gender || "n/a",
@@ -437,54 +769,57 @@
         ageAtDiagnosisYears: description.age_at_diagnosis,
       };
     });
-    const portTcgaStyleRows = mSigSDK.TCGA.convertTCGAProjectIntoJSON(
-      portTcgaSampleDescriptions,
-      portGroupedSpectra,
+    const portabilityTcgaStyleRows = mSigSDK.TCGA.convertTCGAProjectIntoJSON(
+      portabilityTcgaSampleDescriptions,
+      portabilityGroupedSpectra,
       "schema-demo"
     ).flat();
-    const portTcgaStyleSpectra =
+    const portabilityTcgaStyleSpectra =
       mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-        portTcgaStyleRows
+        portabilityTcgaStyleRows
       );
-    const portTcgaStyleBurden = mSigSDK.qc.summarizeMutationBurden(
-      portTcgaStyleSpectra,
-      { expectedContexts: portContexts }
+    const portabilityTcgaStyleBurden = mSigSDK.qc.summarizeMutationBurden(
+      portabilityTcgaStyleSpectra,
+      { expectedContexts: portabilityContexts }
     );
-    const portFullTcgaPattern = `const tcgaMafIndex = await mSigSDK.TCGA.getMafInformationFromProjects(["${portTcgaProject}"]);
+    const portabilityFullTcgaPattern = `const tcgaMafIndex = await mSigSDK.TCGA.getMafInformationFromProjects(["${portabilityTcgaProject}"]);
 const tcgaVariants = await mSigSDK.TCGA.getVariantInformationFromMafFiles({
-  "${portTcgaProject}": {
-    maf_files: tcgaMafIndex["${portTcgaProject}"].maf_files.slice(0, 2)
+  "${portabilityTcgaProject}": {
+    maf_files: tcgaMafIndex["${portabilityTcgaProject}"].maf_files.slice(0, 2)
   }
 });
 const tcgaRows = mSigSDK.TCGA.convertTCGAProjectIntoJSON(
-  tcgaMafIndex["${portTcgaProject}"].samples_description,
-  tcgaVariants["${portTcgaProject}"].mutational_spectra,
+  tcgaMafIndex["${portabilityTcgaProject}"].samples_description,
+  tcgaVariants["${portabilityTcgaProject}"].mutational_spectra,
   "WXS"
 ).flat();
 const tcgaSpectra =
   mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(tcgaRows);`;
 
     display(metrics([
-      { label: "Indexed TCGA project", value: portTcgaProject },
-      { label: "MAF file ids", value: portTcgaMafFiles.length },
-      { label: "TCGA-style rows in schema demo", value: portTcgaStyleRows.length },
-      { label: "Reloaded spectra samples", value: Object.keys(portTcgaStyleSpectra).length },
-      { label: "Reloaded mutation count", value: formatNumber(portTcgaStyleBurden.overall.totalMutations) },
+      { label: "Indexed TCGA project", value: portabilityTcgaProject },
+      { label: "MAF file IDs", value: portabilityTcgaMafFiles.length },
+      { label: "Schema-demo rows", value: portabilityTcgaStyleRows.length },
+      { label: "Reloaded mutations", value: formatNumber(portabilityTcgaStyleBurden.overall.totalMutations) },
     ]));
     display(table(
-      portTcgaMafRows,
+      portabilityTcgaMafRows,
       [
         { key: "project", label: "Project" },
-        { key: "fileId", label: "GDC MAF file id" },
+        { key: "fileId", label: "GDC MAF file ID" },
         { key: "case", label: "Case" },
         { key: "gender", label: "Gender" },
         { key: "race", label: "Race" },
         { key: "ageAtDiagnosisYears", label: "Age at diagnosis (years)" },
       ],
-      { maxRows: 6 }
+      {
+        maxRows: 6,
+        title: "TCGA/GDC MAF index preview",
+        caption: "The index is recorded, but full MAF download is not run automatically in this browser notebook.",
+      }
     ));
     display(table(
-      portTcgaStyleRows.slice(0, 8),
+      portabilityTcgaStyleRows.slice(0, 8),
       [
         { key: "sample", label: "Sample" },
         { key: "strategy", label: "Strategy/source" },
@@ -493,13 +828,17 @@ const tcgaSpectra =
         { key: "mutationType", label: "Mutation type" },
         { key: "mutations", label: "Mutations" },
       ],
-      { maxRows: 8 }
+      {
+        maxRows: 8,
+        title: "TCGA-style row shape",
+        caption: "After conversion, TCGA/GDC-derived rows collapse into the same SDK spectra object used above.",
+      }
     ));
-    display(note(
-      "The same input-check, fitting, quality-check, export, and report calls used for mSigPortal spectra can be reused after TCGA MAFs are converted into spectra."
-    ));
-    display(details("Full TCGA conversion pattern", portFullTcgaPattern, {
+    display(details("Full TCGA conversion pattern", portabilityFullTcgaPattern, {
       open: true,
     }));
+    display(note(
+      "The concise rule is: every source is allowed to be different at the fetch layer, but it must converge to the same checked SDK table shape before analysis or export."
+    ));
   </script>
 </notebook>

@@ -5,9 +5,15 @@
   <script type="text/markdown">
     # MAF to report
 
-    Many projects start from variant rows rather than a finished signature table. This workflow converts local MAF-like rows into SBS96 spectra, checks whether the conversion preserved the expected SNV counts, fits a compatible reference catalog, reviews quality-check evidence, renders plots, and exports report-ready objects.
+    Many projects start from variant rows rather than a finished signature table. This workflow adds the piece that the end-to-end notebook deliberately skips: an auditable conversion from MAF-like rows into SBS96 spectra before any signature interpretation is trusted.
 
-    The example uses row-supplied trinucleotide contexts so it runs without a genome sequence request. In a production pipeline, the same checkpoints apply after genome-backed context annotation: count reconciliation first, fitting second, interpretation third.
+    The example uses row-supplied trinucleotide contexts so it runs without a genome sequence request. In a production pipeline, the same checkpoints apply after genome-backed context annotation: normalize the variant rows, group them intentionally, reconcile convertible SNV rows against observed SBS96 counts, and only then use fitting as a downstream smoke test.
+
+    **Unique role:** teach MAF field mapping, context provenance, grouping, and count reconciliation.
+
+    **Leave to focused notebooks:** broad beginner orientation, public cohort discovery, detailed uncertainty analysis, and multi-tool concordance.
+
+    **After running it you should know:** whether a set of variant rows was converted into spectra cleanly enough to hand to the analysis notebooks.
   </script>
 
   <script type="module" pinned id="1">
@@ -36,6 +42,96 @@
       exposureThreshold: 0.01,
     };
 
+    function mafLowerRow(row) {
+      return Object.fromEntries(
+        Object.entries(row || {}).map(([key, value]) => [String(key).toLowerCase(), value])
+      );
+    }
+
+    function mafGroupValue(row, groupBy) {
+      const lower = mafLowerRow(row);
+      return String(lower[String(groupBy).toLowerCase()] || row?.[groupBy] || lower.sample || lower.sample_id || "unassigned");
+    }
+
+    function mafIsConvertibleSnv(row) {
+      const lower = mafLowerRow(row);
+      const variantType = String(lower.variant_type || "").toLowerCase();
+      const reference = String(lower.reference_allele || "").toUpperCase();
+      const alternate = String(lower.tumor_seq_allele2 || "").toUpperCase();
+      return (
+        ["snp", "single base substitution", "single_base_substitution"].includes(variantType) &&
+        /^[ACGT]$/.test(reference) &&
+        /^[ACGT]$/.test(alternate)
+      );
+    }
+
+    function mafContextValue(row) {
+      const lower = mafLowerRow(row);
+      return String(
+        lower.trinucleotide_context ||
+        lower.trinucleotide ||
+        lower.sequence_context ||
+        lower.context_sequence ||
+        lower.context ||
+        ""
+      ).toUpperCase();
+    }
+
+    function sumSpectrum(record = {}) {
+      return Object.values(record).reduce((sum, value) => sum + Number(value || 0), 0);
+    }
+
+    function mafAuditRows(rows, { groupBy }) {
+      const groups = new Set();
+      let convertibleSnvs = 0;
+      let rowsWithContext = 0;
+      let nonConvertibleRows = 0;
+      let missingContext = 0;
+      for (const row of rows) {
+        groups.add(mafGroupValue(row, groupBy));
+        if (mafIsConvertibleSnv(row)) {
+          convertibleSnvs += 1;
+          if (/^[ACGT]{3}$/.test(mafContextValue(row))) {
+            rowsWithContext += 1;
+          } else {
+            missingContext += 1;
+          }
+        } else {
+          nonConvertibleRows += 1;
+        }
+      }
+      return [
+        { checkpoint: "Input rows", value: rows.length, why: "All rows received by the notebook before filtering." },
+        { checkpoint: "Groups from field", value: `${groups.size} via ${groupBy}`, why: "The grouping field becomes the sample key in the SBS96 table." },
+        { checkpoint: "Convertible SNV rows", value: convertibleSnvs, why: "Only valid single-base substitutions should contribute to SBS96 counts." },
+        { checkpoint: "Rows with supplied context", value: rowsWithContext, why: "Offline conversion needs a three-base context or a pinned lookup table." },
+        { checkpoint: "Missing context among convertible rows", value: missingContext, why: "These rows need genome-backed annotation before fitting." },
+        { checkpoint: "Rows not convertible to SBS96", value: nonConvertibleRows, why: "Indels, invalid alleles, or incomplete rows are outside SBS96 conversion." },
+      ];
+    }
+
+    function mafGroupAuditRows(rows, spectra, groupBy) {
+      const groups = new Map();
+      for (const row of rows) {
+        const group = mafGroupValue(row, groupBy);
+        if (!groups.has(group)) groups.set(group, { group, inputRows: 0, convertibleSnvs: 0, contextRows: 0 });
+        const entry = groups.get(group);
+        entry.inputRows += 1;
+        if (mafIsConvertibleSnv(row)) {
+          entry.convertibleSnvs += 1;
+          if (/^[ACGT]{3}$/.test(mafContextValue(row))) entry.contextRows += 1;
+        }
+      }
+      return [...groups.values()].map((entry) => {
+        const observedSbs96Counts = sumSpectrum(spectra?.[entry.group] || {});
+        return {
+          ...entry,
+          observedSbs96Counts,
+          countCheck: observedSbs96Counts === entry.convertibleSnvs ? "pass" : "review",
+        };
+      });
+    }
+
     display(metrics([
       { label: "Rows", value: mafRows.length },
       { label: "Context mode", value: "offline row-supplied contexts" },
@@ -52,6 +148,14 @@
       [
         { key: "notebookObject", label: "Object to edit" },
         { key: "replaceWith", label: "Project-specific replacement" },
+      ]
+    ));
+    display(table(
+      mafAuditRows(mafRows, mafOptions),
+      [
+        { key: "checkpoint", label: "Conversion checkpoint" },
+        { key: "value", label: "Value" },
+        { key: "why", label: "Why it matters" },
       ]
     ));
   </script>
@@ -138,24 +242,35 @@
   </script>
 
   <script type="text/markdown">
-    ## Step 2. Inspect fit evidence after conversion
+    ## Step 2. Use fitting as a downstream smoke test
 
-    The same result object contains fitted signature contributions, mutation-count checks, reconstruction metrics, warning codes, suggested review steps, and figure descriptors. This is the minimum evidence trail to keep with a converted MAF analysis.
+    The fitting output is included to prove that the converted spectra can enter the standard SDK workflow. In this notebook, the fitted signatures are not the main lesson; they are a smoke test for the conversion handoff.
 
-    Interpret the tables in order: mutation counts tell whether the spectra contain enough signal, reconstruction metrics tell whether the catalog explains the spectra, and signature contributions tell which signatures contribute after those checks pass.
+    Interpret the tables in order: group-level count reconciliation first, reconstruction metrics second, and signature contributions last. If the conversion check fails, fix context annotation or grouping before reading any exposure table.
   </script>
 
   <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 2, phase: "review", title: "Step 2. Inspect fit evidence after conversion", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 2, phase: "review", title: "Step 2. Use fitting as a downstream smoke test", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="3">
+    display(table(
+      mafGroupAuditRows(mafRows, mafAnalysis.spectra, mafOptions.groupBy),
+      [
+        { key: "group", label: "Group" },
+        { key: "inputRows", label: "Input rows" },
+        { key: "convertibleSnvs", label: "Convertible SNVs" },
+        { key: "contextRows", label: "Rows with context" },
+        { key: "observedSbs96Counts", label: "Observed SBS96 counts" },
+        { key: "countCheck", label: "Count check" },
+      ]
+    ));
     display(table(
       exposureRows(mafAnalysis.fit.exposures, { minExposure: 0, topN: 12 }),
       [
         { key: "sample", label: "Sample" },
         { key: "signature", label: "Signature" },
-        { key: "exposure", label: "Relative exposure" },
+        { key: "exposure", label: "Relative exposure smoke test" },
       ],
       { maxRows: 12 }
     ));
@@ -187,13 +302,13 @@
   </script>
 
   <script type="text/markdown">
-    ## Step 3. Render quality-check plots for visual review
+    ## Step 3. Inspect the converted spectra visually
 
-    Plots help identify problems that summary tables can hide: a low-count sample, a systematic residual pattern, or a contribution profile dominated by a questionable signature. Use the plots to decide which samples need manual review before the report is exported.
+    Plots are used here to inspect the converted spectra, not to repeat the complete end-to-end reporting tutorial. A burden plot should agree with the conversion counts, and the SBS96 profile should look like the expected context distribution for the input rows.
   </script>
 
   <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 3, phase: "visualize", title: "Step 3. Render quality-check plots for visual review", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 3, phase: "visualize", title: "Step 3. Inspect the converted spectra visually", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="4">
@@ -213,13 +328,13 @@
   </script>
 
   <script type="text/markdown">
-    ## Step 4. Save the converted spectra and report
+    ## Step 4. Save conversion provenance and handoff files
 
-    The saved bundle should include the MAF conversion summary, SBS96 table, fitted signature contributions, quality-check evidence, warnings, suggested review steps, report fields, and a run record. These pieces let another researcher trace the result from variant rows to signature interpretation.
+    The saved bundle should make the conversion auditable: original row summary, grouping field, context source, count reconciliation, converted SBS96 table, warnings, and a compact downstream smoke-test result. These files are the handoff to the end-to-end, QC, uncertainty, or report notebooks.
   </script>
 
   <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 4, phase: "export", title: "Step 4. Save the converted spectra and report", mSigSDK, display });
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 4, phase: "export", title: "Step 4. Save conversion provenance and handoff files", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">
@@ -230,15 +345,27 @@
         label: "Download spectra TSV",
       },
       {
-        filename: "maf_exposures.csv",
+        filename: "maf_smoke_test_exposures.csv",
         text: rowsToCsv(exposureRows(mafAnalysis.fit.exposures, { minExposure: 0, topN: 100 })),
-        label: "Download signature contributions CSV",
+        label: "Download smoke-test contributions CSV",
+      },
+      {
+        filename: "maf_conversion_audit.csv",
+        text: rowsToCsv([
+          ...mafAuditRows(mafRows, mafOptions).map((row) => ({ auditLevel: "input", ...row })),
+          ...mafGroupAuditRows(mafRows, mafAnalysis.spectra, mafOptions.groupBy).map((row) => ({ auditLevel: "group", ...row })),
+        ]),
+        label: "Download conversion audit CSV",
       },
       {
         filename: "maf_report.json",
         type: "json",
         value: {
           options: mafOptions,
+          conversionAudit: {
+            input: mafAuditRows(mafRows, mafOptions),
+            groups: mafGroupAuditRows(mafRows, mafAnalysis.spectra, mafOptions.groupBy),
+          },
           conversion: mafAnalysis.mafConversion,
           validation: mafAnalysis.validation,
           qc: mafAnalysis.qc,

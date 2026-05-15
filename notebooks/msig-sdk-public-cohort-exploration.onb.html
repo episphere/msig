@@ -1,246 +1,1142 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK public cohort exploration</title>
+  <title>mSigSDK public API and TCGA cohort explorer</title>
 
   <script type="text/markdown">
-    # Public cohort exploration
+    # Public API and TCGA cohort explorer
 
-    A signature analysis should start by understanding the spectra before fitting any signature contributions. This workflow loads public SBS96 spectra when mSigPortal is reachable, falls back to embedded SBS96 tables when offline, and inspects mutation counts, context coverage, similarity structure, input issues, and tables ready for downstream workflows.
+    This notebook has one job: help a researcher see what public cohorts are available, load a real cohort through the public APIs, and immediately visualize the selected cohort with the mSigSDK plotting tools.
 
-    Use this notebook as the first pass on a cohort. The questions are simple: do the samples have enough mutations, do the spectra look valid, are there obvious outliers or duplicated profiles, and is the table ready for known-signature fitting, uncertainty analysis, or multi-tool comparison?
+    The workflow is intentionally exploratory. First inspect the mSigPortal API data surfaces and the public study/profile/matrix combinations. Then load a cohort, including TCGA cohorts exposed through mSigPortal, and render mutation burden, mutational profile, similarity, UMAP, clustering, and optional exposure views. The TCGA/GDC panel separately lists public GDC MAF and RNA-seq files so users can see which TCGA project files are available before deciding whether to convert variants in a downstream notebook.
+
+    **Unique role:** public resource discovery and first-pass cohort visualization before committing to a downstream analysis notebook.
+
+    **Leave to focused notebooks:** MAF-to-SBS96 conversion, full report assembly, uncertainty stress tests, panel/WES support calls, and multi-engine benchmarking.
+
+    **After running it you should know:** which public cohort, profile, matrix, samples, and compatible reference catalogs are available enough to analyze next.
   </script>
 
-  <script type="module" pinned id="1">
-    const cohortSdkUrl = new URL("../main.js?v=2026-05-14-public-cohort", location.href).href;
-    const { mSigSDK } = await import(cohortSdkUrl);
-    const {
-      demoMetadata,
-      demoSpectra,
-      sbs96Contexts,
-    } = await import("./msig-notebook-fixtures.js");
+  <script type="module" pinned id="setup">
+    const sdkUrl = new URL("../main.js?v=2026-05-15-public-api-explorer", location.href).href;
+    const { mSigSDK } = await import(sdkUrl);
+    const { demoMetadata, demoSpectra, sbs96Contexts } = await import("./msig-notebook-fixtures.js");
     const { burdenSampleRows, metrics, note, table } = mSigSDK.presentation;
 
-    const cohortContexts = sbs96Contexts();
-    const cohortSamples = [
-      "SP53810",
-      "SP55142",
-      "SP55235",
-      "SP54113",
-      "SP50611",
-      "SP50592",
-      "SP50406",
-      "SP55004",
+    const PUBLIC_API_BASE = "https://analysistools.cancer.gov/mutational-signatures/api/";
+    const PANCANCER_VALUE = "__all_cancers__";
+
+    const PUBLIC_ENDPOINTS = [
+      {
+        endpoint: "mutational_spectrum_options",
+        sdk: "mSigPortalData.getMutationalSpectrumOptions",
+        returns: "study, cancer, sample, strategy, profile, matrix combinations",
+        purpose: "Build the public cohort menu.",
+      },
+      {
+        endpoint: "mutational_spectrum",
+        sdk: "mSigPortalData.getMutationalSpectrumData",
+        returns: "long-form sample-by-mutation-count rows",
+        purpose: "Load spectra for the selected cohort.",
+      },
+      {
+        endpoint: "mutational_spectrum_summary",
+        sdk: "mSigPortalData.getMutationalSpectrumSummary",
+        returns: "cohort mutation-count summary rows",
+        purpose: "Preview burden before loading sample-level spectra.",
+      },
+      {
+        endpoint: "mutational_signature_options",
+        sdk: "mSigPortalData.getMutationalSignaturesOptions",
+        returns: "reference signature catalogs by strategy/profile/matrix",
+        purpose: "Find compatible catalogs for cohort fitting.",
+      },
+      {
+        endpoint: "mutational_signature",
+        sdk: "mSigPortalData.getMutationalSignaturesData",
+        returns: "long-form reference signature contribution rows",
+        purpose: "Load a catalog for optional exposure visualization.",
+      },
+      {
+        endpoint: "signature_activity_options",
+        sdk: "mSigPortalData.getMutationalSignatureActivityOptions",
+        returns: "public fitted-activity dataset options",
+        purpose: "Find public exposure/activity datasets.",
+      },
+      {
+        endpoint: "signature_activity",
+        sdk: "mSigPortalData.getMutationalSignatureActivityData",
+        returns: "public fitted signature activity rows",
+        purpose: "Visualize public exposure distributions.",
+      },
+      {
+        endpoint: "signature_association_options",
+        sdk: "mSigPortalData.getMutationalSignatureAssociationOptions",
+        returns: "association dataset options",
+        purpose: "Discover public association data.",
+      },
+      {
+        endpoint: "signature_association",
+        sdk: "mSigPortalData.getMutationalSignatureAssociationData",
+        returns: "signature association rows",
+        purpose: "Inspect associations available for a study/cancer pair.",
+      },
+      {
+        endpoint: "signature_etiology",
+        sdk: "mSigPortalData.getMutationalSignatureEtiologyData",
+        returns: "public signature etiology annotation rows",
+        purpose: "Inspect public annotation data for selected signatures.",
+      },
     ];
-    const cohortSettings = {
-      study: "PCAWG",
-      genomeDataType: "WGS",
-      cancerType: "Lung-AdenoCA",
-      mutationType: "SBS",
-      matrixSize: 96,
-      lowBurdenThreshold: 500,
+
+    const TCGA_PROJECT_TO_MSIG_CANCER = {
+      "TCGA-LUAD": "Lung-AdenoCa",
+      "TCGA-LUSC": "Lung-SCC",
+      "TCGA-BRCA": "Breast-AdenoCa",
+      "TCGA-COAD": "ColoRect-AdenoCa",
+      "TCGA-READ": "ColoRect-AdenoCa",
+      "TCGA-UCEC": "Uterus-AdenoCa",
+      "TCGA-STAD": "Stomach-AdenoCa",
+      "TCGA-SKCM": "Skin-Melanoma",
+      "TCGA-BLCA": "Bladder-TCC",
+      "TCGA-LIHC": "Liver-HCC",
+      "TCGA-KIRC": "Kidney-RCC",
+      "TCGA-OV": "Ovary-AdenoCa",
     };
 
-    async function loadCohortSpectra() {
-      const rows = (await mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-        cohortSettings.study,
-        cohortSamples,
-        cohortSettings.genomeDataType,
-        cohortSettings.cancerType,
-        cohortSettings.mutationType,
-        cohortSettings.matrixSize
-      )).flat();
-      const spectra = mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(rows);
-      if (Object.keys(spectra).length < 2) {
-        throw new Error("mSigPortal returned too few spectra.");
+    function publicApiUrl(endpoint, params = {}) {
+      const url = new URL(endpoint, PUBLIC_API_BASE);
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null && value !== "") {
+          url.searchParams.set(key, value);
+        }
       }
-      return {
-        spectra,
-        metadata: cohortSamples.map((sample) => ({
-          sample,
-          cohort: cohortSettings.cancerType,
-          assay: cohortSettings.genomeDataType,
-          source: "mSigPortal",
-        })),
-        sourceStatus: "live mSigPortal",
-      };
+      return url;
     }
 
-    let cohortData;
-    try {
-      cohortData = await loadCohortSpectra();
-    } catch (error) {
-      cohortData = {
-        spectra: demoSpectra(),
-        metadata: demoMetadata,
-        sourceStatus: `embedded fallback: ${error.message}`,
-      };
+    async function fetchPublicApiRows(endpoint, params = {}, { limit = 100000, maxPages = 10 } = {}) {
+      const rows = [];
+      let offset = 0;
+      for (let page = 0; page < maxPages; page += 1) {
+        const url = publicApiUrl(endpoint, { ...params, limit, offset });
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`${endpoint} returned HTTP ${response.status}`);
+        }
+        const pageRows = await response.json();
+        if (!Array.isArray(pageRows)) {
+          throw new Error(`${endpoint} did not return an array.`);
+        }
+        rows.push(...pageRows);
+        if (pageRows.length < limit) break;
+        offset += limit;
+      }
+      return rows;
     }
 
-    const cohortSpectra = cohortData.spectra;
-    const cohortMetadata = cohortData.metadata;
-    const cohortSelectedSamples = Object.keys(cohortSpectra);
-    const cohortBurden = mSigSDK.qc.summarizeMutationBurden(cohortSpectra, {
-      expectedContexts: cohortContexts,
-      lowBurdenThresholdMode: "fixed",
-      lowBurdenThreshold: cohortSettings.lowBurdenThreshold,
-    });
-    const cohortValidation = mSigSDK.validation.validateSpectra(cohortSpectra, {
-      expectedContexts: cohortContexts,
-      minTotalMutations: cohortSettings.lowBurdenThreshold,
-    });
+    function uniqueSorted(values) {
+      return [...new Set((values || []).filter((value) => value !== undefined && value !== null && value !== "").map(String))]
+        .sort((a, b) => a.localeCompare(b));
+    }
+
+    function sumRecord(record = {}) {
+      return Object.values(record || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+    }
+
+    function parseNumber(value, fallback) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function normalizeProjectList(text) {
+      return String(text || "")
+        .split(/[,\s]+/)
+        .map((value) => value.trim().toUpperCase())
+        .filter(Boolean);
+    }
+
+    function normalizeGeneList(text) {
+      return String(text || "")
+        .split(/[,\s]+/)
+        .map((value) => value.trim())
+        .filter(Boolean);
+    }
+
+    function rowsToMatrix(rows, { groupKey = "sample", contextKey = "mutationType", valueKey = "mutations" } = {}) {
+      const matrix = {};
+      for (const row of rows || []) {
+        const group = row?.[groupKey];
+        const context = row?.[contextKey];
+        if (!group || !context) continue;
+        if (!matrix[group]) matrix[group] = {};
+        matrix[group][context] = Number(row?.[valueKey] || 0);
+      }
+      return matrix;
+    }
+
+    function inferContexts(...matrices) {
+      return [...new Set(
+        matrices.flatMap((matrix) =>
+          Object.values(matrix || {}).flatMap((record) => Object.keys(record || {}).filter((key) => key !== "rnorm"))
+        )
+      )];
+    }
+
+    function alignMatrix(matrix, contexts) {
+      return Object.fromEntries(
+        Object.entries(matrix || {}).map(([name, record]) => [
+          name,
+          Object.fromEntries(contexts.map((context) => [context, Number(record?.[context] || 0)])),
+        ])
+      );
+    }
+
+    function contextSetsMatch(left, right) {
+      const a = inferContexts(left).sort();
+      const b = inferContexts(right).sort();
+      return a.length > 0 && a.length === b.length && a.every((context, index) => context === b[index]);
+    }
+
+    function optionNode(label, value = label) {
+      const option = document.createElement("option");
+      option.value = String(value);
+      option.textContent = String(label);
+      return option;
+    }
+
+    function setSelectOptions(select, items, preferredValue = "") {
+      const normalized = items.map((item) => typeof item === "string" ? { label: item, value: item } : item);
+      select.replaceChildren(...normalized.map((item) => optionNode(item.label, item.value)));
+      const values = normalized.map((item) => String(item.value));
+      if (preferredValue && values.includes(String(preferredValue))) {
+        select.value = String(preferredValue);
+      } else if (values.length) {
+        select.value = values[0];
+      }
+      return select.value;
+    }
+
+    function button(label, kind = "") {
+      const node = document.createElement("button");
+      node.type = "button";
+      node.className = `workflow-button ${kind}`.trim();
+      node.textContent = label;
+      return node;
+    }
+
+    function field(label, control, help = "") {
+      const wrapper = document.createElement("label");
+      wrapper.className = "workflow-field";
+      const title = document.createElement("span");
+      title.textContent = label;
+      wrapper.append(title, control);
+      if (help) {
+        const small = document.createElement("small");
+        small.textContent = help;
+        wrapper.append(small);
+      }
+      return wrapper;
+    }
+
+    function input(value, type = "text", step = null) {
+      const node = document.createElement("input");
+      node.type = type;
+      node.value = String(value);
+      if (step !== null) node.step = String(step);
+      if (type === "number") node.min = "0";
+      return node;
+    }
+
+    function selectInput(options = []) {
+      const node = document.createElement("select");
+      node.replaceChildren(...options.map((option) => optionNode(option.label || option, option.value || option)));
+      return node;
+    }
+
+    function placeholder(text) {
+      const node = document.createElement("div");
+      node.className = "workflow-placeholder";
+      node.textContent = text;
+      return node;
+    }
+
+    function statusCard(title, message, mode = "idle") {
+      const node = document.createElement("div");
+      node.className = `workflow-status-card ${mode}`.trim();
+      const dot = document.createElement("span");
+      dot.className = "workflow-status-dot";
+      const copy = document.createElement("div");
+      const strong = document.createElement("strong");
+      strong.textContent = title;
+      const span = document.createElement("span");
+      span.textContent = message;
+      copy.append(strong, span);
+      node.append(dot, copy);
+      return node;
+    }
+
+    function flattenObjectRows(object, childKey) {
+      return Object.entries(object || {}).flatMap(([project, payload]) =>
+        (payload?.[childKey] || []).map((row) => ({ project, ...row }))
+      );
+    }
+
+    function summarizePublicCohorts(rows) {
+      const groups = new Map();
+      for (const row of rows || []) {
+        const key = [row.study, row.cancer, row.strategy, row.profile, row.matrix].join("|");
+        if (!groups.has(key)) {
+          groups.set(key, {
+            study: row.study,
+            cancer: row.cancer,
+            strategy: row.strategy,
+            profile: row.profile,
+            matrix: row.matrix,
+            samples: new Set(),
+          });
+        }
+        groups.get(key).samples.add(row.sample);
+      }
+      return [...groups.values()]
+        .map((row) => ({ ...row, sampleCount: row.samples.size, samples: undefined }))
+        .sort((a, b) =>
+          String(a.study).localeCompare(String(b.study)) ||
+          String(a.cancer).localeCompare(String(b.cancer)) ||
+          String(a.strategy).localeCompare(String(b.strategy)) ||
+          String(a.profile).localeCompare(String(b.profile)) ||
+          Number(a.matrix) - Number(b.matrix)
+        );
+    }
+
+    function summarizeSignatureSets(rows) {
+      const groups = new Map();
+      for (const row of rows || []) {
+        const key = [row.strategy, row.profile, row.matrix, row.signatureSetName].join("|");
+        if (!groups.has(key)) {
+          groups.set(key, {
+            strategy: row.strategy,
+            profile: row.profile,
+            matrix: row.matrix,
+            signatureSetName: row.signatureSetName,
+            signatures: new Set(),
+          });
+        }
+        groups.get(key).signatures.add(row.signatureName);
+      }
+      return [...groups.values()]
+        .map((row) => ({ ...row, signatureCount: row.signatures.size, signatures: undefined }))
+        .sort((a, b) =>
+          String(a.strategy).localeCompare(String(b.strategy)) ||
+          String(a.profile).localeCompare(String(b.profile)) ||
+          Number(a.matrix) - Number(b.matrix) ||
+          String(a.signatureSetName).localeCompare(String(b.signatureSetName))
+        );
+    }
+
+    async function plotCard(grid, title, renderer, fallback = null) {
+      const section = document.createElement("section");
+      section.className = "workflow-plot-section";
+      const heading = document.createElement("h3");
+      heading.textContent = title;
+      const host = document.createElement("div");
+      host.id = `public-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Math.random().toString(36).slice(2)}`;
+      host.className = "workflow-plot-host";
+      section.append(heading, host);
+      grid.append(section);
+      try {
+        await renderer(host);
+      } catch (error) {
+        host.replaceChildren(fallback || placeholder(`Could not render ${title}: ${error.message}`));
+      }
+    }
 
     display(metrics([
-      { label: "Data source", value: cohortData.sourceStatus },
-      { label: "Samples", value: cohortSelectedSamples.length },
-      { label: "Table type", value: "SBS96" },
-      { label: "Input check", value: cohortValidation.valid ? "Pass" : "Review" },
+      { label: "SDK import", value: "ready" },
+      { label: "Primary public source", value: "mSigPortal API" },
+      { label: "TCGA source", value: "mSigPortal TCGA cohorts plus GDC files" },
+      { label: "Visualization path", value: "mSigSDK plotting tools" },
     ]));
-    if (!cohortValidation.valid) {
-      display(note("Input issues are shown below and should be resolved before fitting signatures.", "warning"));
+    display(table(PUBLIC_ENDPOINTS, [
+      { key: "endpoint", label: "Public API data surface" },
+      { key: "sdk", label: "SDK wrapper" },
+      { key: "returns", label: "Returns" },
+      { key: "purpose", label: "Notebook use" },
+    ], { maxRows: 12 }));
+  </script>
+
+  <script type="text/markdown">
+    ## 1. Explore mSigPortal public API data files
+
+    Load the public option catalogs first. The menus are generated from live `mutational_spectrum_options` and `mutational_signature_options` responses, so the notebook shows what the API currently exposes rather than a hardcoded sample list. Use the endpoint preview to inspect any public data surface directly.
+  </script>
+
+  <script type="module" pinned id="msigportal-api-explorer">
+    const explorerRoot = document.createElement("div");
+    explorerRoot.className = "workflow-panel";
+
+    const explorerHeader = document.createElement("div");
+    explorerHeader.className = "workflow-panel-header";
+    const explorerTitle = document.createElement("h3");
+    explorerTitle.textContent = "mSigPortal API catalog and cohort loader";
+    const explorerLead = document.createElement("p");
+    explorerLead.textContent = "Choose a public study, cohort, assay, profile, matrix, and compatible signature catalog, then load real spectra for visualization.";
+    explorerHeader.append(explorerTitle, explorerLead);
+
+    const controlsGrid = document.createElement("div");
+    controlsGrid.className = "workflow-control-grid compact";
+    const buttonRow = document.createElement("div");
+    buttonRow.className = "workflow-button-row";
+    const apiOutput = document.createElement("div");
+    apiOutput.className = "workflow-output-stack";
+    const activeOutput = document.createElement("div");
+    activeOutput.className = "workflow-output-stack";
+    const plotGrid = document.createElement("div");
+    plotGrid.className = "workflow-plot-grid";
+    const exportOutput = document.createElement("div");
+    exportOutput.className = "workflow-output-stack";
+
+    const studySelect = selectInput([]);
+    const cancerSelect = selectInput([]);
+    const strategySelect = selectInput([]);
+    const profileSelect = selectInput([]);
+    const matrixSelect = selectInput([]);
+    const signatureSetSelect = selectInput([]);
+    const maxSamplesInput = input(12, "number");
+    const lowBurdenInput = input(50, "number");
+    const exposureThresholdInput = input(0.01, "number", "0.01");
+    const endpointSelect = selectInput(PUBLIC_ENDPOINTS.map((item) => ({
+      label: item.endpoint,
+      value: item.endpoint,
+    })));
+    const endpointLimitInput = input(25, "number");
+
+    const refreshCatalog = button("Refresh API catalog");
+    const loadCohort = button("Load selected cohort", "primary");
+    const previewEndpoint = button("Preview selected endpoint");
+
+    controlsGrid.append(
+      field("Study", studySelect),
+      field("Cancer type or group", cancerSelect),
+      field("Experimental strategy", strategySelect),
+      field("Mutational profile", profileSelect),
+      field("Matrix size", matrixSelect),
+      field("Reference signature set", signatureSetSelect),
+      field("Max samples", maxSamplesInput, "Keep this modest while exploring; increase when you need a larger cohort."),
+      field("Low burden cutoff", lowBurdenInput),
+      field("Exposure threshold", exposureThresholdInput),
+      field("Endpoint preview", endpointSelect),
+      field("Preview row limit", endpointLimitInput)
+    );
+    buttonRow.append(refreshCatalog, loadCohort, previewEndpoint);
+
+    explorerRoot.append(explorerHeader, controlsGrid, buttonRow, apiOutput, activeOutput, plotGrid, exportOutput);
+    display(explorerRoot);
+
+    const publicExplorerState = {
+      spectraOptions: [],
+      signatureOptions: [],
+      menuLoaded: false,
+      active: null,
+    };
+
+    function selectedRows() {
+      const matrix = Number(matrixSelect.value);
+      return publicExplorerState.spectraOptions.filter((row) =>
+        row.study === studySelect.value &&
+        row.strategy === strategySelect.value &&
+        row.profile === profileSelect.value &&
+        Number(row.matrix) === matrix &&
+        (cancerSelect.value === PANCANCER_VALUE || row.cancer === cancerSelect.value)
+      );
     }
+
+    function selectedSamples() {
+      const bySample = new Map();
+      for (const row of selectedRows()) {
+        if (!bySample.has(row.sample)) bySample.set(row.sample, row);
+      }
+      return [...bySample.values()];
+    }
+
+    function selectedCancerLabel() {
+      return cancerSelect.value === PANCANCER_VALUE ? "PanCancer" : cancerSelect.value;
+    }
+
+    function currentSelection() {
+      return {
+        study: studySelect.value,
+        cancer: selectedCancerLabel(),
+        strategy: strategySelect.value,
+        profile: profileSelect.value,
+        matrix: Number(matrixSelect.value),
+        signatureSetName: signatureSetSelect.value,
+      };
+    }
+
+    function updateCatalogStatus() {
+      const samples = selectedSamples();
+      apiOutput.replaceChildren(
+        statusCard(
+          publicExplorerState.menuLoaded ? "API catalog loaded" : "API catalog not loaded",
+          publicExplorerState.menuLoaded
+            ? `${samples.length} samples match ${studySelect.value} ${selectedCancerLabel()} ${strategySelect.value} ${profileSelect.value}${matrixSelect.value}.`
+            : "Refresh the API catalog to populate the menus.",
+          publicExplorerState.menuLoaded ? "ready" : "idle"
+        )
+      );
+    }
+
+    function populatePublicMenus(preferred = {}) {
+      const current = {
+        study: studySelect.value || preferred.study || "TCGA",
+        strategy: strategySelect.value || preferred.strategy || "WES",
+        profile: profileSelect.value || preferred.profile || "SBS",
+        matrix: matrixSelect.value || preferred.matrix || "96",
+        cancer: cancerSelect.value || preferred.cancer || "Lung-AdenoCa",
+        signatureSetName: signatureSetSelect.value || preferred.signatureSetName || "COSMIC_v3_Signatures_GRCh37_SBS96",
+      };
+
+      const study = setSelectOptions(studySelect, uniqueSorted(publicExplorerState.spectraOptions.map((row) => row.study)), current.study);
+      const studyRows = publicExplorerState.spectraOptions.filter((row) => row.study === study);
+      const strategy = setSelectOptions(strategySelect, uniqueSorted(studyRows.map((row) => row.strategy)), current.strategy);
+      const strategyRows = studyRows.filter((row) => row.strategy === strategy);
+      const profile = setSelectOptions(profileSelect, uniqueSorted(strategyRows.map((row) => row.profile)), current.profile);
+      const profileRows = strategyRows.filter((row) => row.profile === profile);
+      const matrix = setSelectOptions(matrixSelect, uniqueSorted(profileRows.map((row) => row.matrix)), current.matrix);
+      const matrixRows = profileRows.filter((row) => String(row.matrix) === String(matrix));
+      const cancerItems = uniqueSorted(matrixRows.map((row) => row.cancer)).map((value) => ({ label: value, value }));
+      if (study === "PCAWG" || study === "TCGA") {
+        cancerItems.unshift({ label: "PanCancer (all cancer types)", value: PANCANCER_VALUE });
+      }
+      const cancer = setSelectOptions(cancerSelect, cancerItems, current.cancer);
+
+      const exactSignatureRows = publicExplorerState.signatureOptions.filter((row) =>
+        row.strategy === strategy &&
+        row.profile === profile &&
+        String(row.matrix) === String(matrix)
+      );
+      const fallbackSignatureRows = publicExplorerState.signatureOptions.filter((row) =>
+        row.profile === profile &&
+        String(row.matrix) === String(matrix)
+      );
+      const signatureRows = exactSignatureRows.length ? exactSignatureRows : fallbackSignatureRows;
+      setSelectOptions(signatureSetSelect, uniqueSorted(signatureRows.map((row) => row.signatureSetName)), current.signatureSetName);
+      updateCatalogStatus();
+      return { study, strategy, profile, matrix, cancer };
+    }
+
+    function renderCatalogSummary() {
+      const cohortSummary = summarizePublicCohorts(publicExplorerState.spectraOptions);
+      const signatureSummary = summarizeSignatureSets(publicExplorerState.signatureOptions);
+      apiOutput.replaceChildren(
+        metrics([
+          { label: "Spectrum option rows", value: publicExplorerState.spectraOptions.length },
+          { label: "Public studies", value: uniqueSorted(publicExplorerState.spectraOptions.map((row) => row.study)).length },
+          { label: "Cohort/profile choices", value: cohortSummary.length },
+          { label: "Reference catalogs", value: signatureSummary.length },
+        ]),
+        table(cohortSummary, [
+          { key: "study", label: "Study" },
+          { key: "cancer", label: "Cancer/group" },
+          { key: "strategy", label: "Strategy" },
+          { key: "profile", label: "Profile" },
+          { key: "matrix", label: "Matrix" },
+          { key: "sampleCount", label: "Samples" },
+        ], { title: "Available public cohorts", maxRows: 20 }),
+        table(signatureSummary, [
+          { key: "strategy", label: "Strategy" },
+          { key: "profile", label: "Profile" },
+          { key: "matrix", label: "Matrix" },
+          { key: "signatureSetName", label: "Signature set" },
+          { key: "signatureCount", label: "Signatures" },
+        ], { title: "Available reference signature sets", maxRows: 12 })
+      );
+    }
+
+    async function loadCatalog(preferred = {}) {
+      refreshCatalog.disabled = true;
+      loadCohort.disabled = true;
+      apiOutput.replaceChildren(statusCard("Loading public API catalog", "Fetching spectrum and reference signature option tables.", "running"));
+      try {
+        const [spectraOptions, signatureOptions] = await Promise.all([
+          fetchPublicApiRows("mutational_spectrum_options"),
+          fetchPublicApiRows("mutational_signature_options", { source: "Reference_signatures" }),
+        ]);
+        publicExplorerState.spectraOptions = spectraOptions;
+        publicExplorerState.signatureOptions = signatureOptions;
+        publicExplorerState.menuLoaded = true;
+        populatePublicMenus({
+          study: "TCGA",
+          strategy: "WES",
+          profile: "SBS",
+          matrix: "96",
+          cancer: "Lung-AdenoCa",
+          signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
+          ...preferred,
+        });
+        renderCatalogSummary();
+      } catch (error) {
+        apiOutput.replaceChildren(statusCard("Could not load API catalog", error.message, "error"));
+      } finally {
+        refreshCatalog.disabled = false;
+        loadCohort.disabled = false;
+      }
+    }
+
+    function endpointParams(endpoint) {
+      const selection = currentSelection();
+      const cancer = selection.cancer === "PanCancer" ? "" : selection.cancer;
+      if (endpoint === "mutational_spectrum_options") return {};
+      if (endpoint === "mutational_signature_options") {
+        return { source: "Reference_signatures", strategy: selection.strategy, profile: selection.profile };
+      }
+      if (endpoint === "mutational_signature") {
+        return {
+          source: "Reference_signatures",
+          strategy: selection.strategy,
+          profile: selection.profile,
+          matrix: selection.matrix,
+          signatureSetName: selection.signatureSetName,
+        };
+      }
+      if (endpoint === "mutational_spectrum_summary") {
+        return { study: selection.study, strategy: selection.strategy, cancer };
+      }
+      if (endpoint === "mutational_spectrum") {
+        return {
+          study: selection.study,
+          strategy: selection.strategy,
+          cancer,
+          profile: selection.profile,
+          matrix: selection.matrix,
+        };
+      }
+      if (endpoint === "signature_activity_options" || endpoint === "signature_association_options") {
+        return { study: selection.study, strategy: selection.strategy };
+      }
+      if (endpoint === "signature_activity") {
+        return {
+          study: selection.study,
+          strategy: selection.strategy,
+          cancer,
+          signatureSetName: selection.signatureSetName,
+        };
+      }
+      if (endpoint === "signature_association") {
+        return { study: selection.study, strategy: selection.strategy, cancer };
+      }
+      if (endpoint === "signature_etiology") {
+        return { study: selection.study, strategy: selection.strategy, cancer, signatureName: "SBS3" };
+      }
+      return {};
+    }
+
+    async function previewSelectedEndpoint() {
+      if (!publicExplorerState.menuLoaded) await loadCatalog();
+      const endpoint = endpointSelect.value;
+      const limit = Math.max(1, Math.min(500, Math.round(parseNumber(endpointLimitInput.value, 25))));
+      const params = endpointParams(endpoint);
+      activeOutput.replaceChildren(statusCard("Previewing endpoint", `${endpoint} with current selection filters.`, "running"));
+      try {
+        const rows = await fetchPublicApiRows(endpoint, params, { limit, maxPages: 1 });
+        const url = publicApiUrl(endpoint, { ...params, limit, offset: 0 }).href;
+        activeOutput.replaceChildren(
+          metrics([
+            { label: "Endpoint", value: endpoint },
+            { label: "Rows returned", value: rows.length },
+            { label: "Preview limit", value: limit },
+            { label: "Fields", value: Object.keys(rows[0] || {}).length },
+          ]),
+          table([{ url }], [{ key: "url", label: "Request URL" }], { title: "API request" }),
+          table(rows, null, { title: "Response preview", maxRows: Math.min(12, rows.length) })
+        );
+      } catch (error) {
+        activeOutput.replaceChildren(statusCard("Endpoint preview failed", error.message, "error"));
+      }
+    }
+
+    async function renderActiveSummary() {
+      const active = publicExplorerState.active;
+      if (!active) return;
+      const issueRows = (active.validation.issues || []).map((issue) => ({
+        sample: issue.sample || "matrix",
+        code: issue.code || issue.type || "validation_issue",
+        message: issue.message || String(issue),
+      }));
+      activeOutput.replaceChildren(
+        metrics([
+          { label: "Active source", value: active.source },
+          { label: "Samples loaded", value: Object.keys(active.spectra).length },
+          { label: "Contexts", value: active.contexts.length },
+          { label: "Raw spectrum rows", value: active.rawRows.length },
+          { label: "Reference signatures", value: Object.keys(active.signatures || {}).length },
+          { label: "Input check", value: active.validation.valid ? "Pass" : "Review" },
+          { label: "Low burden samples", value: active.burden.overall.lowBurdenSampleCount },
+          { label: "Fitted exposures", value: active.exposures ? "Rendered" : "Skipped" },
+        ]),
+        table(active.metadata, [
+          { key: "sample", label: "Sample" },
+          { key: "study", label: "Study" },
+          { key: "cancer", label: "Cancer/group" },
+          { key: "strategy", label: "Strategy" },
+          { key: "profile", label: "Profile" },
+          { key: "matrix", label: "Matrix" },
+          { key: "source", label: "Source" },
+        ], { title: "Loaded samples", maxRows: 15 }),
+        table(burdenSampleRows(active.burden), undefined, { title: "Mutation burden review", maxRows: 15 }),
+        table(issueRows, [
+          { key: "sample", label: "Sample" },
+          { key: "code", label: "Issue" },
+          { key: "message", label: "Message" },
+        ], { title: "Validation issues", maxRows: 8 }),
+        active.exposureNote || note("Exposure heatmap is rendered when a compatible reference signature catalog can be loaded for the selected profile and matrix.", "info")
+      );
+    }
+
+    async function renderActivePlots() {
+      const active = publicExplorerState.active;
+      plotGrid.replaceChildren();
+      exportOutput.replaceChildren();
+      if (!active) return;
+
+      const sampleNames = Object.keys(active.spectra);
+      const label = `${active.selection.study} ${active.selection.cancer} ${active.selection.strategy} ${active.selection.profile}${active.selection.matrix}`;
+      const firstTwoSampleRows = sampleNames
+        .slice(0, Math.min(2, sampleNames.length))
+        .map((sample) => active.rawRows.filter((row) => row.sample === sample));
+
+      await plotCard(plotGrid, "Mutation burden", (host) =>
+        mSigSDK.qcPlots.plotMutationBurdenSummary(host, active.burden),
+        table(burdenSampleRows(active.burden), undefined, { maxRows: 12 })
+      );
+
+      await plotCard(plotGrid, "Mutational profile", (host) =>
+        mSigSDK.mSigPortal.mSigPortalPlots.plotPatientMutationalSpectrum(firstTwoSampleRows, host)
+      );
+
+      await plotCard(plotGrid, "Cosine similarity", (host) =>
+        mSigSDK.mSigPortal.mSigPortalPlots.plotCosineSimilarityHeatMap(
+          active.spectra,
+          active.selection.study,
+          active.selection.strategy,
+          active.selection.cancer,
+          host,
+          true,
+          "Viridis",
+          false
+        )
+      );
+
+      if (sampleNames.length >= 3) {
+        await plotCard(plotGrid, "UMAP cohort projection", (host) =>
+          mSigSDK.mSigPortal.mSigPortalPlots.plotUMAPVisualization(
+            active.spectra,
+            label,
+            host,
+            sampleNames.length >= 4 ? 3 : 2,
+            0.1,
+            Math.max(2, Math.min(15, sampleNames.length - 1))
+          )
+        );
+
+        await plotCard(plotGrid, "Force-directed similarity tree", (host) =>
+          mSigSDK.mSigPortal.mSigPortalPlots.plotForceDirectedTree(
+            active.spectra,
+            active.selection.study,
+            active.selection.strategy,
+            active.selection.cancer,
+            host.id
+          )
+        );
+      }
+
+      if (active.selection.profile === "SBS" && Number(active.selection.matrix) === 96) {
+        await plotCard(plotGrid, "Burden by cancer type", (host) =>
+          mSigSDK.mSigPortal.mSigPortalPlots.plotProjectMutationalBurdenByCancerType(active.rawRows, host)
+        );
+      }
+
+      if (active.exposures) {
+        await plotCard(plotGrid, "Fitted signature exposure heatmap", (host) =>
+          mSigSDK.signatureFitting.plotDatasetMutationalSignaturesExposure(
+            active.exposures,
+            host,
+            true,
+            label,
+            true
+          )
+        );
+      }
+
+      const downloadItems = [
+        {
+          filename: "public_api_cohort_spectra.tsv",
+          text: spectraMatrixToTsv(active.spectra, active.contexts),
+          label: "Download spectra TSV",
+        },
+        {
+          filename: "public_api_cohort_metadata.csv",
+          text: rowsToCsv(active.metadata),
+          label: "Download sample metadata CSV",
+        },
+        {
+          filename: "public_api_raw_spectrum_rows.json",
+          type: "json",
+          value: active.rawRows,
+          label: "Download raw API spectrum rows",
+        },
+        {
+          filename: "public_api_cohort_qc.json",
+          type: "json",
+          value: {
+            selection: active.selection,
+            validation: active.validation,
+            burden: active.burden,
+            contexts: active.contexts,
+          },
+          label: "Download QC JSON",
+        },
+      ];
+      if (active.exposures) {
+        downloadItems.push({
+          filename: "public_api_fitted_exposures.csv",
+          text: rowsToCsv(
+            Object.entries(active.exposures).flatMap(([sample, exposures]) =>
+              Object.entries(exposures).map(([signature, exposure]) => ({ sample, signature, exposure }))
+            )
+          ),
+          label: "Download fitted exposures CSV",
+        });
+      }
+      exportOutput.append(downloadMany(downloadItems));
+    }
+
+    async function loadSelectedCohort() {
+      if (!publicExplorerState.menuLoaded) await loadCatalog();
+      const sampleLimit = Math.max(1, Math.min(50, Math.round(parseNumber(maxSamplesInput.value, 12))));
+      const samples = selectedSamples().slice(0, sampleLimit);
+      if (!samples.length) {
+        throw new Error("No samples match the selected public API filters.");
+      }
+      const selection = {
+        ...currentSelection(),
+        sampleCount: samples.length,
+      };
+      activeOutput.replaceChildren(statusCard("Loading selected cohort", `Fetching ${samples.length} public spectra and a compatible signature catalog.`, "running"));
+      plotGrid.replaceChildren();
+      exportOutput.replaceChildren();
+
+      const spectrumRowGroups = await Promise.all(
+        samples.map((sample) =>
+          fetchPublicApiRows("mutational_spectrum", {
+            study: sample.study,
+            sample: sample.sample,
+            cancer: sample.cancer,
+            strategy: sample.strategy,
+            profile: sample.profile,
+            matrix: sample.matrix,
+          })
+        )
+      );
+      const rawRows = spectrumRowGroups.flat();
+      const spectra = rowsToMatrix(rawRows);
+      const metadata = samples.map((sample) => ({
+        sample: sample.sample,
+        study: sample.study,
+        cancer: sample.cancer,
+        strategy: sample.strategy,
+        profile: sample.profile,
+        matrix: sample.matrix,
+        source: "mSigPortal API",
+      }));
+
+      let signatureRows = [];
+      let signatures = {};
+      if (selection.signatureSetName) {
+        signatureRows = await fetchPublicApiRows("mutational_signature", {
+          source: "Reference_signatures",
+          strategy: selection.strategy,
+          profile: selection.profile,
+          matrix: selection.matrix,
+          signatureSetName: selection.signatureSetName,
+        });
+        signatures = rowsToMatrix(signatureRows, {
+          groupKey: "signatureName",
+          valueKey: "contribution",
+        });
+      }
+
+      const contexts = inferContexts(spectra);
+      const lowBurdenThreshold = Math.round(parseNumber(lowBurdenInput.value, 50));
+      const validation = mSigSDK.validation.validateSpectra(spectra, {
+        expectedContexts: contexts,
+        minTotalMutations: lowBurdenThreshold,
+      });
+      const burden = mSigSDK.qc.summarizeMutationBurden(spectra, {
+        expectedContexts: contexts,
+        lowBurdenThresholdMode: "fixed",
+        lowBurdenThreshold,
+      });
+
+      let exposures = null;
+      let exposureNote = null;
+      if (Object.keys(signatures).length && contextSetsMatch(spectra, signatures)) {
+        try {
+          const alignedContexts = inferContexts(spectra, signatures);
+          const alignedSpectra = alignMatrix(spectra, alignedContexts);
+          const alignedSignatures = alignMatrix(signatures, alignedContexts);
+          exposures = await mSigSDK.signatureFitting.fitMutationalSpectraToSignatures(
+            alignedSignatures,
+            alignedSpectra,
+            {
+              exposureThreshold: parseNumber(exposureThresholdInput.value, 0.01),
+              exposureType: "relative",
+              renormalize: true,
+            }
+          );
+        } catch (error) {
+          exposureNote = note(`Reference-signature fitting was skipped: ${error.message}`, "warning");
+        }
+      } else {
+        exposureNote = note("Reference-signature fitting was skipped because the selected spectra and signature catalog do not share the same mutation contexts.", "warning");
+      }
+
+      publicExplorerState.active = {
+        source: `mSigPortal public API: ${selection.study} ${selection.cancer} ${selection.strategy} ${selection.profile}${selection.matrix}`,
+        selection,
+        rawRows,
+        signatureRows,
+        spectra,
+        signatures,
+        metadata,
+        contexts,
+        validation,
+        burden,
+        exposures,
+        exposureNote,
+      };
+
+      await renderActiveSummary();
+      await renderActivePlots();
+    }
+
+    async function setSelectionFromTcgaProject(project) {
+      const cancer = TCGA_PROJECT_TO_MSIG_CANCER[project] || "Lung-AdenoCa";
+      if (!publicExplorerState.menuLoaded) {
+        await loadCatalog({ study: "TCGA", cancer, strategy: "WES", profile: "SBS", matrix: "96" });
+      } else {
+        populatePublicMenus({ study: "TCGA", cancer, strategy: "WES", profile: "SBS", matrix: "96" });
+      }
+    }
+
+    for (const select of [studySelect, cancerSelect, strategySelect, profileSelect, matrixSelect, signatureSetSelect]) {
+      select.addEventListener("change", () => {
+        if (select !== signatureSetSelect) populatePublicMenus();
+        updateCatalogStatus();
+      });
+    }
+    maxSamplesInput.addEventListener("input", updateCatalogStatus);
+    refreshCatalog.addEventListener("click", () => loadCatalog());
+    previewEndpoint.addEventListener("click", previewSelectedEndpoint);
+    loadCohort.addEventListener("click", async () => {
+      loadCohort.disabled = true;
+      const original = loadCohort.textContent;
+      loadCohort.textContent = "Loading...";
+      try {
+        await loadSelectedCohort();
+      } catch (error) {
+        activeOutput.replaceChildren(statusCard("Could not load cohort", error.message, "error"));
+      } finally {
+        loadCohort.disabled = false;
+        loadCohort.textContent = original;
+      }
+    });
+
+    window.publicCohortExplorer = {
+      state: publicExplorerState,
+      loadCatalog,
+      loadSelectedCohort,
+      setSelectionFromTcgaProject,
+    };
+
+    apiOutput.replaceChildren(placeholder("Loading public API catalog..."));
+    await loadCatalog();
   </script>
 
   <script type="text/markdown">
-    ## Interactive workspace
+    ## 2. Explore TCGA/GDC datasets
 
-    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
+    mSigPortal exposes TCGA spectra through the same public cohort menu above. This panel complements that by querying GDC for TCGA project files: masked somatic mutation MAF files, RNA-seq quantification files for selected genes, and gene-to-project availability. Use it to inspect file availability before moving to a variant-conversion workflow.
   </script>
 
-  <script type="module" pinned id="interactive-workspace">
-    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
-    renderInteractiveNotebook({ mode: "public-cohort", mSigSDK, display });
-  </script>
+  <script type="module" pinned id="tcga-gdc-explorer">
+    const tcgaRoot = document.createElement("div");
+    tcgaRoot.className = "workflow-panel";
 
-  <script type="text/markdown">
-    ## Step 1. Review mutation counts, sample details, and input checks
+    const tcgaHeader = document.createElement("div");
+    tcgaHeader.className = "workflow-panel-header";
+    const tcgaTitle = document.createElement("h3");
+    tcgaTitle.textContent = "TCGA/GDC file explorer";
+    const tcgaLead = document.createElement("p");
+    tcgaLead.textContent = "List TCGA project files from GDC, then use the mSigPortal TCGA cohort menu above when you want spectra and cohort visualizations.";
+    tcgaHeader.append(tcgaTitle, tcgaLead);
 
-    The first table describes what was loaded and whether the fallback path was used. The mutation-count and input-check outputs tell whether each spectrum contains enough signal and has the expected SBS96 context structure.
+    const tcgaControls = document.createElement("div");
+    tcgaControls.className = "workflow-control-grid compact";
+    const projectInput = input("TCGA-LUAD, TCGA-LUSC");
+    const geneInput = input("ENSG00000155657");
+    const tcgaButtons = document.createElement("div");
+    tcgaButtons.className = "workflow-button-row";
+    const listMaf = button("List MAF files", "primary");
+    const listRna = button("List RNA-seq files");
+    const findGeneProjects = button("Find projects by gene");
+    const useMsiPortalTcga = button("Use first project in mSigPortal menu");
+    const tcgaOutput = document.createElement("div");
+    tcgaOutput.className = "workflow-output-stack";
 
-    Do not move directly to fitting if this section shows low mutation counts, missing contexts, or unexpected sample details. Those issues should be resolved or carried as caveats before signature contribution estimates are interpreted.
-  </script>
+    tcgaControls.append(
+      field("TCGA projects", projectInput, "Comma- or space-separated GDC project IDs."),
+      field("Ensembl gene IDs", geneInput, "Used for RNA-seq file queries and gene-to-project discovery.")
+    );
+    tcgaButtons.append(listMaf, listRna, findGeneProjects, useMsiPortalTcga);
+    tcgaRoot.append(tcgaHeader, tcgaControls, tcgaButtons, tcgaOutput);
+    display(tcgaRoot);
 
-  <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "public-cohort", step: 1, phase: "analysis", title: "Step 1. Review mutation counts, sample details, and input checks", mSigSDK, display });
-  </script>
+    async function withTcgaButton(buttonNode, title, task) {
+      const original = buttonNode.textContent;
+      buttonNode.disabled = true;
+      buttonNode.textContent = "Loading...";
+      tcgaOutput.replaceChildren(statusCard(title, "Querying public GDC endpoints.", "running"));
+      try {
+        await task();
+      } catch (error) {
+        tcgaOutput.replaceChildren(statusCard(`${title} failed`, error.message, "error"));
+      } finally {
+        buttonNode.disabled = false;
+        buttonNode.textContent = original;
+      }
+    }
 
-  <script type="module" pinned id="2">
-    const cohortIssueRows = (cohortValidation.issues || []).map((issue) => ({
-      sample: issue.sample || "matrix",
-      code: issue.code || issue.type || "validation_issue",
-      message: issue.message || String(issue),
+    listMaf.addEventListener("click", () => withTcgaButton(listMaf, "Loading TCGA MAF file metadata", async () => {
+      const projects = normalizeProjectList(projectInput.value);
+      if (!projects.length) throw new Error("Enter at least one TCGA project ID.");
+      const result = await mSigSDK.TCGA.getMafInformationFromProjects(projects);
+      const fileRows = flattenObjectRows(result, "samples_description");
+      tcgaOutput.replaceChildren(
+        metrics([
+          { label: "Projects queried", value: projects.length },
+          { label: "MAF files", value: fileRows.length },
+          { label: "Source", value: "GDC files API" },
+        ]),
+        table(fileRows, [
+          { key: "project", label: "Project" },
+          { key: "case_submitter_id", label: "Case" },
+          { key: "gender", label: "Gender" },
+          { key: "race", label: "Race" },
+          { key: "age_at_diagnosis", label: "Age at diagnosis" },
+          { key: "tissue_type", label: "Tissue" },
+          { key: "tumor_descriptor", label: "Tumor descriptor" },
+          { key: "file_id", label: "MAF file ID" },
+        ], { title: "Masked somatic mutation files", maxRows: 20 }),
+        downloadMany([
+          {
+            filename: "tcga_gdc_maf_files.json",
+            type: "json",
+            value: result,
+            label: "Download GDC MAF file metadata JSON",
+          },
+          {
+            filename: "tcga_gdc_maf_files.csv",
+            text: rowsToCsv(fileRows),
+            label: "Download GDC MAF file metadata CSV",
+          },
+        ])
+      );
     }));
 
-    display(table(
-      burdenSampleRows(cohortBurden, cohortSelectedSamples),
-      [
-        { key: "sample", label: "Sample" },
-        { key: "mutations", label: "Mutations" },
-        { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
-        { key: "lowBurden", label: "Low mutation-count review cue" },
-      ],
-      { maxRows: 12 }
-    ));
-    display(table(
-      cohortMetadata,
-      [
-        { key: "sample", label: "Sample" },
-        { key: "cohort", label: "Cohort/group" },
-        { key: "group", label: "Fixture group" },
-        { key: "assay", label: "Assay" },
-        { key: "source", label: "Source" },
-      ],
-      { maxRows: 12 }
-    ));
-    display(table(
-      cohortIssueRows,
-      [
-        { key: "sample", label: "Sample" },
-        { key: "code", label: "Issue code" },
-        { key: "message", label: "Message" },
-      ],
-      { maxRows: 8 }
-    ));
+    listRna.addEventListener("click", () => withTcgaButton(listRna, "Loading TCGA RNA-seq file metadata", async () => {
+      const projects = normalizeProjectList(projectInput.value);
+      const genes = normalizeGeneList(geneInput.value);
+      if (!projects.length) throw new Error("Enter at least one TCGA project ID.");
+      if (!genes.length) throw new Error("Enter at least one Ensembl gene ID.");
+      const result = await mSigSDK.TCGA.getTpmCountsByGenesOnProjects(genes, projects);
+      const fileRows = flattenObjectRows(result, "files_description");
+      tcgaOutput.replaceChildren(
+        metrics([
+          { label: "Projects queried", value: projects.length },
+          { label: "Genes queried", value: genes.length },
+          { label: "RNA-seq files", value: fileRows.length },
+        ]),
+        table(fileRows, [
+          { key: "project", label: "Project" },
+          { key: "cases_submitter_id", label: "Case" },
+          { key: "sample_type", label: "Sample type" },
+          { key: "workflow_type", label: "Workflow" },
+          { key: "file_name", label: "File" },
+          { key: "file_id", label: "File ID" },
+        ], { title: "RNA-seq quantification files", maxRows: 20 }),
+        downloadMany([
+          {
+            filename: "tcga_gdc_rnaseq_files.json",
+            type: "json",
+            value: result,
+            label: "Download RNA-seq file metadata JSON",
+          },
+          {
+            filename: "tcga_gdc_rnaseq_files.csv",
+            text: rowsToCsv(fileRows),
+            label: "Download RNA-seq file metadata CSV",
+          },
+        ])
+      );
+    }));
+
+    findGeneProjects.addEventListener("click", () => withTcgaButton(findGeneProjects, "Finding TCGA projects by gene", async () => {
+      const genes = normalizeGeneList(geneInput.value);
+      if (!genes.length) throw new Error("Enter at least one Ensembl gene ID.");
+      const result = await mSigSDK.TCGA.getProjectsByGene(genes);
+      const rows = Object.entries(result.projects_by_gene || {}).flatMap(([gene, projects]) =>
+        (projects || []).map((project) => ({ gene, project }))
+      );
+      tcgaOutput.replaceChildren(
+        metrics([
+          { label: "Genes queried", value: genes.length },
+          { label: "Projects found", value: result.projects?.length || 0 },
+          { label: "Source", value: "GDC analysis API" },
+        ]),
+        table(rows, [
+          { key: "gene", label: "Gene" },
+          { key: "project", label: "Project" },
+        ], { title: "Projects containing selected genes", maxRows: 40 }),
+        downloadMany([
+          {
+            filename: "tcga_gene_projects.json",
+            type: "json",
+            value: result,
+            label: "Download gene project JSON",
+          },
+        ])
+      );
+    }));
+
+    useMsiPortalTcga.addEventListener("click", () => withTcgaButton(useMsiPortalTcga, "Selecting TCGA in mSigPortal menu", async () => {
+      const project = normalizeProjectList(projectInput.value)[0] || "TCGA-LUAD";
+      if (!window.publicCohortExplorer?.setSelectionFromTcgaProject) {
+        throw new Error("The mSigPortal explorer is not ready yet.");
+      }
+      await window.publicCohortExplorer.setSelectionFromTcgaProject(project);
+      tcgaOutput.replaceChildren(statusCard(
+        "mSigPortal TCGA selection updated",
+        `${project} maps to ${TCGA_PROJECT_TO_MSIG_CANCER[project] || "the default TCGA cancer menu"}. Use Load selected cohort above to visualize spectra.`,
+        "ready"
+      ));
+    }));
+
+    tcgaOutput.append(note("For full TCGA variant-to-spectrum conversion, use the MAF-to-report or resource-portability notebooks after selecting projects and files here.", "info"));
   </script>
 
   <script type="text/markdown">
-    ## Step 2. Plot burden and similarity structure
+    ## 3. Move forward
 
-    These plots are input checks. They identify low-information spectra, duplicated or nearly identical profiles, and obvious sample structure before fitted exposures are introduced.
-
-    Use the plots to decide whether the cohort should be analyzed together, stratified, filtered, or inspected manually before fitting.
-  </script>
-
-  <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "public-cohort", step: 2, phase: "visualize", title: "Step 2. Plot burden and similarity structure", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="3">
-    const cohortBurdenDiv = document.createElement("div");
-    cohortBurdenDiv.style.width = "100%";
-    display(cohortBurdenDiv);
-    await mSigSDK.qcPlots.plotMutationBurdenSummary(cohortBurdenDiv, cohortBurden);
-
-    const cohortHeatmapDiv = document.createElement("div");
-    cohortHeatmapDiv.style.width = "100%";
-    display(cohortHeatmapDiv);
-    await mSigSDK.mSigPortal.mSigPortalPlots.plotCosineSimilarityHeatMap(
-      cohortSpectra,
-      cohortSettings.study,
-      cohortSettings.genomeDataType,
-      cohortSettings.cancerType,
-      cohortHeatmapDiv,
-      true,
-      "Viridis",
-      false
-    );
-  </script>
-
-  <script type="text/markdown">
-    ## Step 3. Move the table into downstream workflows
-
-    Once the spectra pass the initial review, the same table can feed known-signature quality checks, uncertainty analysis, panel review, NMF screening, export/report workflows, or multi-tool comparison. This final section makes the next step explicit so exploration does not become a dead-end table.
-  </script>
-
-  <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "public-cohort", step: 3, phase: "visualize", title: "Step 3. Move the table into downstream workflows", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="4">
-    display(table(
-      [
-        { nextWorkflow: "Known-signature quality check", notebook: "msig-sdk-qc-walkthrough.onb.html", objectToPass: "The sample-by-mutation table, plus COSMIC or local signature tables" },
-        { nextWorkflow: "Uncertainty and cutoffs", notebook: "msig-sdk-uncertainty-thresholds.onb.html", objectToPass: "The sample-by-mutation table, selected reference signatures, and cutoff values to test" },
-        { nextWorkflow: "Cohort and panel workflow", notebook: "msig-sdk-cohort-panel-workflow.onb.html", objectToPass: "The sample-by-mutation table, sample details, and a coverage table when panel or exome data are used" },
-        { nextWorkflow: "Discovery extraction (NMF)", notebook: "msig-sdk-nmf-extraction.onb.html", objectToPass: "The sample-by-mutation table after checking mutation count and sample count" },
-      ],
-      [
-        { key: "nextWorkflow", label: "Next workflow" },
-        { key: "notebook", label: "Notebook" },
-        { key: "objectToPass", label: "Reusable data" },
-      ]
-    ));
-    display(downloadMany([
-      {
-        filename: "public_cohort_spectra.tsv",
-        text: spectraMatrixToTsv(cohortSpectra, cohortContexts),
-        label: "Download spectra TSV",
-      },
-      {
-        filename: "public_cohort_metadata.csv",
-        text: rowsToCsv(cohortMetadata),
-        label: "Download sample details CSV",
-      },
-      {
-        filename: "public_cohort_validation.json",
-        type: "json",
-        value: {
-          settings: cohortSettings,
-          sourceStatus: cohortData.sourceStatus,
-          validation: cohortValidation,
-          burden: cohortBurden,
-        },
-        label: "Download validation JSON",
-      },
-    ]));
+    After a public cohort is loaded and visualized, use the exported spectra, metadata, raw API rows, and optional fitted exposures as the handoff to the focused analysis notebooks. Keep this notebook for discovery and first-pass visualization; use the known-signature, uncertainty, panel/WES, or MAF notebooks when you are ready to make reportable analysis decisions.
   </script>
 </notebook>

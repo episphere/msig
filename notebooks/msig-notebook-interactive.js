@@ -11,9 +11,9 @@ import {
 
 const MODE_COPY = {
   "public-cohort": {
-    title: "Interactive public cohort explorer",
+    title: "Interactive public API and TCGA cohort explorer",
     summary:
-      "Load sample or public mutation spectra, choose mutation-count cutoffs, check coverage, and compare samples before fitting signatures.",
+      "Discover public mSigPortal and TCGA/GDC resources, load a real cohort, visualize spectra, and decide which downstream notebook should take over.",
     kind: "spectra",
   },
   "end-to-end": {
@@ -29,9 +29,9 @@ const MODE_COPY = {
     kind: "fit",
   },
   "resource-portability": {
-    title: "Interactive data transfer check",
+    title: "Interactive resource portability check",
     summary:
-      "Move spectra and signatures through common table formats, then verify that the same data can be used for fitting and reports.",
+      "Move spectra and signatures through common table formats, then verify that source metadata and object shape survive the round trip.",
     kind: "portability",
   },
   "bring-your-own-spectra": {
@@ -41,9 +41,9 @@ const MODE_COPY = {
     kind: "fit",
   },
   "maf-fit-report": {
-    title: "Interactive MAF to report workflow",
+    title: "Interactive MAF conversion audit",
     summary:
-      "Paste or upload variant rows, choose grouping and context settings, convert them to SBS96 spectra, fit signatures, and review checks.",
+      "Paste or upload variant rows, choose grouping and context settings, reconcile convertible SNV rows against SBS96 counts, and save handoff files.",
     kind: "maf",
   },
   "cohort-panel": {
@@ -91,19 +91,18 @@ const MODE_COPY = {
 };
 
 const NOTEBOOK_LINKS = [
-  ["End-to-end workflow", "msig-sdk-end-to-end-workflow.onb.html", "Full guided workflow"],
-  ["Public cohort exploration", "msig-sdk-public-cohort-exploration.onb.html", "Input checks"],
-  ["Known-signature quality check", "msig-sdk-qc-walkthrough.onb.html", "Validation and fitting"],
-  ["Uncertainty and cutoffs", "msig-sdk-uncertainty-thresholds.onb.html", "Stability review"],
-  ["Bring your own spectra", "msig-sdk-bring-your-own-spectra.onb.html", "Local data"],
-  ["MAF to report", "msig-sdk-maf-fit-report.onb.html", "Variant rows"],
-  ["Cohort and panel", "msig-sdk-cohort-panel-workflow.onb.html", "Sample groups and assays"],
-  ["Panel/WES evidence review", "msig-sdk-panel-evidence-tiers.onb.html", "Restricted assays"],
-  ["Discovery extraction (NMF)", "msig-sdk-nmf-extraction.onb.html", "Discovery screening"],
-  ["Export and reports", "msig-sdk-export-report.onb.html", "Saved outputs"],
-  ["Move data between resources", "msig-sdk-resource-portability.onb.html", "Round trips"],
-  ["Multi-tool comparison", "msig-sdk-multi-engine-comparison.onb.html", "Cross-tool review"],
-  ["Experimental sandbox", "msig-sdk-experimental-sandbox.onb.html", "Exploratory outputs"],
+  ["End-to-end workflow", "msig-sdk-end-to-end-workflow.onb.html", "Full workflow", "Complete fit-review-export arc for first-time readers."],
+  ["Public API and TCGA cohort explorer", "msig-sdk-public-cohort-exploration.onb.html", "Public resources", "Discover public cohorts, API surfaces, TCGA/GDC files, and first-pass cohort plots."],
+  ["Resource portability", "msig-sdk-resource-portability.onb.html", "Resource portability", "Prove that resource-derived objects survive import/export and can be reused."],
+  ["MAF to report", "msig-sdk-maf-fit-report.onb.html", "Variant conversion", "Audit MAF field mapping, grouping, context provenance, and count reconciliation."],
+  ["Known-signature quality check", "msig-sdk-qc-walkthrough.onb.html", "Quality control", "Unpack mutation burden, reconstruction, residuals, warnings, and review steps."],
+  ["Cohort and panel", "msig-sdk-cohort-panel-workflow.onb.html", "Cohort plus assay", "Review cohort metadata, group comparisons, and restricted-assay limits together."],
+  ["Panel/WES evidence review", "msig-sdk-panel-evidence-tiers.onb.html", "Restricted assays", "Define support tiers for panel/WES data without cohort storytelling."],
+  ["Discovery extraction (NMF)", "msig-sdk-nmf-extraction.onb.html", "Discovery screening", "Learn candidate signatures from spectra and prepare production extraction files."],
+  ["Uncertainty and cutoffs", "msig-sdk-uncertainty-thresholds.onb.html", "Stability review", "Stress-test fitted contributions with bootstrap intervals and cutoff sweeps."],
+  ["Export and reports", "msig-sdk-export-report.onb.html", "Saved outputs", "Check round trips, report fields, provenance, and rerun records."],
+  ["Multi-tool comparison", "msig-sdk-multi-engine-comparison.onb.html", "Cross-tool review", "Compare fitting engines on identical inputs and inspect sample-level disagreements."],
+  ["Experimental sandbox", "msig-sdk-experimental-sandbox.onb.html", "Exploratory outputs", "Expose experimental status, warnings, and validation boundaries."],
 ];
 
 const PHASE_COPY = {
@@ -1540,7 +1539,10 @@ export function renderNotebookIndex({ display }) {
   root.className = "workflow-panel";
   const controls = document.createElement("div");
   controls.className = "workflow-control-grid compact";
-  const goal = select(["Full workflow", "Input checks", "Validation and fitting", "Stability review", "Local data", "Variant rows", "Restricted assays", "Discovery screening", "Saved outputs", "Cross-tool review", "Exploratory outputs"]);
+  const goal = select([
+    "All goals",
+    ...NOTEBOOK_LINKS.map(([, , topic]) => topic),
+  ]);
   const filter = input("");
   const output = document.createElement("div");
   output.className = "workflow-output-stack";
@@ -1549,17 +1551,17 @@ export function renderNotebookIndex({ display }) {
     const query = filter.value.trim().toLowerCase();
     const selected = goal.value;
     const rows = NOTEBOOK_LINKS
-      .filter(([, , topic]) => selected === "Full workflow" || topic === selected || selected === topic)
-      .filter(([title, file, topic]) => !query || `${title} ${file} ${topic}`.toLowerCase().includes(query))
-      .map(([title, file, topic]) => ({ title, topic, open: `./viewer.html?notebook=${file}` }));
+      .filter(([, , topic]) => selected === "All goals" || topic === selected)
+      .filter(([title, file, topic, unique]) => !query || `${title} ${file} ${topic} ${unique}`.toLowerCase().includes(query))
+      .map(([title, file, topic, unique]) => ({ title, topic, unique, open: `./viewer.html?notebook=${file}` }));
     output.replaceChildren();
     const table = document.createElement("table");
     table.className = "output-table";
-    table.innerHTML = `<thead><tr><th>Notebook</th><th>Topic</th><th>Open</th></tr></thead>`;
+    table.innerHTML = `<thead><tr><th>Notebook</th><th>Goal</th><th>Unique role</th><th>Open</th></tr></thead>`;
     const body = document.createElement("tbody");
     for (const row of rows) {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${row.title}</td><td>${row.topic}</td><td><a href="${row.open}">Open notebook</a></td>`;
+      tr.innerHTML = `<td>${row.title}</td><td>${row.topic}</td><td>${row.unique}</td><td><a href="${row.open}">Open notebook</a></td>`;
       body.append(tr);
     }
     table.append(body);
