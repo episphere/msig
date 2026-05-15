@@ -311,17 +311,30 @@ const {
 
 const {
   ADAPTER_SCHEMA_VERSION = "msig.adapters.v0.3",
+  DEFAULT_SPC_PACKAGE = "SigProfilerClusters==1.2.2",
+  DEFAULT_SPE_PACKAGE = "SigProfilerExtractor==1.2.6",
+  DEFAULT_SPMG_PACKAGE = "SigProfilerMatrixGenerator==1.3.6",
+  DEFAULT_SPP_PACKAGE = "sigProfilerPlotting==1.4.3",
+  DEFAULT_SPS_PACKAGE = "SigProfilerSimulator==1.2.2",
   DEFAULT_SPA_PACKAGE = "SigProfilerAssignment==1.1.3",
   createInteroperabilityBundle = missingDependency("createInteroperabilityBundle"),
   parseExposureTables = missingDependency("parseExposureTables"),
   parseDeconstructSigsOutput = missingDependency("parseDeconstructSigsOutput"),
+  parseSigminerOutput = missingDependency("parseSigminerOutput"),
+  parseSigProfilerMatrixGeneratorOutput = missingDependency("parseSigProfilerMatrixGeneratorOutput"),
   parseSigProfilerExtractorOutput = missingDependency("parseSigProfilerExtractorOutput"),
   prepareDeconstructSigsInput = missingDependency("prepareDeconstructSigsInput"),
   prepareMuSiCalRefitInput = missingDependency("prepareMuSiCalRefitInput"),
+  prepareSigminerInput = missingDependency("prepareSigminerInput"),
+  prepareSigProfilerClustersInput = missingDependency("prepareSigProfilerClustersInput"),
   prepareSigProfilerAssignmentInput = missingDependency("prepareSigProfilerAssignmentInput"),
   prepareSigProfilerExtractorInput = missingDependency("prepareSigProfilerExtractorInput"),
+  prepareSigProfilerMatrixGeneratorInput = missingDependency("prepareSigProfilerMatrixGeneratorInput"),
+  prepareSigProfilerPlottingInput = missingDependency("prepareSigProfilerPlottingInput"),
+  prepareSigProfilerSimulatorInput = missingDependency("prepareSigProfilerSimulatorInput"),
   runMuSiCalRefit = missingDependency("runMuSiCalRefit"),
   runSigProfilerAssignment = missingDependency("runSigProfilerAssignment"),
+  runSigProfilerExtractor = missingDependency("runSigProfilerExtractor"),
   runSparseNnlsRefit = missingDependency("runSparseNnlsRefit"),
 } = adaptersModule;
 
@@ -1253,6 +1266,105 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
 
   //#region Plot a patient's mutational spectra
 
+  function profileDisplayNames(mutationalSpectra) {
+    return Object.keys(mutationalSpectra || {});
+  }
+
+  function plotGroupedMutationalProfilesWithPlotly(
+    divID,
+    mutationalSpectra,
+    titlePrefix = "Mutational profiles"
+  ) {
+    const profileNames = profileDisplayNames(mutationalSpectra);
+    const layout = {
+      title: `${titlePrefix} for ${profileNames.join(", ")}`,
+      xaxis: { title: "Mutation Type" },
+      yaxis: { title: "Count" },
+      barmode: "group",
+    };
+
+    const traces = profileNames.map((profileName) => ({
+      x: Object.keys(mutationalSpectra[profileName] || {}),
+      y: Object.values(mutationalSpectra[profileName] || {}),
+      name: `${profileName}`,
+      type: "bar",
+    }));
+
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces, layout);
+    return { traces, layout };
+  }
+
+  function plotCosmicSbs96ProfileSet(
+    divID,
+    mutationalSpectra,
+    {
+      title = "COSMIC-style SBS96 profile",
+      subtitle =
+        "COSMIC-style SBS96 profile. Plotly grouped bars are reserved for three or more profiles.",
+      normalize = "auto",
+    } = {}
+  ) {
+    const collection = normalizeSbs96SpectrumCollection(
+      mutationalSpectra,
+      "Profile"
+    );
+    const profileNames = Object.keys(collection);
+
+    if (!profileNames.length) {
+      return renderPlotError(
+        divID,
+        "COSMIC-style profile rendering requires SBS96 context-keyed data."
+      );
+    }
+
+    const { element: container } = resolvePlotContainer(divID);
+    container.innerHTML = "";
+    container.style.display = "grid";
+    container.style.gap = profileNames.length > 1 ? "28px" : "0";
+
+    const rendered = profileNames.slice(0, 2).map((profileName) => {
+      const profileDiv = document.createElement("div");
+      profileDiv.style.width = "100%";
+      container.appendChild(profileDiv);
+      return plotCosmicSbs96Profile(profileDiv, collection, {
+        sample: profileName,
+        normalize,
+        title:
+          profileNames.length === 1
+            ? title
+            : `${title}: ${profileName}`,
+        subtitle,
+      });
+    });
+
+    return rendered.length === 1 ? rendered[0] : rendered;
+  }
+
+  function enforceCosmicProfileRule(
+    divID,
+    mutationalSpectra,
+    profileCount,
+    { matrixSize = null, mutationType = null } = {}
+  ) {
+    if (profileCount >= 3) return null;
+
+    const isSbs96 =
+      (Number(matrixSize) === 96 && mutationType === "SBS") ||
+      looksLikeSbs96Record(mutationalSpectra) ||
+      Object.values(mutationalSpectra || {}).some((record) =>
+        looksLikeSbs96Record(record)
+      );
+
+    if (isSbs96) {
+      return plotCosmicSbs96ProfileSet(divID, mutationalSpectra);
+    }
+
+    return renderPlotError(
+      divID,
+      "One or two mutational signature profiles must use the COSMIC-style SBS96 renderer. Pass three or more profiles to use the grouped Plotly implementation."
+    );
+  }
+
   /**
    * Plots the mutational spectrum for the given parameters.
    * @async
@@ -1274,57 +1386,35 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
       );
     }
 
-    const numberOfPatients = Object.keys(mutationalSpectra).length;
-    if (numberOfPatients == 0) {
+    if (looksLikeSbs96Record(mutationalSpectra)) {
+      return plotCosmicSbs96ProfileSet(divID, mutationalSpectra);
+    }
+
+    const numberOfProfiles = Object.keys(mutationalSpectra).length;
+    if (numberOfProfiles == 0) {
       return renderPlotError(
         divID,
         "no data available for the selected parameters."
       );
-    } else if (numberOfPatients > 1) {
-      const layout = {
-        title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
-          ", "
-        )}`,
-        xaxis: { title: "Mutation Type" },
-        yaxis: { title: "Count" },
-        barmode: "group",
-      };
-
-      const traces = Object.keys(mutationalSpectra).map((patient) => ({
-        x: Object.keys(mutationalSpectra[patient]),
-        y: Object.values(mutationalSpectra[patient]),
-        name: `${patient}`,
-        type: "bar",
-      }));
-
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces, layout);
-    } else {
-      let traces = [];
-
-      const layout = {
-        title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
-          ", "
-        )}`,
-        xaxis: { title: "Mutation Type" },
-        yaxis: { title: "Count" },
-        barmode: "group",
-      };
-
-      for (let i = 0; i < Object.keys(mutationalSpectra).length; i++) {
-        let plotlyData = formatMutationalSpectraData(
-          mutationalSpectra[Object.keys(mutationalSpectra)[i]],
-          Object.keys(mutationalSpectra)[i]
-        );
-
-        traces = traces.concat(plotlyData);
-      }
-
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces, layout);
     }
+
+    const ruleResult = enforceCosmicProfileRule(
+      divID,
+      mutationalSpectra,
+      numberOfProfiles,
+      { matrixSize }
+    );
+    if (ruleResult) return ruleResult;
+
+    return plotGroupedMutationalProfilesWithPlotly(
+      divID,
+      mutationalSpectra,
+      "Mutational profiles"
+    );
   }
 
   /**
-Renders a plot of the mutational spectra for one or more patients in a given div element ID using Plotly.
+Renders a plot of mutational profiles in a given div element ID.
 @async
 @function plotPatientMutationalSpectrum
 @memberof mSigPortalPlots
@@ -1335,7 +1425,8 @@ Renders a plot of the mutational spectra for one or more patients in a given div
 @throws {Error} An error is thrown if no data is available for the selected parameters.
 */
 
-  // This function plots the mutational spectrum for the given parameters.
+  // One or two SBS96 profiles always use the COSMIC-style renderer; grouped
+  // Plotly bars are reserved for three or more profiles.
   async function plotPatientMutationalSpectrum(
     mutationalSpectra,
     divID = "mutationalSpectrumMatrix"
@@ -1389,273 +1480,22 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         divID,
         "mutationalSpectra records must include a profile value."
       );
-    } else if (
-      numberOfPatients > 2 &&
-      matrixSize == 96 &&
-      mutationType == "SBS"
-    ) {
-      mutationalSpectra = extractMutationalSpectra(mutationalSpectra);
-      const layout = {
-        title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
-          ", "
-        )}`,
-        xaxis: { title: "Mutation Type" },
-        yaxis: { title: "Count" },
-        barmode: "group",
-      };
-
-      const traces = Object.keys(mutationalSpectra).map((patient) => ({
-        x: Object.keys(mutationalSpectra[patient]),
-        y: Object.values(mutationalSpectra[patient]),
-        name: `${patient}`,
-        type: "bar",
-      }));
-
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces, layout);
-    } else if (
-      numberOfPatients == 2 &&
-      matrixSize == 96 &&
-      mutationType == "SBS"
-    ) {
-      let traces = plotMutationalProfileSBS96Comparison(
-        mutationalSpectra[0],
-        mutationalSpectra[1]
-      );
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 1 &&
-      matrixSize == 96 &&
-      mutationType == "SBS"
-    ) {
-      let traces = plotMutationalProfileSBS96(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 1 &&
-      matrixSize == 192 &&
-      mutationType == "SBS"
-    ) {
-      let traces = plotMutationalProfileSBS192(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 2 &&
-      matrixSize == 192 &&
-      mutationType == "SBS"
-    ) {
-      let traces = plotMutationalProfileSBS192Comparison(
-        mutationalSpectra[0],
-        mutationalSpectra[1]
-      );
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 1 &&
-      matrixSize == 288 &&
-      mutationType == "SBS"
-    ) {
-      let traces = plotMutationalProfileSBS288(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 1 &&
-      matrixSize == 384 &&
-      mutationType == "SBS"
-    ) {
-      let traces = plotMutationalProfileSBS384(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 1 &&
-      matrixSize == 1536 &&
-      mutationType == "SBS"
-    ) {
-      let traces = plotMutationalProfileSBS1536(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 1 &&
-      matrixSize == 78 &&
-      mutationType == "DBS"
-    ) {
-      let traces = plotMutationalProfileDBS78(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 2 &&
-      matrixSize == 78 &&
-      mutationType == "DBS"
-    ) {
-      let traces = plotMutationalProfileDBS78Comparison(
-        mutationalSpectra[0],
-        mutationalSpectra[1],
-        "pc"
-      );
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 1 &&
-      matrixSize == 186 &&
-      mutationType == "DBS"
-    ) {
-      let traces = plotMutationalProfileDBS186(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 1 &&
-      matrixSize == 28 &&
-      mutationType == "ID"
-    ) {
-      let traces = plotMutationalProfileID28(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 1 &&
-      matrixSize == 29 &&
-      mutationType == "ID"
-    ) {
-      let traces = plotMutationalProfileID29(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 1 &&
-      matrixSize == 83 &&
-      mutationType == "ID"
-    ) {
-      let traces = plotMutationalProfileID83(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 2 &&
-      matrixSize == 83 &&
-      mutationType == "ID"
-    ) {
-      let traces = plotMutationalProfileID83Comparison(
-        mutationalSpectra[0],
-        mutationalSpectra[1],
-        "pc"
-      );
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 1 &&
-      matrixSize == 415 &&
-      mutationType == "ID"
-    ) {
-      let traces = plotMutationalProfileID415(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 1 &&
-      matrixSize == 32 &&
-      mutationType == "RS"
-    ) {
-      let traces = plotMutationalProfileRS32(mutationalSpectra[0]);
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else if (
-      numberOfPatients == 2 &&
-      matrixSize == 32 &&
-      mutationType == "RS"
-    ) {
-      let traces = plotMutationalProfileRS32Comparison(
-        mutationalSpectra[0],
-        mutationalSpectra[1]
-      );
-      plotGraphWithPlotlyAndMakeDataDownloadable(
-        divID,
-        traces.traces,
-        traces.layout
-      );
-      return traces;
-    } else {
-      let traces = [];
-
-      const layout = {
-        title: `Mutational Spectra for ${Object.keys(mutationalSpectra).join(
-          ", "
-        )}`,
-        xaxis: { title: "Mutation Type" },
-        yaxis: { title: "Count" },
-        barmode: "group",
-      };
-
-      for (let i = 0; i < Object.keys(mutationalSpectra).length; i++) {
-        let plotlyData = formatMutationalSpectraData(
-          mutationalSpectra[Object.keys(mutationalSpectra)[i]],
-          Object.keys(mutationalSpectra)[i]
-        );
-
-        traces = traces.concat(plotlyData);
-      }
-
-      plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces, layout);
     }
+
+    const extractedSpectra = extractMutationalSpectra(mutationalSpectra);
+    const ruleResult = enforceCosmicProfileRule(
+      divID,
+      extractedSpectra,
+      numberOfPatients,
+      { matrixSize, mutationType }
+    );
+    if (ruleResult) return ruleResult;
+
+    return plotGroupedMutationalProfilesWithPlotly(
+      divID,
+      extractedSpectra,
+      "Mutational profiles"
+    );
   }
 
   /**
@@ -4025,6 +3865,302 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     });
   }
 
+  const SBS96_BASES = ["A", "C", "G", "T"];
+  const SBS96_SUBSTITUTIONS = ["C>A", "C>G", "C>T", "T>A", "T>C", "T>G"];
+  const SBS96_COSMIC_COLORS = {
+    "C>A": "#4EB3D3",
+    "C>G": "#111827",
+    "C>T": "#DC2626",
+    "T>A": "#B8BDC7",
+    "T>C": "#16A34A",
+    "T>G": "#E879B9",
+  };
+  const SBS96_CONTEXT_PATTERN = /^([ACGT])\[([CT]>[ACGT])\]([ACGT])$/;
+
+  function getCosmicSbs96Contexts(contexts = null) {
+    const canonicalContexts = SBS96_SUBSTITUTIONS.flatMap((substitution) =>
+      SBS96_BASES.flatMap((fivePrime) =>
+        SBS96_BASES.map((threePrime) => `${fivePrime}[${substitution}]${threePrime}`)
+      )
+    );
+    if (!contexts || contexts.length === 0) {
+      return canonicalContexts;
+    }
+
+    const suppliedSet = new Set(contexts);
+    const ordered = canonicalContexts.filter((context) => suppliedSet.has(context));
+    const extra = contexts.filter((context) => !canonicalContexts.includes(context));
+    return [...ordered, ...extra];
+  }
+
+  function looksLikeSbs96Record(value) {
+    return (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).some((key) => SBS96_CONTEXT_PATTERN.test(key))
+    );
+  }
+
+  function normalizeSbs96SpectrumCollection(spectra, fallbackSample = "Spectrum") {
+    if (looksLikeSbs96Record(spectra)) {
+      return { [fallbackSample]: spectra };
+    }
+
+    return Object.fromEntries(
+      Object.entries(spectra || {}).filter(([, value]) => looksLikeSbs96Record(value))
+    );
+  }
+
+  function sbs96RowsForCosmicPlot(record, contexts, normalize) {
+    const total = contexts.reduce((sum, context) => {
+      const value = Number(record?.[context]);
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+    const useRelativeScale =
+      normalize === true || (normalize === "auto" && total > 0 && total <= 1.000001);
+
+    return contexts.map((context, index) => {
+      const match = context.match(SBS96_CONTEXT_PATTERN);
+      const countValue = Number(record?.[context]);
+      const count = Number.isFinite(countValue) ? countValue : 0;
+      const proportion = total > 0 ? count / total : 0;
+      const substitution = match?.[2] || "Other";
+
+      return {
+        context,
+        fivePrime: match?.[1] || "",
+        substitution,
+        threePrime: match?.[3] || "",
+        count,
+        proportion,
+        value: useRelativeScale ? proportion : count,
+        index,
+      };
+    });
+  }
+
+  /**
+   * Renders a COSMIC-style SBS96 bar profile grouped by the six base-substitution classes.
+   *
+   * @function plotCosmicSbs96Profile
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} spectra - Either one SBS96 record or a sample-keyed spectra object.
+   * @param {Object} [options] - Plot options.
+   * @param {string} [options.sample=null] - Sample or group to render.
+   * @param {string[]} [options.contexts=null] - Optional context order.
+   * @param {boolean|string} [options.normalize=false] - Use true for relative fractions or "auto" for probability-like input.
+   * @param {string} [options.title="COSMIC-style SBS96 profile"] - Figure title.
+   * @param {string} [options.subtitle=null] - Figure subtitle.
+   * @returns {Object|Element} Render metadata or an error element.
+   */
+  function plotCosmicSbs96Profile(divID, spectra, options = {}) {
+    const {
+      sample = null,
+      sampleName = null,
+      contexts = null,
+      normalize = false,
+      title = "COSMIC-style SBS96 profile",
+      subtitle =
+        "Bars are grouped by the six SBS classes used in COSMIC-style signature plots. Hover over a bar to see the full trinucleotide context.",
+    } = options;
+    const fallbackSample = sampleName || sample || "Spectrum";
+    const collection = normalizeSbs96SpectrumCollection(spectra, fallbackSample);
+    const sampleNames = Object.keys(collection);
+
+    if (sampleNames.length === 0) {
+      return renderPlotError(divID, "No SBS96 spectra available to plot.");
+    }
+
+    const selectedSample =
+      sampleNames.find((name) => name === sampleName || name === sample) || sampleNames[0];
+    const record = collection[selectedSample];
+    const orderedContexts = getCosmicSbs96Contexts(
+      contexts && contexts.length ? contexts : Object.keys(record || {})
+    );
+    const rows = sbs96RowsForCosmicPlot(record, orderedContexts, normalize);
+    const total = rows.reduce((sum, row) => sum + row.count, 0);
+    const useRelativeScale =
+      normalize === true || (normalize === "auto" && total > 0 && total <= 1.000001);
+    const maxValue = d3.max(rows, (row) => row.value) || 0;
+
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title,
+      subtitle,
+      maxWidth: "1080px",
+      badges: [
+        { label: "Sample shown", value: selectedSample },
+        {
+          label: useRelativeScale ? "Total fraction" : "Total mutations",
+          value: useRelativeScale ? d3.format(".2f")(total) : formatPlotNumber(total, 0),
+        },
+        { label: "Contexts", value: orderedContexts.length },
+      ],
+    });
+
+    const width = 1080;
+    const height = 500;
+    const margin = { top: 60, right: 34, bottom: 78, left: 82 };
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = height - margin.top - margin.bottom;
+    const svg = appendResponsiveSvg(chart, width, height, "COSMIC-style SBS96 profile");
+    const plot = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const x = d3
+      .scaleBand()
+      .domain(orderedContexts)
+      .range([0, innerWidth])
+      .paddingInner(0.14);
+    const y = d3
+      .scaleLinear()
+      .domain([0, maxValue > 0 ? maxValue * 1.15 : 1])
+      .nice()
+      .range([innerHeight, 0]);
+
+    plot
+      .append("g")
+      .selectAll("line")
+      .data(y.ticks(5))
+      .join("line")
+      .attr("x1", 0)
+      .attr("x2", innerWidth)
+      .attr("y1", (tick) => y(tick))
+      .attr("y2", (tick) => y(tick))
+      .attr("stroke", SCIENTIFIC_COLORS.lightGray)
+      .attr("stroke-width", 1);
+
+    const yAxis = plot
+      .append("g")
+      .call(
+        d3
+          .axisLeft(y)
+          .ticks(5)
+          .tickFormat(useRelativeScale ? d3.format(".0%") : d3.format("~s"))
+      );
+    styleD3Axis(yAxis);
+
+    const groupedContexts = SBS96_SUBSTITUTIONS.map((substitution) => ({
+      substitution,
+      contexts: rows.filter((row) => row.substitution === substitution).map((row) => row.context),
+    })).filter((group) => group.contexts.length > 0);
+
+    plot
+      .selectAll("rect.msigsdk-sbs96-band")
+      .data(groupedContexts)
+      .join("rect")
+      .attr("class", "msigsdk-sbs96-band")
+      .attr("x", (group) => x(group.contexts[0]) || 0)
+      .attr("y", -38)
+      .attr("width", (group) => {
+        const first = x(group.contexts[0]) || 0;
+        const last = x(group.contexts[group.contexts.length - 1]) || first;
+        return last - first + x.bandwidth();
+      })
+      .attr("height", 24)
+      .attr("rx", 2)
+      .attr("fill", (group) => SBS96_COSMIC_COLORS[group.substitution] || SCIENTIFIC_COLORS.gray)
+      .attr("opacity", 0.96);
+
+    plot
+      .selectAll("text.msigsdk-sbs96-band-label")
+      .data(groupedContexts)
+      .join("text")
+      .attr("class", "msigsdk-sbs96-band-label")
+      .attr("x", (group) => {
+        const first = x(group.contexts[0]) || 0;
+        const last = x(group.contexts[group.contexts.length - 1]) || first;
+        return (first + last + x.bandwidth()) / 2;
+      })
+      .attr("y", -22)
+      .attr("text-anchor", "middle")
+      .attr("fill", (group) =>
+        group.substitution === "T>A" ? SCIENTIFIC_COLORS.darkGray : "#ffffff"
+      )
+      .attr("font", "700 12px Arial, sans-serif")
+      .text((group) => group.substitution);
+
+    plot
+      .selectAll("line.msigsdk-sbs96-separator")
+      .data(groupedContexts.slice(1))
+      .join("line")
+      .attr("class", "msigsdk-sbs96-separator")
+      .attr("x1", (group) => (x(group.contexts[0]) || 0) - 4)
+      .attr("x2", (group) => (x(group.contexts[0]) || 0) - 4)
+      .attr("y1", -42)
+      .attr("y2", innerHeight)
+      .attr("stroke", "#9CA3AF")
+      .attr("stroke-width", 1)
+      .attr("stroke-dasharray", "3 4");
+
+    plot
+      .selectAll("rect.msigsdk-sbs96-bar")
+      .data(rows)
+      .join("rect")
+      .attr("class", "msigsdk-sbs96-bar")
+      .attr("x", (row) => x(row.context) || 0)
+      .attr("y", (row) => y(row.value))
+      .attr("width", x.bandwidth())
+      .attr("height", (row) => innerHeight - y(row.value))
+      .attr("fill", (row) => SBS96_COSMIC_COLORS[row.substitution] || SCIENTIFIC_COLORS.gray)
+      .attr("stroke", "rgba(255,255,255,0.65)")
+      .attr("stroke-width", 0.4)
+      .on("mousemove", (event, row) => {
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Context", row.context],
+            ["SBS class", row.substitution],
+            ["Count", formatPlotNumber(row.count, 3)],
+            ["Fraction of sample", d3.format(".2%")(row.proportion)],
+          ])
+        );
+      })
+      .on("mouseleave", hideTooltip);
+
+    const xAxis = plot
+      .append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(d3.axisBottom(x).tickValues([]).tickSizeOuter(0));
+    styleD3Axis(xAxis);
+
+    plot
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -innerHeight / 2)
+      .attr("y", -62)
+      .attr("text-anchor", "middle")
+      .text(useRelativeScale ? "Fraction of SBS mutations" : "Number of SBS mutations");
+
+    plot
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", innerWidth / 2)
+      .attr("y", innerHeight + 42)
+      .attr("text-anchor", "middle")
+      .text("SBS96 contexts in COSMIC mutation-class order");
+
+    plot
+      .append("text")
+      .attr("class", "msig-d3-caption")
+      .attr("x", innerWidth / 2)
+      .attr("y", innerHeight + 64)
+      .attr("text-anchor", "middle")
+      .text("Full trinucleotide labels are available on hover to keep the plot readable.");
+
+    return {
+      sample: selectedSample,
+      samples: sampleNames,
+      contexts: orderedContexts,
+      rows,
+      total,
+      normalize: useRelativeScale,
+    };
+  }
+
   /**
    * Renders observed-versus-reconstructed residual spectra for one fitted sample.
    *
@@ -4808,18 +4944,22 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     container.style.display = "grid";
     container.style.gap = "28px";
 
-    const rendered = [];
-    for (const [signatureName, signatureRecord] of signatures) {
-      const signatureDiv = document.createElement("div");
-      signatureDiv.style.width = "100%";
-      container.appendChild(signatureDiv);
-      rendered.push(
-        await plotPatientMutationalSpectrum(
-          [spectrumRecordToProfileRows(signatureRecord, signatureName, contexts)],
-          signatureDiv
-        )
-      );
-    }
+	    const rendered = [];
+	    for (const [signatureName, signatureRecord] of signatures) {
+	      const signatureDiv = document.createElement("div");
+	      signatureDiv.style.width = "100%";
+	      container.appendChild(signatureDiv);
+	      rendered.push(
+	        plotCosmicSbs96Profile(signatureDiv, signatureRecord, {
+	          sample: signatureName,
+	          contexts,
+	          normalize: "auto",
+	          title: `Extracted profile: ${signatureName}`,
+	          subtitle:
+	            "COSMIC-style SBS96 plot for the extracted pattern. Use this as an exploratory profile, not as a named etiology without additional validation.",
+	        })
+	      );
+	    }
 
     return rendered;
   }
@@ -5434,7 +5574,15 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         recommendedActions: fitResult.recommendedActions || [
           "Review MAF conversion count reconciliation, mutation burden, reconstruction error, and residuals before interpreting fitted exposures.",
         ],
-        publicationFigures: fitResult.publicationFigures || [],
+	        publicationFigures: [
+	          {
+	            id: "converted_sbs96_profile",
+	            title: "Converted COSMIC-style SBS96 profile",
+	            recommendedRenderer: "mSigSDK.qcPlots.plotCosmicSbs96Profile",
+	            dataFields: ["spectra"],
+	          },
+	          ...(fitResult.publicationFigures || []),
+	        ],
         provenance: {
           ...fitResult.provenance,
           genome: {
@@ -5529,14 +5677,20 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         : [
             "Proceed to known-signature fitting or exploratory extraction after reviewing burden and context coverage.",
           ],
-      publicationFigures: [
-        {
-          id: "mutation_burden",
-          title: "Mutation burden summary",
-          recommendedRenderer: "mSigSDK.qcPlots.plotMutationBurdenSummary",
-          dataFields: ["qc.mutationBurden"],
-        },
-      ],
+	      publicationFigures: [
+	        {
+	          id: "mutation_burden",
+	          title: "Mutation burden summary",
+	          recommendedRenderer: "mSigSDK.qcPlots.plotMutationBurdenSummary",
+	          dataFields: ["qc.mutationBurden"],
+	        },
+	        {
+	          id: "converted_sbs96_profile",
+	          title: "Converted COSMIC-style SBS96 profile",
+	          recommendedRenderer: "mSigSDK.qcPlots.plotCosmicSbs96Profile",
+	          dataFields: ["spectra"],
+	        },
+	      ],
       provenance: provenanceRecord,
       report: createAnalysisReport(
         {
@@ -5639,13 +5793,14 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     mSigPortalPlots,
   };
 
-  const userData = {
-    convertMatrix,
-    convertWGStoPanel,
-    createWGStoPanelValidationPairs,
-    plotPatientMutationalSpectrumuserData,
-    convertMutationalSpectraIntoJSON,
-  };
+	  const userData = {
+	    convertMatrix,
+	    convertWGStoPanel,
+	    createWGStoPanelValidationPairs,
+	    plotCosmicSbs96Profile,
+	    plotPatientMutationalSpectrumuserData,
+	    convertMutationalSpectraIntoJSON,
+	  };
 
   const TCGA = {
     getProjectsByGene,
@@ -5699,12 +5854,13 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     summarizeMutationBurden,
   };
 
-  const qcPlots = {
-    plotBootstrapConfidenceIntervals,
-    plotCohortGroupComparison,
-    plotFitQualityEvidenceDashboard,
-    plotFitResiduals,
-    plotMutationBurdenSummary,
+	  const qcPlots = {
+	    plotBootstrapConfidenceIntervals,
+	    plotCohortGroupComparison,
+	    plotCosmicSbs96Profile,
+	    plotFitQualityEvidenceDashboard,
+	    plotFitResiduals,
+	    plotMutationBurdenSummary,
     plotPanelEvidenceMatrix,
     plotReconstructionError,
     plotThresholdSensitivity,
@@ -5846,17 +6002,30 @@ Renders a plot of the mutational spectra for one or more patients in a given div
 
   const adapters = {
     ADAPTER_SCHEMA_VERSION,
+    DEFAULT_SPC_PACKAGE,
+    DEFAULT_SPE_PACKAGE,
+    DEFAULT_SPMG_PACKAGE,
+    DEFAULT_SPP_PACKAGE,
+    DEFAULT_SPS_PACKAGE,
     DEFAULT_SPA_PACKAGE,
     createInteroperabilityBundle,
     parseExposureTables,
     parseDeconstructSigsOutput,
+    parseSigminerOutput,
+    parseSigProfilerMatrixGeneratorOutput,
     parseSigProfilerExtractorOutput,
     prepareDeconstructSigsInput,
     prepareMuSiCalRefitInput,
+    prepareSigminerInput,
+    prepareSigProfilerClustersInput,
     prepareSigProfilerAssignmentInput,
     prepareSigProfilerExtractorInput,
+    prepareSigProfilerMatrixGeneratorInput,
+    prepareSigProfilerPlottingInput,
+    prepareSigProfilerSimulatorInput,
     runMuSiCalRefit,
     runSigProfilerAssignment,
+    runSigProfilerExtractor,
     runSparseNnlsRefit,
     sigProfilerAssignment: {
       prepareInput: prepareSigProfilerAssignmentInput,
@@ -5865,11 +6034,29 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     },
     sigProfilerExtractor: {
       prepareInput: prepareSigProfilerExtractorInput,
+      run: runSigProfilerExtractor,
       parseOutput: parseSigProfilerExtractorOutput,
+    },
+    sigProfilerMatrixGenerator: {
+      prepareInput: prepareSigProfilerMatrixGeneratorInput,
+      parseOutput: parseSigProfilerMatrixGeneratorOutput,
+    },
+    sigProfilerSimulator: {
+      prepareInput: prepareSigProfilerSimulatorInput,
+    },
+    sigProfilerClusters: {
+      prepareInput: prepareSigProfilerClustersInput,
+    },
+    sigProfilerPlotting: {
+      prepareInput: prepareSigProfilerPlottingInput,
     },
     deconstructSigs: {
       prepareInput: prepareDeconstructSigsInput,
       parseOutput: parseDeconstructSigsOutput,
+    },
+    sigminer: {
+      prepareInput: prepareSigminerInput,
+      parseOutput: parseSigminerOutput,
     },
     musical: {
       prepareRefitInput: prepareMuSiCalRefitInput,

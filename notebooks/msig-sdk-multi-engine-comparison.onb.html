@@ -8,15 +8,9 @@
 
 Run a single mutational spectrum table through the built-in mSigSDK fit, load package outputs from SigProfilerAssignment, deconstructSigs, MuSiCal, and independent R NNLS, and compare every result on the same samples and the same COSMIC SBS96 reference catalog.
 
-The workspace uses 38 cached PCAWG lung adenocarcinoma WGS spectra and nine COSMIC SBS96 signatures (`SBS1`, `SBS2`, `SBS4`, `SBS5`, `SBS13`, `SBS17a`, `SBS17b`, `SBS18`, `SBS40`). The same pattern applies to a researcher-owned cohort: replace the spectrum table and package-output CSVs, then rerun the notebook to inspect agreement, disagreement, and tool-specific outputs in one place.
+The workspace uses 38 cached PCAWG lung adenocarcinoma WGS spectra and nine COSMIC SBS96 signatures (`SBS1`, `SBS2`, `SBS4`, `SBS5`, `SBS13`, `SBS17a`, `SBS17b`, `SBS18`, `SBS40`). The same pattern applies to a researcher-owned cohort: replace the spectrum table and package-output CSVs, then rerun the comparison to inspect agreement, disagreement, and tool-specific outputs in one place.
 
 Read this as a reproducibility review rather than a leaderboard. The workflow fixes the input spectra and reference catalog, normalizes every package output into one contribution shape, reviews agreement at package and sample level, highlights disagreements, and exports the run files needed to reproduce the comparison.
-
-**Unique role:** compare refitting engines on identical inputs and expose where tools agree, disagree, or require separate run files.
-
-**Leave to focused notebooks:** beginner fitting instruction, report-field mechanics, panel support tiers, MAF conversion, and discovery extraction as the primary analysis.
-
-**After running it you should know:** whether a reported signature result is robust to the fitting engine or needs sample-level disagreement review.
 </script>
 
 <script type="module" pinned>
@@ -27,8 +21,7 @@ const {
   metrics,
   table,
   details,
-  formatNumber,
-  note
+  formatNumber
 } = mSigSDK.presentation;
 
 const engineDataBase = "../docs/manuscript/experiments/2026_05_13_deconstructsigs_concordance/data/";
@@ -202,28 +195,11 @@ function engineExposureLongRows(engineExposureSets, sampleNames, signatures) {
   return rows;
 }
 </script>
-
-  <script type="text/markdown">
-    ## Interactive workspace
-
-    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
-  </script>
-
-  <script type="module" pinned id="interactive-workspace">
-    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
-    renderInteractiveNotebook({ mode: "multi-engine", mSigSDK, display });
-  </script>
-
 <script type="text/markdown">
 ## Step 1. Define one dataset and one reference catalog
 
 Each engine is evaluated against the same spectra and the same reference-signature matrix. Browser-native mSigSDK execution is run directly in this page. Package outputs generated outside the browser are loaded from CSVs with the same sample and signature labels, so the comparison logic stays identical when local user results are substituted.
 </script>
-
-  <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "multi-engine", step: 1, phase: "data", title: "Step 1. Define one dataset and one reference catalog", mSigSDK, display });
-  </script>
-
 <script type="module">
 const [
   engineSpectrumRowsRaw,
@@ -262,7 +238,7 @@ const engineRegistryRows = [
   {
     engine: "mSigSDK NNLS",
     task: "Known-signature refit",
-    browser_execution: "Run in this notebook",
+    browser_execution: "Browser run",
     package_output: "Live SDK result",
     comparison_role: "Primary browser-native fit"
   },
@@ -290,16 +266,9 @@ const engineRegistryRows = [
   {
     engine: "MuSiCal SparseNNLS",
     task: "Known-signature refit",
-    browser_execution: "Package output imported; SDK sparse diagnostic runs separately",
+    browser_execution: "Package output imported",
     package_output: "Cached Park Lab MuSiCal SparseNNLS result",
     comparison_role: "MuSiCal refit benchmark"
-  },
-  {
-    engine: "SigProfilerExtractor",
-    task: "De novo extraction",
-    browser_execution: "Python package output import",
-    package_output: "Input bundle prepared; no package output loaded",
-    comparison_role: "Production extraction engine target"
   }
 ];
 
@@ -328,11 +297,6 @@ display(engineTable(engineRegistryRows, {
 
 The mSigSDK fit is recomputed in the browser from the shared spectra and reference catalog. R `nnls`, deconstructSigs, SigProfilerAssignment, and MuSiCal SparseNNLS are loaded from package-output CSVs that were generated with the same input matrix and catalog. SigProfilerAssignment can also be requested through the browser Pyodide adapter with `runSpa=1`, but the default path keeps the page fast and uses the archived full-cohort package output for the comparison.
 </script>
-
-  <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "multi-engine", step: 2, phase: "analysis", title: "Step 2. Run or import each engine output", mSigSDK, display });
-  </script>
-
 <script type="module">
 const engineMsiSdkLiveFit = await mSigSDK.signatureFitting.fitMutationalSpectraToSignatures(
   engineReferenceSignatures,
@@ -352,25 +316,6 @@ const engineRnnlsExposures = engineMatrixFromRows(engineRnnlsRowsRaw, "sample");
 const engineDeconstructExposures = engineMatrixFromRows(engineDeconstructRowsRaw, "sample");
 const engineSpaCachedExposures = engineMatrixFromRows(engineSpaRowsRaw, "sample");
 const engineMusicalPackageExposures = engineMatrixFromRows(engineMusicalRowsRaw, "sample");
-
-let engineMusicalCompatibleResult = null;
-let engineMusicalCompatibleExposures = {};
-try {
-  engineMusicalCompatibleResult = await mSigSDK.adapters.musical.runSparseNnlsRefit(
-    {
-      spectra: engineSpectra,
-      signatures: engineReferenceSignatures,
-      contexts: engineContextNames
-    },
-    {
-      threshold: 0.01,
-      renormalize: true
-    }
-  );
-  engineMusicalCompatibleExposures = engineMusicalCompatibleResult.exposures || {};
-} catch (error) {
-  display(note(`Browser-compatible sparse refit was not available: ${error.message}`, "warning"));
-}
 
 let engineSpaLiveResult = null;
 let engineSpaLiveExposures = null;
@@ -408,7 +353,7 @@ const engineLoadRows = [
     result: "mSigSDK browser refit",
     workflow_stage: "Known-signature refit",
     samples: Object.keys(engineMsiSdkLiveExposures).length,
-    execution_mode: "Runs live in this notebook",
+    execution_mode: "Runs live in the browser",
     comparison: `Cosine to archived mSigSDK: ${formatNumber(engineRound(engineMean(engineLiveVsCachedCosines), 6), 6)}`,
     interpretation: "Sanity check that the browser refit reproduces the archived SDK exposure table.",
     mean_cosine_to_cached_msigsdk: engineRound(engineMean(engineLiveVsCachedCosines), 6)
@@ -448,19 +393,6 @@ const engineLoadRows = [
     comparison: "Cosine to archived mSigSDK: 0.973457",
     interpretation: "MuSiCal package refit result generated outside the browser and compared here.",
     mean_cosine_to_cached_msigsdk: engineRound(engineMean(engineSampleNames.map((sample) => engineExposureCosine(engineMusicalPackageExposures[sample], engineMsiSdkCachedExposures[sample], engineSignatureNames))), 6)
-  },
-  {
-    result: "SDK sparse NNLS diagnostic",
-    workflow_stage: "Known-signature refit diagnostic",
-    samples: Object.keys(engineMusicalCompatibleExposures).length,
-    execution_mode: engineMusicalCompatibleResult ? "Runs live in this notebook" : "Unavailable",
-    comparison: Object.keys(engineMusicalCompatibleExposures).length
-      ? `Cosine to archived mSigSDK: ${formatNumber(engineRound(engineMean(engineSampleNames.map((sample) => engineExposureCosine(engineMusicalCompatibleExposures[sample], engineMsiSdkCachedExposures[sample], engineSignatureNames))), 6), 6)}`
-      : "No diagnostic result",
-    interpretation: "Browser diagnostic using sparse NNLS constraints; not the MuSiCal package output.",
-    mean_cosine_to_cached_msigsdk: Object.keys(engineMusicalCompatibleExposures).length
-      ? engineRound(engineMean(engineSampleNames.map((sample) => engineExposureCosine(engineMusicalCompatibleExposures[sample], engineMsiSdkCachedExposures[sample], engineSignatureNames))), 6)
-      : null
   }
 ];
 
@@ -491,11 +423,6 @@ const engineExposureSets = {
 
 The package outputs are compared at the same time rather than reviewed as separate reports. Exposure cosine compares the full signature-exposure vector for each sample, where `1.0` means the vectors are identical after normalization. The top-signature columns count how often the largest exposure is assigned to the same signature.
 </script>
-
-  <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "multi-engine", step: 3, phase: "review", title: "Step 3. Compare package concordance", mSigSDK, display });
-  </script>
-
 <script type="module">
 const engineSummaryRows = engineSummaryRowsRaw.map((row) => ({
   package: row.tool,
@@ -546,11 +473,6 @@ display(engineTable(enginePairwiseRows, {
 
 Researchers usually need to identify where tools agree, where they disagree, and whether the disagreement is a numerical detail or a biologically meaningful change in the top signature. The consensus table reports the top signature from every engine for each sample.
 </script>
-
-  <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "multi-engine", step: 4, phase: "review", title: "Step 4. Review sample-level consensus and disagreements", mSigSDK, display });
-  </script>
-
 <script type="module">
 const engineConsensusRows = engineSampleNames.map((sample) => {
   const topByEngine = Object.fromEntries(
@@ -625,11 +547,6 @@ display(engineTable(engineDisagreementRows, {
 
 The long contribution table keeps each package output in a common shape: tool, sample, signature, contribution. Downstream review tools can filter this table by sample, signature family, or tool pair.
 </script>
-
-  <script type="module" pinned id="interactive-step-5">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "multi-engine", step: 5, phase: "review", title: "Step 5. Inspect exposure profiles for samples requiring interpretation", mSigSDK, display });
-  </script>
-
 <script type="module">
 const engineReviewSamples = engineDisagreementRows.length
   ? engineDisagreementRows.map((row) => row.sample)
@@ -656,98 +573,10 @@ display(engineTable(engineReviewExposureRows, {
 </script>
 
 <script type="text/markdown">
-## Step 6. Keep refitting and extraction separate
+## Step 6. Prepare refit package run files
 
-Known-signature refitting compares exposures after a fixed reference catalog is supplied. De novo extraction is a separate workflow: mSigSDK can run a browser NMF analysis and can prepare SigProfilerExtractor-compatible inputs, while SigProfilerExtractor itself runs in Python and its output can be imported into the same comparison tables after execution.
+The bundle records the exact input objects and code snippets needed to rerun the known-signature refit tools outside the browser or in an available Pyodide environment. Package outputs return to the workspace as contribution CSVs with `sample` in the first column and one column per signature.
 </script>
-
-  <script type="module" pinned id="interactive-step-6">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "multi-engine", step: 6, phase: "analysis", title: "Step 6. Keep refitting and extraction separate", mSigSDK, display });
-  </script>
-
-<script type="module">
-let engineNmfAnalysis = null;
-try {
-  engineNmfAnalysis = await mSigSDK.workflows.createNMFAnalysis(engineSpectra, {
-    rankRange: [2, 3, 4],
-    nRuns: 2,
-    maxIterations: 80,
-    contexts: engineContextNames,
-    randomSeed: 13
-  });
-} catch (error) {
-  display(note(`Browser NMF analysis was not available: ${error.message}`, "warning"));
-}
-
-const engineExtractorInput = mSigSDK.adapters.sigProfilerExtractor.prepareInput(
-  {
-    spectra: engineSpectra,
-    contexts: engineContextNames
-  },
-  {
-    project: "pcawg_luad_multi_engine",
-    genomeBuild: "GRCh37",
-    minimumSignatures: 2,
-    maximumSignatures: 6,
-    nmfReplicates: 100
-  }
-);
-
-const engineExtractionRows = [
-  {
-    engine: "mSigSDK browser NMF",
-    execution: engineNmfAnalysis ? "Completed in browser" : "Unavailable",
-    output: engineNmfAnalysis ? `${engineNmfAnalysis.rankSummaries?.length || 0} rank summaries` : "No live output",
-    comparison_use: "Screen candidate ranks and inspect reconstructed spectra"
-  },
-  {
-    engine: "SigProfilerExtractor",
-    execution: "Python package run files",
-    output: `${engineExtractorInput.files?.length || 0} prepared files`,
-    comparison_use: "Run extraction externally, import extracted signatures and activities"
-  }
-];
-
-display(engineTable(engineExtractionRows, {
-  columns: [
-    { key: "engine", label: "Engine" },
-    { key: "execution", label: "Execution" },
-    { key: "output", label: "Output" },
-    { key: "comparison_use", label: "Use in workflow" }
-  ],
-  title: "De novo extraction workflow",
-  maxRows: engineExtractionRows.length
-}));
-
-if (engineNmfAnalysis?.rankSummaries?.length) {
-  display(engineTable(engineNmfAnalysis.rankSummaries.map((row) => ({
-    rank: row.rank,
-    best_reconstruction_error: engineRound(row.bestReconstructionError, 4),
-    mean_reconstruction_error: engineRound(row.meanReconstructionError, 4),
-    stability: engineRound(row.stability, 4)
-  })), {
-    columns: [
-      { key: "rank", label: "Rank" },
-      { key: "best_reconstruction_error", label: "Best error" },
-      { key: "mean_reconstruction_error", label: "Mean error" },
-      { key: "stability", label: "Stability" }
-    ],
-    title: "Browser NMF rank screening",
-    maxRows: engineNmfAnalysis.rankSummaries.length
-  }));
-}
-</script>
-
-<script type="text/markdown">
-## Step 7. Prepare package run files
-
-The bundle records the exact input objects and code snippets needed to run package tools outside the browser or in an available Pyodide environment. Package outputs return to the workspace as contribution CSVs with `sample` in the first column and one column per signature.
-</script>
-
-  <script type="module" pinned id="interactive-step-7">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "multi-engine", step: 7, phase: "export", title: "Step 7. Prepare package run files", mSigSDK, display });
-  </script>
-
 <script type="module">
 const engineInteropBundle = mSigSDK.adapters.createInteroperabilityBundle(
   {
@@ -758,17 +587,9 @@ const engineInteropBundle = mSigSDK.adapters.createInteroperabilityBundle(
     contexts: engineContextNames,
     include: [
       "sigProfilerAssignment",
-      "sigProfilerExtractor",
       "deconstructSigs",
       "musical"
-    ],
-    sigProfilerExtractor: {
-      referenceGenome: "GRCh37",
-      outputDirectory: "/output/pcawg_luad_multi_engine",
-      minimumSignatures: 2,
-      maximumSignatures: 6,
-      nmfReplicates: 100
-    }
+    ]
   }
 );
 
@@ -785,10 +606,8 @@ const engineBundleRows = Object.entries(engineInteropBundle.tools || {}).map(([t
     tool,
     files: files.length,
     code_snippets: snippets.length,
-    output_to_import: tool === "sigProfilerExtractor"
-      ? "Activities and extracted signatures"
-      : "Exposure CSV with sample and signature columns",
-    workflow_stage: tool === "sigProfilerExtractor" ? "De novo extraction" : "Known-signature refit"
+    output_to_import: "Exposure CSV with sample and signature columns",
+    workflow_stage: "Known-signature refit"
   };
 });
 
@@ -813,15 +632,10 @@ display(details("Bundle object keys", [
 </script>
 
 <script type="text/markdown">
-## Step 8. Export the comparison audit trail
+## Step 7. Export the comparison audit trail
 
 The exported tables provide a reproducible audit trail for a manuscript supplement, internal benchmark, or method-selection report.
 </script>
-
-  <script type="module" pinned id="interactive-step-8">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "multi-engine", step: 8, phase: "export", title: "Step 8. Export the comparison audit trail", mSigSDK, display });
-  </script>
-
 <script type="module">
 const engineArtifacts = [
   {

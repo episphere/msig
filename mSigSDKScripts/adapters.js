@@ -4,6 +4,7 @@ import {
   exportSigProfilerMatrix,
   importCOSMICSignatureMatrix,
   importMuSiCalOutput,
+  importSigProfilerMatrix,
 } from "./io.js";
 import {
   getExpectedContexts,
@@ -19,6 +20,11 @@ import { runPyodide } from "./runners.js";
 
 const ADAPTER_SCHEMA_VERSION = "msig.adapters.v0.3";
 const DEFAULT_SPA_PACKAGE = "SigProfilerAssignment==1.1.3";
+const DEFAULT_SPE_PACKAGE = "SigProfilerExtractor==1.2.6";
+const DEFAULT_SPMG_PACKAGE = "SigProfilerMatrixGenerator==1.3.6";
+const DEFAULT_SPS_PACKAGE = "SigProfilerSimulator==1.2.2";
+const DEFAULT_SPC_PACKAGE = "SigProfilerClusters==1.2.2";
+const DEFAULT_SPP_PACKAGE = "sigProfilerPlotting==1.4.3";
 const DEFAULT_PYODIDE_SCIENTIFIC_PACKAGES = [
   "numpy",
   "scipy",
@@ -160,6 +166,58 @@ function buildAdapterProvenance({
     notes: normalizeArray(notes),
     generatedAt: new Date().toISOString(),
   };
+}
+
+function normalizeVirtualPath(path, rootDirectory = "/input") {
+  const normalizedPath = String(path || "").replace(/\\/g, "/");
+  if (normalizedPath.startsWith("/")) {
+    return normalizedPath;
+  }
+  const normalizedRoot = String(rootDirectory || "/input")
+    .replace(/\\/g, "/")
+    .replace(/\/+$/, "");
+  return `${normalizedRoot}/${normalizedPath.replace(/^\/+/, "")}`;
+}
+
+function normalizeVirtualFiles(files, rootDirectory = "/input") {
+  return normalizeArray(files).map((file, index) => ({
+    ...file,
+    path: normalizeVirtualPath(
+      file?.path || file?.name || `input_${index + 1}.txt`,
+      rootDirectory
+    ),
+  }));
+}
+
+function pythonLiteral(value) {
+  if (value === undefined || value === null) {
+    return "None";
+  }
+  if (typeof value === "boolean") {
+    return value ? "True" : "False";
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : "None";
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => pythonLiteral(item)).join(", ")}]`;
+  }
+  if (typeof value === "object") {
+    return `{${Object.entries(value)
+      .map(([key, item]) => `${pythonLiteral(key)}: ${pythonLiteral(item)}`)
+      .join(", ")}}`;
+  }
+  return JSON.stringify(String(value));
+}
+
+function buildPythonCall(functionName, positionalArgs = [], keywordArgs = {}) {
+  const args = [
+    ...positionalArgs.map((value) => pythonLiteral(value)),
+    ...Object.entries(keywordArgs).map(
+      ([key, value]) => `${key}=${pythonLiteral(value)}`
+    ),
+  ];
+  return `${functionName}(${args.join(", ")})`;
 }
 
 /**
@@ -348,6 +406,33 @@ function prepareSigProfilerExtractorInput(
   };
 }
 
+function createSigProfilerExtractorPython() {
+  return `
+import json
+config = json.loads(MSIG_INPUT_JSON)
+from SigProfilerExtractor import sigpro as sig
+
+kwargs = {
+    "input_type": config.get("inputType", "matrix"),
+    "output": config["outputDirectory"],
+    "input_data": config["samplePath"],
+    "reference_genome": config.get("referenceGenome", "GRCh37"),
+    "minimum_signatures": config.get("minimumSignatures", 1),
+    "maximum_signatures": config.get("maximumSignatures", 5),
+    "nmf_replicates": config.get("nmfReplicates", 100),
+    "cpu": config.get("cpu", 1),
+}
+kwargs = {key: value for key, value in kwargs.items() if value is not None}
+sig.sigProfilerExtractor(**kwargs)
+json.dumps({
+    "status": "completed",
+    "tool": "SigProfilerExtractor",
+    "outputDirectory": config["outputDirectory"],
+    "parameters": kwargs,
+})
+`;
+}
+
 function parseSigProfilerExtractorOutput(files, { delimiter = "\t", normalize = true } = {}) {
   let signatures = null;
   let exposures = null;
@@ -394,6 +479,464 @@ function parseSigProfilerExtractorOutput(files, { delimiter = "\t", normalize = 
       ({ path, signatureCount }) => ({ path, signatureCount })
     ),
     candidateExposureTables,
+  };
+}
+
+function createSigProfilerMatrixGeneratorPythonSnippet({
+  project = "msig_matrix_generator",
+  referenceGenome = "GRCh37",
+  inputDirectory = "/input/sigprofiler_matrix_generator",
+  plot = false,
+  exome = false,
+  bedFile = null,
+  chromBased = false,
+  tsbStat = false,
+  seqInfo = false,
+  cushion = 100,
+  volume = null,
+} = {}) {
+  const call = buildPythonCall(
+    "matGen.SigProfilerMatrixGeneratorFunc",
+    [project, referenceGenome, inputDirectory],
+    {
+      plot,
+      exome,
+      bed_file: bedFile,
+      chrom_based: chromBased,
+      tsb_stat: tsbStat,
+      seqInfo,
+      cushion,
+      volume,
+    }
+  );
+  return [
+    "import json",
+    "from SigProfilerMatrixGenerator.scripts import SigProfilerMatrixGeneratorFunc as matGen",
+    "",
+    `matrices = ${call}`,
+    "json.dumps({",
+    "    \"status\": \"completed\",",
+    "    \"tool\": \"SigProfilerMatrixGenerator\",",
+    `    \"project\": ${JSON.stringify(project)},`,
+    `    \"referenceGenome\": ${JSON.stringify(referenceGenome)},`,
+    `    \"inputDirectory\": ${JSON.stringify(inputDirectory)},`,
+    "    \"matrixKeys\": list(matrices.keys()) if hasattr(matrices, \"keys\") else []",
+    "})",
+    "",
+  ].join("\n");
+}
+
+/**
+ * Prepares variant files and a Python snippet for SigProfilerMatrixGenerator.
+ *
+ * @function prepareSigProfilerMatrixGeneratorInput
+ * @memberof adapters
+ * @param {Object} input - Input variant files.
+ * @param {Object[]} [input.files=[]] - Virtual VCF/MAF/CNV/SV files.
+ * @param {Object} [options] - MatrixGenerator options.
+ * @returns {Object} Virtual files, manifest metadata, and a Python command snippet.
+ */
+function prepareSigProfilerMatrixGeneratorInput(
+  { files = [] } = {},
+  {
+    project = "msig_matrix_generator",
+    referenceGenome = "GRCh37",
+    inputDirectory = "/input/sigprofiler_matrix_generator",
+    plot = false,
+    exome = false,
+    bedFile = null,
+    chromBased = false,
+    tsbStat = false,
+    seqInfo = false,
+    cushion = 100,
+    volume = null,
+  } = {}
+) {
+  const normalizedFiles = normalizeVirtualFiles(files, inputDirectory);
+  return {
+    schemaVersion: ADAPTER_SCHEMA_VERSION,
+    adapter: "sigprofilermatrixgenerator",
+    mode: "python_handoff",
+    files: normalizedFiles,
+    manifest: {
+      project,
+      referenceGenome,
+      inputDirectory,
+      fileCount: normalizedFiles.length,
+      plot,
+      exome,
+      bedFile,
+      chromBased,
+      tsbStat,
+      seqInfo,
+      cushion,
+      volume,
+    },
+    pythonSnippet: createSigProfilerMatrixGeneratorPythonSnippet({
+      project,
+      referenceGenome,
+      inputDirectory,
+      plot,
+      exome,
+      bedFile,
+      chromBased,
+      tsbStat,
+      seqInfo,
+      cushion,
+      volume,
+    }),
+  };
+}
+
+function parseSigProfilerMatrixGeneratorOutput(
+  files,
+  { delimiter = "\t" } = {}
+) {
+  const matrices = {};
+  const candidateMatrices = [];
+  for (const file of files || []) {
+    if (!file?.text) {
+      continue;
+    }
+    const rows = parseDelimited(file.text, delimiter);
+    const firstHeader = String(rows?.[0]?.[0] || "").toLowerCase();
+    if (!/(mutationtype|mutation_type|context|channel)/.test(firstHeader)) {
+      continue;
+    }
+    try {
+      const matrix = importSigProfilerMatrix(file.text, { delimiter });
+      const key =
+        String(file.path || "matrix")
+          .split("/")
+          .pop()
+          ?.replace(/\.(all|tsv|txt|csv)$/i, "") || "matrix";
+      matrices[key] = matrix;
+      candidateMatrices.push({
+        path: file.path || "",
+        key,
+        sampleCount: Object.keys(matrix).length,
+      });
+    } catch (_error) {
+      // Non-matrix text files are ignored.
+    }
+  }
+  return {
+    matrices,
+    candidateMatrices,
+  };
+}
+
+function createSigProfilerSimulatorPythonSnippet({
+  project = "msig_simulator",
+  projectPath = "/input/sigprofiler_simulator",
+  genome = "GRCh37",
+  contexts = ["96"],
+  simulations = 100,
+  chromBased = true,
+  exome = false,
+  bedFile = null,
+} = {}) {
+  const call = buildPythonCall(
+    "sigSim.SigProfilerSimulator",
+    [project, projectPath, genome],
+    {
+      contexts,
+      simulations,
+      chrom_based: chromBased,
+      exome,
+      bed_file: bedFile,
+    }
+  );
+  return [
+    "import json",
+    "from SigProfilerSimulator import SigProfilerSimulator as sigSim",
+    "",
+    `${call}`,
+    "json.dumps({",
+    "    \"status\": \"completed\",",
+    "    \"tool\": \"SigProfilerSimulator\",",
+    `    \"project\": ${JSON.stringify(project)},`,
+    `    \"projectPath\": ${JSON.stringify(projectPath)},`,
+    `    \"genome\": ${JSON.stringify(genome)}`,
+    "})",
+    "",
+  ].join("\n");
+}
+
+/**
+ * Prepares input files and a Python snippet for SigProfilerSimulator.
+ *
+ * @function prepareSigProfilerSimulatorInput
+ * @memberof adapters
+ * @param {Object} input - Input variant files.
+ * @param {Object[]} [input.files=[]] - Virtual input files placed under projectPath/input.
+ * @param {Object} [options] - Simulator options.
+ * @returns {Object} Virtual files, manifest metadata, and a Python command snippet.
+ */
+function prepareSigProfilerSimulatorInput(
+  { files = [] } = {},
+  {
+    project = "msig_simulator",
+    projectPath = "/input/sigprofiler_simulator",
+    inputDirectory = null,
+    genome = "GRCh37",
+    contexts = ["96"],
+    simulations = 100,
+    chromBased = true,
+    exome = false,
+    bedFile = null,
+  } = {}
+) {
+  const resolvedInputDirectory =
+    inputDirectory || `${String(projectPath).replace(/\/+$/, "")}/input`;
+  const normalizedFiles = normalizeVirtualFiles(files, resolvedInputDirectory);
+  return {
+    schemaVersion: ADAPTER_SCHEMA_VERSION,
+    adapter: "sigprofilersimulator",
+    mode: "python_handoff",
+    files: normalizedFiles,
+    manifest: {
+      project,
+      projectPath,
+      inputDirectory: resolvedInputDirectory,
+      genome,
+      contexts: normalizeArray(contexts),
+      simulations,
+      chromBased,
+      exome,
+      bedFile,
+      fileCount: normalizedFiles.length,
+    },
+    pythonSnippet: createSigProfilerSimulatorPythonSnippet({
+      project,
+      projectPath,
+      genome,
+      contexts: normalizeArray(contexts),
+      simulations,
+      chromBased,
+      exome,
+      bedFile,
+    }),
+  };
+}
+
+function createSigProfilerClustersPythonSnippet({
+  project = "msig_clusters",
+  genome = "GRCh37",
+  contexts = ["96"],
+  simContext = ["96"],
+  inputPath = "/input/sigprofiler_clusters",
+  analysis = "all",
+  sortSims = true,
+  interdistance = "ID",
+  calculateIMD = true,
+  maxCpu = 1,
+  subClassify = false,
+  plotIMDfigure = true,
+} = {}) {
+  const call = buildPythonCall(
+    "hp.analysis",
+    [project, genome, contexts, simContext, inputPath],
+    {
+      analysis,
+      sortSims,
+      interdistance,
+      calculateIMD,
+      max_cpu: maxCpu,
+      subClassify,
+      plotIMDfigure,
+    }
+  );
+  return [
+    "import json",
+    "from SigProfilerClusters import SigProfilerClusters as hp",
+    "",
+    `${call}`,
+    "json.dumps({",
+    "    \"status\": \"completed\",",
+    "    \"tool\": \"SigProfilerClusters\",",
+    `    \"project\": ${JSON.stringify(project)},`,
+    `    \"genome\": ${JSON.stringify(genome)},`,
+    `    \"inputPath\": ${JSON.stringify(inputPath)}`,
+    "})",
+    "",
+  ].join("\n");
+}
+
+/**
+ * Prepares input files and a Python snippet for SigProfilerClusters.
+ *
+ * @function prepareSigProfilerClustersInput
+ * @memberof adapters
+ * @param {Object} input - Input variant files.
+ * @param {Object[]} [input.files=[]] - Virtual VCF files.
+ * @param {Object} [options] - Clustering options.
+ * @returns {Object} Virtual files, manifest metadata, and a Python command snippet.
+ */
+function prepareSigProfilerClustersInput(
+  { files = [] } = {},
+  {
+    project = "msig_clusters",
+    genome = "GRCh37",
+    contexts = ["96"],
+    simContext = ["96"],
+    inputPath = "/input/sigprofiler_clusters",
+    analysis = "all",
+    sortSims = true,
+    interdistance = "ID",
+    calculateIMD = true,
+    maxCpu = 1,
+    subClassify = false,
+    plotIMDfigure = true,
+  } = {}
+) {
+  const normalizedFiles = normalizeVirtualFiles(files, inputPath);
+  return {
+    schemaVersion: ADAPTER_SCHEMA_VERSION,
+    adapter: "sigprofilerclusters",
+    mode: "python_handoff",
+    files: normalizedFiles,
+    manifest: {
+      project,
+      genome,
+      contexts: normalizeArray(contexts),
+      simContext: normalizeArray(simContext),
+      inputPath,
+      analysis,
+      sortSims,
+      interdistance,
+      calculateIMD,
+      maxCpu,
+      subClassify,
+      plotIMDfigure,
+      fileCount: normalizedFiles.length,
+    },
+    pythonSnippet: createSigProfilerClustersPythonSnippet({
+      project,
+      genome,
+      contexts: normalizeArray(contexts),
+      simContext: normalizeArray(simContext),
+      inputPath,
+      analysis,
+      sortSims,
+      interdistance,
+      calculateIMD,
+      maxCpu,
+      subClassify,
+      plotIMDfigure,
+    }),
+  };
+}
+
+function createSigProfilerPlottingPythonSnippet({
+  matrixPath = "/input/sigprofiler_plotting_matrix.tsv",
+  outputDirectory = "/output/sigprofiler_plotting",
+  project = "msig_plot",
+  matrixType = "SBS",
+  plotType = "96",
+  percentage = false,
+  aggregate = false,
+} = {}) {
+  return [
+    "import json",
+    "import sigProfilerPlotting as sigPlt",
+    "",
+    `matrix_type = ${JSON.stringify(String(matrixType).toUpperCase())}`,
+    `matrix_path = ${JSON.stringify(matrixPath)}`,
+    `output_directory = ${JSON.stringify(outputDirectory)}`,
+    `project = ${JSON.stringify(project)}`,
+    `plot_type = ${JSON.stringify(plotType)}`,
+    `percentage = ${pythonLiteral(percentage)}`,
+    `aggregate = ${pythonLiteral(aggregate)}`,
+    "if matrix_type == \"SBS\":",
+    "    sigPlt.plotSBS(matrix_path, output_directory, project, plot_type, percentage=percentage)",
+    "elif matrix_type == \"DBS\":",
+    "    sigPlt.plotDBS(matrix_path, output_directory, project, plot_type, percentage=percentage)",
+    "elif matrix_type == \"ID\":",
+    "    sigPlt.plotID(matrix_path, output_directory, project, plot_type, percentage=percentage)",
+    "elif matrix_type == \"CNV\":",
+    "    sigPlt.plotCNV(matrix_path, output_directory, project, percentage=percentage, aggregate=aggregate)",
+    "elif matrix_type == \"SV\":",
+    "    sigPlt.plotSV(matrix_path, output_directory, project, percentage=percentage)",
+    "else:",
+    "    raise ValueError(f\"Unsupported sigProfilerPlotting matrix type: {matrix_type}\")",
+    "json.dumps({",
+    "    \"status\": \"completed\",",
+    "    \"tool\": \"sigProfilerPlotting\",",
+    "    \"matrixType\": matrix_type,",
+    "    \"outputDirectory\": output_directory,",
+    "})",
+    "",
+  ].join("\n");
+}
+
+/**
+ * Prepares a matrix and Python snippet for sigProfilerPlotting.
+ *
+ * @function prepareSigProfilerPlottingInput
+ * @memberof adapters
+ * @param {Object} input - Matrix input.
+ * @param {Object<string,Object<string,number>>} [input.spectra=null] - Optional spectra to serialize as a SigProfiler matrix.
+ * @param {string} [input.matrixText=null] - Optional pre-rendered matrix text.
+ * @param {Object[]} [input.files=[]] - Optional virtual files.
+ * @param {Object} [options] - Plotting options.
+ * @returns {Object} Virtual files, manifest metadata, and a Python command snippet.
+ */
+function prepareSigProfilerPlottingInput(
+  { spectra = null, matrixText = null, files = [] } = {},
+  {
+    contexts = null,
+    matrixPath = "/input/sigprofiler_plotting_matrix.tsv",
+    outputDirectory = "/output/sigprofiler_plotting",
+    project = "msig_plot",
+    matrixType = "SBS",
+    plotType = "96",
+    percentage = false,
+    aggregate = false,
+  } = {}
+) {
+  const virtualFiles = [...normalizeVirtualFiles(files, "/input")];
+  let resolvedMatrixPath = matrixPath;
+  if (matrixText !== null && matrixText !== undefined) {
+    virtualFiles.push({ path: matrixPath, text: String(matrixText) });
+  } else if (spectra) {
+    const normalizedSpectra = normalizeMatrixObject(spectra);
+    const contextOrder = normalizeContextOrder({
+      spectra: normalizedSpectra,
+      contexts,
+    });
+    virtualFiles.push({
+      path: matrixPath,
+      text: exportSigProfilerMatrix(normalizedSpectra, { contexts: contextOrder }),
+    });
+  } else if (virtualFiles.length > 0) {
+    resolvedMatrixPath = virtualFiles[0].path;
+  }
+
+  return {
+    schemaVersion: ADAPTER_SCHEMA_VERSION,
+    adapter: "sigprofilerplotting",
+    mode: "python_handoff",
+    files: virtualFiles,
+    manifest: {
+      matrixPath: resolvedMatrixPath,
+      outputDirectory,
+      project,
+      matrixType: String(matrixType).toUpperCase(),
+      plotType,
+      percentage,
+      aggregate,
+      fileCount: virtualFiles.length,
+    },
+    pythonSnippet: createSigProfilerPlottingPythonSnippet({
+      matrixPath: resolvedMatrixPath,
+      outputDirectory,
+      project,
+      matrixType,
+      plotType,
+      percentage,
+      aggregate,
+    }),
   };
 }
 
@@ -506,6 +1049,173 @@ function parseDeconstructSigsOutput(
   });
 }
 
+function rBoolean(value) {
+  return value ? "TRUE" : "FALSE";
+}
+
+function createSigminerRScript({
+  spectraPath = "sigminer_spectra.tsv",
+  signaturePath = "sigminer_signatures.tsv",
+  outputPath = "sigminer_exposures.tsv",
+  method = "QP",
+  autoReduce = false,
+  exposureType = "relative",
+  relThreshold = 0,
+  mode = "SBS",
+} = {}) {
+  return [
+    "if (!requireNamespace(\"sigminer\", quietly = TRUE)) {",
+    "  stop(\"The sigminer R package is required for this handoff workflow.\")",
+    "}",
+    "method <- toupper(" + JSON.stringify(method) + ")",
+    "solver_package <- switch(method, QP = \"quadprog\", NNLS = \"nnls\", SA = \"GenSA\", NA)",
+    "if (!is.na(solver_package) && !requireNamespace(solver_package, quietly = TRUE)) {",
+    "  stop(paste(\"sigminer method\", method, \"requires the\", solver_package, \"R package.\"))",
+    "}",
+    "",
+    `spectra <- read.delim(${JSON.stringify(spectraPath)}, check.names = FALSE, row.names = 1)`,
+    `signatures <- read.delim(${JSON.stringify(signaturePath)}, check.names = FALSE, row.names = 1)`,
+    "catalogue.matrix <- as.matrix(spectra)",
+    "signature.matrix <- as.matrix(signatures)",
+    "storage.mode(catalogue.matrix) <- \"numeric\"",
+    "storage.mode(signature.matrix) <- \"numeric\"",
+    "common.contexts <- intersect(rownames(catalogue.matrix), rownames(signature.matrix))",
+    "if (length(common.contexts) == 0) {",
+    "  stop(\"sigminer handoff found no shared mutation contexts between spectra and signatures.\")",
+    "}",
+    "catalogue.matrix <- catalogue.matrix[common.contexts, , drop = FALSE]",
+    "signature.matrix <- signature.matrix[common.contexts, , drop = FALSE]",
+    "signature.names <- colnames(signature.matrix)",
+    "sample.names <- colnames(catalogue.matrix)",
+    "",
+    "fit <- sigminer::sig_fit(",
+    "  catalogue_matrix = catalogue.matrix,",
+    "  sig = signature.matrix,",
+    "  method = method,",
+    `  auto_reduce = ${rBoolean(autoReduce)},`,
+    `  type = ${JSON.stringify(exposureType)},`,
+    "  return_class = \"matrix\",",
+    `  rel_threshold = ${Number(relThreshold)},`,
+    `  mode = ${JSON.stringify(mode)},`,
+    "  show_index = FALSE",
+    ")",
+    "",
+    "exposure.matrix <- as.matrix(fit)",
+    "storage.mode(exposure.matrix) <- \"numeric\"",
+    "if (all(signature.names %in% rownames(exposure.matrix))) {",
+    "  output.matrix <- t(exposure.matrix[signature.names, , drop = FALSE])",
+    "} else if (all(signature.names %in% colnames(exposure.matrix))) {",
+    "  output.matrix <- exposure.matrix[, signature.names, drop = FALSE]",
+    "} else if (nrow(exposure.matrix) == length(signature.names)) {",
+    "  rownames(exposure.matrix) <- signature.names",
+    "  output.matrix <- t(exposure.matrix)",
+    "} else if (ncol(exposure.matrix) == length(signature.names)) {",
+    "  colnames(exposure.matrix) <- signature.names",
+    "  output.matrix <- exposure.matrix",
+    "} else {",
+    "  stop(\"Could not infer sigminer exposure orientation.\")",
+    "}",
+    "if (nrow(output.matrix) == length(sample.names) && !all(sample.names %in% rownames(output.matrix))) {",
+    "  rownames(output.matrix) <- sample.names",
+    "}",
+    "if (all(sample.names %in% rownames(output.matrix))) {",
+    "  output.matrix <- output.matrix[sample.names, , drop = FALSE]",
+    "}",
+    "exposures <- data.frame(sample = rownames(output.matrix), output.matrix, check.names = FALSE)",
+    `write.table(exposures, file = ${JSON.stringify(outputPath)}, sep = "\\t", quote = FALSE, row.names = FALSE)`,
+    "",
+  ].join("\n");
+}
+
+/**
+ * Prepares input files and an R snippet for sigminer known-signature fitting.
+ *
+ * @function prepareSigminerInput
+ * @memberof adapters
+ * @param {Object} input - Spectra and signature catalog.
+ * @param {Object<string,Object<string,number>>} input.spectra - Sample spectra.
+ * @param {Object<string,Object<string,number>>} input.signatures - Signature catalog.
+ * @param {Object} [options] - Export and sigminer fitting options.
+ * @returns {Object} Virtual files, manifest metadata, and an R command snippet.
+ */
+function prepareSigminerInput(
+  { spectra, signatures },
+  {
+    contexts = null,
+    spectraPath = "/input/sigminer_spectra.tsv",
+    signaturePath = "/input/sigminer_signatures.tsv",
+    outputPath = "/output/sigminer_exposures.tsv",
+    method = "QP",
+    autoReduce = false,
+    exposureType = "relative",
+    relThreshold = 0,
+    mode = "SBS",
+  } = {}
+) {
+  const normalizedSpectra = normalizeMatrixObject(spectra);
+  const normalizedSignatures = normalizeMatrixObject(signatures);
+  const contextOrder = normalizeContextOrder({
+    spectra: normalizedSpectra,
+    signatures: normalizedSignatures,
+    contexts,
+  });
+
+  return {
+    schemaVersion: ADAPTER_SCHEMA_VERSION,
+    adapter: "sigminer",
+    mode: "r_handoff",
+    files: [
+      {
+        path: spectraPath,
+        text: exportSigProfilerMatrix(normalizedSpectra, { contexts: contextOrder }),
+      },
+      {
+        path: signaturePath,
+        text: exportCOSMICSignatureMatrix(normalizedSignatures, {
+          contexts: contextOrder,
+        }),
+      },
+    ],
+    manifest: {
+      spectraPath,
+      signaturePath,
+      outputPath,
+      spectraOrientation: "mutation_type_by_sample",
+      signatureOrientation: "mutation_type_by_signature",
+      sampleCount: Object.keys(normalizedSpectra).length,
+      signatureCount: Object.keys(normalizedSignatures).length,
+      contextCount: contextOrder.length,
+      contexts: contextOrder,
+      method,
+      autoReduce,
+      exposureType,
+      relThreshold,
+      mode,
+    },
+    rSnippet: createSigminerRScript({
+      spectraPath,
+      signaturePath,
+      outputPath,
+      method,
+      autoReduce,
+      exposureType,
+      relThreshold,
+      mode,
+    }),
+  };
+}
+
+function parseSigminerOutput(
+  text,
+  { delimiter = "\t", normalize = true } = {}
+) {
+  return importMuSiCalOutput(text, {
+    delimiter,
+    orientation: "sample_by_signature",
+    normalize,
+  });
+}
+
 /**
  * Runs SigProfilerAssignment in matrix mode through the Pyodide worker runner.
  *
@@ -589,6 +1299,87 @@ async function runSigProfilerAssignment(
 }
 
 /**
+ * Runs SigProfilerExtractor in matrix mode through the Pyodide worker runner.
+ *
+ * @async
+ * @function runSigProfilerExtractor
+ * @memberof adapters
+ * @param {Object} input - Input spectra.
+ * @param {Object} [options] - Runtime and SigProfilerExtractor options.
+ * @returns {Promise<Object>} Adapter result with collected files and parsed output tables.
+ */
+async function runSigProfilerExtractor(
+  { spectra },
+  {
+    contexts = null,
+    pyodidePackages = DEFAULT_PYODIDE_SCIENTIFIC_PACKAGES,
+    micropipPackages = [DEFAULT_SPE_PACKAGE],
+    outputDirectory = "/output/sigprofiler_extractor",
+    referenceGenome = "GRCh37",
+    minimumSignatures = 1,
+    maximumSignatures = 5,
+    nmfReplicates = 100,
+    cpu = 1,
+    timeoutMs = 300000,
+    runnerOptions = {},
+  } = {}
+) {
+  const prepared = prepareSigProfilerExtractorInput(
+    { spectra },
+    {
+      contexts,
+      outputDirectory,
+      referenceGenome,
+      minimumSignatures,
+      maximumSignatures,
+      nmfReplicates,
+      cpu,
+    }
+  );
+  const config = {
+    ...prepared.manifest,
+    outputDirectory,
+  };
+  const rawRun = await runPyodide(
+    {
+      python: createSigProfilerExtractorPython(),
+      files: prepared.files,
+      inputJson: config,
+      pyodidePackages,
+      micropipPackages,
+      outputDirectories: [outputDirectory],
+      timeoutMs,
+    },
+    runnerOptions
+  );
+  const parsed = parseSigProfilerExtractorOutput(rawRun.files, {
+    normalize: true,
+  });
+
+  return {
+    schemaVersion: ADAPTER_SCHEMA_VERSION,
+    adapter: "sigprofilerextractor",
+    runtime: "pyodide",
+    status: rawRun.result?.status || "completed",
+    signatures: parsed.signatures,
+    exposures: parsed.exposures,
+    candidateSignatureTables: parsed.candidateSignatureTables,
+    candidateExposureTables: parsed.candidateExposureTables,
+    preparedInput: prepared.manifest,
+    rawRun,
+    provenance: buildAdapterProvenance({
+      tool: "SigProfilerExtractor",
+      runtime: "pyodide",
+      packageName: "SigProfilerExtractor",
+      packageVersion: String(DEFAULT_SPE_PACKAGE).split("==")[1] || null,
+      parameters: config,
+      notes:
+        "Pyodide execution requires SigProfilerExtractor and its scientific dependencies to install successfully in the target browser worker.",
+    }),
+  };
+}
+
+/**
  * Prepares MuSiCal-compatible spectra and signature files for refitting.
  *
  * @function prepareMuSiCalRefitInput
@@ -650,11 +1441,15 @@ function createInteroperabilityBundle(
     include = [
       "sigprofilerassignment",
       "sigprofilerextractor",
+      "sigprofilerplotting",
       "deconstructsigs",
+      "sigminer",
       "musical",
     ],
     sigProfilerExtractor = {},
+    sigProfilerPlotting = {},
     deconstructSigs = {},
+    sigminer = {},
     musical = {},
   } = {}
 ) {
@@ -677,10 +1472,22 @@ function createInteroperabilityBundle(
       { contexts, ...sigProfilerExtractor }
     );
   }
+  if (normalizedInclude.has("sigprofilerplotting")) {
+    bundle.tools.sigProfilerPlotting = prepareSigProfilerPlottingInput(
+      { spectra },
+      { contexts, ...sigProfilerPlotting }
+    );
+  }
   if (normalizedInclude.has("deconstructsigs") && signatures) {
     bundle.tools.deconstructSigs = prepareDeconstructSigsInput(
       { spectra, signatures },
       { contexts, ...deconstructSigs }
+    );
+  }
+  if (normalizedInclude.has("sigminer") && signatures) {
+    bundle.tools.sigminer = prepareSigminerInput(
+      { spectra, signatures },
+      { contexts, ...sigminer }
     );
   }
   if (normalizedInclude.has("musical") && signatures) {
@@ -946,16 +1753,29 @@ async function runMuSiCalRefit(
 
 export {
   ADAPTER_SCHEMA_VERSION,
+  DEFAULT_SPC_PACKAGE,
+  DEFAULT_SPE_PACKAGE,
+  DEFAULT_SPMG_PACKAGE,
+  DEFAULT_SPP_PACKAGE,
+  DEFAULT_SPS_PACKAGE,
   DEFAULT_SPA_PACKAGE,
   createInteroperabilityBundle,
   parseExposureTables,
   parseDeconstructSigsOutput,
+  parseSigminerOutput,
+  parseSigProfilerMatrixGeneratorOutput,
   parseSigProfilerExtractorOutput,
   prepareDeconstructSigsInput,
   prepareMuSiCalRefitInput,
+  prepareSigminerInput,
+  prepareSigProfilerClustersInput,
   prepareSigProfilerAssignmentInput,
   prepareSigProfilerExtractorInput,
+  prepareSigProfilerMatrixGeneratorInput,
+  prepareSigProfilerPlottingInput,
+  prepareSigProfilerSimulatorInput,
   runMuSiCalRefit,
   runSigProfilerAssignment,
+  runSigProfilerExtractor,
   runSparseNnlsRefit,
 };

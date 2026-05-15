@@ -5,29 +5,20 @@
   <script type="text/markdown">
     # End-to-end workflow
 
-    This is the recommended first complete mSigSDK tutorial. It is written for readers who may not already work on mutational signatures. The central idea is simple: each tumor has a pattern of mutation types, and the workflow asks which known signature patterns could be mixed together to explain that observed pattern.
+    Each tumor has a pattern of mutation types, and the workflow asks which known signature patterns could be mixed together to explain that observed pattern.
 
     One way to think about it is a mystery-drink problem. The observed mutation spectrum is the drink you taste. The reference signatures are possible ingredients. The fitting method guesses a recipe, such as "40% apple, 30% cherry, 30% banana." The reconstruction check then asks: if we mix the ingredients using that guessed recipe, does it recreate the original drink? If the reconstruction is close, the guess is more plausible; if it is not close, the result needs review.
 
     Start by loading a real public cohort through the mSigPortal APIs. The default selection is TCGA WES Lung-AdenoCa SBS96, but the menu lets you choose the public study, cancer type, sequencing strategy, mutation-pattern table, table size, and compatible reference signature catalog. You can also paste or upload your own spectra and signature catalog when adapting the workflow.
 
-    A close reconstruction is useful, but it is not the whole story. Some reference signatures look similar to each other, like two ingredients with similar flavor. The notebook therefore also checks mutation counts, leftover pattern after fitting, uncertainty, cutoff sensitivity, and reference-signature similarity. These are review cues: they tell you what deserves inspection before making a claim.
-
-    **Unique role:** teach the whole analysis arc once, in plain language, so a new user understands how the pieces connect.
-
-    **Leave to focused notebooks:** raw MAF conversion, public API catalog browsing, report schema mechanics, restricted-assay evidence tiers, discovery extraction, and package-by-package concordance.
-
-    **After running it you should know:** what evidence must travel with any signature fit before it becomes a reportable result.
+    A close reconstruction is useful, but it is not the whole analysis. Some reference signatures look similar to each other, like two ingredients with similar flavor. The workflow also checks mutation counts, leftover pattern after fitting, uncertainty, cutoff sensitivity, and reference-signature similarity. These are review cues: they tell you what deserves inspection before making a claim.
   </script>
 
   <script type="module" pinned id="1">
-    const workflowSdkUrl = new URL("../main.js?v=2026-05-15-plain-language", location.href).href;
+    const workflowSdkUrl = new URL("../main.js?v=2026-05-15-workflow", location.href).href;
     const { mSigSDK } = await import(workflowSdkUrl);
     const {
       crossToolSummary,
-      demoMetadata,
-      demoSignatures,
-      demoSpectra,
       sbs96Contexts,
     } = await import("./msig-notebook-fixtures.js");
 
@@ -532,7 +523,7 @@
 	        { field: "Who guessed the signature recipe", value: engine.exposureSource },
 	        { field: "Run status", value: result?.status || analysis?.status || "completed" },
 	        { field: "Contribution table", value: result?.exposures ? "available" : engine.command === "workflows.runCohortFit" ? "created by mSigSDK workflow" : "not available" },
-        { field: "Cutoff sensitivity", value: engine.supportsThresholdSensitivity ? "shown in this notebook" : "not shown for this selected package" },
+        { field: "Cutoff sensitivity", value: engine.supportsThresholdSensitivity ? "available here" : "not available for this selected package" },
         { field: "Uncertainty intervals", value: engine.supportsBootstrap ? "shown for selected sample" : "use the package's own uncertainty workflow or switch to mSigSDK quick fit" },
       ];
     }
@@ -721,7 +712,7 @@
         `Signature recipe estimates in this run came from ${engine.label}. mSigSDK is being used here to check inputs, review reconstruction quality, make plots, and prepare reports around that contribution table.`,
         engine.supportsBootstrap
           ? null
-          : "For uncertainty intervals with this selected fitting method, use that package's own uncertainty workflow or switch the notebook to mSigSDK quick fit.",
+          : "For uncertainty intervals with this selected fitting method, use that package's own uncertainty workflow or switch to mSigSDK quick fit.",
       ]);
       const report = mSigSDK.reports.createAnalysisReport(
         {
@@ -874,7 +865,7 @@
         }
       );
       const provenance = mSigSDK.provenance.createProvenance({
-        analysis: "interactive end-to-end notebook",
+        analysis: "interactive end-to-end workflow",
         parameters: workflowState.parameters,
         dataSources: [
           {
@@ -905,8 +896,8 @@
 	      { label: "Status", value: "Waiting for data", note: "Use the next cell" },
 	    ]));
 	    display(workflowOutputGuide(
-	      "Plain-language map",
-	      "This notebook treats signature fitting like a recipe problem. We start with an observed mutation pattern, choose possible reference ingredients, let a fitting method guess the mixture, and then check whether that mixture recreates the observed pattern well enough to report cautiously.",
+	      "Concept map",
+	      "Signature fitting is a recipe problem. Start with an observed mutation pattern, choose possible reference ingredients, let a fitting method guess the mixture, and then check whether that mixture recreates the observed pattern well enough to report cautiously.",
 	      [
 	        { term: "Mutation spectrum", meaning: "The observed pattern of mutation types in a sample. In the drink analogy, this is the mystery drink." },
 	        { term: "Reference signature", meaning: "A known mutation pattern that might explain part of a sample. In the analogy, this is a possible ingredient." },
@@ -920,7 +911,7 @@
 	  <script type="text/markdown">
 	    ## Step 1. Load or replace data
 
-	    Use **Load selected public dataset** to retrieve real public mutation-pattern tables and a compatible reference signature catalog through the mSigPortal APIs. The default is TCGA WES Lung-AdenoCa SBS96 with a small sample cap so the tutorial runs quickly; change the menu to load another public study, cancer type, sequencing strategy, mutation-pattern type, table size, or signature catalog.
+	    Use **Load selected public dataset** to retrieve real public mutation-pattern tables and a compatible reference signature catalog through the mSigPortal APIs. The default is TCGA WES Lung-AdenoCa SBS96 with a small sample cap for responsive browser execution; change the menu to load another public study, cancer type, sequencing strategy, mutation-pattern type, table size, or signature catalog.
 
 	    Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 12 } }` or a SigProfiler-style TSV table. Each row or object records how many mutations of each type were seen in each sample. Your signatures can be a JSON object keyed by signature name or a COSMIC-style TSV table. Sample details are optional CSV, TSV, or JSON, but if supplied they should include a `sample` column that matches the spectra sample names.
   </script>
@@ -1011,7 +1002,6 @@
 
     const loadPublic = button("Load selected public dataset", "primary");
     const refreshPublic = button("Refresh dataset menu");
-    const loadSample = button("Load offline demo fixture");
     const applyInput = button("Apply my pasted/uploaded data", "primary");
     const clearInput = button("Clear inputs");
     const publicOption = document.createElement("div");
@@ -1024,21 +1014,14 @@
     ownOption.className = "workflow-source-option";
 	    ownOption.innerHTML = `
 	      <strong>Use my own data</strong>
-	      <p>Paste JSON or TSV/CSV data below, or upload files, then apply it here. The notebook previews sample names, mutation channels, and input checks before analysis.</p>
+	      <p>Paste JSON or TSV/CSV data below, or upload files, then apply it here. The page previews sample names, mutation channels, and input checks before analysis.</p>
 	    `;
-    const demoOption = document.createElement("div");
-    demoOption.className = "workflow-source-option";
-    demoOption.innerHTML = `
-      <strong>Offline demo fallback</strong>
-      <p>Loads the small synthetic fixture only when you need to test the notebook without network access or public API availability.</p>
-    `;
     const publicButtonRow = document.createElement("div");
     publicButtonRow.className = "workflow-button-row";
     publicButtonRow.append(loadPublic, refreshPublic);
     publicOption.append(publicButtonRow);
     ownOption.append(applyInput);
-    demoOption.append(loadSample);
-    sourceChoice.append(publicOption, ownOption, demoOption);
+    sourceChoice.append(publicOption, ownOption);
 
     const publicOptionsState = {
       spectra: [],
@@ -1287,9 +1270,9 @@
         { field: "Signature catalog", value: workflowState.publicSelection?.signatureSetName || "user supplied" },
       ], null, {
         title: "Active data source",
-        caption: "Records where the current tutorial data came from and which public dataset or user-supplied tables will be analyzed.",
+        caption: "Records where the current data came from and which public dataset or user-supplied tables will be analyzed.",
       }));
-      inputSummary.append(note("Read the source table as the run record: it records whether this run came from mSigPortal public APIs, pasted/uploaded local data, or the offline fixture.", "info"));
+      inputSummary.append(note("Read the source table as the run record: it records whether this run came from mSigPortal public APIs or pasted/uploaded local data.", "info"));
 	      inputSummary.append(table([
 	        { check: "Spectra issues", value: validation.spectra.issues.length },
         { check: "Signature issues", value: validation.signatures.issues.length },
@@ -1340,26 +1323,13 @@
       }
     });
 
-    loadSample.addEventListener("click", () => {
-      spectraText.value = stringify(demoSpectra());
-      signaturesText.value = stringify(demoSignatures());
-      metadataText.value = rowsToCsv(demoMetadata);
-      setDataset({
-        spectra: demoSpectra(),
-        signatures: demoSignatures(),
-        metadata: demoMetadata,
-        source: "built-in synthetic demo data",
-        contexts: sbs96Contexts(),
-      });
-    });
-
     applyInput.addEventListener("click", () => {
       try {
         setDataset({
           spectra: parseMatrix(spectraText.value, "spectra"),
           signatures: parseMatrix(signaturesText.value, "signatures"),
           metadata: parseMetadata(metadataText.value),
-          source: "user supplied notebook input",
+          source: "user supplied browser input",
           publicSelection: null,
         });
       } catch (error) {
@@ -1398,7 +1368,7 @@
       field("Mutational profile", profileSelect),
       field("Table size", matrixSelect),
       field("Reference signature set", signatureSetSelect),
-      field("Max samples to load", maxSamplesInput, "Small defaults keep the tutorial responsive; increase for larger cohorts.")
+      field("Max samples to load", maxSamplesInput, "Small defaults keep the browser responsive; increase for larger cohorts.")
     );
     inputGrid.append(
       field("Spectra table", spectraText, "JSON object or SigProfiler-style TSV."),
@@ -1638,7 +1608,7 @@
 	          { field: "Where it runs", value: engine.runtime },
 	          { field: "Reusable SDK command", value: engine.command },
 	          { field: "Who guesses the signature recipe", value: engine.exposureSource },
-	          { field: "Uncertainty in this notebook", value: engine.supportsBootstrap ? "uncertainty intervals available here" : "use that package's uncertainty workflow or switch to mSigSDK quick fit" },
+	          { field: "Uncertainty intervals", value: engine.supportsBootstrap ? "available here" : "use that package's uncertainty workflow or switch to mSigSDK quick fit" },
         ]
       ));
       if (isPyodide) {
@@ -1715,7 +1685,7 @@
 	        "running",
 	        "Workflow running",
 	        `Running ${engine.label}.`,
-	        "The notebook is checking inputs, guessing the signature recipe, rebuilding each sample, and refreshing plots, tables, and export files."
+	        "The workflow is checking inputs, estimating the signature recipe, rebuilding each sample, and refreshing plots, tables, and export files."
 	      );
 	      runOutput.replaceChildren(placeholder(`Running ${engine.label}: estimating the signature recipe, checking the reconstruction, and preparing review outputs.`));
       try {
@@ -1938,7 +1908,7 @@
 	          title: "Reconstruction values behind the plot",
 	          caption: "Lists cosine similarity and RMSE for each sample. These values ask whether the guessed signature recipe can recreate the original mutation pattern.",
 	        }),
-	        "After the fitting method guesses a signature recipe, the notebook mixes the selected reference signatures back together and compares that reconstruction with the original sample. Cosine similarity is a shape match score, where values closer to 1 mean the reconstructed pattern points in the same direction as the observed pattern. RMSE is the average leftover mismatch across mutation channels after profiles are normalized, where values closer to 0 are better. For SBS96 relative profiles, an RMSE such as 0.003 is usually small, but it is not a universal pass/fail cutoff. Read reconstruction quality with residual shape, mutation count, catalog choice, and review cues."
+	        "After the fitting method estimates a signature recipe, the selected reference signatures are mixed back together and compared with the original sample. Cosine similarity is a shape match score, where values closer to 1 mean the reconstructed pattern points in the same direction as the observed pattern. RMSE is the average leftover mismatch across mutation channels after profiles are normalized, where values closer to 0 are better. For SBS96 relative profiles, an RMSE such as 0.003 is usually small, but it is not a universal pass/fail cutoff. Read reconstruction quality with residual shape, mutation count, catalog choice, and review cues."
 	      );
 	      await plotSection(
 	        "Review summary",
@@ -1969,7 +1939,7 @@
         "Uncertainty intervals",
         async (id, sample, status) => {
           if (!analysis.exposureEngine?.supportsBootstrap) {
-            throw new Error("Uncertainty intervals are not run in this notebook for the selected external fitting method.");
+            throw new Error("Uncertainty intervals are not run for the selected external fitting method.");
           }
           const bootstrap = await getBootstrapForSample(sample, status);
           await mSigSDK.qcPlots.plotBootstrapConfidenceIntervals(id, bootstrap);
@@ -1980,7 +1950,7 @@
 	            title: "Uncertainty values for the selected sample",
 	            caption: "Lists repeat-fit intervals and selection-frequency values for the sample selected above.",
 	          })
-          : note("Uncertainty intervals are intentionally not shown for this selected fitting method. Use that package's own uncertainty workflow, or switch the fitting method to mSigSDK quick fit to see notebook-level uncertainty intervals.", "warning"),
+          : note("Uncertainty intervals are not shown for this selected fitting method. Use that package's own uncertainty workflow, or switch the fitting method to mSigSDK quick fit for browser-level uncertainty intervals.", "warning"),
 	        "Shows whether the selected sample's fitted recipe stays similar when the sample is resampled and refit. Wide intervals mean the exact ingredient amounts are less stable. External packages should use their package-specific uncertainty workflows.",
         {
           sampleControl: true,
@@ -2005,7 +1975,7 @@
 	            title: "Cutoff sensitivity values",
 	            caption: "Lists how reconstruction, active signatures, and recipe estimates change across the cutoff values tested in this workflow.",
 	          })
-          : note("Cutoff sensitivity is not recomputed for this selected fitting method because different packages may apply cutoffs differently. Review that package's sensitivity settings or switch to mSigSDK quick fit for this notebook check.", "warning"),
+          : note("Cutoff sensitivity is not recomputed for this selected fitting method because different packages may apply cutoffs differently. Review that package's sensitivity settings or switch to mSigSDK quick fit for this check.", "warning"),
 	        "Shows whether the fitted recipe changes when very small ingredients are kept or ignored. Stable results should change gradually rather than flip abruptly."
 	      );
 
@@ -2048,7 +2018,7 @@
         title: "Suggested review steps",
         caption: "Lists the follow-up checks generated from the workflow review evidence. Treat these as a practical checklist before reporting.",
       }));
-      tableStack.append(note("Suggested review steps are generated from the review evidence. Treat them as the checklist for adapting this notebook to a publication or project report.", "info"));
+      tableStack.append(note("Suggested review steps are generated from the review evidence. Treat them as the checklist for a publication or project report.", "info"));
       tableStack.append(details("Full workflow result", analysis));
       markWorkflowUpdated(reviewPanel);
     }
@@ -2158,7 +2128,7 @@
         title: "Downloadable files",
         caption: "Explains which files the workflow can save and why each file matters for review or rerun.",
       }));
-	      exportStack.append(note("Do not share the signature contributions CSV by itself when the run has warnings or needs cautious interpretation. Share the workflow report JSON with it so readers can see the reconstruction checks and caveats.", "warning"));
+	      exportStack.append(note("Do not share the signature contributions CSV by itself when the run has warnings or needs cautious interpretation. Share the workflow report JSON with it so collaborators can see the reconstruction checks and caveats.", "warning"));
       exportStack.append(workflowOutputGuide(
         "Tool export table",
         "This table states which external-tool file formats were prepared. It does not mean those external tools were run here; it means the current tables were organized so the analysis can be compared or rerun elsewhere.",
@@ -2170,7 +2140,7 @@
       ));
       exportStack.append(table(handoffRows(workflowState.interoperability), null, {
         title: "External-tool export formats",
-        caption: "Shows which tool/package formats were prepared so the same data can be compared or rerun outside this notebook.",
+        caption: "Shows which tool/package formats were prepared so the same data can be compared or rerun outside this browser page.",
       }));
       exportStack.append(workflowOutputGuide(
         "Report section table",
@@ -2184,7 +2154,7 @@
       ));
       exportStack.append(table(readableReportFieldRows(analysis.report), null, {
         title: "Structured report sections",
-        caption: "Shows the main report sections preserved in the workflow JSON so another reader can inspect the run context, checks, warnings, and results.",
+        caption: "Shows the main report sections preserved in the workflow JSON so another collaborator can inspect the run context, checks, warnings, and results.",
       }));
       exportStack.append(downloadMany([
         { filename: "end_to_end_spectra.tsv", text: spectraTsv, label: "Download spectra TSV" },

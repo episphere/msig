@@ -7,23 +7,14 @@
 
     Signature analysis rarely ends with one sample. A researcher needs to fit a cohort, preserve sample details, compare groups, and decide whether restricted assays such as panels or WES provide enough coverage to support a signature claim. This workflow follows that path from a local SBS96 table to cohort-level evidence and panel/WES review fields.
 
-    Read the notebook as two linked analyses. The cohort section asks what the spectra and sample details show under a standard known-signature fit. The panel/WES section asks whether the same interpretation remains reportable when only part of the mutation context space is observed.
-
-    **Unique role:** connect cohort metadata, group-level interpretation, and assay limitations in one applied workflow.
-
-    **Leave to focused notebooks:** standalone panel tier definitions, low-level QC object construction, report schema assembly, and package comparison.
-
-    **After running it you should know:** whether cohort-level results remain coherent when sample groups and restricted-assay coverage are considered together.
+    The workflow has two linked analyses. The cohort section asks what the spectra and sample details show under a standard known-signature fit. The panel/WES section asks whether the same interpretation remains reportable when only part of the mutation context space is observed.
   </script>
 
   <script type="module" pinned id="1">
     const cohortPanelSdkUrl = new URL("../main.js?v=2026-05-14-cohort-panel", location.href).href;
     const { mSigSDK } = await import(cohortPanelSdkUrl);
     const {
-      demoMetadata,
-      demoSignatures,
-      demoSpectra,
-      panelValidationSummary,
+      loadPublicSbs96Dataset,
       sbs96Contexts,
       sharedCallableOpportunities,
     } = await import("./msig-notebook-fixtures.js");
@@ -36,15 +27,16 @@
       table,
     } = mSigSDK.presentation;
 
-    const cpContexts = sbs96Contexts();
-    const cpSpectra = demoSpectra();
-    const cpSignatures = demoSignatures();
-    const cpMetadata = demoMetadata;
+    const cpDataset = await loadPublicSbs96Dataset(mSigSDK, { sampleLimit: 8 });
+    const cpContexts = cpDataset.contexts || sbs96Contexts();
+    const cpSpectra = cpDataset.spectra;
+    const cpSignatures = cpDataset.signatures;
+    const cpMetadata = cpDataset.metadata;
     const cpCallableOpportunities = sharedCallableOpportunities();
     const cpOptions = {
       exposureThreshold: 0.01,
       lowBurdenThreshold: 100,
-      groupKey: "assay",
+      groupKey: "burdenGroup",
       minAssessableMutations: 30,
       limitedSupportExposureThreshold: 0.05,
       higherSupportExposureThreshold: 0.20,
@@ -52,6 +44,7 @@
     };
 
     display(metrics([
+      { label: "Data source", value: cpDataset.status },
       { label: "Samples", value: Object.keys(cpSpectra).length },
       { label: "Sample detail rows", value: cpMetadata.length },
       { label: "Signatures", value: Object.keys(cpSignatures).length },
@@ -59,43 +52,26 @@
     ]));
     display(table(
       [
-        { notebookObject: "cpSpectra", replaceWith: "Project count table keyed by sample and SBS96 context" },
-        { notebookObject: "cpMetadata", replaceWith: "Sample-level cohort, assay, batch, tissue, treatment, or phenotype table" },
-        { notebookObject: "cpSignatures", replaceWith: "Reference signature catalog used for known-signature fitting" },
-        { notebookObject: "cpCallableOpportunities", replaceWith: "Assay-specific coverage counts or fractions" },
-        { notebookObject: "cpOptions", replaceWith: "Study cutoffs for mutation count, signature contribution, reportability, and group comparison" },
+        { objectName: "cpSpectra", replaceWith: "Project count table keyed by sample and SBS96 context" },
+        { objectName: "cpMetadata", replaceWith: "Sample-level cohort, assay, batch, tissue, treatment, or phenotype table" },
+        { objectName: "cpSignatures", replaceWith: "Reference signature catalog used for known-signature fitting" },
+        { objectName: "cpCallableOpportunities", replaceWith: "Assay-specific coverage counts or fractions" },
+        { objectName: "cpOptions", replaceWith: "Study cutoffs for mutation count, signature contribution, reportability, and group comparison" },
       ],
       [
-        { key: "notebookObject", label: "Object to edit" },
+        { key: "objectName", label: "Object to edit" },
         { key: "replaceWith", label: "Project-specific replacement" },
       ]
     ));
   </script>
-
-  <script type="text/markdown">
-    ## Interactive workspace
-
-    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
-  </script>
-
-  <script type="module" pinned id="interactive-workspace">
-    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
-    renderInteractiveNotebook({ mode: "cohort-panel", mSigSDK, display });
-  </script>
-
-  <script type="text/markdown">
+<script type="text/markdown">
     ## Step 1. Fit the cohort with sample details
 
-    `runCohortFit` keeps the core analysis together: input checks, mutation counts, signature contributions, reconstruction, residuals, subgroup summaries, group comparisons, warnings, suggested review steps, and figure descriptors. The sample-details table supplies the biological or technical groups that make those outputs interpretable.
+    `runCohortFit` keeps the cohort analysis together: input checks, mutation counts, signature contributions, reconstruction, residuals, subgroup summaries, group comparisons, warnings, and suggested review steps. The sample-details table supplies the biological or technical groups that make those outputs interpretable.
 
-    Start by asking whether the samples form meaningful groups and whether those groups should be compared. If the sample details are missing or inconsistent, the signature contribution table may still run, but the cohort story will be weaker.
+    Start by asking whether the samples form meaningful groups and whether those groups should be compared. If the sample details are missing or inconsistent, the signature contribution table may still run, but cohort-level interpretation will be weaker.
   </script>
-
-  <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "cohort-panel", step: 1, phase: "analysis", title: "Step 1. Fit the cohort with sample details", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="2">
+<script type="module" pinned id="2">
     const cpCohortResult = await mSigSDK.workflows.runCohortFit(
       {
         spectra: cpSpectra,
@@ -119,7 +95,6 @@
       { label: "Workflow", value: cpCohortResult.workflow },
       { label: "Warnings", value: cpCohortResult.warnings.length },
       { label: "Actions", value: cpCohortResult.recommendedActions.length },
-      { label: "Figures", value: cpCohortResult.publicationFigures.length },
       {
         label: "Group comparison",
         value: cpCohortResult.groupComparison?.reportingMode || "not run",
@@ -148,16 +123,11 @@
   <script type="text/markdown">
     ## Step 2. Inspect cohort evidence before reporting group results
 
-    The next decision is whether the cohort fit is strong enough to summarize. Fit-quality modes, warning codes, suggested review steps, and figure descriptors explain which outputs can be shown routinely and which need caveats. This section turns a table of signature contributions into a reportable evidence object.
+    The next decision is whether the cohort fit is strong enough to summarize. Fit-quality modes, warning codes, and suggested review steps explain which outputs can be shown routinely and which need caveats. This section turns a table of signature contributions into a reviewable evidence object.
 
     When adapting the workflow, review this section before creating figures. A group difference is not convincing if it is driven by low mutation-count samples or poor reconstruction.
   </script>
-
-  <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "cohort-panel", step: 2, phase: "review", title: "Step 2. Inspect cohort evidence before reporting group results", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="3">
+<script type="module" pinned id="3">
     display(fitQualityEvidenceTable(cpCohortResult.fitQualityEvidence, { maxRows: 8 }));
     display(table(
       warningRows(cpCohortResult.warnings),
@@ -165,16 +135,6 @@
         { key: "code", label: "Warning code" },
         { key: "message", label: "Message" },
         { key: "resolution", label: "Resolution" },
-      ],
-      { maxRows: 8 }
-    ));
-    display(table(
-      publicationFigureRows(cpCohortResult.publicationFigures),
-      [
-        { key: "id", label: "Figure id" },
-        { key: "title", label: "Figure title" },
-        { key: "renderer", label: "Renderer" },
-        { key: "dataFields", label: "Required fields" },
       ],
       { maxRows: 8 }
     ));
@@ -187,12 +147,7 @@
 
     Read the review reasons carefully. They are the explanation a collaborator, method reviewer, or clinical user needs when a signature is marked reportable, limited, or not supported.
   </script>
-
-  <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "cohort-panel", step: 3, phase: "review", title: "Step 3. Ask whether restricted-assay data can support a call", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="4">
+<script type="module" pinned id="4">
     const cpPanelResult = await mSigSDK.workflows.runPanelWorkflow(
       {
         spectra: cpSpectra,
@@ -235,31 +190,14 @@
       { label: "Warnings", value: cpPanelResult.warnings.length },
     ]));
     display(panelEvidenceTable(cpPanelResult, { maxRows: 12 }));
-    display(table(
-      panelValidationSummary,
-      [
-        { key: "callableContextCount", label: "Covered contexts" },
-        { key: "truthExposureBin", label: "Truth exposure bin" },
-        { key: "panelBurdenBin", label: "Panel mutation-count bin" },
-        { key: "calls", label: "Validation calls" },
-        { key: "tierAccuracy", label: "Tier accuracy" },
-        { key: "meanPanelVsWgsExposureCosine", label: "Mean panel-WGS cosine" },
-      ],
-      { maxRows: 8 }
-    ));
   </script>
 
   <script type="text/markdown">
     ## Step 4. Save the cohort and panel evidence bundle
 
-    The final bundle preserves the fitted signature contributions, sample-detail-aware summaries, panel evidence calls, warnings, suggested review steps, and report fields. Save these together so downstream applications do not detach a signature call from the assay limitations that qualify it.
+    The final bundle preserves the fitted signature contributions, sample details, panel evidence calls, warnings, and suggested review steps. Save these together so downstream applications do not detach a signature call from the assay limitations that qualify it.
   </script>
-
-  <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "cohort-panel", step: 4, phase: "export", title: "Step 4. Save the cohort and panel evidence bundle", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="5">
+<script type="module" pinned id="5">
     display(downloadMany([
       {
         filename: "cohort_panel_spectra.tsv",
@@ -277,7 +215,7 @@
         label: "Download panel evidence CSV",
       },
       {
-        filename: "cohort_panel_report.json",
+        filename: "cohort_panel_evidence_bundle.json",
         type: "json",
         value: {
           options: cpOptions,
@@ -287,8 +225,6 @@
             warnings: cpCohortResult.warnings,
             recommendedActions: cpCohortResult.recommendedActions,
             fitQualityEvidence: cpCohortResult.fitQualityEvidence,
-            publicationFigures: cpCohortResult.publicationFigures,
-            report: cpCohortResult.report,
           },
           panel: {
             opportunityMetadata: cpPanelResult.opportunityMetadata,
@@ -296,10 +232,9 @@
             evidenceSummary: cpPanelResult.panel.evidenceSummary,
             warnings: cpPanelResult.warnings,
             recommendedActions: cpPanelResult.recommendedActions,
-            report: cpPanelResult.report,
           },
         },
-        label: "Download report JSON",
+        label: "Download evidence bundle JSON",
       },
     ]));
   </script>

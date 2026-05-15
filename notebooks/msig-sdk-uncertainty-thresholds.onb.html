@@ -5,30 +5,22 @@
   <script type="text/markdown">
     # Uncertainty and cutoffs
 
-    Use this notebook after you understand the basic known-signature fitting workflow. It teaches two questions that come up immediately after fitting: are the estimated signature contributions stable, and do the conclusions depend on the minimum contribution cutoff?
+    After known-signature fitting, two questions come up immediately: are the estimated signature contributions stable, and do the conclusions depend on the minimum contribution cutoff?
 
     The code uses count-scale public mSigPortal spectra selected from moderate-to-high mutation-count PCAWG WGS Lung-AdenoCA samples, but the same functions work with your own spectra and reference signatures. Replace the loading block with your own tables, keep the uncertainty and cutoff cells, and tune the iteration count and cutoff grid for your analysis plan.
 
-    The story begins after a fit already exists. A researcher now asks which fitted signatures are stable enough to report and which depend too strongly on sampling noise or cutoff choice.
-
-    **Unique role:** stress-test fitted contributions with bootstrap intervals and reporting cutoff sweeps.
-
-    **Leave to focused notebooks:** input discovery, MAF conversion, panel coverage review, and report export mechanics.
-
-    **After running it you should know:** which signature calls are stable, borderline, cutoff-dependent, or too uncertain to report.
+    The review begins after a fit already exists. A researcher now asks which fitted signatures are stable enough to report and which depend too strongly on sampling noise or cutoff choice.
   </script>
 
   <script type="module" pinned id="1">
     const uncSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-uncertainty", location.href).href;
     const { mSigSDK } = await import(uncSdkUrl);
     const {
-      demoSignatures,
-      demoSpectra,
+      loadPublicSbs96Dataset,
     } = await import("./msig-notebook-fixtures.js");
     const {
       bootstrapRows,
       burdenSampleRows,
-      details,
       metrics,
       table,
       thresholdRows,
@@ -53,31 +45,14 @@
       ]
     ));
   </script>
-
-  <script type="text/markdown">
-    ## Interactive workspace
-
-    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
-  </script>
-
-  <script type="module" pinned id="interactive-workspace">
-    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
-    renderInteractiveNotebook({ mode: "uncertainty-thresholds", mSigSDK, display });
-  </script>
-
-  <script type="text/markdown">
+<script type="text/markdown">
     ## Step 1. Set the analysis grid
 
-    Uncertainty and cutoff analyses can be expensive because they repeat fitting. Keep the defaults small while learning the API. Increase `uncBootstrapIterations` for smoother intervals, edit `uncThresholdGrid` to match the cutoffs you plan to report, or replace `uncExampleSampleNames` with samples from your cohort.
+    Uncertainty and cutoff analyses can be expensive because they repeat fitting. Keep the defaults small for quick browser runs. Increase `uncBootstrapIterations` for smoother intervals, edit `uncThresholdGrid` to match the cutoffs you plan to report, or replace `uncExampleSampleNames` with samples from your cohort.
 
     This step defines the stress test. A confusing uncertainty result is often a sign that the grid does not match the cutoffs the project intends to use.
   </script>
-
-  <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 1, phase: "data", title: "Step 1. Set the analysis grid", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="2">
+<script type="module" pinned id="2">
     const uncContexts = mSigSDK.validation.getExpectedContexts({
       profile: "SBS",
       matrix: 96,
@@ -112,48 +87,21 @@
       "SBS40",
     ];
 
-    let uncDataSourceStatus = "live mSigPortal";
-    let uncAllGroupedSpectra;
-    let uncAllReferenceSignatures;
-    try {
-      const [uncRawSpectrumRows, uncRawSignatureRows] = await Promise.all([
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-          uncStudy,
-          uncExampleSampleNames,
-          uncGenomeDataType,
-          uncCancerType,
-          uncMutationType,
-          uncMatrixSize
-        ),
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
-          uncGenomeDataType,
-          uncSignatureSetName,
-          uncMutationType,
-          uncMatrixSize,
-          10000
-        ),
-      ]);
-      const uncSpectrumRows = Array.isArray(uncRawSpectrumRows)
-        ? uncRawSpectrumRows.flat()
-        : [];
-      const uncSignatureRows = Array.isArray(uncRawSignatureRows)
-        ? uncRawSignatureRows.flat()
-        : [];
-      uncAllGroupedSpectra =
-        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(uncSpectrumRows);
-      uncAllReferenceSignatures =
-        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-          uncSignatureRows,
-          "signatureName"
-        );
-      if (Object.keys(uncAllGroupedSpectra).length < 2 || Object.keys(uncAllReferenceSignatures).length < 3) {
-        throw new Error("mSigPortal returned too few matrices for uncertainty review.");
-      }
-    } catch (error) {
-      uncDataSourceStatus = `embedded fallback: ${error.message}`;
-      uncAllGroupedSpectra = demoSpectra();
-      uncAllReferenceSignatures = demoSignatures();
-    }
+    const uncDataset = await loadPublicSbs96Dataset(mSigSDK, {
+      study: uncStudy,
+      genomeDataType: uncGenomeDataType,
+      cancerType: uncCancerType,
+      mutationType: uncMutationType,
+      matrixSize: uncMatrixSize,
+      signatureSetName: uncSignatureSetName,
+      sampleNames: uncExampleSampleNames,
+      sampleLimit: uncSampleLimit,
+      signatureNames: uncPreferredSignatureNames,
+      allowAlternate: false,
+    });
+    const uncDataSourceStatus = uncDataset.status;
+    const uncAllGroupedSpectra = uncDataset.spectra;
+    const uncAllReferenceSignatures = uncDataset.allSignatures;
     const uncAllBurden = mSigSDK.qc.summarizeMutationBurden(
       uncAllGroupedSpectra,
       { expectedContexts: uncContexts }
@@ -225,16 +173,11 @@
   <script type="text/markdown">
     ## Step 2. Run uncertainty resampling and a cutoff sweep
 
-    Bootstrap resampling repeatedly perturbs one sample and refits signature contributions. Cutoff sensitivity fits the cohort across a grid of minimum contribution values. Read the returned objects first; the plots in the next cells are wrappers around these data structures.
+    Bootstrap resampling repeatedly perturbs one sample and refits signature contributions. Cutoff sensitivity fits the cohort across a grid of minimum contribution values. Read the summary rows first; the plots in the next cells are wrappers around the same uncertainty and cutoff checks.
 
     These computations are not alternative signature calls. They are checks on how much confidence to place in the fitted call from the main workflow.
   </script>
-
-  <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 2, phase: "visualize", title: "Step 2. Run uncertainty resampling and a cutoff sweep", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="3">
+<script type="module" pinned id="3">
     const uncBootstrapResult = await mSigSDK.qc.bootstrapSignatureFit(
       uncReferenceSignatures,
       uncGroupedSpectra[uncBootstrapSample],
@@ -283,10 +226,6 @@
         { key: "averageActiveSignatures", label: "Mean active signatures" },
       ]
     ));
-    display(details("Full uncertainty result objects", {
-      bootstrap: uncBootstrapResult,
-      thresholdSensitivity: uncThresholdSensitivityResult,
-    }));
   </script>
 
   <script type="text/markdown">
@@ -296,12 +235,7 @@
 
     Read this table as a statement about repeatability. A signature that appears in only a minority of bootstrap draws should not be described with the same certainty as a consistently selected signature.
   </script>
-
-  <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 3, phase: "visualize", title: "Step 3. Read signature contribution uncertainty", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="4">
+<script type="module" pinned id="4">
     const uncBootstrapDiv = document.createElement("div");
     uncBootstrapDiv.style.width = "100%";
     await mSigSDK.qcPlots.plotBootstrapConfidenceIntervals(
@@ -318,12 +252,7 @@
 
     If a signature disappears or changes rank across reasonable cutoffs, report the dependence explicitly or revise the reporting cutoff before producing final figures.
   </script>
-
-  <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 4, phase: "visualize", title: "Step 4. Check cutoff stability", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="5">
+<script type="module" pinned id="5">
     const uncThresholdDiv = document.createElement("div");
     uncThresholdDiv.style.width = "100%";
     await mSigSDK.qcPlots.plotThresholdSensitivity(
@@ -340,12 +269,7 @@
 
     The final decision table is where uncertainty becomes usable guidance: report, caveat, review manually, or omit from the main interpretation.
   </script>
-
-  <script type="module" pinned id="interactive-step-5">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 5, phase: "review", title: "Step 5. Convert uncertainty output into reporting decisions", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="6">
+<script type="module" pinned id="6">
     const uncDecisionRows = uncBootstrapRows.map((row) => {
       const width = Number(row.upper95 || 0) - Number(row.lower95 || 0);
       const stableSelection = Number(row.selectionFrequency || 0) >= 0.8;

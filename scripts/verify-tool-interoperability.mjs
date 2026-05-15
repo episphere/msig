@@ -15,10 +15,17 @@ import {
 import {
   createInteroperabilityBundle,
   parseDeconstructSigsOutput,
+  parseSigminerOutput,
+  parseSigProfilerMatrixGeneratorOutput,
   prepareMuSiCalRefitInput,
+  prepareSigProfilerClustersInput,
+  prepareSigProfilerMatrixGeneratorInput,
+  prepareSigProfilerPlottingInput,
+  prepareSigProfilerSimulatorInput,
   prepareSigProfilerAssignmentInput,
   prepareSigProfilerExtractorInput,
   prepareDeconstructSigsInput,
+  prepareSigminerInput,
   runSparseNnlsRefit,
 } from "../mSigSDKScripts/adapters.js";
 import { getExpectedContexts } from "../mSigSDKScripts/validation.js";
@@ -279,6 +286,70 @@ async function runNodeChecks() {
     deconstruct.manifest
   );
 
+  const sigminer = prepareSigminerInput(
+    { spectra, signatures },
+    { contexts, method: "NNLS" }
+  );
+  record(
+    checks,
+    "sigminer handoff prepares spectra, signatures, and R snippet",
+    sigminer.files.length === 2 &&
+      sigminer.rSnippet.includes("sigminer::sig_fit") &&
+      sigminer.manifest.contextCount === contexts.length,
+    sigminer.manifest
+  );
+
+  const exampleVcf = [
+    "##fileformat=VCFv4.2",
+    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO",
+    "1\t1000\t.\tC\tA\t.\tPASS\t.",
+  ].join("\n");
+  const matrixGenerator = prepareSigProfilerMatrixGeneratorInput(
+    { files: [{ path: "SampleA.vcf", text: exampleVcf }] },
+    { project: "InteropMatrix", referenceGenome: "GRCh37" }
+  );
+  record(
+    checks,
+    "SigProfilerMatrixGenerator handoff prepares variant files and Python snippet",
+    matrixGenerator.files.length === 1 &&
+      matrixGenerator.pythonSnippet.includes("SigProfilerMatrixGeneratorFunc"),
+    matrixGenerator.manifest
+  );
+
+  const simulator = prepareSigProfilerSimulatorInput(
+    { files: [{ path: "SampleA.vcf", text: exampleVcf }] },
+    { project: "InteropSimulator", simulations: 2 }
+  );
+  record(
+    checks,
+    "SigProfilerSimulator handoff prepares input files and Python snippet",
+    simulator.files.length === 1 &&
+      simulator.pythonSnippet.includes("SigProfilerSimulator"),
+    simulator.manifest
+  );
+
+  const clusters = prepareSigProfilerClustersInput(
+    { files: [{ path: "SampleA.vcf", text: exampleVcf }] },
+    { project: "InteropClusters" }
+  );
+  record(
+    checks,
+    "SigProfilerClusters handoff prepares input files and Python snippet",
+    clusters.files.length === 1 && clusters.pythonSnippet.includes("hp.analysis"),
+    clusters.manifest
+  );
+
+  const plotting = prepareSigProfilerPlottingInput(
+    { spectra },
+    { contexts, matrixType: "SBS", plotType: "96" }
+  );
+  record(
+    checks,
+    "sigProfilerPlotting handoff prepares matrix and Python snippet",
+    plotting.files.length === 1 && plotting.pythonSnippet.includes("plotSBS"),
+    plotting.manifest
+  );
+
   const exposureText = [
     "Sample\tSBS1\tSBS5\tSBS40",
     "SampleA\t0.2\t0.7\t0.1",
@@ -304,6 +375,27 @@ async function runNodeChecks() {
     deconstructImported
   );
 
+  const sigminerImported = parseSigminerOutput(exposureText, {
+    normalize: true,
+  });
+  record(
+    checks,
+    "sigminer exposure parser imports sample-by-signature output",
+    approximatelyEqual(sigminerImported.SampleA?.SBS1, 0.2) &&
+      checkExposureSums(sigminerImported),
+    sigminerImported
+  );
+
+  const matrixGeneratorImported = parseSigProfilerMatrixGeneratorOutput([
+    { path: "/output/SBS96.all", text: spa.files[0].text },
+  ]);
+  record(
+    checks,
+    "SigProfilerMatrixGenerator parser imports generated matrices",
+    Boolean(matrixGeneratorImported.matrices.SBS96?.SampleA),
+    matrixGeneratorImported.candidateMatrices
+  );
+
   const bundle = createInteroperabilityBundle(
     { spectra, signatures },
     { contexts }
@@ -314,7 +406,9 @@ async function runNodeChecks() {
     Boolean(
       bundle.tools.sigProfilerAssignment &&
         bundle.tools.sigProfilerExtractor &&
+        bundle.tools.sigProfilerPlotting &&
         bundle.tools.deconstructSigs &&
+        bundle.tools.sigminer &&
         bundle.tools.musical
     ),
     { tools: Object.keys(bundle.tools) }
@@ -400,12 +494,27 @@ try {
   record("Browser SigProfilerAssignment adapter prepares two input files", spa.files.length === 2 && spa.manifest.contextCount === 96, spa.manifest);
   const extractor = mSigSDK.adapters.sigProfilerExtractor.prepareInput({ spectra }, { contexts });
   record("Browser SigProfilerExtractor adapter prepares matrix handoff input", extractor.files.length === 1 && extractor.pythonSnippet.includes("sigProfilerExtractor"), extractor.manifest);
+  const exampleVcf = [
+    "##fileformat=VCFv4.2",
+    "#CHROM\\tPOS\\tID\\tREF\\tALT\\tQUAL\\tFILTER\\tINFO",
+    "1\\t1000\\t.\\tC\\tA\\t.\\tPASS\\t.",
+  ].join("\\n");
+  const matrixGenerator = mSigSDK.adapters.sigProfilerMatrixGenerator.prepareInput({ files: [{ path: "SampleA.vcf", text: exampleVcf }] }, { project: "BrowserMatrix" });
+  record("Browser SigProfilerMatrixGenerator adapter prepares Python handoff input", matrixGenerator.files.length === 1 && matrixGenerator.pythonSnippet.includes("SigProfilerMatrixGeneratorFunc"), matrixGenerator.manifest);
+  const simulator = mSigSDK.adapters.sigProfilerSimulator.prepareInput({ files: [{ path: "SampleA.vcf", text: exampleVcf }] }, { project: "BrowserSimulator", simulations: 2 });
+  record("Browser SigProfilerSimulator adapter prepares Python handoff input", simulator.files.length === 1 && simulator.pythonSnippet.includes("SigProfilerSimulator"), simulator.manifest);
+  const clusters = mSigSDK.adapters.sigProfilerClusters.prepareInput({ files: [{ path: "SampleA.vcf", text: exampleVcf }] }, { project: "BrowserClusters" });
+  record("Browser SigProfilerClusters adapter prepares Python handoff input", clusters.files.length === 1 && clusters.pythonSnippet.includes("hp.analysis"), clusters.manifest);
+  const plotting = mSigSDK.adapters.sigProfilerPlotting.prepareInput({ spectra }, { contexts, matrixType: "SBS", plotType: "96" });
+  record("Browser sigProfilerPlotting adapter prepares Python handoff input", plotting.files.length === 1 && plotting.pythonSnippet.includes("plotSBS"), plotting.manifest);
   const deconstruct = mSigSDK.adapters.deconstructSigs.prepareInput({ spectra, signatures }, { contexts });
   record("Browser deconstructSigs adapter prepares R handoff input", deconstruct.files.length === 2 && deconstruct.rSnippet.includes("whichSignatures"), deconstruct.manifest);
+  const sigminer = mSigSDK.adapters.sigminer.prepareInput({ spectra, signatures }, { contexts, method: "NNLS" });
+  record("Browser sigminer adapter prepares R handoff input", sigminer.files.length === 2 && sigminer.rSnippet.includes("sigminer::sig_fit"), sigminer.manifest);
   const musical = mSigSDK.adapters.musical.prepareRefitInput({ spectra, signatures }, { contexts });
   record("Browser MuSiCal adapter prepares two input files", musical.files.length === 2 && musical.manifest.contextCount === 96, musical.manifest);
   const bundle = mSigSDK.adapters.createInteroperabilityBundle({ spectra, signatures }, { contexts });
-  record("Browser interoperability bundle includes all supported tools", !!(bundle.tools.sigProfilerAssignment && bundle.tools.sigProfilerExtractor && bundle.tools.deconstructSigs && bundle.tools.musical), Object.keys(bundle.tools));
+  record("Browser interoperability bundle includes all supported tools", !!(bundle.tools.sigProfilerAssignment && bundle.tools.sigProfilerExtractor && bundle.tools.sigProfilerPlotting && bundle.tools.deconstructSigs && bundle.tools.sigminer && bundle.tools.musical), Object.keys(bundle.tools));
   const sparse = await mSigSDK.adapters.musical.runRefit({ spectra, signatures }, { contexts, threshold: 0.01 });
   record("Browser MuSiCal-compatible sparse refit completes", sparse.status === "completed" && sparse.runtime === "js_sparse_nnls", {
     samples: Object.keys(sparse.exposures || {}),

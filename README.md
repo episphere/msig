@@ -10,7 +10,7 @@ With **mSigSDK**, researchers can:
 - Run burden-aware fitting and exploratory discovery workflows with QC evidence, caveats, and next recommended actions.
 - Exchange spectra, signatures, and exposures with SigProfiler-style, COSMIC-style, and MuSiCal-compatible tabular formats.
 - Launch optional browser-Pyodide adapters for matrix-mode SigProfilerAssignment and MuSiCal-compatible refit review when the required Python packages are available.
-- Prepare matched handoff bundles for SigProfilerAssignment, SigProfilerExtractor, deconstructSigs, and MuSiCal from the same spectra and signature catalog.
+- Prepare matched handoff bundles for SigProfilerAssignment, SigProfilerExtractor, sigProfilerPlotting, deconstructSigs, sigminer, and MuSiCal from the same spectra and signature catalog, plus standalone handoff inputs for SigProfilerMatrixGenerator, SigProfilerSimulator, and SigProfilerClusters.
 - Generate portable reports with provenance metadata and JSON Schema validation.
 
 ---
@@ -24,7 +24,7 @@ With **mSigSDK**, researchers can:
 - **APIs**: Seamlessly integrates with mSigPortal's REST APIs to fetch mutational signature data and metadata.
 - **Data Boundary**: Public reference data are retrieved through APIs; user-supplied spectra can remain local for supported client-side workflows.
 - **Interoperability**: Supports SigProfiler-style spectra, COSMIC-style signatures, MuSiCal input/output helpers, and report JSON Schema validation.
-- **External Tool Adapters**: Provides an optional Pyodide worker runner, a SigProfilerAssignment matrix-mode adapter, SigProfilerExtractor and deconstructSigs handoff adapters, MuSiCal refit adapters, and a multi-tool interoperability bundle with explicit runtime provenance.
+- **External Tool Adapters**: Provides an optional Pyodide worker runner, SigProfilerAssignment and SigProfilerExtractor matrix-mode adapters, handoff adapters for SigProfilerMatrixGenerator, SigProfilerSimulator, SigProfilerClusters, sigProfilerPlotting, deconstructSigs, and sigminer, MuSiCal refit adapters, and a multi-tool interoperability bundle with explicit runtime provenance.
 - **Offline Context Path**: MAF conversion can use row-supplied contexts, caller-supplied lookup tables, or bundled smoke-test lookup assets for hg19, hg38, and T2T-CHM13.
 
 ---
@@ -145,7 +145,7 @@ The focused notebooks in `notebooks/` exercise the current public SDK surface:
 - `mSigSDK.signatureExtractionPlots`: extracted profile, exposure heatmap, and rank-diagnostic plots.
 - `mSigSDK.io`: generic TSV export/import plus SigProfiler, COSMIC, and MuSiCal matrix round trips.
 - `mSigSDK.runners`: optional Pyodide Web Worker execution for browser-side Python packages, including `runners.pyodide.runPython(code, { inputs })`.
-- `mSigSDK.adapters`: SigProfilerAssignment, SigProfilerExtractor, deconstructSigs, and MuSiCal adapters that prepare canonical files, execute optional runtimes where supported, parse compatible output tables, and return provenance-rich outputs.
+- `mSigSDK.adapters`: SigProfilerAssignment, SigProfilerExtractor, SigProfilerMatrixGenerator, SigProfilerSimulator, SigProfilerClusters, sigProfilerPlotting, deconstructSigs, sigminer, and MuSiCal adapters that prepare canonical files, execute optional runtimes where supported, parse compatible output tables, and return provenance-rich outputs.
 - `mSigSDK.reports`, `mSigSDK.provenance`, and `mSigSDK.workflows`: structured reports, reproducibility metadata, and high-level signature-fitting or NMF workflows.
 - `mSigSDK.presentation`: reusable browser output helpers for metric cards, tables, notes, expandable object details, and compact rows derived from common SDK result objects.
 - `mSigSDK.advisor`: validated burden-aware strategy recommendations, signature ambiguity screening, catalog-sufficiency checks, and fit-quality evidence reports, plus experimental group-comparison and restricted-assay evidence summaries that warn on use.
@@ -186,7 +186,7 @@ const bundle = mSigSDK.adapters.createInteroperabilityBundle(
 );
 
 console.log(Object.keys(bundle.tools));
-// sigProfilerAssignment, sigProfilerExtractor, deconstructSigs, musical
+// sigProfilerAssignment, sigProfilerExtractor, sigProfilerPlotting, deconstructSigs, sigminer, musical
 ```
 
 SigProfilerAssignment matrix-mode execution is available through the Pyodide runner:
@@ -205,7 +205,7 @@ console.log(assignment.exposures);
 console.log(assignment.provenance);
 ```
 
-SigProfilerExtractor and deconstructSigs are supported as handoff adapters. The SDK prepares matrix-mode files and executable Python or R snippets, and it can parse common output tables back into SDK matrices.
+SigProfilerExtractor, sigProfilerPlotting, deconstructSigs, and sigminer are supported as handoff adapters. The SDK prepares matrix-mode files and executable Python or R snippets, and it can parse common output tables back into SDK matrices. SigProfilerExtractor can also be launched through Pyodide when the package and dependencies install successfully in the target browser worker.
 
 ```javascript
 const extractorInput = mSigSDK.adapters.sigProfilerExtractor.prepareInput(
@@ -216,6 +216,35 @@ const extractorInput = mSigSDK.adapters.sigProfilerExtractor.prepareInput(
 const deconstructInput = mSigSDK.adapters.deconstructSigs.prepareInput(
   { spectra, signatures },
   { signatureCutoff: 0.01 }
+);
+
+const sigminerInput = mSigSDK.adapters.sigminer.prepareInput(
+  { spectra, signatures },
+  { method: "QP", mode: "SBS" }
+);
+
+const plottingInput = mSigSDK.adapters.sigProfilerPlotting.prepareInput(
+  { spectra },
+  { matrixType: "SBS", plotType: "96" }
+);
+```
+
+Variant-level SigProfiler tools are exposed as standalone handoff adapters because they start from VCF/MAF-like files rather than SDK spectra:
+
+```javascript
+const matrixGeneratorInput = mSigSDK.adapters.sigProfilerMatrixGenerator.prepareInput(
+  { files: [{ path: "sample.vcf", text: vcfText }] },
+  { project: "my_project", referenceGenome: "GRCh37" }
+);
+
+const simulatorInput = mSigSDK.adapters.sigProfilerSimulator.prepareInput(
+  { files: [{ path: "sample.vcf", text: vcfText }] },
+  { project: "my_project_simulations", simulations: 100 }
+);
+
+const clustersInput = mSigSDK.adapters.sigProfilerClusters.prepareInput(
+  { files: [{ path: "sample.vcf", text: vcfText }] },
+  { project: "my_project_clusters", genome: "GRCh37" }
 );
 ```
 

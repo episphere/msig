@@ -1,9 +1,7 @@
 import {
   crossToolSummary,
-  demoMafRows,
-  demoMetadata,
-  demoSignatures,
-  demoSpectra,
+  loadPublicMafRows,
+  loadPublicSbs96Dataset,
   panelValidationSummary,
   sbs96Contexts,
   sharedCallableOpportunities,
@@ -11,9 +9,9 @@ import {
 
 const MODE_COPY = {
   "public-cohort": {
-    title: "Interactive public API and TCGA cohort explorer",
+    title: "Interactive public cohort explorer",
     summary:
-      "Discover public mSigPortal and TCGA/GDC resources, load a real cohort, visualize spectra, and decide which downstream notebook should take over.",
+      "Discover mSigPortal spectra or TCGA/GDC public data, load a real cohort, visualize spectra, and choose the downstream workflow.",
     kind: "spectra",
   },
   "end-to-end": {
@@ -39,12 +37,6 @@ const MODE_COPY = {
     summary:
       "Paste or upload your own SBS96 mutation-count table, choose reference signatures, adjust cutoffs, and save a reusable report.",
     kind: "fit",
-  },
-  "maf-fit-report": {
-    title: "Interactive MAF conversion audit",
-    summary:
-      "Paste or upload variant rows, choose grouping and context settings, reconcile convertible SNV rows against SBS96 counts, and save handoff files.",
-    kind: "maf",
   },
   "cohort-panel": {
     title: "Interactive cohort and panel review",
@@ -91,24 +83,122 @@ const MODE_COPY = {
 };
 
 const NOTEBOOK_LINKS = [
-  ["End-to-end workflow", "msig-sdk-end-to-end-workflow.onb.html", "Full workflow", "Complete fit-review-export arc for first-time readers."],
-  ["Public API and TCGA cohort explorer", "msig-sdk-public-cohort-exploration.onb.html", "Public resources", "Discover public cohorts, API surfaces, TCGA/GDC files, and first-pass cohort plots."],
-  ["Resource portability", "msig-sdk-resource-portability.onb.html", "Resource portability", "Prove that resource-derived objects survive import/export and can be reused."],
-  ["MAF to report", "msig-sdk-maf-fit-report.onb.html", "Variant conversion", "Audit MAF field mapping, grouping, context provenance, and count reconciliation."],
-  ["Known-signature quality check", "msig-sdk-qc-walkthrough.onb.html", "Quality control", "Unpack mutation burden, reconstruction, residuals, warnings, and review steps."],
-  ["Cohort and panel", "msig-sdk-cohort-panel-workflow.onb.html", "Cohort plus assay", "Review cohort metadata, group comparisons, and restricted-assay limits together."],
-  ["Panel/WES evidence review", "msig-sdk-panel-evidence-tiers.onb.html", "Restricted assays", "Define support tiers for panel/WES data without cohort storytelling."],
-  ["Discovery extraction (NMF)", "msig-sdk-nmf-extraction.onb.html", "Discovery screening", "Learn candidate signatures from spectra and prepare production extraction files."],
-  ["Uncertainty and cutoffs", "msig-sdk-uncertainty-thresholds.onb.html", "Stability review", "Stress-test fitted contributions with bootstrap intervals and cutoff sweeps."],
-  ["Export and reports", "msig-sdk-export-report.onb.html", "Saved outputs", "Check round trips, report fields, provenance, and rerun records."],
-  ["Multi-tool comparison", "msig-sdk-multi-engine-comparison.onb.html", "Cross-tool review", "Compare fitting engines on identical inputs and inspect sample-level disagreements."],
-  ["Experimental sandbox", "msig-sdk-experimental-sandbox.onb.html", "Exploratory outputs", "Expose experimental status, warnings, and validation boundaries."],
+  {
+    title: "End-to-end workflow",
+    file: "msig-sdk-end-to-end-workflow.onb.html",
+    topic: "Full workflow",
+    phase: "Start here",
+    summary: "Walk through the complete fit, review, uncertainty, report, and export path once.",
+    bestFor: "You are new to the SDK or want one complete example before choosing a narrower lesson.",
+    result: "A reportable known-signature workflow with quality checks and downloadable files.",
+  },
+  {
+    title: "Public cohort explorer",
+    file: "msig-sdk-public-cohort-exploration.onb.html",
+    topic: "Public cohorts",
+    phase: "Find data",
+    summary: "Discover mSigPortal spectra or TCGA/GDC MAF-derived data, load a cohort, and make first-pass cohort plots.",
+    bestFor: "You need real public example data or want to inspect cohorts before fitting signatures.",
+    result: "A cohort-shaped spectra table that can feed the other notebooks.",
+  },
+  {
+    title: "Resource portability",
+    file: "msig-sdk-resource-portability.onb.html",
+    topic: "Resource portability",
+    phase: "Load data",
+    summary: "Check that data survives import, export, reload, and handoff between formats.",
+    bestFor: "You need confidence that a file conversion did not change the data shape or metadata.",
+    result: "Round-trip checks, provenance, and reusable resource files.",
+  },
+  {
+    title: "Variant rows to mutation patterns",
+    file: "msig-sdk-maf-fit-report.onb.html",
+    topic: "Variant conversion",
+    phase: "Prepare data",
+    summary: "Turn raw variant rows into a checked 96-bin mutation pattern before fitting.",
+    bestFor: "You have MAF-like rows or DNA changes and need to make them analysis-ready.",
+    result: "A verified mutation spectrum plus the checks behind the conversion.",
+  },
+  {
+    title: "Known-signature quality check",
+    file: "msig-sdk-qc-walkthrough.onb.html",
+    topic: "Quality control",
+    phase: "Judge results",
+    summary: "Read mutation burden, reconstruction quality, residuals, warnings, and review steps together.",
+    bestFor: "You already have a known-signature fit and need to decide whether it is interpretable.",
+    result: "A practical review of the evidence around fitted signature estimates.",
+  },
+  {
+    title: "Cohort and panel workflow",
+    file: "msig-sdk-cohort-panel-workflow.onb.html",
+    topic: "Cohort plus assay",
+    phase: "Compare groups",
+    summary: "Connect sample metadata, group comparisons, and panel/WES limits in one workflow.",
+    bestFor: "You are reviewing multiple samples and the assay type affects what can be said.",
+    result: "Cohort-level interpretation with assay limitations kept visible.",
+  },
+  {
+    title: "Panel/WES evidence review",
+    file: "msig-sdk-panel-evidence-tiers.onb.html",
+    topic: "Restricted assays",
+    phase: "Check limits",
+    summary: "Explain which signatures are supported, limited, not detected, or not assessable.",
+    bestFor: "Your data came from a panel or WES assay and coverage may limit the answer.",
+    result: "Evidence tiers that explain what the assay can and cannot support.",
+  },
+  {
+    title: "Discovery extraction (NMF)",
+    file: "msig-sdk-nmf-extraction.onb.html",
+    topic: "Discovery screening",
+    phase: "Extract patterns",
+    summary: "Extract candidate signatures from spectra and inspect rank and stability checks.",
+    bestFor: "You want to find patterns from the cohort instead of fitting only known signatures.",
+    result: "Candidate signatures, sample contributions, diagnostics, and production export files.",
+  },
+  {
+    title: "Uncertainty and cutoffs",
+    file: "msig-sdk-uncertainty-thresholds.onb.html",
+    topic: "Stability review",
+    phase: "Stress-test",
+    summary: "See how fitted calls change across bootstrap intervals and reporting cutoffs.",
+    bestFor: "You need to separate stable calls from borderline calls before reporting.",
+    result: "Uncertainty intervals and cutoff sensitivity tables.",
+  },
+  {
+    title: "Export and reports",
+    file: "msig-sdk-export-report.onb.html",
+    topic: "Saved outputs",
+    phase: "Report",
+    summary: "Save the inputs, outputs, report fields, provenance, and rerun records.",
+    bestFor: "You need a result another person can review, rerun, or archive.",
+    result: "Downloadable tables and a structured analysis report.",
+  },
+  {
+    title: "Multi-tool comparison",
+    file: "msig-sdk-multi-engine-comparison.onb.html",
+    topic: "Cross-tool review",
+    phase: "Compare",
+    summary: "Compare fitting engines on the same inputs and inspect sample-level disagreements.",
+    bestFor: "You want to know whether different tools agree on the same sample.",
+    result: "Agreement and disagreement evidence, not a package leaderboard.",
+  },
+  {
+    title: "Experimental sandbox",
+    file: "msig-sdk-experimental-sandbox.onb.html",
+    topic: "Exploratory outputs",
+    phase: "Explore",
+    summary: "Keep early-stage workflows visibly separate from validated signature calls.",
+    bestFor: "You are trying an experimental method and need the limitations to stay attached.",
+    result: "Exploratory output with warnings and validation boundaries.",
+  },
 ];
+
+const RETIRED_INTERACTIVE_MODES = new Set(["maf-fit-report"]);
 
 const PHASE_COPY = {
   overview: {
     action: "Run overview check",
-    helper: "Confirm the demo data, SDK import, and key objects before entering the workflow.",
+    helper: "Confirm the public dataset, SDK import, and key objects before entering the workflow.",
   },
   data: {
     action: "Check data and validation",
@@ -135,21 +225,21 @@ const PHASE_COPY = {
 const DATA_GUIDES = {
   spectra: {
     sample:
-      "The built-in demo data contains four small SBS96 spectra with high, moderate, and low mutation-count examples plus sample labels. The counts are toy spectra created from a few signature-like context patterns so the tutorial is fast and predictable.",
+      "The default dataset is loaded from the public mSigPortal APIs as real SBS96 mutation-count spectra with sample labels and source metadata.",
     format:
       "Use a spectra JSON object keyed by sample, where each sample contains SBS96 context counts, or upload a SigProfiler-style TSV table. Sample details are optional CSV, TSV, or JSON with a sample column.",
     example: '{ "sample_1": { "A[C>A]A": 12, "T[C>T]T": 4 } }',
   },
   matrixFit: {
     sample:
-      "The built-in demo data pairs four toy SBS96 spectra with three normalized toy signatures: smoking-like, clock-like, and APOBEC-like. It is synthetic tutorial data from the notebook fixtures, not a biological reference cohort.",
+      "The default dataset pairs real public SBS96 spectra with a compatible COSMIC SBS96 reference-signature catalog loaded through mSigPortal.",
     format:
       "Spectra should be JSON or SigProfiler-style TSV. Signatures should be JSON or COSMIC-style TSV keyed by signature name and SBS96 context. Sample details are optional but should include a sample column when supplied.",
-    example: '{ "SBS_demo_clock_like": { "T[C>T]T": 0.49, "A[C>T]G": 0.18 } }',
+    example: '{ "SBS1": { "T[C>T]T": 0.12, "A[C>T]G": 0.03 } }',
   },
   maf: {
     sample:
-      "The built-in demo MAF has 150 synthetic SNV rows grouped as demo_tumor. It includes row-supplied trinucleotide contexts so the tutorial can run without live genome-sequence lookup.",
+      "The default MAF rows come from public TCGA/GDC masked somatic mutation files and are trimmed for a browser-sized conversion audit.",
     format:
       "Provide CSV, TSV, or JSON rows with chromosome, start_position, reference_allele, tumor_seq_allele2, a grouping field such as project_code or Tumor_Sample_Barcode, and a context field when using offline mode.",
     example:
@@ -157,21 +247,21 @@ const DATA_GUIDES = {
   },
   panel: {
     sample:
-      "The built-in panel demo uses the same toy SBS96 spectra and signatures, plus a synthetic coverage mask that hides or downweights selected contexts to mimic panel or WES data.",
+      "The default panel review uses real public SBS96 spectra and signatures, plus an editable coverage mask that hides or downweights selected contexts to mimic panel or WES data.",
     format:
-      "Provide spectra and signatures as JSON or TSV. Coverage weights are context values from 0 to 1; this notebook exposes a scale control for the built-in mask.",
+      "Provide spectra and signatures as JSON or TSV. Coverage weights are context values from 0 to 1; this page exposes a scale control for the default mask.",
     example: '{ "T[C>T]A": 0.5, "T[C>G]A": 0.35, "G[C>G]G": 0 }',
   },
   nmf: {
     sample:
-      "The built-in discovery demo uses the four toy SBS96 spectra and the three toy reference signatures only to label similar learned patterns after the run.",
+      "The default discovery run uses real public SBS96 spectra and a compatible COSMIC reference catalog only to label similar learned patterns after the run.",
     format:
       "Provide a spectra table with multiple samples and enough mutations for discovery. Reference signatures are optional for matching learned patterns to known signatures.",
     example: '{ "tumor_a": { "A[C>A]A": 420 }, "tumor_b": { "T[C>T]A": 165 } }',
   },
   experimental: {
     sample:
-      "The built-in experimental demo uses five synthetic variants, four clustered on chromosome 1 and one distant variant on chromosome 2, to demonstrate localized-mutagenesis screening.",
+      "The default experimental rows are real public TCGA/GDC variant rows trimmed to a browser-sized localized-mutagenesis screen.",
     format:
       "Provide CSV, TSV, or JSON rows with chromosome, position, context, and an optional id. These exploratory outputs are not validated signature calls.",
     example: "chromosome,position,context,id",
@@ -229,13 +319,13 @@ function renderDataGuide(config) {
   heading.textContent = "Data source and format";
   const lead = document.createElement("p");
   lead.textContent =
-    "Start by choosing one source: load the synthetic built-in demo, or paste/upload your own data in the same shape and apply it before running.";
+    "Start by choosing one source: load the default real public dataset, or paste/upload your own data in the same shape and apply it before running.";
 
   const grid = document.createElement("div");
   grid.className = "workflow-data-guide-grid";
   const sampleBlock = document.createElement("div");
   const sampleTitle = document.createElement("span");
-  sampleTitle.textContent = "Built-in demo data";
+  sampleTitle.textContent = "Default public data";
   const sampleText = document.createElement("p");
   sampleText.textContent = guide.sample;
   sampleBlock.append(sampleTitle, sampleText);
@@ -259,13 +349,13 @@ function renderSourceChoice(config, { loadSample, apply, fetchPublic = null }) {
   const source = document.createElement("div");
   source.className = "workflow-source-choice";
 
-  const demoBlock = document.createElement("div");
-  demoBlock.className = "workflow-source-option";
-  const demoTitle = document.createElement("strong");
-  demoTitle.textContent = "Use built-in demo data";
-  const demoText = document.createElement("p");
-  demoText.textContent = guide.sample;
-  demoBlock.append(demoTitle, demoText, loadSample);
+  const publicBlock = document.createElement("div");
+  publicBlock.className = "workflow-source-option";
+  const publicTitle = document.createElement("strong");
+  publicTitle.textContent = "Use default public data";
+  const publicText = document.createElement("p");
+  publicText.textContent = guide.sample;
+  publicBlock.append(publicTitle, publicText, loadSample);
 
   const ownBlock = document.createElement("div");
   ownBlock.className = "workflow-source-option";
@@ -276,7 +366,7 @@ function renderSourceChoice(config, { loadSample, apply, fetchPublic = null }) {
     "Paste or upload matrices/rows in the data section below, then apply them here to preview shape, sample names, and format before running.";
   ownBlock.append(ownTitle, ownText, apply);
 
-  source.append(demoBlock, ownBlock);
+  source.append(publicBlock, ownBlock);
 
   if (fetchPublic) {
     const publicBlock = document.createElement("div");
@@ -285,7 +375,7 @@ function renderSourceChoice(config, { loadSample, apply, fetchPublic = null }) {
     publicTitle.textContent = "Fetch public spectra";
     const publicText = document.createElement("p");
     publicText.textContent =
-      "For the public cohort notebook, you can also fetch a small mSigPortal cohort and inspect the same quality-check controls.";
+      "For the public cohort workflow, you can also fetch a small mSigPortal cohort and inspect the same quality-check controls.";
     publicBlock.append(publicTitle, publicText, fetchPublic);
     source.append(publicBlock);
   }
@@ -661,12 +751,38 @@ function updateSampleSelect(mSigSDK, controls) {
   }));
 }
 
-function fillSampleData(mSigSDK, controls, kind) {
-  if (controls.spectraText) controls.spectraText.value = JSON.stringify(demoSpectra(), null, 2);
-  if (controls.signaturesText) controls.signaturesText.value = JSON.stringify(demoSignatures(), null, 2);
-  if (controls.metadataText) controls.metadataText.value = rowsToCsv(demoMetadata);
-  if (controls.mafText) controls.mafText.value = rowsToCsv(demoMafRows);
-  if (controls.variantText) controls.variantText.value = rowsToCsv(sampleLocalizedVariants());
+async function fillSampleData(mSigSDK, controls, kind) {
+  if (kind === "maf") {
+    const [mafData, signatureData] = await Promise.all([
+      loadPublicMafRows(mSigSDK, { projects: ["TCGA-LUAD"], maxFiles: 1, maxVariants: 80 }),
+      loadPublicSbs96Dataset(mSigSDK, { sampleLimit: 3 }),
+    ]);
+    if (controls.mafText) controls.mafText.value = rowsToCsv(mafData.rows);
+    if (controls.signaturesText) controls.signaturesText.value = JSON.stringify(signatureData.signatures, null, 2);
+    if (controls.mafGroupByInput) controls.mafGroupByInput.value = "sample";
+  } else if (kind === "experimental") {
+    const variantData = await loadPublicMafRows(mSigSDK, {
+      projects: ["TCGA-LUAD"],
+      maxFiles: 1,
+      maxVariants: 120,
+    });
+    if (controls.variantText) {
+      controls.variantText.value = rowsToCsv(variantData.rows.map((row) => ({
+        chromosome: row.chromosome,
+        position: row.position,
+        context: row.context || `${row.reference_allele || "N"}>${row.tumor_seq_allele2 || "N"}`,
+        id: row.id,
+        sample: row.sample,
+        source: row.source,
+      })));
+    }
+  } else {
+    const sampleLimit = kind === "panel" ? 3 : kind === "nmf" ? 6 : 8;
+    const publicData = await loadPublicSbs96Dataset(mSigSDK, { sampleLimit });
+    if (controls.spectraText) controls.spectraText.value = JSON.stringify(publicData.spectra, null, 2);
+    if (controls.signaturesText) controls.signaturesText.value = JSON.stringify(publicData.signatures, null, 2);
+    if (controls.metadataText) controls.metadataText.value = rowsToCsv(publicData.metadata);
+  }
   updateSampleSelect(mSigSDK, controls);
   return kind;
 }
@@ -703,16 +819,6 @@ function scaledCallableOpportunities(scale) {
       Math.max(0, Number(value) * scale),
     ])
   );
-}
-
-function sampleLocalizedVariants() {
-  return [
-    { chromosome: "1", position: 1000, context: "T[C>T]A", id: "v1" },
-    { chromosome: "1", position: 1450, context: "T[C>G]T", id: "v2" },
-    { chromosome: "1", position: 1850, context: "T[C>T]T", id: "v3" },
-    { chromosome: "1", position: 2300, context: "A[C>A]A", id: "v4" },
-    { chromosome: "2", position: 900000, context: "G[C>A]A", id: "v5" },
-  ];
 }
 
 async function runSpectraExplorer(app) {
@@ -885,9 +991,9 @@ function renderPortability(app, { spectra, signatures, analysis, params }) {
     { contexts, include: ["sigProfilerAssignment", "sigProfilerExtractor", "deconstructSigs", "musical"] }
   );
   const provenance = mSigSDK.provenance.createProvenance({
-    analysis: "interactive notebook portability check",
+    analysis: "interactive resource portability check",
     parameters: params,
-    dataSources: [{ source: "notebook user input", samples: Object.keys(spectra).length }],
+    dataSources: [{ source: "browser user input", samples: Object.keys(spectra).length }],
   });
   outputs.summary.append(presentation.table([
     { check: "Spectra round trip samples", value: Object.keys(spectraRoundTrip).length },
@@ -917,8 +1023,8 @@ async function runMafWorkflow(app) {
   const analysis = await mSigSDK.workflows.analyzeMafFiles(mafRows, signatures, {
     groupBy: params.mafGroupBy,
     genome: params.genomeBuild,
-    offline: true,
-    contextSource: "row-supplied trinucleotide context field",
+    offline: false,
+    contextSource: "live UCSC genome sequence lookup for TCGA/GDC MAF rows",
     expectedContexts: contexts,
     reportFormat: "object",
     fitting: {
@@ -949,8 +1055,22 @@ async function runMafWorkflow(app) {
   await plotCard(outputs.plots, "Mutation count", (host) =>
     mSigSDK.qcPlots.plotMutationBurdenSummary(host, analysis.qc.mutationBurden)
   );
-  await plotCard(outputs.plots, "Converted SBS96 spectrum", (host) =>
-    mSigSDK.userData.plotPatientMutationalSpectrumuserData(analysis.spectra, 96, host)
+  const mafSampleNames = Object.keys(analysis.spectra || {});
+  await plotSampleCard(
+    outputs.plots,
+    "Converted SBS96 profile",
+    mafSampleNames,
+    mafSampleNames[0],
+    (host, sample) =>
+      mSigSDK.qcPlots.plotCosmicSbs96Profile(host, analysis.spectra, {
+        sample,
+        contexts,
+        title: "Converted SBS96 profile",
+        subtitle:
+          "COSMIC-style plot of the spectra created from the MAF rows. Mutation classes are grouped and colored so the pattern can be inspected without a crowded x-axis.",
+      }),
+    null,
+    "Switch groups to redraw the COSMIC-style profile. Hover over bars for the full trinucleotide context and count."
   );
   outputs.exports.append(renderDownloads([
     { filename: "interactive_maf_rows.csv", text: rowsToCsv(mafRows), label: "Download MAF rows CSV" },
@@ -1272,7 +1392,7 @@ function appendParameterControls(grid, controls, kind) {
   }
   if (kind === "nmf") {
     grid.append(
-      field("Number of patterns to learn", controls.nmfRankInput),
+      field("Number of patterns to extract", controls.nmfRankInput),
       field("Random starts", controls.nmfRunsInput),
       field("Max iterations", controls.nmfIterationsInput),
       field("Random seed", controls.seedInput)
@@ -1313,6 +1433,10 @@ async function dispatchRun(app) {
 }
 
 export function renderInteractiveNotebook({ mode, mSigSDK, display }) {
+  if (RETIRED_INTERACTIVE_MODES.has(mode)) {
+    return;
+  }
+
   const config = MODE_COPY[mode] || MODE_COPY["qc-walkthrough"];
   const presentation = mSigSDK.presentation;
   const root = document.createElement("section");
@@ -1323,7 +1447,7 @@ export function renderInteractiveNotebook({ mode, mSigSDK, display }) {
   header.className = "workflow-placeholder";
   header.innerHTML = `<strong>${config.title}</strong><br>${config.summary}`;
   const controls = buildControls(config);
-  const loadSample = button("Load built-in demo data", "primary");
+  const loadSample = button("Load default public dataset", "primary");
   const fetchPublic = button("Fetch public mSigPortal spectra");
   const apply = button("Apply my pasted/uploaded data", "primary");
   const run = button("Run interactive workflow", "primary");
@@ -1353,15 +1477,23 @@ export function renderInteractiveNotebook({ mode, mSigSDK, display }) {
   appendDataControls(dataGrid, controls, config.kind);
   appendParameterControls(parameterGrid, controls, config.kind);
   const app = { mSigSDK, controls, outputs: { summary, plots, exports }, presentation, config };
-  loadSample.addEventListener("click", () => {
-    fillSampleData(mSigSDK, controls, config.kind);
-    resetOutputs(app.outputs, "Built-in demo data loaded. Adjust settings, apply your own data instead, or run the workflow.");
+  loadSample.addEventListener("click", async () => {
+    loadSample.disabled = true;
+    resetOutputs(app.outputs, "Loading the default public dataset...");
+    try {
+      await fillSampleData(mSigSDK, controls, config.kind);
+      resetOutputs(app.outputs, "Default public dataset loaded. Adjust settings, apply your own data instead, or run the workflow.");
+    } catch (error) {
+      resetOutputs(app.outputs, `Could not load the default public dataset: ${error.message}`);
+    } finally {
+      loadSample.disabled = false;
+    }
   });
   fetchPublic.addEventListener("click", async () => {
     try {
       await fetchPublicCohort(mSigSDK, controls, summary);
     } catch (error) {
-      summary.replaceChildren(placeholder(`Public fetch failed: ${error.message}. Load the built-in demo data or paste your own spectra table.`));
+      summary.replaceChildren(placeholder(`Public fetch failed: ${error.message}. Paste your own spectra table or try the default public loader again.`));
     }
   });
   apply.addEventListener("click", () => {
@@ -1419,6 +1551,10 @@ export function renderInteractiveStep({
   mSigSDK,
   display,
 }) {
+  if (RETIRED_INTERACTIVE_MODES.has(mode)) {
+    return;
+  }
+
   const config = MODE_COPY[mode] || MODE_COPY["qc-walkthrough"];
   const phaseInfo = PHASE_COPY[phase] || PHASE_COPY.analysis;
   const presentation = mSigSDK.presentation;
@@ -1438,9 +1574,8 @@ export function renderInteractiveStep({
   header.append(heading, description);
 
   const controls = buildControls(config);
-  fillSampleData(mSigSDK, controls, config.kind);
 
-  const loadSample = button("Load built-in demo data", "primary");
+  const loadSample = button("Load default public dataset", "primary");
   const preview = button("Apply my pasted/uploaded data", "primary");
   const run = button(phaseInfo.action, "primary");
   const clear = button("Clear results");
@@ -1499,9 +1634,17 @@ export function renderInteractiveStep({
     }
   }
 
-  loadSample.addEventListener("click", () => {
-    fillSampleData(mSigSDK, controls, config.kind);
-    resetOutputs(outputs, "Built-in demo data loaded for this step. Change any value, check the format, or run.");
+  loadSample.addEventListener("click", async () => {
+    loadSample.disabled = true;
+    resetOutputs(outputs, "Loading the default public dataset for this step...");
+    try {
+      await fillSampleData(mSigSDK, controls, config.kind);
+      resetOutputs(outputs, "Default public dataset loaded for this step. Change any value, check the format, or run.");
+    } catch (error) {
+      resetOutputs(outputs, `Could not load the default public dataset: ${error.message}`);
+    } finally {
+      loadSample.disabled = false;
+    }
   });
   preview.addEventListener("click", previewInputs);
   run.addEventListener("click", async () => {
@@ -1529,47 +1672,152 @@ export function renderInteractiveStep({
   });
   clear.addEventListener("click", () => resetOutputs(outputs, "Step output cleared."));
 
-  resetOutputs(outputs, "This step is ready. Choose a data source, review or edit settings, then run.");
+  resetOutputs(outputs, "Loading the default public dataset for this step...");
+  fillSampleData(mSigSDK, controls, config.kind)
+    .then(() => resetOutputs(outputs, "This step is ready with default public data. Review or edit settings, then run."))
+    .catch((error) => resetOutputs(outputs, `Could not load the default public dataset: ${error.message}`));
   root.append(header, renderDataGuide(config), sourceChoice, dataDetails, parameterGrid, workflowActions, outputs.summary, outputs.plots, outputs.exports);
   display(root);
 }
 
 export function renderNotebookIndex({ display }) {
   const root = document.createElement("section");
-  root.className = "workflow-panel";
+  root.className = "workflow-panel notebook-index-panel";
+
+  const intro = document.createElement("section");
+  intro.className = "notebook-index-intro";
+  const introTitle = document.createElement("h3");
+  introTitle.textContent = "Find the workflow that matches your question";
+  const introText = document.createElement("p");
+  introText.textContent =
+    "Each workflow handles one analysis job: finding data, preparing it, fitting or discovering signatures, checking reliability, or saving a report.";
+  intro.append(introTitle, introText);
+
+  const path = document.createElement("ol");
+  path.className = "notebook-path";
+  [
+    ["First time here", "Start with the full workflow.", "msig-sdk-end-to-end-workflow.onb.html"],
+    ["Have raw data", "Prepare spectra before fitting.", "msig-sdk-maf-fit-report.onb.html"],
+    ["Have results", "Check quality before reporting.", "msig-sdk-qc-walkthrough.onb.html"],
+  ].forEach(([label, copy, file]) => {
+    const item = document.createElement("li");
+    const strong = document.createElement("strong");
+    strong.textContent = label;
+    const span = document.createElement("span");
+    span.textContent = copy;
+    const link = document.createElement("a");
+    link.href = `?notebook=${file}`;
+    link.textContent = "Open";
+    item.append(strong, span, link);
+    path.append(item);
+  });
+
   const controls = document.createElement("div");
-  controls.className = "workflow-control-grid compact";
+  controls.className = "workflow-control-grid compact notebook-index-controls";
   const goal = select([
     "All goals",
-    ...NOTEBOOK_LINKS.map(([, , topic]) => topic),
+    ...NOTEBOOK_LINKS.map((entry) => entry.topic),
   ]);
   const filter = input("");
+  filter.placeholder = "Try panel, report, raw variants, uncertainty";
   const output = document.createElement("div");
-  output.className = "workflow-output-stack";
-  controls.append(field("Learning goal", goal), field("Filter notebooks", filter, "Type any term, such as panel, MAF, discovery, export, or uncertainty."));
+  output.className = "workflow-output-stack notebook-index-output";
+  controls.append(
+    field("I want to work on", goal, "Choose a topic, or leave this on all goals."),
+    field("Search", filter, "Filter by everyday words or technical terms.")
+  );
+
+  function detail(label, text) {
+    const node = document.createElement("div");
+    node.className = "notebook-index-detail";
+    const strong = document.createElement("strong");
+    strong.textContent = label;
+    const paragraph = document.createElement("p");
+    paragraph.textContent = text;
+    node.append(strong, paragraph);
+    return node;
+  }
+
+  function notebookCard(entry) {
+    const card = document.createElement("article");
+    card.className = "notebook-index-card";
+    const top = document.createElement("div");
+    top.className = "notebook-index-card-top";
+    const topic = document.createElement("span");
+    topic.className = "notebook-index-topic";
+    topic.textContent = entry.topic;
+    const phase = document.createElement("span");
+    phase.className = "notebook-index-phase";
+    phase.textContent = entry.phase;
+    top.append(topic, phase);
+
+    const heading = document.createElement("h3");
+    const headingLink = document.createElement("a");
+    headingLink.href = `?notebook=${entry.file}`;
+    headingLink.textContent = entry.title;
+    heading.append(headingLink);
+
+    const summary = document.createElement("p");
+    summary.className = "notebook-index-summary";
+    summary.textContent = entry.summary;
+
+    const details = document.createElement("div");
+    details.className = "notebook-index-details";
+    details.append(
+      detail("Best when", entry.bestFor),
+      detail("You will get", entry.result)
+    );
+
+    const action = document.createElement("a");
+    action.className = "workflow-button primary notebook-index-action";
+    action.href = `?notebook=${entry.file}`;
+    action.textContent = "Open workflow";
+
+    card.append(top, heading, summary, details, action);
+    return card;
+  }
+
   function render() {
     const query = filter.value.trim().toLowerCase();
     const selected = goal.value;
     const rows = NOTEBOOK_LINKS
-      .filter(([, , topic]) => selected === "All goals" || topic === selected)
-      .filter(([title, file, topic, unique]) => !query || `${title} ${file} ${topic} ${unique}`.toLowerCase().includes(query))
-      .map(([title, file, topic, unique]) => ({ title, topic, unique, open: `./viewer.html?notebook=${file}` }));
+      .filter((entry) => selected === "All goals" || entry.topic === selected)
+      .filter((entry) =>
+        !query ||
+        `${entry.title} ${entry.file} ${entry.topic} ${entry.phase} ${entry.summary} ${entry.bestFor} ${entry.result}`
+          .toLowerCase()
+          .includes(query)
+      );
     output.replaceChildren();
-    const table = document.createElement("table");
-    table.className = "output-table";
-    table.innerHTML = `<thead><tr><th>Notebook</th><th>Goal</th><th>Unique role</th><th>Open</th></tr></thead>`;
-    const body = document.createElement("tbody");
-    for (const row of rows) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${row.title}</td><td>${row.topic}</td><td>${row.unique}</td><td><a href="${row.open}">Open notebook</a></td>`;
-      body.append(tr);
+    const resultHeader = document.createElement("div");
+    resultHeader.className = "notebook-index-results-header";
+    const count = document.createElement("strong");
+    count.textContent = `${rows.length} workflow${rows.length === 1 ? "" : "s"} found`;
+    const hint = document.createElement("span");
+    hint.textContent =
+      rows.length === NOTEBOOK_LINKS.length
+        ? "Scan the cards or narrow the list with the controls above."
+        : "Open the card that matches your current question.";
+    resultHeader.append(count, hint);
+    output.append(resultHeader);
+
+    if (!rows.length) {
+      const empty = document.createElement("p");
+      empty.className = "notebook-index-empty";
+      empty.textContent =
+        "No workflow matches that filter. Try a broader word such as fit, data, panel, report, or uncertainty.";
+      output.append(empty);
+      return;
     }
-    table.append(body);
-    output.append(table);
+
+    const grid = document.createElement("div");
+    grid.className = "notebook-index-grid";
+    rows.forEach((entry) => grid.append(notebookCard(entry)));
+    output.append(grid);
   }
   goal.addEventListener("change", render);
   filter.addEventListener("input", render);
   render();
-  root.append(placeholder("Choose a learning goal, filter the notebook list, then open the interactive workflow."), controls, output);
+  root.append(intro, path, controls, output);
   display(root);
 }

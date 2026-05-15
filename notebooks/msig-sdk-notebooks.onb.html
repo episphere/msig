@@ -1,91 +1,54 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK focused notebooks</title>
+  <title>mSigSDK workflow guide</title>
 
   <script type="text/markdown">
-    # mSigSDK focused notebooks
+    # mSigSDK workflow guide
 
-    Start here for the SDK workflow map. The notebooks are organized as a researcher path rather than a function catalog: understand the input table, check spectra, run the analysis, inspect warnings and review evidence, compare or adapt the result, then save the files needed to reproduce the workflow.
+    Choose the mSigSDK workflow that matches your question.
 
-    Each notebook should be read as a small analysis story. The first section establishes the decision being made, the middle sections generate evidence, and the final section saves enough context for another researcher to rerun or review the result.
+    Common questions: What data do I have? Is it ready to analyze? Which mutation patterns appear in my samples? Can I trust the result enough to report it? What files should I save so another person can check the work?
 
-    ## Notebook roles
+    The code is hidden by default. Each workflow starts with public example data that can be replaced with project data.
 
-    Use this table to avoid duplicate notebooks. If a proposed notebook cannot claim a new row here, it should usually become a section inside an existing notebook instead.
+    ## Start with your question
 
-    | Notebook | Unique goal | Distinct teaching point |
-    | --- | --- | --- |
-    | [Notebook index](./viewer.html?notebook=msig-sdk-notebooks.onb.html) | Orient readers across the curriculum. | Choose the smallest notebook that answers the current analysis question. |
-    | [End-to-end workflow](./viewer.html?notebook=msig-sdk-end-to-end-workflow.onb.html) | Teach the complete fit-review-export arc once. | Signature contributions need input checks, fit quality, uncertainty, and provenance before reporting. |
-    | [Public API and TCGA cohort explorer](./viewer.html?notebook=msig-sdk-public-cohort-exploration.onb.html) | Discover public mSigPortal and TCGA/GDC resources. | Select a real cohort, inspect API surfaces, visualize public spectra, then choose the downstream notebook. |
-    | [Resource portability](./viewer.html?notebook=msig-sdk-resource-portability.onb.html) | Move resource-derived objects between SDK tables, public rows, and portable files. | Round-trip checks protect source metadata and object shape before analysis. |
-    | [MAF to report](./viewer.html?notebook=msig-sdk-maf-fit-report.onb.html) | Convert variant rows into auditable SBS96 spectra. | MAF field mapping, grouping, context provenance, and count reconciliation come before fitting. |
-    | [Known-signature quality check](./viewer.html?notebook=msig-sdk-qc-walkthrough.onb.html) | Expose the QC objects behind a known-signature fit. | Read burden, reconstruction, residuals, warnings, and recommended actions together. |
-    | [Cohort and panel workflow](./viewer.html?notebook=msig-sdk-cohort-panel-workflow.onb.html) | Combine cohort metadata, group review, and assay limitations. | A cohort result can change meaning when groups and restricted coverage are reviewed together. |
-    | [Panel/WES evidence review](./viewer.html?notebook=msig-sdk-panel-evidence-tiers.onb.html) | Define restricted-assay evidence tiers. | Support levels explain whether a signature is higher support, limited, not detected, or not assessable. |
-    | [Discovery extraction (NMF)](./viewer.html?notebook=msig-sdk-nmf-extraction.onb.html) | Learn candidate patterns from spectra rather than fitting fixed references. | Discovery depends on cohort size, burden, rank choice, random starts, and production extraction files. |
-    | [Uncertainty and cutoffs](./viewer.html?notebook=msig-sdk-uncertainty-thresholds.onb.html) | Stress-test fitted signatures. | Bootstrap intervals and cutoff sweeps separate stable calls from borderline calls. |
-    | [Export and reports](./viewer.html?notebook=msig-sdk-export-report.onb.html) | Make results durable and reviewable. | Reports, run records, round-trip files, and required fields are part of the analysis output. |
-    | [Multi-tool comparison](./viewer.html?notebook=msig-sdk-multi-engine-comparison.onb.html) | Compare fitting engines on identical inputs. | Agreement and disagreement are sample-level evidence, not a package leaderboard. |
-    | [Experimental sandbox](./viewer.html?notebook=msig-sdk-experimental-sandbox.onb.html) | Demonstrate safe handling of early-stage workflows. | Experimental status, warnings, and validation roadmaps must be impossible to miss. |
+    - **I want the complete workflow:** open [End-to-end workflow](?notebook=msig-sdk-end-to-end-workflow.onb.html).
+    - **I need public example data:** open [Public cohort explorer](?notebook=msig-sdk-public-cohort-exploration.onb.html).
+    - **I have raw variant rows:** open [Variant rows to mutation patterns](?notebook=msig-sdk-maf-fit-report.onb.html).
+    - **I already fit signatures and need to judge the result:** open [Known-signature quality check](?notebook=msig-sdk-qc-walkthrough.onb.html).
+    - **I need a report or files for review:** open [Export and reports](?notebook=msig-sdk-export-report.onb.html).
 
-    ## Suggested execution order
+    ## Suggested path
 
-    Follow this order when learning the SDK from scratch. It starts with the end-to-end workflow, then breaks the same pattern into focused notebooks for inputs, fitting, uncertainty, reporting, and specialized workflows.
+    Suggested order:
 
-    1. [End-to-end workflow](./viewer.html?notebook=msig-sdk-end-to-end-workflow.onb.html)
-    2. [Public API and TCGA cohort explorer](./viewer.html?notebook=msig-sdk-public-cohort-exploration.onb.html)
-    3. [Known-signature quality check](./viewer.html?notebook=msig-sdk-qc-walkthrough.onb.html)
-    4. [Uncertainty and cutoffs](./viewer.html?notebook=msig-sdk-uncertainty-thresholds.onb.html)
-    5. [Export and reports](./viewer.html?notebook=msig-sdk-export-report.onb.html)
-    6. [Resource portability](./viewer.html?notebook=msig-sdk-resource-portability.onb.html) or [MAF to report](./viewer.html?notebook=msig-sdk-maf-fit-report.onb.html)
-    7. [Panel/WES evidence review](./viewer.html?notebook=msig-sdk-panel-evidence-tiers.onb.html), [Discovery extraction (NMF)](./viewer.html?notebook=msig-sdk-nmf-extraction.onb.html), or [Multi-tool comparison](./viewer.html?notebook=msig-sdk-multi-engine-comparison.onb.html)
+    1. [End-to-end workflow](?notebook=msig-sdk-end-to-end-workflow.onb.html)
+    2. [Public cohort explorer](?notebook=msig-sdk-public-cohort-exploration.onb.html)
+    3. [Known-signature quality check](?notebook=msig-sdk-qc-walkthrough.onb.html)
+    4. [Uncertainty and cutoffs](?notebook=msig-sdk-uncertainty-thresholds.onb.html)
+    5. [Export and reports](?notebook=msig-sdk-export-report.onb.html)
+    6. [Resource portability](?notebook=msig-sdk-resource-portability.onb.html) or [Variant rows to mutation patterns](?notebook=msig-sdk-maf-fit-report.onb.html)
+    7. [Panel/WES evidence review](?notebook=msig-sdk-panel-evidence-tiers.onb.html), [Discovery extraction (NMF)](?notebook=msig-sdk-nmf-extraction.onb.html), or [Multi-tool comparison](?notebook=msig-sdk-multi-engine-comparison.onb.html)
 
-    ## Workflow stages
+    ## Terms
 
-    The groups below match the natural analysis sequence. Orientation notebooks explain the path, input notebooks teach how to bring data into the SDK, core notebooks perform analysis, reliability notebooks test and export results, and the experimental notebook keeps hypothesis-generating outputs separate.
+    - **Mutation spectrum:** a counted pattern of DNA changes in a sample.
+    - **Signature:** a recurring mutation pattern that may point to a biological process or exposure.
+    - **Signature fitting:** estimating how much each known signature contributes to a sample.
+    - **Quality check:** evidence that helps decide whether a fit is believable.
+    - **Uncertainty:** how much the answer changes when the data or cutoffs are tested.
+    - **Provenance:** the record of data, settings, and software used to make the result.
 
-    Orientation:
+    ## Important reading rule
 
-    - [Notebook index](./viewer.html?notebook=msig-sdk-notebooks.onb.html)
-    - [End-to-end workflow](./viewer.html?notebook=msig-sdk-end-to-end-workflow.onb.html)
-    - [Public API and TCGA cohort explorer](./viewer.html?notebook=msig-sdk-public-cohort-exploration.onb.html)
+    Do not read a signature contribution table by itself. A number in that table is only meaningful beside the evidence around it: input checks, mutation counts, reconstruction quality, residual patterns, warnings, review steps, uncertainty, assay limits, and provenance.
 
-    Load data:
+    ## Adapting a workflow
 
-    - [Resource portability](./viewer.html?notebook=msig-sdk-resource-portability.onb.html)
-    - [MAF to report](./viewer.html?notebook=msig-sdk-maf-fit-report.onb.html)
+    For a local project, replace the input-loading step first. Keep the validation, warning, quality-check, uncertainty, report, and export sections in place so the adapted workflow still leaves a complete review trail.
 
-    Analyze data:
-
-    - [Known-signature quality check](./viewer.html?notebook=msig-sdk-qc-walkthrough.onb.html)
-    - [Cohort and panel workflow](./viewer.html?notebook=msig-sdk-cohort-panel-workflow.onb.html)
-    - [Panel/WES evidence review](./viewer.html?notebook=msig-sdk-panel-evidence-tiers.onb.html)
-    - [Discovery extraction (NMF)](./viewer.html?notebook=msig-sdk-nmf-extraction.onb.html)
-
-    Review and report:
-
-    - [Uncertainty and cutoffs](./viewer.html?notebook=msig-sdk-uncertainty-thresholds.onb.html)
-    - [Export and reports](./viewer.html?notebook=msig-sdk-export-report.onb.html)
-    - [Multi-tool comparison](./viewer.html?notebook=msig-sdk-multi-engine-comparison.onb.html)
-
-    Experimental:
-
-    - [Experimental sandbox](./viewer.html?notebook=msig-sdk-experimental-sandbox.onb.html)
-
-    ## Inspect before trusting results
-
-    The recurring lesson across the notebooks is that signature contribution estimates should not be read alone. Look for input checks, mutation counts, reconstruction quality, residual structure, warnings, suggested review steps, report fields, and a run record before treating an output as reportable.
-
-    Check the SDK import path, data source, input-check result, warning table, suggested review steps, local computation boundary, report/run-record output, and any files prepared for other tools. Plots should be read together with the returned result objects and cutoffs that generated them.
-
-    ## Replace for a local project
-
-    For a local project, replace the input-loading step first and leave the input-check, warning, report, and export sections in place. After the adapted notebook runs cleanly, tighten cutoffs, expand uncertainty settings, or add package comparisons to match the project question.
-
-    Replace sample spectra, signature catalog, mutation-count cutoffs, minimum signature contribution cutoffs, sample details, panel/WES coverage masks, and report settings. Keep the input-check, mutation-count, reconstruction, residual, uncertainty, warning, and export steps in place so the adapted notebook still produces a complete analysis record.
-
-    For local development, keep the SDK server running while you use the notebooks:
+    For local development, keep the SDK server running.
 
     ```bash
     npm run serve:observable
@@ -93,7 +56,7 @@
   </script>
 
   <script type="module" pinned id="interactive-index">
-    const msigNotebookInteractiveIndex = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
+    const msigNotebookInteractiveIndex = await import("./msig-notebook-interactive.js?v=2026-05-15-readable-index");
     msigNotebookInteractiveIndex.renderNotebookIndex({ display });
   </script>
 </notebook>

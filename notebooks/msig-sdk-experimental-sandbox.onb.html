@@ -5,29 +5,30 @@
   <script type="text/markdown">
     # Experimental sandbox
 
-    Experimental workflows are hypothesis-generating aids, not validated signature-calling pipelines. This notebook shows how an application can expose experimental outputs while keeping their scope, limitations, warnings, and validation roadmap visible.
+    Experimental workflows are hypothesis-generating aids, not validated signature-calling pipelines. Applications should expose experimental outputs with their scope, limitations, warnings, and validation roadmap visible.
 
     Read the workflow as a safety pattern. First define the scope, then inspect the exploratory signal, then review warnings and validation requirements before saving any output. The result object should make it difficult to confuse exploratory evidence with a validated analysis.
-
-    **Unique role:** demonstrate how unfinished SDK workflows should expose status, warnings, and validation boundaries.
-
-    **Leave to focused notebooks:** reportable known-signature fitting, panel evidence, public cohort discovery, and package concordance.
-
-    **After running it you should know:** how to keep exploratory outputs useful without presenting them as validated signature calls.
   </script>
 
   <script type="module" pinned id="1">
     const experimentalSdkUrl = new URL("../main.js?v=2026-05-14-experimental", location.href).href;
     const { mSigSDK } = await import(experimentalSdkUrl);
+    const { loadPublicMafRows } = await import("./msig-notebook-fixtures.js");
     const { metrics, table } = mSigSDK.presentation;
 
-    const localizedVariants = [
-      { chromosome: "1", position: 1000, context: "T[C>T]A", id: "v1" },
-      { chromosome: "1", position: 1450, context: "T[C>G]T", id: "v2" },
-      { chromosome: "1", position: 1850, context: "T[C>T]T", id: "v3" },
-      { chromosome: "1", position: 2300, context: "A[C>A]A", id: "v4" },
-      { chromosome: "2", position: 900000, context: "G[C>A]A", id: "v5" },
-    ];
+    const localizedPublicRows = await loadPublicMafRows(mSigSDK, {
+      projects: ["TCGA-LUAD"],
+      maxFiles: 1,
+      maxVariants: 120,
+    });
+    const localizedVariants = localizedPublicRows.rows.map((row) => ({
+      chromosome: row.chromosome,
+      position: Number(row.start_position),
+      context: row.context || `${row.reference_allele || "N"}>${row.tumor_seq_allele2 || "N"}`,
+      id: row.id,
+      sample: row.sample,
+      source: row.source,
+    }));
     const localizedParameters = {
       maxIntermutationDistance: 700,
       minMutations: 3,
@@ -41,6 +42,7 @@
     );
 
     display(metrics([
+      { label: "Data source", value: localizedPublicRows.source },
       { label: "Namespace", value: "experimental" },
       { label: "Workflow", value: localizedResult.workflow },
       {
@@ -51,29 +53,12 @@
       { label: "Foci", value: localizedResult.localized.foci.length },
     ]));
   </script>
-
-  <script type="text/markdown">
-    ## Interactive workspace
-
-    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
-  </script>
-
-  <script type="module" pinned id="interactive-workspace">
-    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
-    renderInteractiveNotebook({ mode: "experimental", mSigSDK, display });
-  </script>
-
-  <script type="text/markdown">
+<script type="text/markdown">
     ## Step 1. Define the experimental scope
 
     The first output to inspect is the scope statement. It identifies what the workflow is designed to screen, what assumptions it makes, and what evidence is still needed. A researcher should understand this section before looking at any focal-region table.
   </script>
-
-  <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "experimental", step: 1, phase: "analysis", title: "Step 1. Define the experimental scope", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="2">
+<script type="module" pinned id="2">
     display(table(
       localizedVariants,
       [
@@ -103,12 +88,7 @@
 
     Rainfall-style summaries highlight clustered mutation patterns and focal regions that may deserve follow-up. These tables are useful for triage, but they do not establish mechanism by themselves. Treat dense local clusters as leads to validate with independent evidence, sample-level quality checks, and study-specific cutoffs.
   </script>
-
-  <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "experimental", step: 2, phase: "review", title: "Step 2. Inspect exploratory rainfall evidence", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="3">
+<script type="module" pinned id="3">
     const localizedRainfallRows = localizedResult.rainfall.map((variant) => ({
       id: variant.id,
       chromosome: variant.chromosome,
@@ -160,12 +140,7 @@
 
     The warning and roadmap fields state what remains unvalidated. They are part of the result, not optional annotation. If this section lists missing validation, the workflow should remain in exploratory mode even when the candidate table looks interesting.
   </script>
-
-  <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "experimental", step: 3, phase: "review", title: "Step 3. Read warnings before interpreting candidates", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="4">
+<script type="module" pinned id="4">
     const localizedRoadmapRows = [
       { item: "Input validation", requirement: "Confirm chromosome, position, genome build, and context labels against a pinned variant source." },
       { item: "Null model", requirement: "Replace the descriptive distance cutoff with a calibrated background model for the assay and covered territory." },
@@ -199,12 +174,7 @@
 
     Experimental outputs should be exported with the scope statement, status, warnings, recommended actions, and validation roadmap. Saving those fields with the candidate regions prevents downstream users from treating a screening result as a validated call.
   </script>
-
-  <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "experimental", step: 4, phase: "export", title: "Step 4. Save exploratory outputs with their scope", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="5">
+<script type="module" pinned id="5">
     display(downloadMany([
       {
         filename: "localized_mutagenesis_rainfall.csv",
@@ -217,7 +187,7 @@
         label: "Download foci CSV",
       },
       {
-        filename: "localized_mutagenesis_report.json",
+        filename: "localized_mutagenesis_exploratory_bundle.json",
         type: "json",
         value: {
           parameters: localizedParameters,
@@ -226,10 +196,9 @@
           methodBasis: localizedResult.methodBasis,
           warnings: localizedResult.warnings,
           recommendedActions: localizedResult.recommendedActions,
-          publicationFigures: localizedResult.publicationFigures,
           result: localizedResult,
         },
-        label: "Download experimental report JSON",
+        label: "Download exploratory bundle JSON",
       },
     ]));
   </script>

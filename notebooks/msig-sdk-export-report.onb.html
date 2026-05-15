@@ -5,29 +5,21 @@
   <script type="text/markdown">
     # Export and reports
 
-    This workflow teaches the utility layer that turns exploratory analysis into reusable files. It covers SigProfiler-style table export/import, run records, structured reports, and the high-level workflow helper that bundles input checks, fitting, quality checks, and reporting.
+    The reporting layer turns exploratory analysis into reusable files. It covers SigProfiler-style table export/import, run records, structured reports, and the high-level workflow helper that bundles input checks, fitting, quality checks, and reporting.
 
-    Follow the story from input to saved output. First load a small analysis, then prove that the table can be exported and read back, then compare the high-level workflow helper with manual report assembly, and finally save the bundle that another researcher would need to reproduce the run.
-
-    **Unique role:** make the analysis durable by checking file round trips, report fields, provenance, and rerun records.
-
-    **Leave to focused notebooks:** deciding whether signatures are biologically supported, browsing public cohorts, MAF conversion, and cross-tool benchmarking.
-
-    **After running it you should know:** what files and report fields must be saved so another researcher can review or rerun the analysis.
+    The workflow moves from input to saved output: load a small analysis, prove that the table can be exported and read back, compare the high-level workflow helper with manual report assembly, and save the bundle that another researcher would need to reproduce the run.
   </script>
 
   <script type="module" pinned id="1">
     const repSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-report", location.href).href;
     const { mSigSDK } = await import(repSdkUrl);
     const {
-      demoSignatures,
-      demoSpectra,
+      loadPublicSbs96Dataset,
     } = await import("./msig-notebook-fixtures.js");
     const {
       burdenSampleRows,
       details,
       metrics,
-      reconstructionRows,
       reportFieldRows,
       table,
     } = mSigSDK.presentation;
@@ -52,31 +44,14 @@
       ]
     ));
   </script>
-
-  <script type="text/markdown">
-    ## Interactive workspace
-
-    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
-  </script>
-
-  <script type="module" pinned id="interactive-workspace">
-    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
-    renderInteractiveNotebook({ mode: "export-report", mSigSDK, display });
-  </script>
-
-  <script type="text/markdown">
+<script type="text/markdown">
     ## Step 1. Load a small dataset for reporting
 
     The reporting workflow starts from the same input shape as fitting: count spectra by sample and signatures by signature name. This cell uses a compact set of public PCAWG WGS Lung-AdenoCA spectra with both adequate and low mutation counts, so the report demonstrates useful input-check and quality-check fields.
 
     At this point, the researcher is not judging signatures yet. The question is whether the inputs, sample count, signature count, and source details are clear enough to make the rest of the report interpretable.
   </script>
-
-  <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 1, phase: "data", title: "Step 1. Load a small dataset for reporting", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="2">
+<script type="module" pinned id="2">
     const repContexts = mSigSDK.validation.getExpectedContexts({
       profile: "SBS",
       matrix: 96,
@@ -109,48 +84,21 @@
       "SBS40",
     ];
 
-    let repDataSourceStatus = "live mSigPortal";
-    let repAllGroupedSpectra;
-    let repAllReferenceSignatures;
-    try {
-      const [repRawSpectrumRows, repRawSignatureRows] = await Promise.all([
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-          repStudy,
-          repExampleSampleNames,
-          repGenomeDataType,
-          repCancerType,
-          repMutationType,
-          repMatrixSize
-        ),
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
-          repGenomeDataType,
-          repSignatureSetName,
-          repMutationType,
-          repMatrixSize,
-          10000
-        ),
-      ]);
-      const repSpectrumRows = Array.isArray(repRawSpectrumRows)
-        ? repRawSpectrumRows.flat()
-        : [];
-      const repSignatureRows = Array.isArray(repRawSignatureRows)
-        ? repRawSignatureRows.flat()
-        : [];
-      repAllGroupedSpectra =
-        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(repSpectrumRows);
-      repAllReferenceSignatures =
-        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-          repSignatureRows,
-          "signatureName"
-        );
-      if (Object.keys(repAllGroupedSpectra).length < 2 || Object.keys(repAllReferenceSignatures).length < 3) {
-        throw new Error("mSigPortal returned too few matrices for report review.");
-      }
-    } catch (error) {
-      repDataSourceStatus = `embedded fallback: ${error.message}`;
-      repAllGroupedSpectra = demoSpectra();
-      repAllReferenceSignatures = demoSignatures();
-    }
+    const repDataset = await loadPublicSbs96Dataset(mSigSDK, {
+      study: repStudy,
+      genomeDataType: repGenomeDataType,
+      cancerType: repCancerType,
+      mutationType: repMutationType,
+      matrixSize: repMatrixSize,
+      signatureSetName: repSignatureSetName,
+      sampleNames: repExampleSampleNames,
+      sampleLimit: repSampleLimit,
+      signatureNames: repPreferredSignatureNames,
+      allowAlternate: false,
+    });
+    const repDataSourceStatus = repDataset.status;
+    const repAllGroupedSpectra = repDataset.spectra;
+    const repAllReferenceSignatures = repDataset.allSignatures;
     const repAllBurden = mSigSDK.qc.summarizeMutationBurden(repAllGroupedSpectra, {
       expectedContexts: repContexts,
       lowBurdenThresholdMode: "fixed",
@@ -216,12 +164,7 @@
 
     If the row and column counts change after import, stop here. A report built on a table that cannot be read back will be difficult to reproduce or compare with external tools.
   </script>
-
-  <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 2, phase: "export", title: "Step 2. Export and read back a SigProfiler-style table", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="3">
+<script type="module" pinned id="3">
     const repSigProfilerTsv = mSigSDK.io.exportSigProfilerMatrix(
       repGroupedSpectra,
       { contexts: repContexts }
@@ -241,16 +184,11 @@
   <script type="text/markdown">
     ## Step 3. Use the high-level workflow helper
 
-    The workflow helper performs fitting, input checking, quality-check object creation, run-record creation, and report assembly in one call. Use this when you want a consistent result bundle. Use the lower-level functions when you need finer control over one step.
+    The workflow helper performs fitting, input checking, quality-check object creation, run-record creation, and report assembly in one call. The reusable bundle is the focus here, not interpretation of the fitted signatures.
 
     Read the workflow output as the standard project bundle: settings, input checks, warnings, fit evidence, report fields, and run record together. The helper is useful when consistency matters more than hand-building every intermediate object.
   </script>
-
-  <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 3, phase: "analysis", title: "Step 3. Use the high-level workflow helper", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="4">
+<script type="module" pinned id="4">
     const repWorkflowAnalysis =
       await mSigSDK.workflows.analyzeSpectraWithSignatures(
         repGroupedSpectra,
@@ -280,14 +218,15 @@
       { label: "Run record SDK version", value: repWorkflowAnalysis.provenance.sdk?.version || mSigSDK.version },
     ]));
     display(table(
-      reconstructionRows(repWorkflowAnalysis.qc.reconstructionError),
+      reportFieldRows(repWorkflowAnalysis.report).map((row) => ({
+        section: row.field,
+        contents: row.summary,
+      })),
       [
-        { key: "sample", label: "Sample" },
-        { key: "cosineSimilarity", label: "Cosine similarity" },
-        { key: "rmse", label: "RMSE" },
+        { key: "section", label: "Report field" },
+        { key: "contents", label: "Contents" },
       ]
     ));
-    display(details("Full workflow analysis object", repWorkflowAnalysis));
   </script>
 
   <script type="text/markdown">
@@ -297,14 +236,9 @@
 
     Manual assembly is most useful when an application has already computed some pieces itself or needs to attach study-specific sample details. The responsibility is the same: do not export signature contributions without the quality-check and run-record fields that explain them.
   </script>
-
-  <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 4, phase: "analysis", title: "Step 4. Assemble a report manually", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="5">
+<script type="module" pinned id="5">
     const repProvenance = mSigSDK.provenance.createProvenance({
-      analysis: "focused export report notebook",
+      analysis: "focused export report workflow",
       parameters: {
         sdkUrl: repSdkUrl,
         study: repStudy,
@@ -354,22 +288,16 @@
         { key: "contents", label: "Contents" },
       ]
     ));
-    display(details("Full manual report object", repManualReport));
   </script>
 
   <script type="text/markdown">
     ## Step 5. Check required report fields and save the bundle
 
-    A reusable report should include input settings, input checks, quality checks, a run record, warnings or caveats, and the table export needed to rerun the analysis outside the notebook.
+    A reusable report should include input settings, input checks, quality checks, a run record, warnings or caveats, and the table export needed to rerun the analysis outside the browser page.
 
     Treat the final download list as a reproducibility checklist. If a collaborator received only these files, they should be able to identify the inputs, rerun the fit, inspect warnings, and understand how the report was generated.
   </script>
-
-  <script type="module" pinned id="interactive-step-5">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 5, phase: "export", title: "Step 5. Check required report fields and save the bundle", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="6">
+<script type="module" pinned id="6">
     const repRequiredFields = [
       "schemaVersion",
       "title",

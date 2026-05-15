@@ -5,29 +5,21 @@
   <script type="text/markdown">
     # Discovery extraction (NMF)
 
-    This notebook demonstrates mSigSDK's exploratory discovery path. Instead of fitting known reference signatures, non-negative matrix factorization (NMF) learns a small set of candidate signature patterns and sample contributions directly from the spectra.
+    Non-negative matrix factorization (NMF) is the exploratory discovery path. Instead of fitting known reference signatures, NMF learns a small set of candidate signature patterns and sample contributions directly from the spectra.
 
-    Use this as a browser-sized teaching example, not as a full production extraction recipe. For your own data, increase the sample count, rank grid, number of random starts, and maximum iterations only after confirming that the browser can handle the workload.
+    Browser-scale extraction is useful for screening, not as a full production extraction recipe. For project data, increase the sample count, rank grid, number of random starts, and maximum iterations only after confirming that the browser can handle the workload.
 
-    The narrative is deliberately different from known-signature fitting. First choose whether the cohort has enough signal for discovery, then inspect learned profiles, then ask whether sample contributions and rank checks support a stable interpretation, and finally prepare files for production extraction.
-
-    **Unique role:** teach discovery extraction, where patterns are learned from the data instead of selected from a fixed reference catalog.
-
-    **Leave to focused notebooks:** known-signature refitting, panel evidence tiers, MAF conversion, and report-schema checks.
-
-    **After running it you should know:** whether a cohort looks suitable for production extraction and what files/settings a production run needs.
+    Discovery starts by checking whether the cohort has enough signal, then inspecting learned profiles, sample contributions, rank diagnostics, and production handoff files.
   </script>
 
   <script type="module" pinned id="1">
     const nmfSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-nmf", location.href).href;
     const { mSigSDK } = await import(nmfSdkUrl);
     const {
-      demoSignatures,
-      demoSpectra,
+      loadPublicSbs96Dataset,
     } = await import("./msig-notebook-fixtures.js");
     const {
       burdenSampleRows,
-      details,
       formatNumber,
       metrics,
       nmfMatchRows,
@@ -53,33 +45,16 @@
       ]
     ));
   </script>
-
-  <script type="text/markdown">
-    ## Interactive workspace
-
-    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
-  </script>
-
-  <script type="module" pinned id="interactive-workspace">
-    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
-    renderInteractiveNotebook({ mode: "nmf-extraction", mSigSDK, display });
-  </script>
-
-  <script type="text/markdown">
+<script type="text/markdown">
     ## Step 1. Choose data and NMF settings
 
-    NMF is more sensitive to cohort size, mutation count, number of patterns, and random starts than known-signature fitting. This example fetches specific high-count PCAWG WGS Lung-AdenoCA spectra so the browser has enough count-scale signal to learn simple patterns quickly.
+    NMF is more sensitive to cohort size, mutation count, number of patterns, and random starts than known-signature fitting. This example fetches specific high-count PCAWG WGS Lung-AdenoCA spectra so the browser has enough count-scale signal to extract simple patterns quickly.
 
     Edit `nmfRank`, `nmfRuns`, and `nmfMaxIterations` to see the speed and stability tradeoff. In a larger analysis, use more random starts and a broader rank grid.
 
-    If this first step feels underpowered, that is the intended lesson: discovery depends on cohort size, mutation count, and repeated optimization far more than a quick refit does.
+    Underpowered discovery usually reflects limited cohort size, low mutation count, or too few repeated optimizations.
   </script>
-
-  <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "nmf-extraction", step: 1, phase: "data", title: "Step 1. Choose data and NMF settings", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="2">
+<script type="module" pinned id="2">
     const nmfContexts = mSigSDK.validation.getExpectedContexts({
       profile: "SBS",
       matrix: 96,
@@ -103,48 +78,20 @@
     const nmfRuns = 3;
     const nmfMaxIterations = 180;
 
-    let nmfDataSourceStatus = "live mSigPortal";
-    let nmfAllGroupedSpectra;
-    let nmfAllReferenceSignatures;
-    try {
-      const [nmfRawSpectrumRows, nmfRawSignatureRows] = await Promise.all([
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-          nmfStudy,
-          nmfExampleSampleNames,
-          nmfGenomeDataType,
-          nmfCancerType,
-          nmfMutationType,
-          nmfMatrixSize
-        ),
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
-          nmfGenomeDataType,
-          nmfSignatureSetName,
-          nmfMutationType,
-          nmfMatrixSize,
-          10000
-        ),
-      ]);
-      const nmfSpectrumRows = Array.isArray(nmfRawSpectrumRows)
-        ? nmfRawSpectrumRows.flat()
-        : [];
-      const nmfSignatureRows = Array.isArray(nmfRawSignatureRows)
-        ? nmfRawSignatureRows.flat()
-        : [];
-      nmfAllGroupedSpectra =
-        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(nmfSpectrumRows);
-      nmfAllReferenceSignatures =
-        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-          nmfSignatureRows,
-          "signatureName"
-        );
-      if (Object.keys(nmfAllGroupedSpectra).length < 3 || Object.keys(nmfAllReferenceSignatures).length < 3) {
-        throw new Error("mSigPortal returned too few matrices for NMF review.");
-      }
-    } catch (error) {
-      nmfDataSourceStatus = `embedded fallback: ${error.message}`;
-      nmfAllGroupedSpectra = demoSpectra();
-      nmfAllReferenceSignatures = demoSignatures();
-    }
+    const nmfDataset = await loadPublicSbs96Dataset(mSigSDK, {
+      study: nmfStudy,
+      genomeDataType: nmfGenomeDataType,
+      cancerType: nmfCancerType,
+      mutationType: nmfMutationType,
+      matrixSize: nmfMatrixSize,
+      signatureSetName: nmfSignatureSetName,
+      sampleNames: nmfExampleSampleNames,
+      sampleLimit: nmfSampleLimit,
+      allowAlternate: false,
+    });
+    const nmfDataSourceStatus = nmfDataset.status;
+    const nmfAllGroupedSpectra = nmfDataset.spectra;
+    const nmfAllReferenceSignatures = nmfDataset.allSignatures;
     const nmfAllBurden = mSigSDK.qc.summarizeMutationBurden(nmfAllGroupedSpectra, {
       expectedContexts: nmfContexts,
     });
@@ -190,12 +137,7 @@
 
     Read the reference-match table as a labeling aid, not as the extraction result itself. A learned pattern with a weak match may still be meaningful, and a learned pattern with a strong match still needs stability and cohort-context review.
   </script>
-
-  <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "nmf-extraction", step: 2, phase: "analysis", title: "Step 2. Extract signatures and compare them to references", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="3">
+<script type="module" pinned id="3">
     const nmfResult = mSigSDK.signatureExtraction.extractSignaturesNMF(
       nmfGroupedSpectra,
       {
@@ -245,25 +187,16 @@
       ],
       { maxRows: 9 }
     ));
-    display(details("Full NMF result and match objects", {
-      nmfResult,
-      nmfMatches,
-    }));
   </script>
 
   <script type="text/markdown">
     ## Step 3. Inspect extracted signature profiles
 
-    Profiles are shown through the established mSigPortal SBS96 renderer so the mutation-context colors match COSMIC conventions. New users should first check whether each learned component has a coherent profile before looking at sample contributions.
+    Profiles are shown through the established mSigPortal SBS96 renderer so the mutation-context colors match COSMIC conventions. Check whether each learned component has a coherent profile before looking at sample contributions.
 
     A coherent profile is one that has recognizable context structure rather than scattered noise. If the profile looks unstable, return to sample selection, rank, or random starts before interpreting exposure heatmaps.
   </script>
-
-  <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "nmf-extraction", step: 3, phase: "visualize", title: "Step 3. Inspect extracted signature profiles", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="4">
+<script type="module" pinned id="4">
     const nmfProfilesDiv = document.createElement("div");
     nmfProfilesDiv.style.width = "100%";
     await mSigSDK.signatureExtractionPlots.plotNMFSignatureProfiles(
@@ -278,14 +211,9 @@
 
     The contribution heatmap shows whether learned patterns are broad cohort processes or concentrated in a few samples. A component driven by only one or two samples may still be useful, but it should be interpreted differently from a component distributed across the cohort.
 
-    This is where the discovery story becomes sample-specific: broad components suggest cohort-wide processes, while concentrated components suggest outliers, technical effects, or rare biology that needs follow-up.
+    Broad components suggest cohort-wide processes, while concentrated components suggest outliers, technical effects, or rare biology that needs follow-up.
   </script>
-
-  <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "nmf-extraction", step: 4, phase: "visualize", title: "Step 4. Inspect sample contributions", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="5">
+<script type="module" pinned id="5">
     const nmfExposureDiv = document.createElement("div");
     nmfExposureDiv.style.width = "100%";
     await mSigSDK.signatureExtractionPlots.plotNMFExposureHeatmap(
@@ -303,12 +231,7 @@
 
     A useful rank should improve reconstruction without splitting a biological process into unstable fragments. Use this table to decide what needs a production rerun, not to declare a final rank from the browser example alone.
   </script>
-
-  <script type="module" pinned id="interactive-step-5">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "nmf-extraction", step: 5, phase: "review", title: "Step 5. Compare candidate ranks", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="6">
+<script type="module" pinned id="6">
     const nmfRankSelection = mSigSDK.signatureExtraction.selectNMFRank(
       nmfGroupedSpectra,
       {
@@ -333,14 +256,9 @@
 
     Browser NMF is a screening tool. The same spectra can be exported as table-mode input for SigProfilerExtractor so production extraction and stability analysis can be run outside the browser.
 
-    The export keeps the story connected: the browser identifies whether discovery is worth pursuing, and the production tool runs the heavier stability analysis.
+    The browser screen identifies whether discovery is worth pursuing, and the production tool runs the heavier stability analysis.
   </script>
-
-  <script type="module" pinned id="interactive-step-6">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "nmf-extraction", step: 6, phase: "export", title: "Step 6. Prepare files for production extraction", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="7">
+<script type="module" pinned id="7">
     const nmfExtractorInput = mSigSDK.adapters.sigProfilerExtractor.prepareInput(
       { spectra: nmfGroupedSpectra },
       {
@@ -363,10 +281,6 @@
         { key: "role", label: "Role" },
       ]
     ));
-
-    display(details("SigProfilerExtractor Python run snippet", nmfExtractorInput.pythonSnippet, {
-      open: true,
-    }));
     display(downloadMany([
       ...nmfExtractorInput.files.map((file) => ({
         filename: file.path.split("/").pop(),
@@ -374,7 +288,7 @@
         label: `Download ${file.path.split("/").pop()}`,
       })),
       {
-        filename: "nmf_extraction_report.json",
+        filename: "nmf_extraction_bundle.json",
         type: "json",
         value: {
           dataSourceStatus: nmfDataSourceStatus,
@@ -391,7 +305,7 @@
             pythonSnippet: nmfExtractorInput.pythonSnippet,
           },
         },
-        label: "Download NMF report JSON",
+        label: "Download NMF extraction bundle JSON",
       },
     ]));
   </script>

@@ -1,22 +1,22 @@
 const DEFAULT_NOTEBOOKS = [
   {
     file: "msig-sdk-notebooks.onb.html",
-    title: "Notebook index",
-    summary: "Start here for the SDK workflow map.",
+    title: "Workflow guide",
+    summary: "Choose the workflow that matches the next analysis question.",
     workflowGroup: "orientation",
     workflowGroupLabel: "Orientation",
   },
   {
     file: "msig-sdk-end-to-end-workflow.onb.html",
     title: "End-to-end workflow",
-    summary: "Learn the complete fit-review-export arc once, with plain-language guidance about what makes a result reportable.",
+    summary: "Run the complete fit-review-export arc and preserve the evidence that makes a result reportable.",
     workflowGroup: "orientation",
     workflowGroupLabel: "Orientation",
   },
   {
     file: "msig-sdk-public-cohort-exploration.onb.html",
-    title: "Public API and TCGA cohort explorer",
-    summary: "Discover public mSigPortal and TCGA/GDC resources, load a cohort, visualize spectra, and choose a downstream workflow.",
+    title: "Public cohort explorer",
+    summary: "Explore mSigPortal public spectra and TCGA/GDC MAF-derived datasets, load them into one SDK shape, visualize cohorts, and export inputs.",
     workflowGroup: "orientation",
     workflowGroupLabel: "Orientation",
   },
@@ -29,8 +29,8 @@ const DEFAULT_NOTEBOOKS = [
   },
   {
     file: "msig-sdk-maf-fit-report.onb.html",
-    title: "MAF to report",
-    summary: "Audit MAF field mapping, grouping, context provenance, and count reconciliation before handing spectra to fitting.",
+    title: "Variant rows to mutation patterns",
+    summary: "Turn variant rows into a checked 96-bin mutation pattern by sorting DNA changes, checking counts, and saving the proof trail.",
     workflowGroup: "input",
     workflowGroupLabel: "Load Data",
   },
@@ -44,7 +44,7 @@ const DEFAULT_NOTEBOOKS = [
   {
     file: "msig-sdk-nmf-extraction.onb.html",
     title: "Discovery extraction (NMF)",
-    summary: "Learn candidate signatures from spectra, inspect rank checks, and prepare production extraction files.",
+    summary: "Extract candidate signatures from spectra, inspect rank checks, and prepare production extraction files.",
     workflowGroup: "core",
     workflowGroupLabel: "Analyze Data",
   },
@@ -119,7 +119,7 @@ function normalizeNotebookEntry(entry) {
   return {
     file: entry.file,
     title: entry.title || entry.file,
-    summary: entry.summary || "Runnable mSigSDK notebook.",
+    summary: entry.summary || "Runnable mSigSDK workflow.",
     image: entry.image || null,
     workflowGroup: entry.workflowGroup || "advanced",
     workflowGroupLabel: entry.workflowGroupLabel || "Advanced or experimental",
@@ -376,7 +376,7 @@ async function loadNotebook(entry) {
   });
 
   syncGlobalCodeToggle();
-  setStatus("Notebook loaded. Running cells...");
+    setStatus("Workflow loaded. Running cells...");
   await runNotebook();
 }
 
@@ -395,7 +395,7 @@ async function runNotebook() {
   state.activeModuleIndex = -1;
 
   if (!state.moduleCells.length) {
-    setStatus("This notebook contains narrative cells only.", "ready");
+    setStatus("This workflow contains narrative cells only.", "ready");
     return;
   }
 
@@ -460,7 +460,7 @@ async function runNotebook() {
       ].join("\n")
     );
     await runner(displayFns, helpers);
-    setStatus("Notebook finished successfully.", "ready");
+    setStatus("Workflow finished successfully.", "ready");
     markAllClean();
   } catch (error) {
     const target = state.moduleCells[state.activeModuleIndex]?.output;
@@ -678,7 +678,7 @@ function inferTableDescription(data, columns) {
   }
   return {
     title: "Result table",
-    caption: `Shows ${pluralizeRows(rowCount)} of structured output from this notebook step.`,
+    caption: `Shows ${pluralizeRows(rowCount)} of structured output from this workflow step.`,
   };
 }
 
@@ -916,7 +916,7 @@ function renderMarkdown(markdown) {
   const lines = markdown.replace(/\r\n/g, "\n").split("\n");
   const parts = [];
   let paragraph = [];
-  let list = [];
+  let list = null;
   let fence = null;
   let fenceLines = [];
 
@@ -927,19 +927,79 @@ function renderMarkdown(markdown) {
   };
 
   const flushList = () => {
-    if (!list.length) return;
-    parts.push(`<ul>${list.map((item) => `<li>${inlineMarkdown(item)}</li>`).join("")}</ul>`);
-    list = [];
+    if (!list?.items?.length) return;
+    const tag = list.type === "ol" ? "ol" : "ul";
+    parts.push(
+      `<${tag}>${list.items
+        .map((item) => `<li>${inlineMarkdown(item)}</li>`)
+        .join("")}</${tag}>`
+    );
+    list = null;
   };
 
-  lines.forEach((line) => {
+  const appendListItem = (type, item) => {
+    flushParagraph();
+    if (list && list.type !== type) {
+      flushList();
+    }
+    if (!list) {
+      list = { type, items: [] };
+    }
+    list.items.push(item);
+  };
+
+  const splitTableRow = (line) => {
+    const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+    return trimmed.split("|").map((cell) => cell.trim());
+  };
+
+  const isTableSeparator = (line) => {
+    if (!line?.includes("|")) return false;
+    const cells = splitTableRow(line);
+    return cells.length > 1 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+  };
+
+  const isTableStart = (index) =>
+    lines[index]?.includes("|") && isTableSeparator(lines[index + 1] || "");
+
+  const renderTable = (startIndex) => {
+    const headers = splitTableRow(lines[startIndex]);
+    const bodyRows = [];
+    let index = startIndex + 2;
+
+    while (index < lines.length && lines[index].trim() && lines[index].includes("|")) {
+      const cells = splitTableRow(lines[index]);
+      bodyRows.push(cells);
+      index += 1;
+    }
+
+    const headerHtml = headers
+      .map((header) => `<th>${inlineMarkdown(header)}</th>`)
+      .join("");
+    const bodyHtml = bodyRows
+      .map((row) => {
+        const cells = headers.map((_, cellIndex) => row[cellIndex] || "");
+        return `<tr>${cells
+          .map((cell) => `<td>${inlineMarkdown(cell)}</td>`)
+          .join("")}</tr>`;
+      })
+      .join("");
+
+    return {
+      html: `<div class="markdown-table-wrap"><table class="markdown-table"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`,
+      nextIndex: index,
+    };
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
     const fenceMatch = line.match(/^```(\w+)?\s*$/);
     if (fenceMatch && fence === null) {
       flushParagraph();
       flushList();
       fence = fenceMatch[1] || "";
       fenceLines = [];
-      return;
+      continue;
     }
 
     if (line.trim() === "```" && fence !== null) {
@@ -950,18 +1010,27 @@ function renderMarkdown(markdown) {
       );
       fence = null;
       fenceLines = [];
-      return;
+      continue;
     }
 
     if (fence !== null) {
       fenceLines.push(line);
-      return;
+      continue;
     }
 
     if (!line.trim()) {
       flushParagraph();
       flushList();
-      return;
+      continue;
+    }
+
+    if (isTableStart(index)) {
+      flushParagraph();
+      flushList();
+      const table = renderTable(index);
+      parts.push(table.html);
+      index = table.nextIndex - 1;
+      continue;
     }
 
     const heading = line.match(/^(#{1,3})\s+(.+)$/);
@@ -970,18 +1039,23 @@ function renderMarkdown(markdown) {
       flushList();
       const level = heading[1].length;
       parts.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
-      return;
+      continue;
     }
 
     const bullet = line.match(/^\s*[-*]\s+(.+)$/);
     if (bullet) {
-      flushParagraph();
-      list.push(bullet[1]);
-      return;
+      appendListItem("ul", bullet[1]);
+      continue;
+    }
+
+    const ordered = line.match(/^\s*\d+\.\s+(.+)$/);
+    if (ordered) {
+      appendListItem("ol", ordered[1]);
+      continue;
     }
 
     paragraph.push(line.trim());
-  });
+  }
 
   flushParagraph();
   flushList();
@@ -993,11 +1067,33 @@ function inlineMarkdown(text) {
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label, url) => {
-      const href = url.endsWith(".onb.html")
-        ? `?notebook=${encodeURIComponent(url.replace(/^\.\//, ""))}`
-        : url;
+      const href = normalizeMarkdownLink(url.replace(/&amp;/g, "&"));
       return `<a href="${escapeAttribute(href)}">${label}</a>`;
     });
+}
+
+function normalizeMarkdownLink(url) {
+  try {
+    const parsed = new URL(url, window.location.href);
+    const notebook = parsed.searchParams.get("notebook");
+    if (notebook?.endsWith(".onb.html")) {
+      return `?notebook=${encodeURIComponent(notebook)}`;
+    }
+
+    if (
+      parsed.origin === window.location.origin &&
+      parsed.pathname.endsWith(".onb.html")
+    ) {
+      return `?notebook=${encodeURIComponent(parsed.pathname.split("/").pop())}`;
+    }
+  } catch (_error) {
+    // Keep unusual markdown links as written.
+  }
+
+  if (url.endsWith(".onb.html")) {
+    return `?notebook=${encodeURIComponent(url.replace(/^\.\//, ""))}`;
+  }
+  return url;
 }
 
 function escapeHtml(value) {
@@ -1021,7 +1117,7 @@ resetButton.addEventListener("click", async () => {
     setEditorSource(cell.editor, cell.source);
     markDirty(cell);
   });
-  setStatus("Original code restored. Click Run notebook to apply the reset.");
+  setStatus("Original code restored. Click Run workflow to apply the reset.");
 });
 
 async function initNotebookRunner() {
@@ -1112,7 +1208,7 @@ function markDirty(cell) {
   }
   if (!state.isRunning) {
     setStatus(
-      "You have edited code that has not run yet. Click Run edits, Run notebook, or press Ctrl/Cmd+Enter."
+      "You have edited code that has not run yet. Click Run edits, Run workflow, or press Ctrl/Cmd+Enter."
     );
   }
 }

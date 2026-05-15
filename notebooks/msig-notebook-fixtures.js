@@ -90,6 +90,255 @@ const demoMetadata = [
   { sample: "local_apobec_pattern", group: "moderate_burden", assay: "WES" },
 ];
 
+const publicSbs96SignatureNames = [
+  "SBS1",
+  "SBS2",
+  "SBS4",
+  "SBS5",
+  "SBS13",
+  "SBS17a",
+  "SBS17b",
+  "SBS18",
+  "SBS40",
+];
+
+const defaultPublicSbs96Dataset = {
+  study: "TCGA",
+  genomeDataType: "WES",
+  cancerType: "Lung-AdenoCa",
+  mutationType: "SBS",
+  matrixSize: 96,
+  signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
+  sampleLimit: 8,
+};
+
+const alternatePublicSbs96Dataset = {
+  study: "PCAWG",
+  genomeDataType: "WGS",
+  cancerType: "Lung-AdenoCA",
+  mutationType: "SBS",
+  matrixSize: 96,
+  signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
+  sampleLimit: 8,
+  sampleNames: [
+    "SP53810",
+    "SP55142",
+    "SP55235",
+    "SP54113",
+    "SP50611",
+    "SP50592",
+    "SP50406",
+    "SP55004",
+  ],
+};
+
+function matrixRecordTotal(record = {}) {
+  return Object.values(record || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+}
+
+function burdenGroup(total) {
+  if (total >= 5000) return "high_burden";
+  if (total >= 500) return "moderate_burden";
+  return "low_burden";
+}
+
+async function loadPublicSbs96Dataset(mSigSDK, options = {}) {
+  const requestedSelection = {
+    ...defaultPublicSbs96Dataset,
+    ...options,
+  };
+  const allowAlternate = options.allowAlternate !== false;
+
+  async function loadSelection(selection, alternateReason = "") {
+    const sampleLimit = Math.max(1, Math.round(Number(selection.sampleLimit || 8)));
+    let sampleNames = Array.isArray(selection.sampleNames)
+      ? selection.sampleNames.slice(0, sampleLimit)
+      : [];
+    let optionRows = [];
+
+    if (!sampleNames.length) {
+      optionRows = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumOptions(
+        selection.study,
+        selection.genomeDataType,
+        selection.cancerType,
+        Math.max(sampleLimit * 20, 500)
+      );
+      sampleNames = [
+        ...new Set(
+          (Array.isArray(optionRows) ? optionRows : [])
+            .filter((row) =>
+              row.study === selection.study &&
+              row.strategy === selection.genomeDataType &&
+              row.profile === selection.mutationType &&
+              Number(row.matrix) === Number(selection.matrixSize) &&
+              row.cancer === selection.cancerType
+            )
+            .map((row) => row.sample)
+            .filter(Boolean)
+        ),
+      ].slice(0, sampleLimit);
+    }
+
+    if (!sampleNames.length) {
+      throw new Error(
+        `No public ${selection.study} ${selection.cancerType} ${selection.genomeDataType} ${selection.mutationType}${selection.matrixSize} samples were available.`
+      );
+    }
+
+    const [rawSpectrumRows, rawSignatureRows] = await Promise.all([
+      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+        selection.study,
+        sampleNames,
+        selection.genomeDataType,
+        selection.cancerType,
+        selection.mutationType,
+        selection.matrixSize
+      ),
+      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
+        selection.genomeDataType,
+        selection.signatureSetName,
+        selection.mutationType,
+        selection.matrixSize,
+        10000
+      ),
+    ]);
+
+    const spectrumRows = (Array.isArray(rawSpectrumRows) ? rawSpectrumRows : []).flat();
+    const signatureRows = (Array.isArray(rawSignatureRows) ? rawSignatureRows : []).flat();
+    const allSpectra = mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(spectrumRows);
+    const allSignatures = mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
+      signatureRows,
+      "signatureName"
+    );
+    const availableSamples = sampleNames.filter((sample) => allSpectra[sample]);
+    const signatureCandidates = selection.signatureNames || publicSbs96SignatureNames;
+    const availableSignatures = signatureCandidates.filter((signature) => allSignatures[signature]);
+    const selectedSignatureNames = availableSignatures.length
+      ? availableSignatures
+      : Object.keys(allSignatures).slice(0, 9);
+
+    if (availableSamples.length < Math.min(2, sampleLimit) || selectedSignatureNames.length < 3) {
+      throw new Error(
+        `Public APIs returned too few matrices for ${selection.study} ${selection.cancerType}.`
+      );
+    }
+
+    const spectra = Object.fromEntries(
+      availableSamples.map((sample) => [sample, allSpectra[sample]])
+    );
+    const signatures = Object.fromEntries(
+      selectedSignatureNames.map((signature) => [signature, allSignatures[signature]])
+    );
+    const metadata = availableSamples.map((sample) => {
+      const totalMutations = matrixRecordTotal(allSpectra[sample]);
+      return {
+        sample,
+        study: selection.study,
+        cancer: selection.cancerType,
+        strategy: selection.genomeDataType,
+        profile: selection.mutationType,
+        matrix: selection.matrixSize,
+        source: "mSigPortal API",
+        totalMutations,
+        burdenGroup: burdenGroup(totalMutations),
+      };
+    });
+
+    return {
+      contexts: sbs96Contexts(),
+      spectra,
+      signatures,
+      allSignatures,
+      metadata,
+      sampleNames: availableSamples,
+      signatureNames: selectedSignatureNames,
+      selection: {
+        ...selection,
+        sampleNames: availableSamples,
+        signatureNames: selectedSignatureNames,
+      },
+      source: `mSigPortal public API: ${selection.study} ${selection.cancerType} ${selection.genomeDataType} ${selection.mutationType}${selection.matrixSize}`,
+      status: alternateReason ? `live mSigPortal (${alternateReason})` : "live mSigPortal",
+      spectrumRows,
+      signatureRows,
+      optionRows,
+    };
+  }
+
+  try {
+    return await loadSelection(requestedSelection);
+  } catch (error) {
+    if (!allowAlternate) throw error;
+    return await loadSelection(
+      {
+        ...alternatePublicSbs96Dataset,
+        signatureNames: requestedSelection.signatureNames,
+      },
+      `used PCAWG alternate after ${error.message}`
+    );
+  }
+}
+
+function standardizeTcgaVariantRows(rows = [], maxVariants = 120) {
+  return rows
+    .filter((row) => row?.chromosome && row?.chromosome_start)
+    .slice(0, maxVariants)
+    .map((row, index) => ({
+      id:
+        row.id ||
+        `${row.sample || "tcga"}:${row.chromosome}:${row.chromosome_start}:${row.reference_genome_allele || ""}>${row.mutated_to_allele || ""}`,
+      sample: row.sample || row.file_id || "tcga_sample",
+      project_code: row.project_code || "TCGA-LUAD",
+      chromosome: row.chromosome,
+      start_position: row.chromosome_start,
+      reference_allele: row.reference_genome_allele,
+      tumor_seq_allele2: row.mutated_to_allele,
+      variant_type: row.mutation_type || "SNP",
+      mutation_classification: row.mutation_classification || "",
+      build: row.build || "hg19",
+      position: Number(row.chromosome_start) || index + 1,
+      source: "TCGA/GDC MAF",
+    }));
+}
+
+async function loadPublicMafRows(mSigSDK, options = {}) {
+  const projects = options.projects || ["TCGA-LUAD"];
+  const maxFiles = Math.max(1, Math.round(Number(options.maxFiles || 1)));
+  const maxVariants = Math.max(1, Math.round(Number(options.maxVariants || 120)));
+  const mafIndex = await mSigSDK.TCGA.getMafInformationFromProjects(projects);
+  const subset = {};
+  const selectedFiles = [];
+
+  for (const project of projects) {
+    const mafFiles = (mafIndex?.[project]?.maf_files || []).slice(0, maxFiles - selectedFiles.length);
+    if (mafFiles.length) {
+      subset[project] = { maf_files: mafFiles };
+      selectedFiles.push(...mafFiles.map((fileId) => ({ project, fileId })));
+    }
+    if (selectedFiles.length >= maxFiles) break;
+  }
+
+  if (!selectedFiles.length) {
+    throw new Error(`No public GDC MAF files were found for ${projects.join(", ")}.`);
+  }
+
+  const variantResult = await mSigSDK.TCGA.getVariantInformationFromMafFiles(subset);
+  const variantRows = Object.values(variantResult || {}).flatMap(
+    (projectResult) => projectResult?.variant_information || []
+  );
+  const rows = standardizeTcgaVariantRows(variantRows, maxVariants);
+  if (!rows.length) {
+    throw new Error(`No SNV rows were loaded from ${projects.join(", ")}.`);
+  }
+  return {
+    rows,
+    mafIndex,
+    selectedFiles,
+    projects,
+    source: `TCGA/GDC MAF: ${projects.join(", ")}`,
+  };
+}
+
 const demoMafRows = [
   ...Array.from({ length: 72 }, (_, index) => ({
     chromosome: "1",
@@ -214,12 +463,16 @@ function sharedCallableOpportunities() {
 
 export {
   crossToolSummary,
+  defaultPublicSbs96Dataset,
   demoMafRows,
   demoMetadata,
   demoSignatures,
   demoSpectra,
   gdcResourceFallback,
+  loadPublicMafRows,
+  loadPublicSbs96Dataset,
   panelValidationSummary,
+  publicSbs96SignatureNames,
   sbs96Contexts,
   sharedCallableOpportunities,
   zeroSbs96,

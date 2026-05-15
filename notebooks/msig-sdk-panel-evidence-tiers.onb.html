@@ -5,36 +5,450 @@
   <script type="text/markdown">
     # Panel/WES evidence review
 
-    Panel and WES data do not observe the same mutation contexts as WGS. This workflow shows how mSigSDK reports that limitation explicitly through coverage information, restricted-assay evidence, support levels, review reasons, and report fields.
+    **When a panel or WES assay suggests a mutational signature, did the assay see enough of the relevant mutation pattern for that result to be discussed responsibly?**
 
-    Read the notebook as an evidence review, not a WGS-equivalent decomposition. The central question is whether a signature can be reviewed under the assay design and whether the reported support level is backed by input checks, mutation counts, and panel/WES coverage.
+    A mutational signature is a recurring pattern in the kinds of DNA letter changes found in a tumor. Whole-genome sequencing gives the broadest view of those patterns. Panel and WES assays look at a restricted part of the genome, so a fitted signature value needs extra context before anyone treats it as evidence.
 
-    **Unique role:** define and inspect the restricted-assay evidence tiers without mixing in cohort storytelling.
-
-    **Leave to focused notebooks:** cohort group comparisons, discovery extraction, uncertainty intervals, and general report export mechanics.
-
-    **After running it you should know:** why a signature is higher support, limited support, not detected, or not assessable for panel/WES data.
+    The review label is higher support, limited support, below the review threshold, or not assessable.
   </script>
 
   <script type="module" pinned id="1">
-    const panelSdkUrl = new URL("../main.js?v=2026-05-14-panel-workflow", location.href).href;
+    const panelSdkUrl = new URL("../main.js?v=2026-05-15-panel-layperson-redesign", location.href).href;
     const { mSigSDK } = await import(panelSdkUrl);
     const {
-      demoSignatures,
-      demoSpectra,
+      loadPublicSbs96Dataset,
       panelValidationSummary,
       sbs96Contexts,
       sharedCallableOpportunities,
     } = await import("./msig-notebook-fixtures.js");
-    const { exposureRows, metrics, panelEvidenceTable, table, tooltipTable } = mSigSDK.presentation;
+    const {
+      metrics,
+      note,
+      panelEvidenceTable,
+      table,
+      tooltipTable,
+    } = mSigSDK.presentation;
 
-    const panelContexts = sbs96Contexts();
-    const panelSpectra = {
-      panel_high: demoSpectra().local_high_smoking_like,
-      panel_low: demoSpectra().local_low_burden_review,
-      wes_apobec: demoSpectra().local_apobec_pattern,
-    };
-    const panelSignatures = demoSignatures();
+    function ensurePanelReviewStyles() {
+      if (document.getElementById("panel-review-styles")) return;
+      const style = document.createElement("style");
+      style.id = "panel-review-styles";
+      style.textContent = `
+        .panel-review-stack {
+          display: grid;
+          gap: 14px;
+        }
+        .panel-review-card {
+          border: 1px solid #d8ded8;
+          border-radius: 8px;
+          background: #fbfcfa;
+          padding: 14px;
+          min-width: 0;
+        }
+        .panel-review-card h3,
+        .panel-review-card h4 {
+          margin: 0 0 8px;
+          color: #17201d;
+          font-size: 15px;
+          line-height: 1.25;
+        }
+        .panel-review-card p {
+          margin: 0;
+          color: #5f6d67;
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .panel-review-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 12px;
+        }
+        .panel-review-flow {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+          gap: 10px;
+          align-items: stretch;
+        }
+        .panel-flow-step {
+          position: relative;
+          border: 1px solid #d8ded8;
+          border-radius: 8px;
+          background: #f4f7f4;
+          padding: 12px;
+          min-height: 110px;
+        }
+        .panel-flow-step strong {
+          display: block;
+          margin-bottom: 6px;
+          color: #17201d;
+          font-size: 13px;
+        }
+        .panel-flow-step span {
+          display: block;
+          color: #5f6d67;
+          font-size: 12px;
+          line-height: 1.4;
+        }
+        .panel-tile-grid {
+          display: grid;
+          grid-template-columns: repeat(12, minmax(0, 1fr));
+          gap: 4px;
+          margin-top: 10px;
+        }
+        .panel-context-tile {
+          aspect-ratio: 1;
+          border-radius: 4px;
+          border: 1px solid rgba(23, 32, 29, 0.08);
+        }
+        .panel-context-tile.covered {
+          background: #2d6a4f;
+        }
+        .panel-context-tile.partial {
+          background: #d49b39;
+        }
+        .panel-context-tile.blind {
+          background: #cfd7d2;
+        }
+        .panel-context-tile.signature {
+          box-shadow: inset 0 0 0 2px #17201d;
+        }
+        .panel-legend {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px 12px;
+          margin-top: 10px;
+          color: #5f6d67;
+          font-size: 12px;
+        }
+        .panel-legend span {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .panel-legend i {
+          display: inline-block;
+          width: 11px;
+          height: 11px;
+          border-radius: 3px;
+          border: 1px solid rgba(23, 32, 29, 0.12);
+        }
+        .panel-tier-card {
+          border-left: 5px solid #147d7f;
+        }
+        .panel-tier-card.higher {
+          border-left-color: #2d6a4f;
+        }
+        .panel-tier-card.limited {
+          border-left-color: #d49b39;
+        }
+        .panel-tier-card.below {
+          border-left-color: #6f7f78;
+        }
+        .panel-tier-card.blocked {
+          border-left-color: #b85c38;
+        }
+        .panel-reading-list {
+          margin: 8px 0 0;
+          padding-left: 18px;
+          color: #5f6d67;
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .panel-callout {
+          border-left: 4px solid #147d7f;
+          background: #edf7f7;
+          color: #5f6d67;
+          padding: 12px 14px;
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .panel-callout strong {
+          color: #17201d;
+        }
+        .panel-mini-bar {
+          display: grid;
+          grid-template-columns: var(--covered, 1fr) var(--partial, 0fr) var(--blind, 0fr);
+          overflow: hidden;
+          height: 14px;
+          margin-top: 10px;
+          border-radius: 999px;
+          background: #cfd7d2;
+        }
+        .panel-mini-bar .covered {
+          background: #2d6a4f;
+        }
+        .panel-mini-bar .partial {
+          background: #d49b39;
+        }
+        .panel-mini-bar .blind {
+          background: #cfd7d2;
+        }
+      `;
+      document.head.append(style);
+    }
+
+    function element(tag, className, text = null) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== null) node.textContent = text;
+      return node;
+    }
+
+    function append(parent, children) {
+      children.filter(Boolean).forEach((child) => parent.append(child));
+      return parent;
+    }
+
+    function card(title, body, className = "") {
+      const wrapper = element("section", `panel-review-card ${className}`.trim());
+      wrapper.append(element("h3", "", title), element("p", "", body));
+      return wrapper;
+    }
+
+    function stack(children) {
+      return append(element("div", "panel-review-stack"), children);
+    }
+
+    function grid(children) {
+      return append(element("div", "panel-review-grid"), children);
+    }
+
+    function formatPercent(value, digits = 0) {
+      if (!Number.isFinite(Number(value))) return "NA";
+      return `${(Number(value) * 100).toFixed(digits)}%`;
+    }
+
+    function formatDecimal(value, digits = 2) {
+      if (!Number.isFinite(Number(value))) return "NA";
+      return Number(value).toFixed(digits);
+    }
+
+    function tierLabel(tier) {
+      return {
+        higher_review_support: "Higher review support",
+        limited_review_support: "Limited review support",
+        not_detected_within_review_settings: "Below review threshold",
+        not_assessable: "Not assessable",
+      }[tier] || tier;
+    }
+
+    function tierPlainMeaning(tier) {
+      return {
+        higher_review_support:
+          "The assay has enough information for review, the fitted contribution is above the higher support line, and the fit-quality checks did not block interpretation.",
+        limited_review_support:
+          "There is something to review, but the support is weaker or caveated. Treat it as a cautious result, not a strong call.",
+        not_detected_within_review_settings:
+          "The sample is reviewable, but the fitted contribution is below the configured reporting line. This is not proof that the process is absent.",
+        not_assessable:
+          "The available assay and fit evidence is not enough to say supported or not detected. The correct result is to pause interpretation.",
+      }[tier] || "Review the tier definition and reasons.";
+    }
+
+    function renderConceptCards() {
+      return grid([
+        card(
+          "1. A signature is a pattern",
+          "A tumor's mutations can be summarized by the kinds of DNA letter changes and their neighboring letters. A mutational signature is a recurring pattern across those bins."
+        ),
+        card(
+          "2. Panel and WES have a limited field of view",
+          "Unlike WGS, restricted assays do not observe every genomic context equally. Some parts of a signature may be well represented; others may be hard or impossible to see."
+        ),
+        card(
+          "3. The result is an evidence label",
+          "The review asks whether the assay, mutation count, fit quality, and fitted contribution support a review statement for each signature."
+        ),
+      ]);
+    }
+
+    function renderTileGrid(items, options = {}) {
+      const gridNode = element("div", "panel-tile-grid");
+      items.forEach((item, index) => {
+        const value = Number(item.value);
+        const status = value <= 0 ? "blind" : value < 1 ? "partial" : "covered";
+        const tile = element("div", `panel-context-tile ${status}${item.signature ? " signature" : ""}`);
+        tile.title =
+          item.label ||
+          `${options.label || "Context"} ${index + 1}: ${
+            status === "covered" ? "covered" : status === "partial" ? "partly covered" : "not covered"
+          }`;
+        gridNode.append(tile);
+      });
+      return gridNode;
+    }
+
+    function renderCoverageLegend() {
+      const legend = element("div", "panel-legend");
+      [
+        ["covered", "covered"],
+        ["partial", "partly covered"],
+        ["blind", "not covered"],
+        ["covered", "heavy outline = important for a toy signature"],
+      ].forEach(([status, label], index) => {
+        const row = element("span", "");
+        const swatch = element("i", status);
+        if (index === 3) swatch.style.boxShadow = "inset 0 0 0 2px #17201d";
+        row.append(swatch, document.createTextNode(label));
+        legend.append(row);
+      });
+      return legend;
+    }
+
+    function renderCoverageStory(callableOpportunities, contexts) {
+      const actualValues = contexts.map((context) => ({
+        label: context,
+        value: Number(callableOpportunities[context] ?? 1),
+      }));
+      const covered = actualValues.filter((item) => item.value >= 1).length;
+      const partial = actualValues.filter((item) => item.value > 0 && item.value < 1).length;
+      const blind = actualValues.filter((item) => item.value <= 0).length;
+      const blindVerb = blind === 1 ? "is" : "are";
+      const actual = card(
+        "The real example: assay visibility",
+        `${covered} contexts are fully covered, ${partial} are partly covered, and ${blind} ${blindVerb} unavailable in this assay definition. The review still carries this context forward because the exact blind spots matter by signature.`
+      );
+      const bar = element("div", "panel-mini-bar");
+      bar.style.setProperty("--covered", `${covered}fr`);
+      bar.style.setProperty("--partial", `${partial}fr`);
+      bar.style.setProperty("--blind", `${blind || 0.0001}fr`);
+      bar.append(element("span", "covered"), element("span", "partial"), element("span", "blind"));
+      actual.append(bar, renderTileGrid(actualValues, { label: "SBS96 context" }));
+
+      const toyValues = Array.from({ length: 24 }, (_, index) => ({
+        value: [0, 2, 5, 8, 9, 13, 18].includes(index) ? 0 : [4, 14].includes(index) ? 0.45 : 1,
+        signature: [2, 4, 5, 8, 13, 20].includes(index),
+        label: `Toy context ${index + 1}`,
+      }));
+      const toy = card(
+        "Toy example: why blind spots change interpretation",
+        "Imagine a signature depends on the outlined bins. If several outlined bins are gray or partly covered, a fitted contribution is harder to trust even if the model prints a number."
+      );
+      toy.append(renderTileGrid(toyValues, { label: "Toy context" }));
+
+      const footer = element("div", "panel-callout");
+      footer.innerHTML =
+        "<strong>Reporting rule:</strong> a panel/WES result should travel with the assay field of view. Otherwise a collaborator may mistake a limited view for a whole-genome view.";
+
+      return stack([grid([actual, toy]), renderCoverageLegend(), footer]);
+    }
+
+    function renderDecisionPath(panelOptions) {
+      const wrapper = element("div", "panel-review-flow");
+      [
+        [
+          "Can the assay see it?",
+          "Use callable opportunities to record which mutation contexts the panel or exome can observe."
+        ],
+        [
+          "Are there enough mutations?",
+          `The review requires at least ${panelOptions.minAssessableMutations} mutations before a signature can be called assessable.`
+        ],
+        [
+          "Does the fit pass review?",
+          "Fit-quality checks catch cases where the fitted recipe should not be interpreted normally."
+        ],
+        [
+          "How large is the fitted contribution?",
+          `Contributions at or above ${formatPercent(panelOptions.higherSupportExposureThreshold)} get higher review support; values from ${formatPercent(panelOptions.limitedSupportExposureThreshold)} to that line get limited support.`
+        ],
+        [
+          "What should we report?",
+          "The final tier says supported, limited, below threshold, or not assessable."
+        ],
+      ].forEach(([title, body]) => {
+        const step = element("section", "panel-flow-step");
+        step.append(element("strong", "", title), element("span", "", body));
+        wrapper.append(step);
+      });
+      return wrapper;
+    }
+
+    function renderTierCards() {
+      return grid([
+        card("Higher review support", tierPlainMeaning("higher_review_support"), "panel-tier-card higher"),
+        card("Limited review support", tierPlainMeaning("limited_review_support"), "panel-tier-card limited"),
+        card("Below review threshold", tierPlainMeaning("not_detected_within_review_settings"), "panel-tier-card below"),
+        card("Not assessable", tierPlainMeaning("not_assessable"), "panel-tier-card blocked"),
+      ]);
+    }
+
+    function evidenceCallsToRows(panelResult) {
+      return Object.entries(panelResult.panel.evidenceCalls).flatMap(
+        ([sample, calls]) =>
+          calls.map((call) => ({
+            sample,
+            signature: call.signatureName,
+            exposure: call.exposure,
+            exposureDisplay: formatPercent(call.exposure, 1),
+            tier: call.tier,
+            tierLabel: tierLabel(call.tier),
+            plainMeaning: tierPlainMeaning(call.tier),
+            assessability: call.assessabilityClass,
+            totalMutations: call.totalMutations,
+            reasons: (call.assessabilityReasons || [])
+              .map((reason) => reason.detail || reason.code)
+              .join("; "),
+          }))
+      );
+    }
+
+    function renderTierSummary(panelRows) {
+      const counts = panelRows.reduce((acc, row) => {
+        acc[row.tier] = (acc[row.tier] || 0) + 1;
+        return acc;
+      }, {});
+      return metrics([
+        { label: "Higher support calls", value: counts.higher_review_support || 0 },
+        { label: "Limited support calls", value: counts.limited_review_support || 0 },
+        { label: "Below-threshold calls", value: counts.not_detected_within_review_settings || 0 },
+        { label: "Not assessable calls", value: counts.not_assessable || 0 },
+      ]);
+    }
+
+    function pickPlainExamples(panelRows) {
+      const priority = [
+        "higher_review_support",
+        "limited_review_support",
+        "not_detected_within_review_settings",
+        "not_assessable",
+      ];
+      return priority
+        .map((tier) => panelRows.find((row) => row.tier === tier))
+        .filter(Boolean)
+        .map((row) => ({
+          sample: row.sample,
+          signature: row.signature,
+          fittedContribution: row.exposureDisplay,
+          evidenceTier: row.tierLabel,
+          interpretation: row.plainMeaning,
+          firstThingToCheck: row.reasons || "Review exposure together with assay coverage, mutation count, and fit-quality mode.",
+        }));
+    }
+
+    function validationRowsForReaders(rows) {
+      return rows.map((row) => ({
+        coveredContexts: row.callableContextCount,
+        trueContributionRange: row.truthExposureBin,
+        panelMutationCountRange: row.panelBurdenBin,
+        casesReviewed: row.calls,
+        tierAccuracy: formatPercent(row.tierAccuracy, 1),
+        panelWgsAgreement: formatDecimal(row.meanPanelVsWgsExposureCosine, 2),
+        interpretation:
+          row.panelBurdenBin === "<30"
+            ? "Very low mutation count: the expected answer is often not assessable."
+            : row.callableContextCount >= 72
+              ? "Broader assay coverage makes panel and WGS interpretations more similar."
+              : "Moderate coverage can be useful, but evidence tiers should remain visible.",
+      }));
+    }
+
+    ensurePanelReviewStyles();
+
+    const panelDataset = await loadPublicSbs96Dataset(mSigSDK, { sampleLimit: 3 });
+    const panelContexts = panelDataset.contexts || sbs96Contexts();
+    const panelSpectra = panelDataset.spectra;
+    const panelSignatures = panelDataset.signatures;
     const callableOpportunities = sharedCallableOpportunities();
     const panelOptions = {
       minAssessableMutations: 30,
@@ -44,50 +458,76 @@
       genomeBuild: "GRCh37",
     };
 
+    display(note(
+      "Core idea: review whether a restricted assay provides enough information for a signature statement. Panel and WES evidence is not the same as whole-genome evidence."
+    ));
+    display(renderConceptCards());
     display(metrics([
+      { label: "Data source", value: panelDataset.status },
       { label: "Samples", value: Object.keys(panelSpectra).length },
       { label: "Reference signatures", value: Object.keys(panelSignatures).length },
-      { label: "Covered contexts", value: Object.values(callableOpportunities).filter((value) => Number(value) > 0).length },
-      { label: "Assay type", value: "panel/WES review" },
+      { label: "Mutation bins reviewed", value: panelContexts.length },
+      { label: "Assay type", value: "Panel/WES evidence review" },
     ]));
+  </script>
+
+  <script type="text/markdown">
+    ## Step 1. Understand the assay's field of view
+
+    Before fitting anything, ask what the assay can actually see. Here, each mutation is sorted into one of 96 single-base-substitution bins. Whole-genome sequencing can, in principle, observe all of them across the genome. A panel or exome assay has a narrower field of view.
+
+    The real example shows the callable-opportunity information used by the SDK. The toy example shows why blind spots matter: if the bins most important for a signature are not well covered, then a fitted number is not enough by itself.
+  </script>
+
+  <script type="module" pinned id="2">
+    display(renderCoverageStory(callableOpportunities, panelContexts));
     display(tooltipTable(
       [
-        { tier: "higher_review_support", definition: "Reviewable sample with signature contribution at or above the configured higher-support cutoff and acceptable fit evidence." },
-        { tier: "limited_review_support", definition: "Reviewable sample with signature contribution at or above the lower review cutoff but below the higher-support cutoff." },
-        { tier: "not_detected_within_review_settings", definition: "Reviewable sample with fitted contribution below the configured review cutoff." },
-        { tier: "not_assessable", definition: "Mutation count, panel/WES coverage, or fit-quality evidence does not support an interpretable support level." },
+        {
+          term: "Mutation context",
+          plainMeaning: "A bin that describes one type of DNA letter change plus nearby letters.",
+          whyItMatters: "Signatures are patterns across these bins.",
+        },
+        {
+          term: "Callable opportunity",
+          plainMeaning: "How much of that bin the assay could observe.",
+          whyItMatters: "A blind or partly covered bin weakens evidence for signatures that depend on it.",
+        },
+        {
+          term: "Fitted contribution",
+          plainMeaning: "The model's estimate of how much a reference signature helps explain the sample pattern.",
+          whyItMatters: "It is a model output, not a standalone detection claim.",
+        },
+        {
+          term: "Evidence tier",
+          plainMeaning: "The support label assigned after coverage, mutation count, fit quality, and fitted contribution are reviewed together.",
+          whyItMatters: "It keeps assay limits visible when results are shared.",
+        },
       ],
       [
-        { key: "tier", label: "Tier" },
-        { key: "definition", label: "Definition" },
-      ]
+        { key: "term", label: "Term" },
+        { key: "plainMeaning", label: "Meaning" },
+        { key: "whyItMatters", label: "Why it matters" },
+      ],
+      {
+        title: "Tiny glossary",
+        caption: "Read these four terms before interpreting the review table.",
+      }
     ));
   </script>
 
   <script type="text/markdown">
-    ## Interactive workspace
+    ## Step 2. Run the review, not just the fit
 
-    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
+    The workflow does more than estimate signature contributions. It carries the assay definition into the result, checks whether each sample has enough mutations, reviews fit quality, and then assigns a support tier for each fitted signature.
+
+    Review proceeds through five gates. If an early gate fails, the honest answer may be **not assessable**, even if a model still produced a numeric contribution.
   </script>
 
-  <script type="module" pinned id="interactive-workspace">
-    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
-    renderInteractiveNotebook({ mode: "panel-evidence", mSigSDK, display });
-  </script>
+  <script type="module" pinned id="3">
+    display(renderDecisionPath(panelOptions));
+    display(renderTierCards());
 
-  <script type="text/markdown">
-    ## Step 1. Run panel/WES evidence review
-
-    The panel workflow combines spectra, signatures, assay details, and coverage summaries. It returns fitted signature contributions plus support levels that explain whether each signature can be reviewed under the restricted assay.
-
-    Start with the support level and review-reason fields before interpreting contribution magnitude. A high contribution can still have limited review support if the assay has poor coverage for the relevant contexts.
-  </script>
-
-  <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "panel-evidence", step: 1, phase: "review", title: "Step 1. Run panel/WES evidence review", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="2">
     const panelResult = await mSigSDK.workflows.runPanelWorkflow(
       { spectra: panelSpectra, signatures: panelSignatures, callableOpportunities },
       {
@@ -104,109 +544,150 @@
         reportFormat: "object",
       }
     );
+    const panelRows = evidenceCallsToRows(panelResult);
+    const plainExampleRows = pickPlainExamples(panelRows);
 
     display(metrics([
       { label: "Workflow", value: panelResult.workflow },
       { label: "Evidence calls", value: panelResult.panel.evidenceSummary.callCount },
-      { label: "Opportunity coverage", value: panelResult.opportunityMetadata.opportunityCoverage },
+      { label: "Opportunity coverage", value: formatPercent(panelResult.opportunityMetadata.opportunityCoverage, 1) },
       { label: "Warnings", value: panelResult.warnings.length },
     ]));
-    display(table(
-      exposureRows(panelResult.fit.exposures, { minExposure: 0, topN: 12 }),
-      [
-        { key: "sample", label: "Sample" },
-        { key: "signature", label: "Signature" },
-        { key: "exposure", label: "Relative exposure" },
-      ],
-      { maxRows: 12 }
-    ));
+    display(renderTierSummary(panelRows));
   </script>
 
   <script type="text/markdown">
-    ## Step 2. Read the evidence heatmap and review table
+    ## Step 3. Read the results like a reviewer
 
-    The evidence heatmap explains which signatures are supported, limited, or not reviewable and why. This is the section that should travel with any panel-derived signature call. It prevents a downstream reader from interpreting a restricted-assay fit as if it came from complete WGS coverage.
+    Start with the support label, then read the reason. Only then look at the fitted contribution.
+
+    This order matters because a contribution value can look precise while the assay evidence is weak. The heatmap gives a quick scan across samples and signatures; the table turns the same result into sentences a collaborator can review.
   </script>
 
-  <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "panel-evidence", step: 2, phase: "review", title: "Step 2. Read the evidence heatmap and review table", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="3">
+  <script type="module" pinned id="4">
     const panelMatrixDiv = document.createElement("div");
     panelMatrixDiv.style.width = "100%";
     display(panelMatrixDiv);
     await mSigSDK.qcPlots.plotPanelEvidenceMatrix(panelMatrixDiv, panelResult);
 
-    const panelRows = Object.entries(panelResult.panel.evidenceCalls).flatMap(
-      ([sample, calls]) =>
-        calls.map((call) => ({
-          sample,
-          signature: call.signatureName,
-          exposure: call.exposure,
-          tier: call.tier,
-          assessability: call.assessabilityClass,
-          totalMutations: call.totalMutations,
-          reasons: (call.assessabilityReasons || [])
-            .map((reason) => reason.detail || reason.code)
-            .join("; "),
-        }))
-    );
-    display(panelEvidenceTable(panelResult, { maxRows: 12 }));
+    display(table(
+      plainExampleRows,
+      [
+        { key: "sample", label: "Sample" },
+        { key: "signature", label: "Signature" },
+        { key: "fittedContribution", label: "Fitted contribution" },
+        { key: "evidenceTier", label: "Evidence tier" },
+        { key: "interpretation", label: "Interpretation" },
+        { key: "firstThingToCheck", label: "First thing to check" },
+      ],
+      {
+        maxRows: 8,
+        title: "Example readings from this run",
+        caption: "One representative row per tier when that tier appears in the example data.",
+      }
+    ));
+
+    display(panelEvidenceTable(panelResult, {
+      maxRows: 12,
+      title: "Full panel/WES evidence table",
+      caption: "The technical review table: every row keeps sample, signature, contribution, support tier, assessability, mutation count, and reasons together.",
+    }));
   </script>
 
   <script type="text/markdown">
-    ## Step 3. Review validation evidence and limitations
+    ## Step 4. Check whether the evidence model has been calibrated
 
-    The validation summary below is a compact fixture that mirrors the kind of WGS-to-panel sensitivity table a project should include when using restricted-assay support levels. Replace these rows with study-specific simulation, dilution, or matched WGS validation results before making inferential detection claims.
+    A project should include evidence that the panel/WES support tiers behave as expected against simulation, dilution, or matched WGS data.
 
-    If a signature is marked limited or not reviewable, the limitation is part of the result. The correct adaptation is not to hide the row, but to calibrate or replace the evidence model with assay-specific validation.
-  </script>
-
-  <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "panel-evidence", step: 3, phase: "review", title: "Step 3. Review validation evidence and limitations", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="4">
-    display(table(
-      panelValidationSummary,
-      [
-        { key: "callableContextCount", label: "Covered contexts" },
-        { key: "truthExposureBin", label: "Truth exposure bin" },
-        { key: "panelBurdenBin", label: "Panel burden bin" },
-        { key: "calls", label: "Validation calls" },
-        { key: "tierAccuracy", label: "Tier accuracy" },
-        { key: "meanPanelVsWgsExposureCosine", label: "Mean panel-WGS cosine" },
-        { key: "medianPanelTotal", label: "Median panel mutations" },
-      ],
-      { maxRows: 8 }
-    ));
-    display(table(
-      panelResult.limitations.map((limitation) => ({ limitation })),
-      [{ key: "limitation", label: "Reporting limitation" }]
-    ));
-    display(table(
-      warningRows(panelResult.warnings),
-      [
-        { key: "code", label: "Warning code" },
-        { key: "message", label: "Message" },
-        { key: "resolution", label: "Resolution" },
-      ],
-      { maxRows: 8 }
-    ));
-  </script>
-
-  <script type="text/markdown">
-    ## Step 4. Save evidence calls and report fields
-
-    The exported bundle should include the assay definition, support levels, review reasons, limitations, validation rows, warnings, suggested review steps, and report fields. These files allow a panel or WES interpretation to be reviewed without losing the assay context.
-  </script>
-
-  <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "panel-evidence", step: 4, phase: "export", title: "Step 4. Save evidence calls and report fields", mSigSDK, display });
+    The rows below are compact examples. In a study report, replace them with assay-specific validation before making inferential detection claims.
   </script>
 
   <script type="module" pinned id="5">
+    display(table(
+      validationRowsForReaders(panelValidationSummary),
+      [
+        { key: "coveredContexts", label: "Contexts visible to assay" },
+        { key: "trueContributionRange", label: "Known contribution range" },
+        { key: "panelMutationCountRange", label: "Panel mutation count" },
+        { key: "casesReviewed", label: "Cases reviewed" },
+        { key: "tierAccuracy", label: "Tier accuracy" },
+        { key: "panelWgsAgreement", label: "Panel-WGS agreement" },
+        { key: "interpretation", label: "Interpretation" },
+      ],
+      {
+        maxRows: 8,
+        title: "Validation evidence a project should show",
+        caption: "These rows mirror the kind of assay-specific calibration table needed before treating review tiers as inferential evidence.",
+      }
+    ));
+
+    display(table(
+      panelResult.limitations.map((limitation) => ({
+        limitation,
+        plainMeaning:
+          limitation.includes("detection probabilities")
+            ? "The SDK does not claim a calibrated probability that a signature is truly present."
+            : "Restricted assays should be reported as evidence review, not as full WGS-style decomposition.",
+      })),
+      [
+        { key: "limitation", label: "Reporting limitation" },
+        { key: "plainMeaning", label: "Meaning" },
+      ],
+      {
+        title: "Limits that should stay with the result",
+      }
+    ));
+
+    const warningTableRows = warningRows(panelResult.warnings);
+    if (warningTableRows.length) {
+      display(table(
+        warningTableRows,
+        [
+          { key: "code", label: "Warning code" },
+          { key: "message", label: "Message" },
+          { key: "resolution", label: "Resolution" },
+        ],
+        {
+          maxRows: 8,
+          title: "Warnings from this run",
+        }
+      ));
+    } else {
+      display(note("No warnings were emitted in this example run. In your own panel/WES report, warnings should remain visible rather than being edited out."));
+    }
+  </script>
+
+  <script type="text/markdown">
+    ## Step 5. Save the evidence, not just the numbers
+
+    A shareable panel/WES result should include the assay definition, support tiers, review reasons, limitations, validation rows, and warnings. That bundle lets another scientist understand whether the assay supported the statement being made.
+  </script>
+
+  <script type="module" pinned id="6">
+    display(table(
+      [
+        {
+          file: "panel_evidence_calls.csv",
+          use: "A row-by-row table of sample, signature, fitted contribution, evidence tier, assessability, mutation count, and reasons.",
+        },
+        {
+          file: "panel_validation_summary.csv",
+          use: "The calibration-style rows that explain how support tiers behaved in validation examples.",
+        },
+        {
+          file: "panel_evidence_bundle.json",
+          use: "Machine-readable settings, opportunity metadata, tier rules, warnings, and limitations.",
+        },
+      ],
+      [
+        { key: "file", label: "Export" },
+        { key: "use", label: "Why it matters" },
+      ],
+      {
+        title: "What should travel with the result",
+      }
+    ));
+
     display(downloadMany([
       {
         filename: "panel_evidence_calls.csv",
@@ -219,7 +700,7 @@
         label: "Download validation summary CSV",
       },
       {
-        filename: "panel_workflow_report.json",
+        filename: "panel_evidence_bundle.json",
         type: "json",
         value: {
           options: panelOptions,
@@ -227,11 +708,9 @@
           tierRules: panelResult.tierRules,
           evidenceSummary: panelResult.panel.evidenceSummary,
           warnings: panelResult.warnings,
-          recommendedActions: panelResult.recommendedActions,
-          publicationFigures: panelResult.publicationFigures,
-          report: panelResult.report,
+          limitations: panelResult.limitations,
         },
-        label: "Download report JSON",
+        label: "Download evidence JSON",
       },
     ]));
   </script>

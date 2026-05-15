@@ -1,44 +1,43 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK MAF to report</title>
+  <title>mSigSDK variant rows to mutation patterns</title>
 
   <script type="text/markdown">
-    # MAF to report
+    # Variant rows to mutation patterns
 
-    Many projects start from variant rows rather than a finished signature table. This workflow adds the piece that the end-to-end notebook deliberately skips: an auditable conversion from MAF-like rows into SBS96 spectra before any signature interpretation is trusted.
+    Raw DNA-change rows must be converted into a mutation pattern that signature tools can read.
 
-    The example uses row-supplied trinucleotide contexts so it runs without a genome sequence request. In a production pipeline, the same checkpoints apply after genome-backed context annotation: normalize the variant rows, group them intentionally, reconcile convertible SNV rows against observed SBS96 counts, and only then use fitting as a downstream smoke test.
+    The raw file is a pile of receipts. Each receipt says, "At this DNA position, one letter changed into another." A mutational signature analysis cannot use that pile directly. First, the receipts must be sorted into 96 labeled bins. Each bin says what changed and what the neighboring DNA letters were. That sorted 96-bin table is called an SBS96 spectrum.
 
-    **Unique role:** teach MAF field mapping, context provenance, grouping, and count reconciliation.
-
-    **Leave to focused notebooks:** broad beginner orientation, public cohort discovery, detailed uncertainty analysis, and multi-tool concordance.
-
-    **After running it you should know:** whether a set of variant rows was converted into spectra cleanly enough to hand to the analysis notebooks.
+    A reviewer can read the first tables like a chain of custody: which rows were usable, how rows were grouped into samples, where the neighboring DNA letters came from, and whether the final 96-bin counts equal the usable input rows.
   </script>
 
   <script type="module" pinned id="1">
-    const mafSdkUrl = new URL("../main.js?v=2026-05-14-maf-workflow", location.href).href;
+    const mafSdkUrl = new URL("../main.js?v=2026-05-15-cosmic-sbs96", location.href).href;
     const { mSigSDK } = await import(mafSdkUrl);
     const {
-      demoMafRows,
-      demoSignatures,
+      loadPublicMafRows,
+      loadPublicSbs96Dataset,
       sbs96Contexts,
     } = await import("./msig-notebook-fixtures.js");
     const {
-      exposureRows,
       metrics,
       reconstructionRows,
       table,
     } = mSigSDK.presentation;
 
     const mafContexts = sbs96Contexts();
-    const mafRows = demoMafRows;
-    const mafSignatures = demoSignatures();
+    const [mafPublicRows, mafReferenceDataset] = await Promise.all([
+      loadPublicMafRows(mSigSDK, { projects: ["TCGA-LUAD"], maxFiles: 1, maxVariants: 80 }),
+      loadPublicSbs96Dataset(mSigSDK, { sampleLimit: 3 }),
+    ]);
+    const mafRows = mafPublicRows.rows;
+    const mafSignatures = mafReferenceDataset.signatures;
     const mafOptions = {
-      groupBy: "project_code",
+      groupBy: "sample",
       genome: "hg19",
-      offline: true,
-      contextSource: "row-supplied trinucleotide context field",
+      offline: false,
+      contextSource: "live UCSC genome sequence lookup for TCGA/GDC MAF rows",
       exposureThreshold: 0.01,
     };
 
@@ -101,12 +100,12 @@
         }
       }
       return [
-        { checkpoint: "Input rows", value: rows.length, why: "All rows received by the notebook before filtering." },
-        { checkpoint: "Groups from field", value: `${groups.size} via ${groupBy}`, why: "The grouping field becomes the sample key in the SBS96 table." },
-        { checkpoint: "Convertible SNV rows", value: convertibleSnvs, why: "Only valid single-base substitutions should contribute to SBS96 counts." },
-        { checkpoint: "Rows with supplied context", value: rowsWithContext, why: "Offline conversion needs a three-base context or a pinned lookup table." },
-        { checkpoint: "Missing context among convertible rows", value: missingContext, why: "These rows need genome-backed annotation before fitting." },
-        { checkpoint: "Rows not convertible to SBS96", value: nonConvertibleRows, why: "Indels, invalid alleles, or incomplete rows are outside SBS96 conversion." },
+        { checkpoint: "Input rows", value: rows.length, why: "All rows received before filtering." },
+        { checkpoint: "Groups from field", value: `${groups.size} via ${groupBy}`, why: "This identifies which rows belong to the same sample or project." },
+        { checkpoint: "Rows that can become 96-bin counts", value: convertibleSnvs, why: "Only clean one-letter DNA changes belong in this specific mutation-pattern table." },
+        { checkpoint: "Rows with neighborhood already supplied", value: rowsWithContext, why: "Some rows already include the nearby DNA letters needed for sorting." },
+        { checkpoint: "Rows needing neighborhood lookup", value: missingContext, why: "These rows need the genome sequence lookup to find the nearby DNA letters." },
+        { checkpoint: "Rows skipped by this 96-bin pattern", value: nonConvertibleRows, why: "Insertions, deletions, invalid letters, or incomplete rows do not fit this one-letter-change pattern." },
       ];
     }
 
@@ -133,57 +132,42 @@
     }
 
     display(metrics([
+      { label: "Data source", value: mafPublicRows.source },
       { label: "Rows", value: mafRows.length },
-      { label: "Context mode", value: "offline row-supplied contexts" },
+      { label: "Neighborhood lookup", value: "live genome lookup" },
       { label: "Grouping field", value: mafOptions.groupBy },
       { label: "Signatures", value: Object.keys(mafSignatures).length },
     ]));
     display(table(
       [
-        { notebookObject: "mafRows", replaceWith: "MAF rows with chromosome, position, alleles, sample/project field, and context source" },
-        { notebookObject: "mafOptions.groupBy", replaceWith: "Tumor_Sample_Barcode, project_code, sample, or another sample identifier" },
-        { notebookObject: "mafOptions.offline", replaceWith: "true for a pinned context table; false for live UCSC context lookup" },
-        { notebookObject: "mafSignatures", replaceWith: "COSMIC or project-specific reference signature table" },
+        { term: "Variant row", plainMeaning: "One recorded DNA change, like C becoming T at a specific chromosome position." },
+        { term: "MAF", plainMeaning: "A common spreadsheet-like format for storing many variant rows." },
+        { term: "DNA neighborhood", plainMeaning: "The changed letter plus one nearby letter on each side, like a three-letter word." },
+        { term: "SBS96 spectrum", plainMeaning: "The final 96-bin mutation pattern created after sorting the variant rows." },
+        { term: "Quick sanity check", plainMeaning: "A small follow-up check that the converted pattern can be used by the normal fitting workflow." },
       ],
       [
-        { key: "notebookObject", label: "Object to edit" },
-        { key: "replaceWith", label: "Project-specific replacement" },
+        { key: "term", label: "Term" },
+        { key: "plainMeaning", label: "Plain meaning" },
       ]
     ));
     display(table(
       mafAuditRows(mafRows, mafOptions),
       [
-        { key: "checkpoint", label: "Conversion checkpoint" },
+        { key: "checkpoint", label: "Sorting checkpoint" },
         { key: "value", label: "Value" },
         { key: "why", label: "Why it matters" },
       ]
     ));
   </script>
+<script type="text/markdown">
+    ## Step 1. Sort the variant rows into 96 bins
 
-  <script type="text/markdown">
-    ## Interactive workspace
+    Each row tells us the chromosome position and the before/after DNA letters. The converter looks up the neighboring DNA letters, then sorts the change into one of 96 possible bins.
 
-    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
+    The most important check is simple counting. If 80 usable single-letter changes go in, the finished 96-bin table should contain 80 counts. If those numbers do not match, something went wrong before signature analysis even began.
   </script>
-
-  <script type="module" pinned id="interactive-workspace">
-    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
-    renderInteractiveNotebook({ mode: "maf-fit-report", mSigSDK, display });
-  </script>
-
-  <script type="text/markdown">
-    ## Step 1. Convert variant rows into an SBS96 table
-
-    `analyzeMafFiles` accepts either a flat row array or nested per-file arrays. The conversion record stores the genome build, context source, lookup mode, timestamp, and a count reconciliation check between convertible SNV rows and observed SBS96 counts.
-
-    Before reading signature contributions, confirm that the number of convertible SNVs agrees with the total SBS96 counts. A mismatch here points to context annotation, filtering, sample naming, or input-shape problems.
-  </script>
-
-  <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 1, phase: "data", title: "Step 1. Convert variant rows into an SBS96 table", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="2">
+<script type="module" pinned id="2">
     const mafAnalysis = await mSigSDK.workflows.analyzeMafFiles(
       mafRows,
       mafSignatures,
@@ -206,19 +190,18 @@
       }
     );
     const mafConversionRows = [
-      { field: "Convertible SNV rows", value: mafAnalysis.mafConversion.expectedConvertibleSnvCount },
-      { field: "Observed SBS96 counts", value: mafAnalysis.mafConversion.observedSbs96Count },
-      { field: "Count reconciliation", value: mafAnalysis.mafConversion.sbs96CountMatchesConvertibleSnvCount ? "pass" : "review" },
-      { field: "Context source", value: mafAnalysis.mafConversion.contextSource },
-      { field: "Context lookup mode", value: mafAnalysis.mafConversion.contextLookupMode },
+      { field: "Usable single-letter changes", value: mafAnalysis.mafConversion.expectedConvertibleSnvCount },
+      { field: "Counts after sorting into 96 bins", value: mafAnalysis.mafConversion.observedSbs96Count },
+      { field: "Do the counts match?", value: mafAnalysis.mafConversion.sbs96CountMatchesConvertibleSnvCount ? "yes" : "review" },
+      { field: "DNA neighborhood source", value: mafAnalysis.mafConversion.contextSource },
+      { field: "Lookup mode", value: mafAnalysis.mafConversion.contextLookupMode },
     ];
 
     display(metrics([
       { label: "Workflow", value: mafAnalysis.workflow },
       { label: "Samples", value: Object.keys(mafAnalysis.spectra).length },
-      { label: "SBS96 counts", value: mafAnalysis.mafConversion.observedSbs96Count },
+      { label: "Counts in 96-bin pattern", value: mafAnalysis.mafConversion.observedSbs96Count },
       { label: "Warnings", value: mafAnalysis.warnings.length },
-      { label: "Figures", value: mafAnalysis.publicationFigures.length },
     ]));
     display(table(
       mafRows.slice(0, 8),
@@ -227,59 +210,45 @@
         { key: "chromosome", label: "Chromosome" },
         { key: "start_position", label: "Position" },
         { key: "reference_allele", label: "Reference" },
-        { key: "tumor_seq_allele2", label: "Alternate" },
-        { key: "context", label: "Trinucleotide context" },
+        { key: "tumor_seq_allele2", label: "New DNA letter" },
+        { key: "context", label: "Three-letter neighborhood" },
       ],
       { maxRows: 8 }
     ));
     display(table(
       mafConversionRows,
       [
-        { key: "field", label: "Conversion field" },
+        { key: "field", label: "Check" },
         { key: "value", label: "Value" },
       ]
     ));
   </script>
 
   <script type="text/markdown">
-    ## Step 2. Use fitting as a downstream smoke test
+    ## Step 2. Check that the converted pattern behaves normally
 
-    The fitting output is included to prove that the converted spectra can enter the standard SDK workflow. In this notebook, the fitted signatures are not the main lesson; they are a smoke test for the conversion handoff.
+    This step is like plugging in a newly assembled lamp just long enough to see whether it turns on. A quick fit checks that the converted 96-bin pattern can enter the normal SDK workflow.
 
-    Interpret the tables in order: group-level count reconciliation first, reconstruction metrics second, and signature contributions last. If the conversion check fails, fix context annotation or grouping before reading any exposure table.
+    Read the tables in order: first confirm the counts still match, then look for warnings, then use the reconstruction numbers as a basic health check.
   </script>
-
-  <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 2, phase: "review", title: "Step 2. Use fitting as a downstream smoke test", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="3">
+<script type="module" pinned id="3">
     display(table(
       mafGroupAuditRows(mafRows, mafAnalysis.spectra, mafOptions.groupBy),
       [
         { key: "group", label: "Group" },
         { key: "inputRows", label: "Input rows" },
-        { key: "convertibleSnvs", label: "Convertible SNVs" },
-        { key: "contextRows", label: "Rows with context" },
-        { key: "observedSbs96Counts", label: "Observed SBS96 counts" },
-        { key: "countCheck", label: "Count check" },
+        { key: "convertibleSnvs", label: "Usable single-letter changes" },
+        { key: "contextRows", label: "Rows with neighborhood already supplied" },
+        { key: "observedSbs96Counts", label: "Counts after sorting" },
+        { key: "countCheck", label: "Counts match?" },
       ]
-    ));
-    display(table(
-      exposureRows(mafAnalysis.fit.exposures, { minExposure: 0, topN: 12 }),
-      [
-        { key: "sample", label: "Sample" },
-        { key: "signature", label: "Signature" },
-        { key: "exposure", label: "Relative exposure smoke test" },
-      ],
-      { maxRows: 12 }
     ));
     display(table(
       reconstructionRows(mafAnalysis.fit.reconstructionError),
       [
         { key: "sample", label: "Sample" },
-        { key: "cosineSimilarity", label: "Cosine similarity" },
-        { key: "rmse", label: "RMSE" },
+        { key: "cosineSimilarity", label: "Pattern match score" },
+        { key: "rmse", label: "Average leftover error" },
       ]
     ));
     display(table(
@@ -290,64 +259,78 @@
         { key: "resolution", label: "Resolution" },
       ]
     ));
-    display(table(
-      publicationFigureRows(mafAnalysis.publicationFigures),
-      [
-        { key: "id", label: "Figure id" },
-        { key: "title", label: "Figure title" },
-        { key: "renderer", label: "Renderer" },
-        { key: "dataFields", label: "Required fields" },
-      ]
-    ));
   </script>
 
   <script type="text/markdown">
-    ## Step 3. Inspect the converted spectra visually
+    ## Step 3. Look at the mutation pattern
 
-    Plots are used here to inspect the converted spectra, not to repeat the complete end-to-end reporting tutorial. A burden plot should agree with the conversion counts, and the SBS96 profile should look like the expected context distribution for the input rows.
+    A table of 96 numbers is hard to understand at a glance, so this step turns it into a picture. The burden plot shows how many mutations each group has. The SBS96 profile shows which kinds of DNA-letter changes are most common.
+
+    A good first read is: are the totals plausible, and does the pattern look like a real sorted pattern rather than an empty or scrambled table?
   </script>
-
-  <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 3, phase: "visualize", title: "Step 3. Inspect the converted spectra visually", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="4">
+<script type="module" pinned id="4">
     const mafBurdenDiv = document.createElement("div");
     mafBurdenDiv.style.width = "100%";
     display(mafBurdenDiv);
     await mSigSDK.qcPlots.plotMutationBurdenSummary(mafBurdenDiv, mafAnalysis.qc.mutationBurden);
 
+    const mafSpectrumSamples = Object.keys(mafAnalysis.spectra || {});
+    const mafSpectrumControls = document.createElement("div");
+    mafSpectrumControls.className = "workflow-plot-controls";
+    const mafSpectrumSelect = document.createElement("select");
+    mafSpectrumSelect.replaceChildren(
+      ...mafSpectrumSamples.map((sample) => {
+        const option = document.createElement("option");
+        option.value = sample;
+        option.textContent = sample;
+        return option;
+      })
+    );
+    const mafSpectrumField = document.createElement("label");
+    mafSpectrumField.className = "workflow-field";
+    const mafSpectrumLabel = document.createElement("span");
+    mafSpectrumLabel.textContent = "Group shown in mutation-pattern plot";
+    const mafSpectrumHelp = document.createElement("small");
+    mafSpectrumHelp.textContent = "Switch groups to redraw the 96-bin pattern. Hover over bars for the exact DNA-neighborhood labels and counts.";
+    mafSpectrumField.append(mafSpectrumLabel, mafSpectrumSelect, mafSpectrumHelp);
+    mafSpectrumControls.append(mafSpectrumField);
+    display(mafSpectrumControls);
+
     const mafSpectrumDiv = document.createElement("div");
     mafSpectrumDiv.style.width = "100%";
     display(mafSpectrumDiv);
-    await mSigSDK.userData.plotPatientMutationalSpectrumuserData(
-      mafAnalysis.spectra,
-      96,
-      mafSpectrumDiv
-    );
+
+    function renderMafCosmicSpectrum() {
+      return mSigSDK.qcPlots.plotCosmicSbs96Profile(
+        mafSpectrumDiv,
+        mafAnalysis.spectra,
+        {
+          sample: mafSpectrumSelect.value,
+          contexts: mafContexts,
+          title: "Converted 96-bin mutation pattern",
+          subtitle:
+            "The converted mutation pattern created from variant rows. Colors group related DNA-letter changes so the 96 bins are easier to scan.",
+        }
+      );
+    }
+
+    mafSpectrumSelect.addEventListener("change", renderMafCosmicSpectrum);
+    await renderMafCosmicSpectrum();
   </script>
 
   <script type="text/markdown">
-    ## Step 4. Save conversion provenance and handoff files
+    ## Step 4. Save the conversion record
 
-    The saved bundle should make the conversion auditable: original row summary, grouping field, context source, count reconciliation, converted SBS96 table, warnings, and a compact downstream smoke-test result. These files are the handoff to the end-to-end, QC, uncertainty, or report notebooks.
+    The saved files are the receipt trail. They keep the converted 96-bin table together with the source summary, grouping rule, DNA-neighborhood source, count check, and warnings.
+
+    The next analysis can then start from a checked mutation pattern rather than an unexplained pile of variant rows.
   </script>
-
-  <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 4, phase: "export", title: "Step 4. Save conversion provenance and handoff files", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="5">
+<script type="module" pinned id="5">
     display(downloadMany([
       {
         filename: "maf_converted_spectra.tsv",
         text: spectraMatrixToTsv(mafAnalysis.spectra, mafContexts),
-        label: "Download spectra TSV",
-      },
-      {
-        filename: "maf_smoke_test_exposures.csv",
-        text: rowsToCsv(exposureRows(mafAnalysis.fit.exposures, { minExposure: 0, topN: 100 })),
-        label: "Download smoke-test contributions CSV",
+        label: "Download 96-bin pattern TSV",
       },
       {
         filename: "maf_conversion_audit.csv",
@@ -358,7 +341,7 @@
         label: "Download conversion audit CSV",
       },
       {
-        filename: "maf_report.json",
+        filename: "maf_conversion_audit.json",
         type: "json",
         value: {
           options: mafOptions,
@@ -370,11 +353,11 @@
           validation: mafAnalysis.validation,
           qc: mafAnalysis.qc,
           warnings: mafAnalysis.warnings,
-          recommendedActions: mafAnalysis.recommendedActions,
-          publicationFigures: mafAnalysis.publicationFigures,
-          report: mafAnalysis.report,
+          smokeTest: {
+            reconstructionError: mafAnalysis.fit.reconstructionError,
+          },
         },
-        label: "Download report JSON",
+        label: "Download conversion audit JSON",
       },
     ]));
   </script>

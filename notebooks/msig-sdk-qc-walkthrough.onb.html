@@ -5,34 +5,23 @@
   <script type="text/markdown">
     # Known-signature quality check
 
-    Use this notebook first if you are new to mSigSDK. It demonstrates the complete known-signature fitting workflow: import the SDK, define an SBS96 analysis, load count-scale public spectra and COSMIC reference signatures, reshape the API rows into SDK tables, check inputs, estimate signature contributions, and inspect quality-check plots.
+    Known-signature fitting needs quality-control objects that decide whether the fit is interpretable.
 
-    The story is intentionally sequential. A researcher chooses an analysis profile, checks the table, reviews mutation counts, fits signatures, inspects reconstruction and residuals, then packages the same logic as a reusable workflow result. To reuse the pattern with your own data, replace the mSigPortal loading block and keep the input-check and quality-check sections intact.
-
-    **Unique role:** unpack the quality-control objects behind a known-signature fit instead of hiding them inside a larger workflow.
-
-    **Leave to focused notebooks:** public API browsing, MAF conversion, report export mechanics, uncertainty stress testing, and panel/WES evidence tiers.
-
-    **After running it you should know:** how to read mutation burden, reconstruction error, residual spectra, warnings, and suggested review steps together.
+    The workflow is narrow: choose an SBS96 example, validate spectra and signatures, review mutation counts, calculate reconstruction error, and inspect residual spectra. Reporting, exports, uncertainty, and complete end-to-end packaging belong in separate workflows.
   </script>
 
   <script type="module" pinned id="1">
     const qcSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-qc", location.href).href;
     const { mSigSDK } = await import(qcSdkUrl);
     const {
-      demoSignatures,
-      demoSpectra,
+      loadPublicSbs96Dataset,
     } = await import("./msig-notebook-fixtures.js");
     const {
       burdenSampleRows,
-      details,
-      exposureRows,
-      fitQualityEvidenceTable,
       formatNumber,
       metrics,
       reconstructionRows,
       table,
-      tooltipTable,
     } = mSigSDK.presentation;
 
     display(metrics([
@@ -47,7 +36,7 @@
         { namespace: "validation", role: "Check table shape and missing contexts" },
         { namespace: "signatureFitting", role: "Estimate relative signature contributions" },
         { namespace: "qc", role: "Create burden, reconstruction, and residual objects" },
-        { namespace: "qcPlots", role: "Render quality-check figures for reports and notebooks" },
+        { namespace: "qcPlots", role: "Render quality-check figures for reports and browser pages" },
         { namespace: "presentation", role: "Create reusable metrics, tables, and object summaries" },
       ],
       [
@@ -56,31 +45,14 @@
       ]
     ));
   </script>
-
-  <script type="text/markdown">
-    ## Interactive workspace
-
-    Use this workspace to load sample data, paste or upload your own data, adjust settings, run the notebook workflow, inspect visual results, and download the exact files produced by your settings.
-  </script>
-
-  <script type="module" pinned id="interactive-workspace">
-    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
-    renderInteractiveNotebook({ mode: "qc-walkthrough", mSigSDK, display });
-  </script>
-
-  <script type="text/markdown">
+<script type="text/markdown">
     ## Step 1. Choose the profile, example data, and fitting settings
 
     The first analysis decision is the mutation table. Here we use SBS96, so `getExpectedContexts` returns the 96 trinucleotide contexts used to check spectra and signatures. The mSigPortal calls fetch specific PCAWG WGS Lung-AdenoCA samples with real mutation counts, including high-count and low-count examples so the review cues are visible. In your own project, replace `qcExampleSampleNames` with your local sample IDs or replace the fetch with your own spectra object.
 
     Edit `qcSampleLimit`, `qcMutationBurdenThreshold`, or `qcPreferredSignatureNames` to see how the analysis changes. In a real project, these settings should come from the assay design, expected mutation count, and the reference catalog being tested.
   </script>
-
-  <script type="module" pinned id="interactive-step-1">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 1, phase: "data", title: "Step 1. Choose the profile, example data, and fitting settings", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="2">
+<script type="module" pinned id="2">
     const qcContexts = mSigSDK.validation.getExpectedContexts({
       profile: "SBS",
       matrix: 96,
@@ -116,48 +88,21 @@
       "SBS40",
     ];
 
-    let qcDataSourceStatus = "live mSigPortal";
-    let qcAllGroupedSpectra;
-    let qcAllReferenceSignatures;
-    try {
-      const [qcRawSpectrumRows, qcRawSignatureRows] = await Promise.all([
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-          qcStudy,
-          qcExampleSampleNames,
-          qcGenomeDataType,
-          qcCancerType,
-          qcMutationType,
-          qcMatrixSize
-        ),
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
-          qcGenomeDataType,
-          qcSignatureSetName,
-          qcMutationType,
-          qcMatrixSize,
-          10000
-        ),
-      ]);
-      const qcSpectrumRows = Array.isArray(qcRawSpectrumRows)
-        ? qcRawSpectrumRows.flat()
-        : [];
-      const qcSignatureRows = Array.isArray(qcRawSignatureRows)
-        ? qcRawSignatureRows.flat()
-        : [];
-      qcAllGroupedSpectra =
-        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(qcSpectrumRows);
-      qcAllReferenceSignatures =
-        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-          qcSignatureRows,
-          "signatureName"
-        );
-      if (Object.keys(qcAllGroupedSpectra).length < 2 || Object.keys(qcAllReferenceSignatures).length < 3) {
-        throw new Error("mSigPortal returned too few tables for quality-check review.");
-      }
-    } catch (error) {
-      qcDataSourceStatus = `embedded fallback: ${error.message}`;
-      qcAllGroupedSpectra = demoSpectra();
-      qcAllReferenceSignatures = demoSignatures();
-    }
+    const qcDataset = await loadPublicSbs96Dataset(mSigSDK, {
+      study: qcStudy,
+      genomeDataType: qcGenomeDataType,
+      cancerType: qcCancerType,
+      mutationType: qcMutationType,
+      matrixSize: qcMatrixSize,
+      signatureSetName: qcSignatureSetName,
+      sampleNames: qcExampleSampleNames,
+      sampleLimit: qcSampleLimit,
+      signatureNames: qcPreferredSignatureNames,
+      allowAlternate: false,
+    });
+    const qcDataSourceStatus = qcDataset.status;
+    const qcAllGroupedSpectra = qcDataset.spectra;
+    const qcAllReferenceSignatures = qcDataset.allSignatures;
 
     const qcAllBurden = mSigSDK.qc.summarizeMutationBurden(qcAllGroupedSpectra, {
       expectedContexts: qcContexts,
@@ -229,12 +174,7 @@
 
     If validation fails, interpretation stops here. A fit produced from mismatched contexts can look numerical and still be biologically meaningless.
   </script>
-
-  <script type="module" pinned id="interactive-step-2">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 2, phase: "analysis", title: "Step 2. Check inputs, fit, and build review objects", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="3">
+<script type="module" pinned id="3">
     const qcSpectraValidation = mSigSDK.validation.validateSpectra(
       qcGroupedSpectra,
       {
@@ -278,11 +218,6 @@
         .sort((a, b) => a.cosineSimilarity - b.cosineSimilarity)[0]?.sample ||
       qcSelectedSampleNames[0];
 
-    const qcExposureRows = exposureRows(qcExposures, {
-      minExposure: 0,
-      topN: 10,
-    });
-
     display(metrics([
       { label: "Spectra validation", value: qcSpectraValidation.valid ? "Pass" : "Review" },
       { label: "Signature validation", value: qcSignatureValidation.valid ? "Pass" : "Review" },
@@ -299,20 +234,6 @@
       ],
       { maxRows: 8 }
     ));
-    display(table(
-      qcExposureRows,
-      [
-        { key: "sample", label: "Sample" },
-        { key: "signature", label: "Signature" },
-        { key: "exposure", label: "Relative exposure" },
-      ],
-      { maxRows: 10 }
-    ));
-    display(details("Validation and reconstruction objects", {
-      spectraValidation: qcSpectraValidation,
-      signatureValidation: qcSignatureValidation,
-      reconstruction: qcReconstruction,
-    }));
   </script>
 
   <script type="text/markdown">
@@ -322,12 +243,7 @@
 
     A low-count warning does not always require removing a sample. It does require that downstream signature contribution estimates be reported with more caution.
   </script>
-
-  <script type="module" pinned id="interactive-step-3">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 3, phase: "visualize", title: "Step 3. Check mutation counts", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="4">
+<script type="module" pinned id="4">
     const qcBurdenDiv = document.createElement("div");
     qcBurdenDiv.style.width = "100%";
     await mSigSDK.qcPlots.plotMutationBurdenSummary(qcBurdenDiv, qcBurden);
@@ -341,12 +257,7 @@
 
     This is the main checkpoint before reading signature contribution values as evidence. A poor reconstruction usually means the catalog is incomplete, the sample is noisy, or the table needs additional review.
   </script>
-
-  <script type="module" pinned id="interactive-step-4">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 4, phase: "review", title: "Step 4. Inspect reconstruction quality", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="5">
+<script type="module" pinned id="5">
     const qcReconstructionDiv = document.createElement("div");
     qcReconstructionDiv.style.width = "100%";
     await mSigSDK.qcPlots.plotReconstructionError(
@@ -363,12 +274,7 @@
 
     Read residuals as diagnostic evidence, not as a decorative plot. Repeated residual structure across samples may point to a missing signature or a systematic preprocessing issue.
   </script>
-
-  <script type="module" pinned id="interactive-step-5">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 5, phase: "visualize", title: "Step 5. Inspect residual spectra", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="6">
+<script type="module" pinned id="6">
     const qcResidualDiv = document.createElement("div");
     qcResidualDiv.style.width = "100%";
     await mSigSDK.qcPlots.plotFitResiduals(
@@ -379,87 +285,4 @@
     display(qcResidualDiv);
   </script>
 
-  <script type="text/markdown">
-    ## Step 6. Package the same fit as a workflow result
-
-    The lower-level cells above teach each review step. The high-level workflow returns the same analysis as a reviewable bundle with warnings, suggested review steps, fit-quality evidence, figure descriptors, report fields, and exports.
-
-    The workflow result is the object to give an application or report generator because it keeps the signature contribution estimates connected to the evidence that qualifies them.
-  </script>
-
-  <script type="module" pinned id="interactive-step-6">
-    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 6, phase: "analysis", title: "Step 6. Package the same fit as a workflow result", mSigSDK, display });
-  </script>
-
-  <script type="module" pinned id="7">
-    const qcWorkflowAnalysis = await mSigSDK.workflows.runCohortFit(
-      {
-        spectra: qcGroupedSpectra,
-        signatures: qcReferenceSignatures,
-      },
-      {
-        contexts: qcContexts,
-        exposureThreshold: qcExposureThreshold,
-        lowBurdenThreshold: qcMutationBurdenThreshold,
-        thresholds: [0, 0.01, 0.03, 0.05],
-        runBootstrap: false,
-        runThresholdSensitivity: true,
-        runSubgroupDiscovery: false,
-        reportFormat: "object",
-      }
-    );
-    display(metrics([
-      { label: "Workflow warnings", value: qcWorkflowAnalysis.warnings.length },
-      { label: "Recommended actions", value: qcWorkflowAnalysis.recommendedActions.length },
-      { label: "Figure descriptors", value: qcWorkflowAnalysis.publicationFigures.length },
-      { label: "Report fields", value: Object.keys(qcWorkflowAnalysis.report || {}).length },
-    ]));
-    display(fitQualityEvidenceTable(qcWorkflowAnalysis.fitQualityEvidence, { maxRows: 8 }));
-    display(tooltipTable(
-      warningRows(qcWorkflowAnalysis.warnings),
-      [
-        { key: "code", label: "Warning code" },
-        { key: "message", label: "Message" },
-        { key: "resolution", label: "Resolution" },
-      ],
-      { maxRows: 8 }
-    ));
-    display(table(
-      publicationFigureRows(qcWorkflowAnalysis.publicationFigures),
-      [
-        { key: "id", label: "Figure id" },
-        { key: "title", label: "Figure title" },
-        { key: "renderer", label: "Renderer" },
-        { key: "dataFields", label: "Required fields" },
-      ],
-      { maxRows: 8 }
-    ));
-    display(downloadMany([
-      {
-        filename: "known_signature_qc_spectra.tsv",
-        text: spectraMatrixToTsv(qcGroupedSpectra, qcContexts),
-        label: "Download spectra TSV",
-      },
-      {
-        filename: "known_signature_qc_exposures.csv",
-        text: rowsToCsv(qcExposureRows),
-        label: "Download signature contributions CSV",
-      },
-      {
-        filename: "known_signature_qc_report.json",
-        type: "json",
-        value: {
-          dataSourceStatus: qcDataSourceStatus,
-          validation: qcWorkflowAnalysis.validation,
-          qc: qcWorkflowAnalysis.qc,
-          warnings: qcWorkflowAnalysis.warnings,
-          recommendedActions: qcWorkflowAnalysis.recommendedActions,
-          publicationFigures: qcWorkflowAnalysis.publicationFigures,
-          fitQualityEvidence: qcWorkflowAnalysis.fitQualityEvidence,
-          report: qcWorkflowAnalysis.report,
-        },
-        label: "Download report JSON",
-      },
-    ]));
-  </script>
 </notebook>

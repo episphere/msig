@@ -1,8 +1,8 @@
 # mSigSDK Observable Kit notebooks
 
-Focused Observable Kit notebooks for learning, testing, and adapting mSigSDK workflows without loading every example into one runtime. Start with the end-to-end workflow to understand the complete arc, then move to the notebook whose unique goal matches the next decision. The examples use count-scale SBS96 matrices, cached fallback fixtures, and public-resource loaders so the same notebooks can run on GitHub Pages, a local checkout, or an offline browser session.
+Focused Observable Kit workflows for testing and adapting mSigSDK analyses without loading every example into one runtime. Start with the end-to-end workflow to understand the complete arc, then move to the page whose unique goal matches the next decision. The examples load real count-scale SBS96 matrices, COSMIC signature catalogs, public mSigPortal resources, and TCGA/GDC MAF rows where those sources are part of the workflow.
 
-The notebooks expose the structured outputs that make an analysis reviewable: input checks, fit-quality evidence, cautions, suggested follow-up, portable table exports, figure descriptions, reports, and run records. New examples should enter through the primary `mSigSDK.workflows` surface before expanding into `mSigSDK.pipelines`, `mSigSDK.quickstart`, or advanced namespace-specific calls.
+The workflows expose the structured outputs that make an analysis reviewable: input checks, fit-quality evidence, cautions, suggested follow-up, portable table exports, provenance, reports, or run records as appropriate for the workflow's goal. New examples should enter through the primary `mSigSDK.workflows` surface before expanding into `mSigSDK.pipelines`, `mSigSDK.quickstart`, or advanced namespace-specific calls.
 
 Each notebook should read as a stepwise researcher workflow. Narrative cells should explain the decision being made, the output that answers it, the common failure mode, and the next step in the analysis. Tables and plots should not appear without interpretation guidance. A new notebook should add a distinct goal; otherwise it should be folded into an existing notebook.
 
@@ -10,20 +10,20 @@ Each notebook should read as a stepwise researcher workflow. Narrative cells sho
 
 ### Orientation
 
-- `msig-sdk-notebooks.onb.html`: curriculum map and uniqueness contract for the notebook set.
-- `msig-sdk-end-to-end-workflow.onb.html`: complete fit-review-export arc for first-time readers.
-- `msig-sdk-public-cohort-exploration.onb.html`: public mSigPortal and TCGA/GDC resource discovery, cohort loading, and first-pass public-cohort visualization.
+- `msig-sdk-notebooks.onb.html`: workflow map and uniqueness contract for the workflow set.
+- `msig-sdk-end-to-end-workflow.onb.html`: complete fit-review-export arc.
+- `msig-sdk-public-cohort-exploration.onb.html`: mSigPortal and TCGA/GDC public dataset discovery, cohort loading, and first-pass public-cohort visualization.
 
 ### Input and resource setup
 
 - `msig-sdk-resource-portability.onb.html`: SDK object shape, source metadata, file round trips, and handoff packages.
-- `msig-sdk-maf-fit-report.onb.html`: MAF field mapping, grouping, context provenance, count reconciliation, and converted-spectra handoff.
+- `msig-sdk-maf-fit-report.onb.html`: sorting raw variant rows into a checked 96-bin mutation pattern before fitting.
 
 ### Core analysis
 
 - `msig-sdk-qc-walkthrough.onb.html`: known-signature QC objects: burden, reconstruction, residuals, warnings, and review steps.
 - `msig-sdk-cohort-panel-workflow.onb.html`: cohort metadata, group interpretation, and restricted-assay limits in one applied workflow.
-- `msig-sdk-panel-evidence-tiers.onb.html`: standalone panel/WES support tiers and review reasons.
+- `msig-sdk-panel-evidence-tiers.onb.html`: panel/WES support tiers, assay-coverage visuals, and review reasons.
 - `msig-sdk-nmf-extraction.onb.html`: discovery extraction, rank diagnostics, learned profiles, sample contributions, and production run files.
 
 ### Reliability, reporting, and interoperability
@@ -66,4 +66,4 @@ Add new notebooks as `*.onb.html` files in this folder, then run:
 npm run notebooks:manifest
 ```
 
-The generated `notebooks.json` manifest feeds both the website card grid and the notebook runner menu. `npm run serve:observable` regenerates the manifest before starting the local server.
+The generated `notebooks.json` manifest feeds both the website card grid and the workflow runner menu. `npm run serve:observable` regenerates the manifest before starting the local server.

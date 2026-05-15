@@ -16,22 +16,22 @@ const workflowGroups = {
 
 const overrides = {
   "msig-sdk-notebooks.onb.html": {
-    title: "Notebook index",
-    summary: "Start here for the SDK workflow map.",
+    title: "Workflow guide",
+    summary: "Choose the workflow that matches the next analysis question.",
     image: "images/mSigPortal.png",
     workflowGroup: "orientation",
     order: 0,
   },
   "msig-sdk-end-to-end-workflow.onb.html": {
     title: "End-to-end workflow",
-    summary: "Learn the complete fit-review-export arc once, with plain-language guidance about what makes a result reportable.",
+    summary: "Run the complete fit-review-export arc and preserve the evidence that makes a result reportable.",
     image: "images/datasetSummary.png",
     workflowGroup: "orientation",
     order: 4,
   },
   "msig-sdk-public-cohort-exploration.onb.html": {
-    title: "Public API and TCGA cohort explorer",
-    summary: "Discover mSigPortal public APIs, inspect TCGA/GDC files, load cohorts, and visualize public spectra.",
+    title: "Public cohort explorer",
+    summary: "Explore mSigPortal public spectra and TCGA/GDC MAF-derived datasets, load them into one SDK shape, visualize cohorts, and export inputs.",
     image: "images/CosineSimilarityHeatmap.png",
     workflowGroup: "orientation",
     order: 8,
@@ -51,8 +51,8 @@ const overrides = {
     order: 20,
   },
   "msig-sdk-maf-fit-report.onb.html": {
-    title: "MAF to report",
-    summary: "Audit MAF field mapping, grouping, context provenance, and count reconciliation before handing spectra to fitting.",
+    title: "Variant rows to mutation patterns",
+    summary: "Turn variant rows into a checked 96-bin mutation pattern by sorting DNA changes, checking counts, and saving the proof trail.",
     image: "images/Mutational%20Burden.png",
     workflowGroup: "input",
     order: 15,
@@ -73,14 +73,14 @@ const overrides = {
   },
   "msig-sdk-nmf-extraction.onb.html": {
     title: "Discovery extraction (NMF)",
-    summary: "Learn candidate signatures from spectra, inspect rank checks, and prepare production extraction files.",
+    summary: "Extract candidate signatures from spectra, inspect rank checks, and prepare production extraction files.",
     image: "images/signatureComparison.png",
     workflowGroup: "core",
     order: 40,
   },
   "msig-sdk-panel-evidence-tiers.onb.html": {
     title: "Panel/WES evidence review",
-    summary: "Define restricted-assay support tiers and explain why a signature is supported, limited, or not assessable.",
+    summary: "Review panel/WES signature calls with assay coverage, mutation-count, and support-tier evidence.",
     image: "images/datasetSummary.png",
     workflowGroup: "core",
     order: 35,
@@ -157,7 +157,7 @@ async function buildNotebookManifest() {
       summary:
         override.summary ||
         extractSummary(html) ||
-        "Runnable mSigSDK notebook.",
+        "Runnable mSigSDK workflow.",
       image: override.image || "images/mSigPortal.png",
       workflowGroup: override.workflowGroup || "advanced",
       workflowGroupLabel:

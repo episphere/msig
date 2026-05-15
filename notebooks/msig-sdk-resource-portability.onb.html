@@ -5,30 +5,21 @@
   <script type="text/markdown">
     # Resource portability
 
-    This notebook answers one practical question: can a public mutational-signature resource be turned into stable SDK objects, checked, exported, reloaded, and handed to another workflow without changing what the data mean?
+    A public mutational-signature resource should become stable SDK objects that can be checked, exported, reloaded, and handed to another workflow without changing what the data mean.
 
-    The goal is not to teach every mSigPortal, TCGA/GDC, fitting, or reporting API. The goal is a short audit trail: source resource -> SDK table shape -> round-trip check -> downloadable handoff package.
-
-    **Unique role:** prove that resource-derived spectra and signatures survive format changes and can be reused outside the notebook.
-
-    **Leave to focused notebooks:** biological interpretation, uncertainty review, package concordance, and variant-row conversion auditing.
-
-    **After running it you should know:** which object shape or file format to hand to the next workflow without losing source metadata.
+    The audit trail is short: source resource -> SDK table shape -> round-trip check -> downloadable handoff package.
   </script>
 
   <script type="module" pinned id="setup">
     const portabilitySdkUrl = new URL("../main.js?v=2026-05-15-resource-portability-redesign", location.href).href;
     const { mSigSDK } = await import(portabilitySdkUrl);
     const {
-      demoSignatures,
-      demoSpectra,
-      gdcResourceFallback,
+      loadPublicSbs96Dataset,
     } = await import("./msig-notebook-fixtures.js");
 
     const {
       burdenSampleRows,
       details,
-      exposureRows,
       formatNumber,
       metrics,
       note,
@@ -213,7 +204,7 @@
       [
         {
           checkpoint: "Source",
-          passCondition: "Public resource IDs, query settings, and fallback status are visible.",
+          passCondition: "Public resource IDs, query settings, and live source status are visible.",
           whyItMatters: "A collaborator can tell which resource was used.",
         },
         {
@@ -238,8 +229,8 @@
         { key: "whyItMatters", label: "Why it matters" },
       ],
       {
-        title: "Notebook success criteria",
-        caption: "These are the checks this notebook is built around.",
+        title: "Portability success criteria",
+        caption: "These checks define a portable resource handoff.",
       }
     ));
   </script>
@@ -247,43 +238,30 @@
   <script type="text/markdown">
     ## 1. Snapshot the public resources
 
-    Before fetching full matrices, record the resource index. This is the reproducibility checkpoint: what was discoverable, which query parameters were used, and whether the notebook used live APIs or embedded fallback data.
+    Before fetching full matrices, record the resource index. This is the reproducibility checkpoint: what was discoverable, which query parameters were used, and which live public APIs responded.
   </script>
 
   <script type="module" pinned id="resource-snapshot">
-    let portabilityDiscoveryStatus = "live public APIs";
-    let portabilitySpectrumOptions;
-    let portabilitySignatureSummary;
-    let portabilityTcgaGeneProjects;
-    let portabilityTcgaMafIndex;
-
-    try {
-      [
-        portabilitySpectrumOptions,
-        portabilitySignatureSummary,
-        portabilityTcgaGeneProjects,
-        portabilityTcgaMafIndex,
-      ] = await Promise.all([
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumOptions(
-          portabilityStudy,
-          portabilityGenomeDataType,
-          portabilityCancerType,
-          10
-        ),
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesSummary(
-          10,
-          portabilitySummarySignatureSet
-        ),
-        mSigSDK.TCGA.getProjectsByGene(portabilityGeneIds),
-        mSigSDK.TCGA.getMafInformationFromProjects([portabilityTcgaProject]),
-      ]);
-    } catch (error) {
-      portabilityDiscoveryStatus = `embedded fallback: ${error.message}`;
-      portabilitySpectrumOptions = gdcResourceFallback.spectrumOptions;
-      portabilitySignatureSummary = gdcResourceFallback.signatureSummary;
-      portabilityTcgaGeneProjects = gdcResourceFallback.tcgaGeneProjects;
-      portabilityTcgaMafIndex = gdcResourceFallback.tcgaMafIndex;
-    }
+    const portabilityDiscoveryStatus = "live public APIs";
+    let [
+      portabilitySpectrumOptions,
+      portabilitySignatureSummary,
+      portabilityTcgaGeneProjects,
+      portabilityTcgaMafIndex,
+    ] = await Promise.all([
+      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumOptions(
+        portabilityStudy,
+        portabilityGenomeDataType,
+        portabilityCancerType,
+        10
+      ),
+      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesSummary(
+        10,
+        portabilitySummarySignatureSet
+      ),
+      mSigSDK.TCGA.getProjectsByGene(portabilityGeneIds),
+      mSigSDK.TCGA.getMafInformationFromProjects([portabilityTcgaProject]),
+    ]);
 
     portabilitySpectrumOptions = asArray(portabilitySpectrumOptions);
     portabilitySignatureSummary = asArray(portabilitySignatureSummary);
@@ -357,7 +335,7 @@
       ],
       {
         title: "Resource manifest",
-        caption: "The notebook records resource identity before converting any data.",
+        caption: "Resource identity is recorded before converting any data.",
       }
     ));
     display(table(
@@ -399,59 +377,23 @@
       "SBS40",
     ];
 
-    let portabilityGroupedSpectra;
-    let portabilityReferenceSignatures;
-    let portabilitySelectedSignatureNames;
-
-    try {
-      const [rawSpectrumRows, rawSignatureRows] = await Promise.all([
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
-          portabilityStudy,
-          portabilitySampleNames,
-          portabilityGenomeDataType,
-          portabilityCancerType,
-          portabilityMutationType,
-          portabilityMatrixSize
-        ),
-        mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
-          portabilityGenomeDataType,
-          portabilitySignatureSetName,
-          portabilityMutationType,
-          portabilityMatrixSize,
-          10000
-        ),
-      ]);
-      const spectrumRows = asArray(rawSpectrumRows).flat();
-      const signatureRows = asArray(rawSignatureRows).flat();
-      if (!spectrumRows.length || !signatureRows.length) {
-        throw new Error("public APIs returned empty matrix rows");
-      }
-      portabilityGroupedSpectra =
-        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(spectrumRows);
-      const allReferenceSignatures =
-        mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-          signatureRows,
-          "signatureName"
-        );
-      portabilitySelectedSignatureNames = portabilityPreferredSignatureNames.filter(
-        (signature) => allReferenceSignatures[signature]
-      );
-      if (!portabilitySelectedSignatureNames.length) {
-        throw new Error("preferred SBS signatures were not present in the public catalog");
-      }
-      portabilityReferenceSignatures = Object.fromEntries(
-        portabilitySelectedSignatureNames.map((signature) => [
-          signature,
-          allReferenceSignatures[signature],
-        ])
-      );
-    } catch (error) {
-      portabilityMatrixStatus = `embedded fallback: ${error.message}`;
-      portabilityGroupedSpectra = demoSpectra();
-      portabilityReferenceSignatures = demoSignatures();
-      portabilitySampleNames = Object.keys(portabilityGroupedSpectra);
-      portabilitySelectedSignatureNames = Object.keys(portabilityReferenceSignatures);
-    }
+    const portabilityDataset = await loadPublicSbs96Dataset(mSigSDK, {
+      study: portabilityStudy,
+      genomeDataType: portabilityGenomeDataType,
+      cancerType: portabilityCancerType,
+      mutationType: portabilityMutationType,
+      matrixSize: portabilityMatrixSize,
+      signatureSetName: portabilitySignatureSetName,
+      sampleNames: portabilitySampleNames,
+      sampleLimit: portabilitySampleNames.length,
+      signatureNames: portabilityPreferredSignatureNames,
+      allowAlternate: false,
+    });
+    portabilityMatrixStatus = portabilityDataset.status;
+    const portabilityGroupedSpectra = portabilityDataset.spectra;
+    const portabilityReferenceSignatures = portabilityDataset.signatures;
+    portabilitySampleNames = portabilityDataset.sampleNames;
+    const portabilitySelectedSignatureNames = portabilityDataset.signatureNames;
 
     const portabilitySpectraValidation = mSigSDK.validation.validateSpectra(
       portabilityGroupedSpectra,
@@ -524,7 +466,7 @@
       }
     ));
     display(note(
-      "This is the notebook's main claim: resource-specific rows have been reduced to two stable table contracts."
+      "Resource-specific rows have been reduced to two stable table contracts."
     ));
   </script>
 
@@ -622,7 +564,7 @@
   <script type="text/markdown">
     ## 4. Build the handoff package
 
-    A portable run needs more than TSV text. The bundle should include the exported tables, tool-specific file manifests, a provenance record, and a minimal downstream smoke test showing that the reloaded objects still fit.
+    A portable run needs more than TSV text. The bundle should include the exported tables, tool-specific file manifests, a provenance record, and a minimal downstream smoke test showing that the reloaded objects remain analysis-ready.
   </script>
 
   <script type="module" pinned id="handoff-package">
@@ -653,7 +595,7 @@
         }
       );
     const portabilityProvenance = mSigSDK.provenance.createProvenance({
-      analysis: "mSigSDK resource portability notebook",
+      analysis: "mSigSDK resource portability workflow",
       parameters: portabilitySourceManifest.parameters,
       sourceUrls: portabilityEndpointUrls,
       dataSources: [
@@ -691,19 +633,6 @@
       { label: "Download files", value: 4 },
       { label: "Run record", value: portabilityProvenance.generatedAt ? "Created" : "Missing" },
     ]));
-    display(table(
-      exposureRows(portabilityExposures, { minExposure: 0, topN: 10 }),
-      [
-        { key: "sample", label: "Sample" },
-        { key: "signature", label: "Signature" },
-        { key: "exposure", label: "Relative exposure" },
-      ],
-      {
-        maxRows: 10,
-        title: "Reloaded-data fit smoke test",
-        caption: "This is only a smoke test. The notebook's purpose is to prove the reloaded objects are analysis-ready.",
-      }
-    ));
     display(table(
       portabilityToolRows,
       [
@@ -772,7 +701,7 @@
     const portabilityTcgaStyleRows = mSigSDK.TCGA.convertTCGAProjectIntoJSON(
       portabilityTcgaSampleDescriptions,
       portabilityGroupedSpectra,
-      "schema-demo"
+      "schema-preview"
     ).flat();
     const portabilityTcgaStyleSpectra =
       mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
@@ -799,7 +728,7 @@ const tcgaSpectra =
     display(metrics([
       { label: "Indexed TCGA project", value: portabilityTcgaProject },
       { label: "MAF file IDs", value: portabilityTcgaMafFiles.length },
-      { label: "Schema-demo rows", value: portabilityTcgaStyleRows.length },
+      { label: "Schema preview rows", value: portabilityTcgaStyleRows.length },
       { label: "Reloaded mutations", value: formatNumber(portabilityTcgaStyleBurden.overall.totalMutations) },
     ]));
     display(table(
@@ -815,7 +744,7 @@ const tcgaSpectra =
       {
         maxRows: 6,
         title: "TCGA/GDC MAF index preview",
-        caption: "The index is recorded, but full MAF download is not run automatically in this browser notebook.",
+        caption: "The index is recorded, but full MAF download is not run automatically in this browser page.",
       }
     ));
     display(table(
