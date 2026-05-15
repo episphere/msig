@@ -48,11 +48,26 @@
   </script>
 
   <script type="text/markdown">
+    ## Interactive workspace
+
+    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+  </script>
+
+  <script type="module" pinned id="interactive-workspace">
+    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
+    renderInteractiveNotebook({ mode: "export-report", mSigSDK, display });
+  </script>
+
+  <script type="text/markdown">
     ## 1. Load a small dataset for reporting
 
     The reporting workflow starts from the same input shape as fitting: count spectra by sample and signatures by signature name. This cell uses a compact set of public PCAWG WGS Lung-AdenoCA spectra with both adequate and low mutation burdens, so the report demonstrates useful validation and QC fields.
 
     At this point, the researcher is not judging signatures yet. The question is whether the inputs, sample count, signature count, and source metadata are clear enough to make the rest of the report interpretable.
+  </script>
+
+  <script type="module" pinned id="interactive-step-1">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 1, phase: "data", title: "1. Load a small dataset for reporting", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -196,6 +211,10 @@
     If the row and column counts change after import, stop here. A report built on a non-round-trippable matrix will be difficult to reproduce or compare with external tools.
   </script>
 
+  <script type="module" pinned id="interactive-step-2">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 2, phase: "export", title: "2. Export and round trip a SigProfiler-style matrix", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="3">
     const repSigProfilerTsv = mSigSDK.io.exportSigProfilerMatrix(
       repGroupedSpectra,
@@ -219,6 +238,10 @@
     The workflow helper performs fitting, validation, QC object creation, provenance, and report assembly in one call. Use this when you want a consistent result bundle. Use the lower-level functions when you need finer control over one step.
 
     Read the workflow output as the standard project artifact: parameters, validation, warnings, fit evidence, report fields, and provenance together. The helper is useful when consistency matters more than hand-building every intermediate object.
+  </script>
+
+  <script type="module" pinned id="interactive-step-3">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 3, phase: "analysis", title: "3. Use the high-level workflow helper", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="4">
@@ -269,6 +292,10 @@
     Manual assembly is most useful when an application has already computed some pieces itself or needs to attach study-specific metadata. The responsibility is the same: do not export exposures without the QC and provenance fields that explain them.
   </script>
 
+  <script type="module" pinned id="interactive-step-4">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 4, phase: "analysis", title: "4. Assemble a report manually", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="5">
     const repProvenance = mSigSDK.provenance.createProvenance({
       analysis: "focused export report notebook",
@@ -315,6 +342,10 @@
     A reusable report should include input parameters, validation, QC, provenance, warnings or caveats, and the matrix export needed to rerun the analysis outside the notebook.
 
     Treat the final download list as a reproducibility checklist. If a collaborator received only these files, they should be able to identify the inputs, rerun the fit, inspect warnings, and understand how the report was generated.
+  </script>
+
+  <script type="module" pinned id="interactive-step-5">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "export-report", step: 5, phase: "export", title: "5. Check required report fields and save the bundle", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="6">

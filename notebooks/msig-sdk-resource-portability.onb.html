@@ -68,11 +68,26 @@
   </script>
 
   <script type="text/markdown">
+    ## Interactive workspace
+
+    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+  </script>
+
+  <script type="module" pinned id="interactive-workspace">
+    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
+    renderInteractiveNotebook({ mode: "resource-portability", mSigSDK, display });
+  </script>
+
+  <script type="text/markdown">
     ## 1. Discover public resources before fetching full data
 
     The SDK exposes discovery calls so a user can inspect available resources before downloading spectra or MAF-derived variants. This cell queries mSigPortal for spectrum and signature availability, then queries the GDC through the TCGA namespace for project and MAF-file availability.
 
     Discovery is the first reproducibility checkpoint. It records what resource exists and where it came from before a notebook silently depends on a remote dataset.
+  </script>
+
+  <script type="module" pinned id="interactive-step-1">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "resource-portability", step: 1, phase: "data", title: "1. Discover public resources before fetching full data", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -176,6 +191,10 @@
     mSigPortal returns long API rows. The SDK converts those rows into two reusable matrices: one keyed by sample and one keyed by signature. After that conversion, the source of the data no longer matters to validation, fitting, QC, export, or reporting.
 
     This is the handoff from public resource access to local analysis. Once the matrices are built, the same downstream workflow can be used for public, private, or simulated spectra.
+  </script>
+
+  <script type="module" pinned id="interactive-step-2">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "resource-portability", step: 2, phase: "data", title: "2. Turn public spectra and signatures into SDK matrices", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="3">
@@ -305,6 +324,10 @@
     The round trip should preserve sample names, contexts, and counts. If it does not, the analysis is not yet portable enough for a collaborator or external engine.
   </script>
 
+  <script type="module" pinned id="interactive-step-3">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "resource-portability", step: 3, phase: "export", title: "3. Export, reload, and document the same resource-derived objects", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="4">
     const portSigProfilerTsv = mSigSDK.io.exportSigProfilerMatrix(
       portGroupedSpectra,
@@ -396,6 +419,10 @@
     The full MAF download/conversion is intentionally not run automatically here because it can be slow in a browser session. The cell below shows the live GDC index and demonstrates the shared row schema using the already-loaded spectra.
 
     The important connection is conceptual: TCGA/GDC begins with variant files, mSigPortal begins with signature resources, and both can converge on the same SDK matrix and report objects.
+  </script>
+
+  <script type="module" pinned id="interactive-step-4">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "resource-portability", step: 4, phase: "analysis", title: "4. Connect TCGA/GDC resources to the same analysis path", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">

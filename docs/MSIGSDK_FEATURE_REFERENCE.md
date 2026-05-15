@@ -164,11 +164,11 @@ The resolved values are reported in `parameters`, `thresholds`, or `methodBasis.
 
 | Code | Meaning |
 |---|---|
-| `CATALOG_INCOMPLETE_SUSPECTED` | Residual evidence suggests the supplied catalog may not explain all signal. |
-| `EXTRACTION_NOT_RECOMMENDED` | De novo extraction is not supported by configured burden, sample count, or heterogeneity gates. |
-| `FIT_UNSTABLE` | Bootstrap or fit-evidence warnings indicate unstable exposure interpretation. |
-| `FLAT_SIGNATURE_RISK` | A signature has broad/flat contribution structure that can increase confusability. |
-| `HETEROGENEOUS_COHORT` | Cohort structure suggests subgroup review before pooled interpretation. |
+| `CATALOG_INCOMPLETE_SUSPECTED` | Residual/reconstruction criteria raised a catalog review cue; inspect before assuming the supplied catalog is adequate. |
+| `EXTRACTION_NOT_RECOMMENDED` | Configured burden, sample count, or heterogeneity gates do not provide enough review support for de novo extraction. |
+| `FIT_UNSTABLE` | Bootstrap or fit-evidence criteria indicate that exposure interpretation needs uncertainty context. |
+| `FLAT_SIGNATURE_RISK` | A fitted signature has broad/flat catalog evidence that can increase exchangeability with related signatures. |
+| `HETEROGENEOUS_COHORT` | Cohort structure raises a subgroup-review cue before pooled interpretation. |
 | `HIGH_RESIDUAL_STRUCTURE` | Residual structure warrants catalog-sufficiency review. |
 | `INCOMPLETE_CONTEXTS` | Input spectra are incomplete relative to the expected context basis. |
 | `INSUFFICIENT_SIGNAL` | Mutation burden or information content is too low for routine interpretation. |
@@ -177,8 +177,8 @@ The resolved values are reported in `parameters`, `thresholds`, or `methodBasis.
 | `METADATA_MISSING` | Group-comparison metadata are missing or unusable. |
 | `PANEL_LIMITED` | Restricted assay information is insufficient for unrestricted interpretation. |
 | `PANEL_SIGNATURE_NOT_ASSESSABLE` | A signature/sample combination is not assessable under the supplied panel/WES evidence. |
-| `REGIONAL_PROCESS_SUSPECTED` | Localized mutagenesis screening detected focal clustering. |
-| `SIGNATURE_AMBIGUITY` | Active or catalog signatures are hard to distinguish from neighbors. |
+| `REGIONAL_PROCESS_SUSPECTED` | Localized mutagenesis screening raised a focal-clustering review cue. |
+| `SIGNATURE_AMBIGUITY` | Active fitted signatures met catalog-relative identifiability review criteria, such as similar neighbors, broad/flat profiles, or crowded catalog regions. |
 | `SUBGROUP_EXTRACTION_SKIPPED` | Subgroup extraction was skipped by readiness gates. |
 | `THRESHOLD_DEPENDENT` | Fitted interpretation depends on exposure-threshold settings. |
 
@@ -188,6 +188,7 @@ The validated manuscript advisor surface consists of:
 
 - `recommendAnalysisStrategy`.
 - `computeSignatureAmbiguity`.
+- `computeSignatureIdentifiability` (terminology-forward alias of `computeSignatureAmbiguity`).
 - `detectOutOfReferenceSignal`.
 - `computeFitQualityEvidence`.
 
@@ -527,11 +528,11 @@ Methodological support:
 
 | Feature | Input | Output semantics |
 |---|---|---|
-| `plotMutationBurdenSummary(divID, burdenSummary)` | Output from `summarizeMutationBurden`. | Horizontal bar chart of total mutations by sample, low-burden threshold marker, low/empty status colors, and badges for threshold, flagged samples, and empty spectra. Returns `{ data, threshold }`. |
+| `plotMutationBurdenSummary(divID, burdenSummary)` | Output from `summarizeMutationBurden`. | Horizontal bar chart of total mutations by sample, low-burden threshold marker, low/empty status colors, and badges for threshold, low-burden review cues, and empty spectra. Returns `{ data, threshold }`. |
 | `plotReconstructionError(divID, reconstructionError, { cosineReferenceLines = [] })` | Output from `calculateReconstructionError`. | Paired sample-level view of cosine similarity and RMSE, sorted by cosine. Returns rendered rows and reference-line metadata. |
 | `plotFitQualityEvidenceDashboard(divID, fitQualityEvidenceResult)` | Output from `advisor.computeFitQualityEvidence`. | Sample-level dashboard with reporting mode, review-flag count, and evidence components for burden, reconstruction, residual, bootstrap, threshold, ambiguity, and catalog. Returns `{ data, components }`. |
 | `plotCohortGroupComparison(divID, comparisonResult)` | Output from `advisor.compareSignatureExposures`. | Bar chart of comparison-group minus reference-group mean exposure differences for top signals, with effect size, p value, and q value in tooltips. |
-| `plotPanelEvidenceMatrix(divID, panelResultOrEvidenceCalls)` | Output from `pipelines.runPanelWorkflow` or an `evidenceCalls` object. | Sample-by-signature matrix colored by panel/WES tier: higher review support, limited review support, not detected within review settings, or not assessable. |
+| `plotPanelEvidenceMatrix(divID, panelResultOrEvidenceCalls)` | Output from `pipelines.runPanelWorkflow` or an `evidenceCalls` object. | Sample-by-signature matrix colored by panel/WES tier: higher review tier, limited review tier, below review threshold, or not assessable. |
 | `plotFitResiduals(divID, residualResult, sampleName = null)` | Output from `calculateFitResiduals`. | SBS96 observed-versus-reconstructed profile comparison for a selected sample. |
 | `plotBootstrapConfidenceIntervals(divID, bootstrapResult)` | Output from `bootstrapSignatureFit`. | Per-signature bootstrap exposure distributions, confidence intervals, means, and selection frequencies. |
 | `plotThresholdSensitivity(divID, thresholdResult)` | Output from `runThresholdSensitivity`. | Threshold stability atlas showing percent change from baseline for cosine, RMSE, and active signatures, plus signed metric-change heatmap and mean absolute drift panel. |
@@ -582,7 +583,7 @@ Methodological support:
 - Cohort heterogeneity and extraction readiness: Alexandrov 2020, Degasperi 2020, Koh 2021.
 - Thresholds are configurable defaults; exact cutoffs are operational review settings and should be anchored to assay-specific validation.
 
-### `computeSignatureAmbiguity(signatures, options)`
+### `computeSignatureAmbiguity(signatures, options)` / `computeSignatureIdentifiability(signatures, options)`
 
 Validation status: validated core advisor function for the manuscript.
 
@@ -590,12 +591,12 @@ Inputs:
 
 - Signature matrix.
 - `contexts = null`.
-- `pairReportThreshold = 0.9`: pairwise cosine threshold for reporting confounding pairs.
-- `moderateNearestCosine = 0.9`.
-- `highNearestCosine = 0.95`.
-- `moderateEntropy = 0.85`.
-- `highEntropy = 0.92`.
-- `flatSignatureWarningEntropy = 0.9`.
+- `pairReportThreshold = 0.9`: pairwise cosine threshold for reporting confounding pairs. This is a reporting aid, not the primary class boundary.
+- `topNeighborCount = 5`.
+- `reviewPercentile = 0.75`.
+- `strongReviewPercentile = 0.9`.
+- `nearBoundaryWidth = 0.03`.
+- Neighbor/flatness evidence settings: `moderateNearestCosine`, `highNearestCosine`, `moderateEntropy`, `highEntropy`, and `flatSignatureWarningEntropy`.
 - `catalogVersion` or `signatureSetName` for provenance.
 - Options may be supplied flatly or under `ambiguity` or `signatureAmbiguity`.
 
@@ -604,12 +605,14 @@ Outputs:
 - `schemaVersion`.
 - `workflowRole = "signature_ambiguity"`.
 - `scopeStatement`.
-- `methodBasis`: pairwise cosine, entropy/flatness, confounding-neighbor logic, references, catalog provenance fields where supplied.
+- `methodBasis`: continuous catalog-relative identifiability scoring, pairwise cosine reporting, entropy/flatness, confounding-neighbor logic, references, catalog provenance fields where supplied.
 - `contexts`.
 - `catalogVersion` when supplied.
-- `signatures[]`: signature name, nearest neighbor, nearest cosine similarity, ambiguity class, flatness score, entropy, normalized entropy, confounding neighbor count, and neighbors above configured thresholds.
+- `signatures[]`: signature name, nearest neighbor, nearest cosine similarity, top neighbors, flatness score, entropy, continuous `confusabilityScore`, empirical `confusabilityPercentile`, component scores/percentiles, `evidenceTags`, `reviewRecommended`, `strongReviewRecommended`, and neighbors above configured thresholds.
 - `pairs[]`: pairwise cosine similarity records.
-- `catalogSummary`: signature count, high-ambiguity count, moderate-ambiguity count, and reported pair count.
+- `catalogSummary`: signature count, review-recommended count, strong-review count, mean confusability score, and reported pair count.
+
+Interpretation boundary: use `confusabilityScore`, `confusabilityPercentile`, and `evidenceTags`; do not convert small changes around a review percentile into hard biological classes.
 - `warnings`: signature ambiguity or flat-signature warnings.
 - `recommendedActions`.
 
@@ -651,7 +654,7 @@ Outputs:
 - `thresholds`: unexplained, weak unexplained, reconstruction cosine, structured residual cosine, and minimum burden settings.
 - `samples[]`: sample name, burden class, unexplained fraction, residual-structure summary, candidate residual matches, status, warnings, caveats, and recommended action.
 - `overallStatus`.
-- `summary`: sample count, suspected count, and possible count.
+- `summary`: sample count, catalog-review-cue count, and possible-cue count.
 - `warnings`.
 - `recommendedActions`.
 
@@ -664,7 +667,7 @@ Status labels:
 
 Interpretation boundary:
 
-- Residual matching is hypothesis-generating. The recommended action is to inspect residual spectra, consider a broader catalog, and consider de novo extraction in an adequately powered cohort.
+- Residual matching is hypothesis-generating. The recommended action is to inspect residual spectra and consider whether a broader catalog or additional exploratory analysis is warranted in an adequately powered cohort.
 
 ### `computeFitQualityEvidence(input, options)`
 
@@ -710,14 +713,14 @@ Reporting modes:
 
 | Mode | Rule |
 |---|---|
-| `standard_qc_passed` | No configured concern flags are active. |
-| `report_with_caveats` | Bootstrap warnings, threshold-sensitivity warnings, signature ambiguity, or flat-signature risk are active. |
-| `restricted_interpretation` | Low burden, suspected catalog incompleteness, or high residual structure is active. |
+| `standard_qc_passed` | No configured fit-quality review cues are active. |
+| `report_with_caveats` | Bootstrap warnings, threshold-sensitivity warnings, identifiability review cues, or flat-profile review cues are active. |
+| `restricted_interpretation` | Low burden, catalog review cues, or structured-residual review cues are active. |
 | `not_assessable` | Insufficient signal or not-assessable panel evidence is active. |
 
 Interpretation boundary:
 
-- The function intentionally avoids a weighted composite score. It reports explicit warning flags and a rule-based tier, because burden, reconstruction, residuals, bootstrap behavior, ambiguity, and catalog sufficiency are not independent calibrated confidence components.
+- The function intentionally avoids a weighted composite score. It reports explicit review cues and a rule-based tier, because burden, reconstruction, residuals, bootstrap behavior, identifiability, and catalog sufficiency are not independent calibrated confidence components.
 
 ### `compareSignatureExposures(exposures, metadata, options)`
 
@@ -791,7 +794,10 @@ Outputs:
 - `opportunityCoverage`.
 - `signatures[]`:
   - `signatureName`.
-  - `ambiguityClass`.
+  - `confusabilityScore`.
+  - `confusabilityPercentile`.
+  - `evidenceTags`.
+  - `reviewRecommended`.
   - `flatnessScore`.
   - `nearestNeighbor`.
   - `nearestCosineSimilarity`.
@@ -1011,7 +1017,7 @@ Outputs:
 - `schemaVersion`.
 - `workflow = "panel_workflow"`.
 - `workflowRole = "panel_wes_review_pipeline"`.
-- `scopeStatement`: not-assessable and not-detected tiers must not be interpreted as absence of a mutational process.
+- `scopeStatement`: not-assessable and below-threshold tiers must not be interpreted as absence of a mutational process.
 - `methodBasis`:
   - panel evidence.
   - opportunity normalization description.
@@ -1057,7 +1063,7 @@ Tier rules:
 | Tier | Rule |
 |---|---|
 | `not_assessable` | Total mutations are below `minAssessableMutations`, upstream fit quality is not assessable, or supplied callable opportunities contain no positive-opportunity contexts for the signature. |
-| `higher_review_support` | Exposure is at least `higherSupportExposureThreshold`, the call is assessable, and fit reporting mode is `standard_qc_passed` or `report_with_caveats`. |
+| `higher_review_support` | Exposure is at least `higherSupportExposureThreshold`, the call is assessable, and fit reporting mode is `standard_qc_passed` or `report_with_caveats`; this is a review tier, not definitive detection. |
 | `limited_review_support` | Call is assessable and exposure is at least `limitedSupportExposureThreshold`, but higher-review criteria are not met. |
 | `not_detected_within_review_settings` | Call is assessable and exposure is below `limitedSupportExposureThreshold`. This is not proof of biological absence. |
 
@@ -1153,7 +1159,7 @@ Outputs:
 - `genomeBackgroundStats`.
 - `chromosomeStats`.
 - `rainfall`: variants with previous distance and log10 previous distance.
-- `foci`: detected focal clusters.
+- `foci`: focal clusters that met the configured screening criteria.
 - `nullModelSpecification`.
 - `clusterSignificanceThreshold`.
 - `focalSpectra = null`.
@@ -1355,7 +1361,12 @@ These helpers are intended for browser notebooks, reports, and teaching pages. D
 | `formatCell(value)` | Primitive, array, or object. | Compact display string. |
 | `compactSummary(value)` | Object or array. | Short text summary. |
 | `metrics(items)` | Items with `label`, `value`, and optional `note`. | DOM metric-card grid. |
-| `table(rows, columns = null, options = {})` | Row objects, optional column descriptors, `maxRows`. | DOM table wrapper. |
+| `table(rows, columns = null, options = {})` | Row objects, optional column descriptors, `maxRows`; optionally `tooltipTerms`. | DOM table wrapper. |
+| `tooltipTable(rows, columns = null, options = {})` | Row objects, optional column descriptors, `maxRows`, and optional custom `tooltipTerms`. | DOM table wrapper with hover/focus definitions for SDK reporting modes, warning/review cues, panel tiers, and catalog statuses. |
+| `fitQualityEvidenceRows(fitQualityEvidence)` | Output from `advisor.computeFitQualityEvidence`. | Compact reporting rows with reporting mode, review cues, burden, reconstruction cosine, active identifiability evidence tags, max active confusability score, and catalog status. |
+| `fitQualityEvidenceTable(fitQualityEvidence, options = {})` | Output from `advisor.computeFitQualityEvidence`; optional `maxRows`, `includeActiveSignatures`, `columns`, and `tooltipTerms`. | Reproducible tooltip reporting table for fit-quality evidence. |
+| `panelEvidenceRows(panelWorkflowResultOrCalls)` | Output from `pipelines.runPanelWorkflow` or an `evidenceCalls` object. | Compact panel/WES evidence-call rows. |
+| `panelEvidenceTable(panelWorkflowResultOrCalls, options = {})` | Output from `pipelines.runPanelWorkflow` or an `evidenceCalls` object; optional `maxRows`, `columns`, and `tooltipTerms`. | Reproducible tooltip reporting table for panel/WES evidence tiers. |
 | `note(text, tone = "info")` | Text and tone. | DOM note paragraph. |
 | `details(label, value, { open = false } = {})` | Label, value, and open flag. | DOM details/summary inspector. |
 | `burdenSampleRows(burden, sampleNames = null)` | Burden summary and optional sample allow-list. | Rows with sample, mutations, non-zero contexts, and low-burden flag. |

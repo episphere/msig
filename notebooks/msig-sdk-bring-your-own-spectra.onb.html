@@ -37,11 +37,26 @@
   </script>
 
   <script type="text/markdown">
+    ## Interactive workspace
+
+    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+  </script>
+
+  <script type="module" pinned id="interactive-workspace">
+    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
+    renderInteractiveNotebook({ mode: "bring-your-own-spectra", mSigSDK, display });
+  </script>
+
+  <script type="text/markdown">
     ## Step 1. Replace the example matrices with project inputs
 
     The first decision is whether the incoming matrix is already in the shape mSigSDK expects. `localSpectra` should be keyed by sample name, with one SBS96 count for each context. `localSignatures` should be keyed by signature name, with one proportion for each matching context. The metadata table is optional, but it preserves cohort labels, assay labels, or clinical groups for later review.
 
     Before changing any analysis parameters, replace only the input objects and confirm that the template table still describes the project accurately. A confusing result at this stage usually means the matrix is transposed, normalized when counts are expected, or missing contexts.
+  </script>
+
+  <script type="module" pinned id="interactive-step-1">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "bring-your-own-spectra", step: 1, phase: "data", title: "Step 1. Replace the example matrices with project inputs", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -71,6 +86,10 @@
     Validation answers whether the spectra and signatures can be compared at all. The workflow checks context coverage, mutation burden, reconstruction quality, warnings, recommended actions, and report fields in one object. Low-burden samples remain visible because silent filtering can hide exactly the samples that need caveats.
 
     Read the reconstruction table before the exposure table. A large exposure to a named signature is not useful if the fitted spectrum does not reconstruct the observed spectrum well.
+  </script>
+
+  <script type="module" pinned id="interactive-step-2">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "bring-your-own-spectra", step: 2, phase: "review", title: "Step 2. Validate the matrix before interpreting exposures", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="3">
@@ -125,6 +144,10 @@
     If this section contains warnings, adapt the workflow by changing the catalog, reviewing low-burden samples separately, or adding uncertainty analysis before reporting signature activity.
   </script>
 
+  <script type="module" pinned id="interactive-step-3">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "bring-your-own-spectra", step: 3, phase: "review", title: "Step 3. Interpret warnings and recommended actions", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="4">
     display(table(
       warningRows(localAnalysis.warnings),
@@ -157,6 +180,10 @@
     ## Step 4. Export a reproducible local-analysis bundle
 
     The reusable output is not just an exposure table. A complete bundle includes the input spectra, fitted exposures, QC and report objects, provenance, and the fitting parameters. Saving these files makes the analysis portable across a local script, a manuscript supplement, or another review application.
+  </script>
+
+  <script type="module" pinned id="interactive-step-4">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "bring-your-own-spectra", step: 4, phase: "export", title: "Step 4. Export a reproducible local-analysis bundle", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">

@@ -72,21 +72,21 @@ const WARNING_CODES = {
 
 const WARNING_RESOLUTIONS = {
   [WARNING_CODES.CATALOG_INCOMPLETE_SUSPECTED]:
-    "Inspect residual spectra, expand the reference catalog, and consider de novo extraction in an adequately powered cohort.",
+    "Inspect residual spectra and consider whether a broader or better-matched reference catalog is warranted before making detailed exposure claims.",
   [WARNING_CODES.EXTRACTION_NOT_RECOMMENDED]:
-    "Use known-signature refitting or collect a larger, higher-burden cohort before de novo extraction.",
+    "Prefer known-signature refitting or collect a larger, higher-burden cohort before treating de novo extraction as interpretable.",
   [WARNING_CODES.FIT_UNSTABLE]:
-    "Increase bootstrap iterations, inspect interval widths, and report fitted exposures with uncertainty intervals.",
+    "Increase bootstrap iterations if needed, inspect interval widths, and present fitted exposures with uncertainty context.",
   [WARNING_CODES.FLAT_SIGNATURE_RISK]:
-    "Treat flat-signature exposures as confusable and report ambiguity diagnostics.",
+    "Review flat-profile signatures as potentially exchangeable with related signatures; include identifiability context if reporting them.",
   [WARNING_CODES.HETEROGENEOUS_COHORT]:
     "Review subgroup structure before cohort-wide extraction or pooled interpretation.",
   [WARNING_CODES.HIGH_RESIDUAL_STRUCTURE]:
-    "Run catalog-sufficiency screening and consider de novo extraction or a broader catalog.",
+    "Inspect residual structure and consider whether catalog choice or additional exploratory analysis is warranted.",
   [WARNING_CODES.INCOMPLETE_CONTEXTS]:
     "Regenerate the spectrum with the expected context basis before fitting.",
   [WARNING_CODES.INSUFFICIENT_SIGNAL]:
-    "Do not interpret fine-grained exposures; collect more mutations or use a broader assay.",
+    "Avoid fine-grained exposure interpretation under these settings; more mutations or a broader assay may be needed.",
   [WARNING_CODES.LOW_BURDEN]:
     "Interpret fitted exposures with caution and consult threshold sensitivity, bootstrap intervals, and the analysis strategy advisor.",
   [WARNING_CODES.GROUP_IMBALANCE]:
@@ -96,11 +96,11 @@ const WARNING_RESOLUTIONS = {
   [WARNING_CODES.PANEL_LIMITED]:
     "Use panel/WES evidence tiers and avoid interpreting non-detection as absence.",
   [WARNING_CODES.PANEL_SIGNATURE_NOT_ASSESSABLE]:
-    "Report not assessable for this signature/sample setting or use a broader assay.",
+    "Report the signature/sample setting as not assessable under these rules or use a broader assay for stronger review evidence.",
   [WARNING_CODES.REGIONAL_PROCESS_SUSPECTED]:
     "Inspect rainfall plots, compare focal spectra to background, and treat context labels as hypothesis-generating.",
   [WARNING_CODES.SIGNATURE_AMBIGUITY]:
-    "Inspect confounding neighbors and avoid overinterpreting individual confusable signatures.",
+    "Inspect neighboring/broad catalog signatures and avoid interpreting the individual fitted signature as uniquely identified.",
   [WARNING_CODES.SUBGROUP_EXTRACTION_SKIPPED]:
     "Run subgroup discovery explicitly only when subgroup sample count and mutation burden meet readiness thresholds.",
   [WARNING_CODES.THRESHOLD_DEPENDENT]:
@@ -113,9 +113,9 @@ const METHOD_BASIS = {
   reconstructionResidual:
     "Known-signature fitting is evaluated by reconstruction error, cosine similarity, and residual structure rather than by exposure values alone.",
   signatureAmbiguity:
-    "High pairwise similarity, high entropy, and multiple nearby catalog neighbors can make fitted exposures exchangeable.",
+    "Signature identifiability is summarized as continuous, catalog-relative evidence. Similar neighbors, broad/flat profiles, and crowded catalog regions can make fitted exposures exchangeable; review cues are descriptive, not calibrated biological class boundaries.",
   catalogSufficiency:
-    "Residual structure can indicate that a supplied catalog may not explain all signal.",
+    "Residual structure can raise a review cue that the supplied catalog may not explain all observed structure; it is not proof of a missing process.",
   bootstrapThreshold:
     "Bootstrap resampling and threshold sensitivity summarize stability under resampling and exposure cutoffs.",
   cohortStructure:
@@ -278,19 +278,19 @@ const PANEL_TIER_RULE_DEFINITIONS = {
     rule:
       "Assigned when total mutations are below the configured minAssessableMutations or a supplied callable-opportunity map contains no callable contexts for the signature.",
     interpretation:
-      "The assay/sample setting does not support a detection or non-detection statement for this signature.",
+      "The assay/sample setting does not provide enough review evidence for a detection or non-detection statement for this signature.",
   },
   higher_review_support: {
     rule:
       "Assigned when exposure is at least the configured higherSupportExposureThreshold, the sample is assessable, and fit reporting mode is standard_qc_passed or report_with_caveats.",
     interpretation:
-      "The fitted signal is review-supported within the configured panel/WES settings and assay/catalog context.",
+      "The fitted exposure meets the configured higher-review criteria. This is review support under the current settings, not definitive detection.",
   },
   limited_review_support: {
     rule:
       "Assigned when the call is assessable and exposure is at least limitedSupportExposureThreshold but higher-review criteria are not met.",
     interpretation:
-      "The fitted signal is present under the configured settings but should be reported with limited support.",
+      "The fitted exposure crosses the lower review threshold but should be reported only with limited support under the current settings.",
   },
   not_detected_within_review_settings: {
     rule:
@@ -342,6 +342,14 @@ const ADVISOR_DEFAULTS = Object.freeze({
     moderateEntropy: 0.85,
     highEntropy: 0.92,
     flatSignatureWarningEntropy: 0.9,
+    topNeighborCount: 5,
+    reviewPercentile: 0.75,
+    strongReviewPercentile: 0.9,
+    nearBoundaryWidth: 0.03,
+    nearestNeighborWeight: 0.4,
+    neighborCrowdingWeight: 0.2,
+    flatnessWeight: 0.3,
+    nonspecificityWeight: 0.1,
   }),
   catalogSufficiency: Object.freeze({
     normalizeMode: "relative",
@@ -627,7 +635,7 @@ function sampleModeForBurden(burdenClass) {
 
 function getBurdenAction(burdenClass) {
   if (burdenClass === "insufficient") {
-    return "Do not perform exposure decomposition; report insufficient signal or aggregate with a biologically justified cohort.";
+    return "Avoid fine-grained exposure decomposition under these settings; report insufficient signal or aggregate only with a biologically justified cohort.";
   }
   if (burdenClass === "low") {
     return "Use restricted, hypothesis-driven refitting with bootstrap uncertainty and avoid de novo extraction.";
@@ -635,7 +643,7 @@ function getBurdenAction(burdenClass) {
   if (burdenClass === "moderate") {
     return "Use known-signature refitting with threshold sensitivity and residual checks.";
   }
-  return "Use known-signature refitting and evaluate whether residual structure supports subgroup extraction or catalog expansion.";
+  return "Use known-signature refitting and inspect whether residual structure warrants subgroup review or catalog expansion.";
 }
 
 function computePairwiseSampleSimilarity(spectra, contexts, maxPairs = 5000) {
@@ -835,7 +843,7 @@ function summarizeFitQcAction(reportingMode) {
   if (reportingMode === "report_with_caveats") {
     return "Report fitted exposures with explicit uncertainty, threshold sensitivity, ambiguity, and catalog-sufficiency diagnostics.";
   }
-  return "Fitted exposures passed the configured QC checks; still report the diagnostic values and assay limitations.";
+  return "No configured fit-quality review cue is active; still report the diagnostic values and assay limitations.";
 }
 
 function getBootstrapForSample(bootstrap, sampleName) {
@@ -883,6 +891,44 @@ function indexAmbiguityBySignature(ambiguity) {
       signature,
     ])
   );
+}
+
+function robustDistribution(values) {
+  const finiteValues = values.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!finiteValues.length) {
+    return { median: 0, scale: 1, values: [] };
+  }
+  const median = quantile(finiteValues, 0.5);
+  const absoluteDeviations = finiteValues
+    .map((value) => Math.abs(value - median))
+    .sort((a, b) => a - b);
+  const mad = quantile(absoluteDeviations, 0.5);
+  const iqr = quantile(finiteValues, 0.75) - quantile(finiteValues, 0.25);
+  const scale = Math.max(mad * 1.4826, iqr / 1.349, 1e-6);
+  return { median, scale, values: finiteValues };
+}
+
+function robustTailScore(value, distribution) {
+  if (!Number.isFinite(value)) return 0;
+  const scaled = (value - distribution.median) / distribution.scale;
+  return clamp(1 / (1 + Math.exp(-scaled)), 0, 1);
+}
+
+function empiricalPercentile(value, values) {
+  const finiteValues = values.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!finiteValues.length || !Number.isFinite(value)) return null;
+  const belowOrEqual = finiteValues.filter((candidate) => candidate <= value).length;
+  return belowOrEqual / finiteValues.length;
+}
+
+function weightedMean(values) {
+  const finiteValues = values.filter(Number.isFinite);
+  if (!finiteValues.length) return 0;
+  const denominator = finiteValues.reduce((total, _value, index) => total + 1 / (index + 1), 0);
+  return finiteValues.reduce(
+    (total, value, index) => total + value / (index + 1),
+    0
+  ) / denominator;
 }
 
 function buildPublicationFigureDescriptors(workflowType, fields = {}) {
@@ -952,7 +998,8 @@ function buildPublicationFigureDescriptors(workflowType, fields = {}) {
     base.push({
       id: "panel_evidence",
       title: "Panel/WES signature evidence matrix",
-      purpose: "Shows strong, weak, absent, and not-assessable signature evidence calls per sample.",
+      purpose:
+        "Shows higher-review, limited-review, below-threshold, and not-assessable panel/WES review tiers per sample.",
       recommendedRenderer: "mSigSDK.qcPlots.plotPanelEvidenceMatrix",
     });
   }
@@ -1039,7 +1086,7 @@ function recommendAnalysisStrategy(spectra, options = {}) {
       warnings.push(
         makeWarning(
           WARNING_CODES.INSUFFICIENT_SIGNAL,
-          `${sample.sample} has no callable mutation signal.`,
+          `${sample.sample} did not provide callable mutation signal under the selected context settings.`,
           { sample: sample.sample }
         )
       );
@@ -1047,7 +1094,7 @@ function recommendAnalysisStrategy(spectra, options = {}) {
       warnings.push(
         makeWarning(
           WARNING_CODES.LOW_BURDEN,
-          `${sample.sample} has low mutation burden for full exposure decomposition.`,
+          `${sample.sample} is below the configured mutation-burden threshold for routine fine-grained exposure decomposition.`,
           { sample: sample.sample, totalMutations: sample.totalMutations }
         )
       );
@@ -1096,7 +1143,7 @@ function recommendAnalysisStrategy(spectra, options = {}) {
     warnings.push(
       makeWarning(
         WARNING_CODES.HETEROGENEOUS_COHORT,
-        "The cohort has heterogeneous spectra; subgroup before extraction or cohort-wide interpretation.",
+        "The cohort met the configured spectral-heterogeneity review criterion; consider subgroup review before extraction or cohort-wide interpretation.",
         { medianPairwiseCosine: similarity.medianPairwiseCosine }
       )
     );
@@ -1206,6 +1253,14 @@ function computeSignatureAmbiguity(signatures, options = {}) {
   const moderateEntropy = ambiguityOptions.moderateEntropy;
   const highEntropy = ambiguityOptions.highEntropy;
   const flatSignatureWarningEntropy = ambiguityOptions.flatSignatureWarningEntropy;
+  const topNeighborCount = Math.max(1, Math.floor(ambiguityOptions.topNeighborCount || 5));
+  const reviewPercentile = clamp(ambiguityOptions.reviewPercentile ?? 0.75, 0, 1);
+  const strongReviewPercentile = clamp(
+    ambiguityOptions.strongReviewPercentile ?? 0.9,
+    reviewPercentile,
+    1
+  );
+  const nearBoundaryWidth = Math.max(0, ambiguityOptions.nearBoundaryWidth ?? 0.03);
   const catalogVersion =
     ambiguityOptions.catalogVersion || ambiguityOptions.signatureSetName || null;
   const summaries = Object.fromEntries(
@@ -1229,6 +1284,7 @@ function computeSignatureAmbiguity(signatures, options = {}) {
           nearestNeighbor: null,
           nearestCosineSimilarity: 0,
           confoundingNeighbors: [],
+          neighbors: [],
         },
       ];
     })
@@ -1263,38 +1319,184 @@ function computeSignatureAmbiguity(signatures, options = {}) {
           cosineSimilarity: similarity,
         });
       }
+      summaries[signatureA].neighbors.push({
+        signatureName: signatureB,
+        cosineSimilarity: similarity,
+      });
+      summaries[signatureB].neighbors.push({
+        signatureName: signatureA,
+        cosineSimilarity: similarity,
+      });
     }
   }
 
-  const signatureSummaries = Object.values(summaries).map((summary) => {
-    const highAmbiguity =
-      summary.nearestCosineSimilarity >= highNearestCosine ||
-      summary.flatnessScore >= highEntropy;
-    const moderateAmbiguity =
-      !highAmbiguity &&
-      (summary.nearestCosineSimilarity >= moderateNearestCosine ||
-        summary.flatnessScore >= moderateEntropy);
+  const baseSummaries = Object.values(summaries).map((summary) => {
+    const sortedNeighbors = [...summary.neighbors].sort(
+      (a, b) => b.cosineSimilarity - a.cosineSimilarity
+    );
+    const topNeighbors = sortedNeighbors.slice(0, topNeighborCount);
+    const topNeighborMeanCosine = weightedMean(
+      topNeighbors.map((neighbor) => neighbor.cosineSimilarity)
+    );
+    const nonspecificityScore = 1 - summary.maxContribution;
+    return {
+      ...summary,
+      topNeighbors,
+      topNeighborMeanCosine,
+      nonspecificityScore,
+      confoundingNeighborCount: summary.confoundingNeighbors.length,
+      confoundingNeighbors: summary.confoundingNeighbors.sort(
+        (a, b) => b.cosineSimilarity - a.cosineSimilarity
+      ),
+    };
+  });
+  const distributions = {
+    nearestCosineSimilarity: robustDistribution(
+      baseSummaries.map((summary) => summary.nearestCosineSimilarity)
+    ),
+    topNeighborMeanCosine: robustDistribution(
+      baseSummaries.map((summary) => summary.topNeighborMeanCosine)
+    ),
+    flatnessScore: robustDistribution(
+      baseSummaries.map((summary) => summary.flatnessScore)
+    ),
+    nonspecificityScore: robustDistribution(
+      baseSummaries.map((summary) => summary.nonspecificityScore)
+    ),
+  };
+  const rawValues = {
+    nearestCosineSimilarity: baseSummaries.map(
+      (summary) => summary.nearestCosineSimilarity
+    ),
+    topNeighborMeanCosine: baseSummaries.map(
+      (summary) => summary.topNeighborMeanCosine
+    ),
+    flatnessScore: baseSummaries.map((summary) => summary.flatnessScore),
+    nonspecificityScore: baseSummaries.map(
+      (summary) => summary.nonspecificityScore
+    ),
+  };
+  const weights = {
+    nearestNeighbor: Math.max(0, ambiguityOptions.nearestNeighborWeight ?? 0.4),
+    neighborCrowding: Math.max(0, ambiguityOptions.neighborCrowdingWeight ?? 0.2),
+    flatness: Math.max(0, ambiguityOptions.flatnessWeight ?? 0.3),
+    nonspecificity: Math.max(0, ambiguityOptions.nonspecificityWeight ?? 0.1),
+  };
+  const totalWeight = Object.values(weights).reduce((total, value) => total + value, 0) || 1;
+  const scoredSummaries = baseSummaries.map((summary) => {
+    const componentScores = {
+      nearestNeighbor: robustTailScore(
+        summary.nearestCosineSimilarity,
+        distributions.nearestCosineSimilarity
+      ),
+      neighborCrowding: robustTailScore(
+        summary.topNeighborMeanCosine,
+        distributions.topNeighborMeanCosine
+      ),
+      flatness: robustTailScore(summary.flatnessScore, distributions.flatnessScore),
+      nonspecificity: robustTailScore(
+        summary.nonspecificityScore,
+        distributions.nonspecificityScore
+      ),
+    };
+    const confusabilityScore =
+      (componentScores.nearestNeighbor * weights.nearestNeighbor +
+        componentScores.neighborCrowding * weights.neighborCrowding +
+        componentScores.flatness * weights.flatness +
+        componentScores.nonspecificity * weights.nonspecificity) /
+      totalWeight;
+    return {
+      ...summary,
+      componentScores,
+      confusabilityScore,
+    };
+  });
+  const confusabilityScores = scoredSummaries.map(
+    (summary) => summary.confusabilityScore
+  );
+
+  const signatureSummaries = scoredSummaries.map((summary) => {
+    const componentPercentiles = {
+      nearestNeighbor: empiricalPercentile(
+        summary.nearestCosineSimilarity,
+        rawValues.nearestCosineSimilarity
+      ),
+      neighborCrowding: empiricalPercentile(
+        summary.topNeighborMeanCosine,
+        rawValues.topNeighborMeanCosine
+      ),
+      flatness: empiricalPercentile(summary.flatnessScore, rawValues.flatnessScore),
+      nonspecificity: empiricalPercentile(
+        summary.nonspecificityScore,
+        rawValues.nonspecificityScore
+      ),
+    };
+    const confusabilityPercentile = empiricalPercentile(
+      summary.confusabilityScore,
+      confusabilityScores
+    );
+    const evidenceTags = uniqueStrings([
+      componentPercentiles.nearestNeighbor >= reviewPercentile
+        ? "catalog_neighbor_confusable"
+        : null,
+      componentPercentiles.neighborCrowding >= reviewPercentile &&
+      summary.topNeighbors.length > 1
+        ? "neighbor_crowded_catalog_region"
+        : null,
+      componentPercentiles.flatness >= reviewPercentile
+        ? "broad_or_flat_signature"
+        : null,
+      componentPercentiles.nonspecificity >= reviewPercentile
+        ? "low_specificity_profile"
+        : null,
+      Math.abs((confusabilityPercentile ?? 0) - reviewPercentile) <= nearBoundaryWidth
+        ? "near_review_boundary"
+        : null,
+    ]);
+    const reviewRecommended =
+      (confusabilityPercentile ?? 0) >= reviewPercentile ||
+      evidenceTags.includes("catalog_neighbor_confusable") ||
+      evidenceTags.includes("broad_or_flat_signature");
+    const strongReviewRecommended =
+      (confusabilityPercentile ?? 0) >= strongReviewPercentile;
+    const evidenceStrength = strongReviewRecommended
+      ? "strong_review_signal"
+      : reviewRecommended
+        ? "review_signal"
+        : (confusabilityPercentile ?? 0) >= 0.5
+          ? "background_catalog_signal"
+          : "minimal_catalog_signal";
     const warnings = [];
 
-    if (summary.nearestCosineSimilarity >= moderateNearestCosine) {
+    if (reviewRecommended) {
       warnings.push(
         makeWarning(
           WARNING_CODES.SIGNATURE_AMBIGUITY,
-          `${summary.signatureName} is similar to ${summary.nearestNeighbor}; fitted exposures may be exchangeable.`,
+          `${summary.signatureName} met catalog-level identifiability review criteria (${evidenceTags.join(", ") || evidenceStrength}); fitted exposure may be exchangeable with nearby or broad reference signatures.`,
           {
             signatureName: summary.signatureName,
             nearestNeighbor: summary.nearestNeighbor,
             nearestCosineSimilarity: summary.nearestCosineSimilarity,
+            confusabilityScore: summary.confusabilityScore,
+            confusabilityPercentile,
+            evidenceTags,
           }
         )
       );
     }
-    if (summary.flatnessScore >= flatSignatureWarningEntropy) {
+    if (
+      evidenceTags.includes("broad_or_flat_signature") ||
+      summary.flatnessScore >= flatSignatureWarningEntropy
+    ) {
       warnings.push(
         makeWarning(
           WARNING_CODES.FLAT_SIGNATURE_RISK,
-          `${summary.signatureName} is broad or flat, making low-burden detection more fragile.`,
-          { signatureName: summary.signatureName, flatnessScore: summary.flatnessScore }
+          `${summary.signatureName} met the broad/flat-profile review criterion; low-burden fitted exposure may be less specific.`,
+          {
+            signatureName: summary.signatureName,
+            flatnessScore: summary.flatnessScore,
+            flatnessPercentile: componentPercentiles.flatness,
+          }
         )
       );
     }
@@ -1303,15 +1505,26 @@ function computeSignatureAmbiguity(signatures, options = {}) {
       ...summary,
       entropyDefinition:
         "Shannon entropy of the signature contribution vector after normalization to sum to one, divided by log(contextCount).",
-      ambiguityClass: highAmbiguity
-        ? "high"
-        : moderateAmbiguity
-          ? "moderate"
-          : "low",
-      confoundingNeighborCount: summary.confoundingNeighbors.length,
-      confoundingNeighbors: summary.confoundingNeighbors.sort(
-        (a, b) => b.cosineSimilarity - a.cosineSimilarity
-      ),
+      confusabilityScore: summary.confusabilityScore,
+      confusabilityScoreDefinition:
+        "Continuous catalog-relative review score combining nearest-neighbor similarity, top-neighbor crowding, profile flatness, and low profile specificity after robust scaling within the selected catalog.",
+      confusabilityPercentile,
+      componentScores: summary.componentScores,
+      componentPercentiles,
+      evidenceTags,
+      evidenceStrength,
+      reviewRecommended,
+      strongReviewRecommended,
+      thresholdDistance: {
+        reviewPercentile:
+          confusabilityPercentile === null
+            ? null
+            : confusabilityPercentile - reviewPercentile,
+        strongReviewPercentile:
+          confusabilityPercentile === null
+            ? null
+            : confusabilityPercentile - strongReviewPercentile,
+      },
       warnings,
     };
   });
@@ -1324,15 +1537,19 @@ function computeSignatureAmbiguity(signatures, options = {}) {
     methodBasis: {
       signatureAmbiguity: METHOD_BASIS.signatureAmbiguity,
       thresholdBasis:
-        "Pairwise cosine thresholds are configurable screening defaults informed by signature-assignment and confusability literature.",
+        "The primary output is a continuous, catalog-relative identifiability report. Percentile bands and warning rules are configurable review aids, not calibrated biological discontinuities.",
+      scoreBasis:
+        "The confusability score combines robustly scaled nearest-neighbor similarity, top-neighbor crowding, flatness/entropy, and low profile specificity within the selected catalog.",
       references: [
         LITERATURE_REFERENCES.koh2021,
         LITERATURE_REFERENCES.jin2024,
         LITERATURE_REFERENCES.wu2023,
         LITERATURE_REFERENCES.alexandrov2020,
+        LITERATURE_REFERENCES.medo2024,
+        LITERATURE_REFERENCES.senkin2021,
       ],
       note:
-        "Cosine-similarity and entropy cutoffs flag confusable signatures for review.",
+        "Do not interpret tiny changes around a percentile boundary as scientific class changes. Inspect continuous scores, evidence tags, and sample-level bootstrap or threshold sensitivity where available.",
     },
     catalogVersion,
     thresholds: {
@@ -1342,22 +1559,53 @@ function computeSignatureAmbiguity(signatures, options = {}) {
       moderateEntropy,
       highEntropy,
       flatSignatureWarningEntropy,
+      reviewPercentile,
+      strongReviewPercentile,
+      nearBoundaryWidth,
+      topNeighborCount,
+      note:
+        "Cosine/entropy thresholds support descriptive neighbor and flatness evidence; continuous score percentiles are review settings, not calibrated biological discontinuities.",
+    },
+    scoreWeights: weights,
+    distributionSummary: {
+      nearestCosineMedian: distributions.nearestCosineSimilarity.median,
+      topNeighborMeanMedian: distributions.topNeighborMeanCosine.median,
+      flatnessMedian: distributions.flatnessScore.median,
+      nonspecificityMedian: distributions.nonspecificityScore.median,
     },
     contexts,
     signatures: signatureSummaries,
     pairs: pairs.sort((a, b) => b.cosineSimilarity - a.cosineSimilarity),
     catalogSummary: {
       signatureCount: signatureSummaries.length,
-      highAmbiguityCount: signatureSummaries.filter(
-        (signature) => signature.ambiguityClass === "high"
+      reviewRecommendedCount: signatureSummaries.filter(
+        (signature) => signature.reviewRecommended
       ).length,
-      moderateAmbiguityCount: signatureSummaries.filter(
-        (signature) => signature.ambiguityClass === "moderate"
+      strongReviewRecommendedCount: signatureSummaries.filter(
+        (signature) => signature.strongReviewRecommended
       ).length,
+      meanConfusabilityScore: average(
+        signatureSummaries.map((signature) => signature.confusabilityScore)
+      ),
       reportedPairCount: pairs.length,
     },
     warnings,
   };
+}
+
+/**
+ * Computes continuous, catalog-relative signature identifiability evidence.
+ *
+ * Alias of `computeSignatureAmbiguity` with clearer terminology for new code.
+ *
+ * @function computeSignatureIdentifiability
+ * @memberof advisor
+ * @param {Object<string,Object<string,number>>} signatures - Reference signatures.
+ * @param {Object} [options] - Identifiability options.
+ * @returns {Object} Per-signature confusability scores, evidence tags, neighbors, and warnings.
+ */
+function computeSignatureIdentifiability(signatures, options = {}) {
+  return computeSignatureAmbiguity(signatures, options);
 }
 
 /**
@@ -1491,7 +1739,7 @@ function detectOutOfReferenceSignal(input = {}, options = {}) {
       warnings.push(
         makeWarning(
           WARNING_CODES.LOW_BURDEN,
-          `${sample.sample} has residual signal but mutation burden is below the configured minimum for reliable out-of-reference screening.`,
+          `${sample.sample} met a residual review criterion, but mutation burden is below the configured minimum for reliable catalog-sufficiency screening.`,
           { sample: sample.sample, totalMutations, minBurdenForReliableDetection }
         )
       );
@@ -1499,7 +1747,7 @@ function detectOutOfReferenceSignal(input = {}, options = {}) {
       warnings.push(
         makeWarning(
           WARNING_CODES.CATALOG_INCOMPLETE_SUSPECTED,
-          `${sample.sample} has residual structure suggesting that the reference catalog may not explain all signal.`,
+          `${sample.sample} met residual/reconstruction review criteria indicating the reference catalog may not explain all observed structure.`,
           { sample: sample.sample, unexplainedFraction }
         )
       );
@@ -1507,7 +1755,7 @@ function detectOutOfReferenceSignal(input = {}, options = {}) {
       warnings.push(
         makeWarning(
           WARNING_CODES.HIGH_RESIDUAL_STRUCTURE,
-          `${sample.sample} has structured residual signal despite acceptable aggregate error.`,
+          `${sample.sample} met the structured-residual review criterion despite acceptable aggregate error.`,
           { sample: sample.sample }
         )
       );
@@ -1697,9 +1945,34 @@ function computeFitQualityEvidence(input = {}, options = {}) {
       ? clamp(residualSample.metrics.l1Error / denominator, 0, 1)
       : 1;
     const activeSignatures = activeSignatureNames(normalizedExposures[sampleName]);
-    const activeAmbiguityClasses = activeSignatures.map(
-      (signatureName) =>
-        ambiguityBySignature[signatureName]?.ambiguityClass || "low"
+    const activeAmbiguityEvidence = activeSignatures.map((signatureName) => {
+      const signatureEvidence = ambiguityBySignature[signatureName] || {};
+      return {
+        signatureName,
+        confusabilityScore: signatureEvidence.confusabilityScore ?? null,
+        confusabilityPercentile:
+          signatureEvidence.confusabilityPercentile ?? null,
+        evidenceTags: signatureEvidence.evidenceTags || [],
+        evidenceStrength:
+          signatureEvidence.evidenceStrength || "minimal_catalog_signal",
+        reviewRecommended: Boolean(signatureEvidence.reviewRecommended),
+        nearestNeighbor: signatureEvidence.nearestNeighbor || null,
+        nearestCosineSimilarity:
+          signatureEvidence.nearestCosineSimilarity ?? null,
+        flatnessScore: signatureEvidence.flatnessScore ?? null,
+      };
+    });
+    const activeAmbiguityEvidenceTags = uniqueStrings(
+      activeAmbiguityEvidence.flatMap((evidence) => evidence.evidenceTags || [])
+    );
+    const activeReviewRecommendedSignatures = activeAmbiguityEvidence
+      .filter((evidence) => evidence.reviewRecommended)
+      .map((evidence) => evidence.signatureName);
+    const maxActiveConfusabilityScore = Math.max(
+      ...activeAmbiguityEvidence
+        .map((evidence) => evidence.confusabilityScore)
+        .filter(Number.isFinite),
+      0
     );
     const componentEvidence = {
       burden: {
@@ -1729,7 +2002,12 @@ function computeFitQualityEvidence(input = {}, options = {}) {
       },
       ambiguity: {
         activeSignatures,
-        activeAmbiguityClasses,
+        activeAmbiguityEvidence,
+        activeAmbiguityEvidenceTags,
+        activeReviewRecommendedSignatures,
+        maxActiveConfusabilityScore,
+        interpretationBoundary:
+          "Signature ambiguity evidence is catalog-relative and continuous. Use evidenceTags, confusability scores, confusability percentiles, and reviewRecommended signatures for interpretation.",
         derivedScoreDeprecated: true,
       },
       catalog: {
@@ -1745,7 +2023,7 @@ function computeFitQualityEvidence(input = {}, options = {}) {
           burdenClass === "low"
             ? WARNING_CODES.LOW_BURDEN
             : WARNING_CODES.INSUFFICIENT_SIGNAL,
-          `${sampleName} has ${burdenClass} mutation burden for the selected analysis.`,
+          `${sampleName} is in the ${burdenClass} mutation-burden category under the selected analysis settings.`,
           { sample: sampleName }
         )
       );
@@ -1754,7 +2032,7 @@ function computeFitQualityEvidence(input = {}, options = {}) {
       warnings.push(
         makeWarning(
           WARNING_CODES.FIT_UNSTABLE,
-          `${sampleName} has bootstrap review warnings that require inspection before routine reporting.`,
+          `${sampleName} met bootstrap review criteria that should be inspected before routine reporting.`,
           { sample: sampleName, warningCodes: bootstrapSummary.warningCodes }
         )
       );
@@ -1763,17 +2041,23 @@ function computeFitQualityEvidence(input = {}, options = {}) {
       warnings.push(
         makeWarning(
           WARNING_CODES.THRESHOLD_DEPENDENT,
-          `${sampleName} has threshold-sensitivity warnings under the configured review settings.`,
+          `${sampleName} met threshold-sensitivity review criteria under the configured settings.`,
           { sample: sampleName, warningCodes: thresholdSummary.warningCodes }
         )
       );
     }
-    if (activeAmbiguityClasses.includes("high")) {
+    if (activeReviewRecommendedSignatures.length > 0) {
       warnings.push(
         makeWarning(
           WARNING_CODES.SIGNATURE_AMBIGUITY,
-          `${sampleName} contains active signatures that are hard to distinguish from nearby catalog signatures.`,
-          { sample: sampleName, activeSignatures }
+          `${sampleName} includes active fitted signatures that met catalog-level identifiability review criteria.`,
+          {
+            sample: sampleName,
+            activeSignatures,
+            activeReviewRecommendedSignatures,
+            activeAmbiguityEvidenceTags,
+            maxActiveConfusabilityScore,
+          }
         )
       );
     }
@@ -1798,6 +2082,9 @@ function computeFitQualityEvidence(input = {}, options = {}) {
         rmse: reconstructionSample?.rmse ?? null,
         unexplainedFraction,
         activeSignatures,
+        activeReviewRecommendedSignatures,
+        activeAmbiguityEvidenceTags,
+        maxActiveConfusabilityScore,
       },
       bootstrap: bootstrapSummary,
       thresholdSensitivity: thresholdSummary,
@@ -1829,11 +2116,11 @@ function computeFitQualityEvidence(input = {}, options = {}) {
         not_assessable:
           "Triggered by insufficient signal or not-assessable panel evidence.",
         restricted_interpretation:
-          "Triggered by low burden, suspected catalog incompleteness, or high residual structure.",
+          "Triggered by low burden, catalog review cues, or structured-residual review cues.",
         report_with_caveats:
-          "Triggered by configured bootstrap warnings, configured threshold-sensitivity warnings, signature ambiguity, or flat-signature risk.",
+          "Triggered by configured bootstrap warnings, threshold-sensitivity warnings, identifiability review cues, or flat-profile review cues.",
         standard_qc_passed:
-          "Returned only when none of the configured rule-based concern flags are active.",
+          "Returned only when none of the configured rule-based review cues are active.",
       },
       references: [
         LITERATURE_REFERENCES.koh2021,
@@ -3169,7 +3456,7 @@ async function runCohortFit(input = {}, options = {}) {
             ? [
                 makeWarning(
                   WARNING_CODES.SUBGROUP_EXTRACTION_SKIPPED,
-                  "Subgroup structure was detected, but experimental subgroup extraction is not run automatically; call mSigSDK.experimental.runSubgroupDiscoveryWorkflow for extraction and matched refitting.",
+                  "The subgroup-screening criterion was met, but experimental subgroup extraction is not run automatically; call mSigSDK.experimental.runSubgroupDiscoveryWorkflow for extraction and matched refitting.",
                   { subgroupCount: subgroups.length }
                 ),
               ]
@@ -3231,13 +3518,13 @@ async function runCohortFit(input = {}, options = {}) {
     (thresholdSensitivity?.warnings || []).some(
       (warning) => warning.code === WARNING_CODES.THRESHOLD_DEPENDENT
     )
-      ? "Run bootstrapSignatureFit for representative or flagged samples because threshold sensitivity flagged a threshold-dependent fit."
+      ? "Run bootstrapSignatureFit for representative samples or samples with review cues because threshold sensitivity raised a threshold-dependence cue."
       : null;
   const report = createAnalysisReport(
     {
       title: "mSigSDK Cohort Signature Fit Report",
       summary:
-        "Cohort refitting workflow with burden-aware sample flags, subgroup structure, residual checks, and fit-quality evidence.",
+        "Cohort refitting workflow with burden-aware review cues, subgroup structure, residual checks, and fit-quality evidence.",
       workflowRole: "cohort_fit",
       scopeStatement: SCOPE_STATEMENTS.cohortPipeline,
       methodBasis: {
@@ -3837,7 +4124,10 @@ function summarizeRestrictedAssayEvidence(signatures, options = {}) {
 
     return {
       signatureName: signature.signatureName,
-      ambiguityClass: signature.ambiguityClass,
+      confusabilityScore: signature.confusabilityScore,
+      confusabilityPercentile: signature.confusabilityPercentile,
+      evidenceTags: signature.evidenceTags,
+      reviewRecommended: signature.reviewRecommended,
       flatnessScore: signature.flatnessScore,
       nearestNeighbor: signature.nearestNeighbor,
       nearestCosineSimilarity: signature.nearestCosineSimilarity,
@@ -3847,7 +4137,7 @@ function summarizeRestrictedAssayEvidence(signatures, options = {}) {
         noCallableSignatureMass
           ? WARNING_CODES.PANEL_SIGNATURE_NOT_ASSESSABLE
           : null,
-        signature.ambiguityClass === "high"
+        signature.reviewRecommended
           ? WARNING_CODES.SIGNATURE_AMBIGUITY
           : null,
       ]),
@@ -3892,7 +4182,7 @@ function summarizeRestrictedAssayEvidence(signatures, options = {}) {
       .map((signature) =>
         makeWarning(
           WARNING_CODES.PANEL_SIGNATURE_NOT_ASSESSABLE,
-          `${signature.signatureName} has no callable signature mass under the supplied restricted-assay opportunities.`,
+          `${signature.signatureName} did not have positive callable signature mass under the supplied restricted-assay opportunities, so this assay cannot assess it with the current settings.`,
           { signatureName: signature.signatureName }
         )
       ),
@@ -3917,7 +4207,10 @@ function lookupRestrictedAssayEvidence(restrictedAssayEvidenceSummary, signature
     expectedSignatureMutations,
     expectedCallableSignatureMutations:
       callableMass === null ? null : expectedSignatureMutations * callableMass,
-    ambiguityClass: signature.ambiguityClass,
+    confusabilityScore: signature.confusabilityScore,
+    confusabilityPercentile: signature.confusabilityPercentile,
+    evidenceTags: signature.evidenceTags,
+    reviewRecommended: signature.reviewRecommended,
     nearestNeighbor: signature.nearestNeighbor,
     nearestCosineSimilarity: signature.nearestCosineSimilarity,
     flatnessScore: signature.flatnessScore,
@@ -4189,7 +4482,7 @@ async function runPanelWorkflow(input = {}, options = {}) {
           tierLabel: {
             higher_review_support: "Higher review support",
             limited_review_support: "Limited review support",
-            not_detected_within_review_settings: "Not detected within review settings",
+            not_detected_within_review_settings: "Below review threshold",
             not_assessable: "Not assessable",
           }[tier],
           totalMutations: burden,
@@ -4778,10 +5071,10 @@ function runLocalizedMutagenesisAnalysis(variants, genomeBuild, options = {}) {
     );
   }
   if (foci.length > 0) {
-    warnings.push(
-      makeWarning(
-        WARNING_CODES.REGIONAL_PROCESS_SUSPECTED,
-        "One or more focal mutation clusters were detected; compare focal spectra with the genomic background.",
+      warnings.push(
+        makeWarning(
+          WARNING_CODES.REGIONAL_PROCESS_SUSPECTED,
+        "One or more focal mutation clusters met the configured screening criteria; compare focal spectra with the genomic background before interpretation.",
         { focusCount: foci.length }
       )
     );
@@ -4882,7 +5175,7 @@ function runLocalizedMutagenesisAnalysis(variants, genomeBuild, options = {}) {
     recommendedActions: uniqueStrings([
       foci.length > 0
         ? "Generate a rainfall plot, extract focal spectra, and compare foci against matched genomic background."
-        : "No focal clusters were detected with the current parameters.",
+        : "No focal clusters met the configured screening criteria.",
     ]),
     publicationFigures: buildPublicationFigureDescriptors("localized", {
       rainfall: ["rainfall", "foci"],
@@ -4897,6 +5190,7 @@ export {
   compareSignatureExposures,
   computeFitQualityEvidence,
   computeSignatureAmbiguity,
+  computeSignatureIdentifiability,
   detectOutOfReferenceSignal,
   recommendAnalysisStrategy,
   runCohortFit,

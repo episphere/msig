@@ -260,6 +260,7 @@ const {
   compareSignatureExposures = missingDependency("compareSignatureExposures"),
   computeFitQualityEvidence = missingDependency("computeFitQualityEvidence"),
   computeSignatureAmbiguity = missingDependency("computeSignatureAmbiguity"),
+  computeSignatureIdentifiability = missingDependency("computeSignatureIdentifiability"),
   detectOutOfReferenceSignal = missingDependency("detectOutOfReferenceSignal"),
   recommendAnalysisStrategy = missingDependency("recommendAnalysisStrategy"),
   runCohortFit = missingDependency("runCohortFit"),
@@ -279,17 +280,23 @@ const {
   bootstrapRows = missingDependency("bootstrapRows"),
   burdenSampleRows = missingDependency("burdenSampleRows"),
   compactSummary = missingDependency("compactSummary"),
+  DEFAULT_TOOLTIP_TERMS = {},
   details: presentationDetails = missingDependency("presentation.details"),
   exposureRows = missingDependency("exposureRows"),
+  fitQualityEvidenceRows = missingDependency("fitQualityEvidenceRows"),
+  fitQualityEvidenceTable = missingDependency("fitQualityEvidenceTable"),
   formatCell = missingDependency("formatCell"),
   formatNumber = missingDependency("formatNumber"),
   metrics: presentationMetrics = missingDependency("presentation.metrics"),
   nmfMatchRows = missingDependency("nmfMatchRows"),
   note: presentationNote = missingDependency("presentation.note"),
+  panelEvidenceRows = missingDependency("panelEvidenceRows"),
+  panelEvidenceTable = missingDependency("panelEvidenceTable"),
   reconstructionRows = missingDependency("reconstructionRows"),
   reportFieldRows = missingDependency("reportFieldRows"),
   table: presentationTable = missingDependency("presentation.table"),
   thresholdRows = missingDependency("thresholdRows"),
+  tooltipTable = missingDependency("presentation.tooltipTable"),
 } = presentationModule;
 
 const {
@@ -873,7 +880,7 @@ const mSigSDK = (function () {
         pointer-events: none;
         position: absolute;
         z-index: 20;
-        max-width: 260px;
+        max-width: 340px;
         opacity: 0;
         transform: translateY(-6px);
         border: 1px solid #d1d5db;
@@ -887,14 +894,19 @@ const mSigSDK = (function () {
       .msig-d3-tooltip div {
         display: flex;
         justify-content: space-between;
+        align-items: flex-start;
         gap: 16px;
-        white-space: nowrap;
+        white-space: normal;
       }
       .msig-d3-tooltip span {
+        flex: 0 0 auto;
         color: #6b7280;
       }
       .msig-d3-tooltip strong {
+        max-width: 220px;
         font-weight: 700;
+        overflow-wrap: anywhere;
+        text-align: right;
       }
       .msig-d3-axis path,
       .msig-d3-axis line {
@@ -2651,13 +2663,13 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
       title: "Mutation burden QC",
       subtitle:
-        "Each bar is a sample-level mutation count across the selected contexts. The vertical marker is the low-burden threshold used to flag spectra before fitting.",
+        "Each bar is a sample-level mutation count across the selected contexts. The vertical marker is the low-burden threshold used to raise a review cue before fitting.",
       badges: [
         {
           label: "Threshold",
           value: hasThreshold ? formatPlotNumber(threshold, 1) : "Off",
         },
-        { label: "Flagged", value: `${lowBurdenCount}/${samples.length}` },
+        { label: "Review cues", value: `${lowBurdenCount}/${samples.length}` },
         { label: "Empty", value: String(emptyCount) },
       ],
     });
@@ -3093,13 +3105,13 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       { key: "residual", label: "Residual" },
       { key: "bootstrap", label: "Bootstrap" },
       { key: "threshold", label: "Threshold" },
-      { key: "ambiguity", label: "Ambiguity" },
+      { key: "ambiguity", label: "Identif." },
       { key: "catalog", label: "Catalog" },
     ];
     const classLabel = {
-      standard_qc_passed: "QC passed",
-      report_with_caveats: "Flagged",
-      restricted_interpretation: "Restricted",
+      standard_qc_passed: "No active cue",
+      report_with_caveats: "Report with caveats",
+      restricted_interpretation: "Restricted interpretation",
       not_assessable: "Not assessable",
     };
     const classColor = {
@@ -3116,11 +3128,34 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       missing: "#f1f5f9",
     };
     const stateLabel = {
-      concern: "warning",
+      concern: "review cue",
       caution: "caution",
       observed: "reported",
-      ok: "ok",
+      ok: "no cue",
       missing: "not measured",
+    };
+    const catalogStatusLabel = {
+      catalog_sufficient_for_fit: "no cue",
+      possible_out_of_reference: "possible",
+      suspected_out_of_reference: "review",
+      not_checked: "n/a",
+    };
+    const identifiabilityTagLabel = {
+      catalog_neighbor_confusable: "near-neighbor similarity cue",
+      neighbor_crowded_catalog_region: "crowded-catalog-region cue",
+      broad_or_flat_signature: "broad/flat-profile cue",
+      low_specificity_profile: "low-specificity-profile cue",
+      near_review_boundary: "near-review-boundary cue",
+      none: "no identifiability cue",
+    };
+    const componentTooltipLabel = {
+      burden: "Mutation burden",
+      reconstruction: "Reconstruction fit",
+      residual: "Residual structure",
+      bootstrap: "Bootstrap stability",
+      threshold: "Threshold sensitivity",
+      ambiguity: "Signature identifiability",
+      catalog: "Catalog sufficiency",
     };
     const componentLabel = Object.fromEntries(
       components.map(({ key, label }) => [key, label])
@@ -3140,12 +3175,58 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       const warningCodes = warningCodesFor(sample);
       return codes.some((code) => warningCodes.has(code));
     };
-    const compactText = (value, maxLength = 14) => {
+    const compactText = (value, maxLength = 10) => {
       const text = String(value ?? "NA");
-      return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
+      return text.length > maxLength
+        ? `${text.slice(0, Math.max(1, maxLength - 3))}...`
+        : text;
     };
     const formatPercentEvidence = (value, digits = 1) =>
       Number.isFinite(value) ? d3.format(`.${digits}%`)(value) : "NA";
+    const formatEvidenceNumber = (value, digits = 3) =>
+      Number.isFinite(value) ? formatPlotNumber(value, digits) : "NA";
+    const displayList = (values, fallback = "none") => {
+      const uniqueValues = uniqueStringsForPlot(values || []);
+      return uniqueValues.length ? uniqueValues.join(", ") : fallback;
+    };
+    const identifiabilityRecords = (evidence) =>
+      Array.isArray(evidence.activeAmbiguityEvidence)
+        ? evidence.activeAmbiguityEvidence
+        : [];
+    const identifiabilityTags = (evidence) =>
+      uniqueStringsForPlot([
+        ...(evidence.activeAmbiguityEvidenceTags || []),
+        ...identifiabilityRecords(evidence).flatMap((record) => record.evidenceTags || []),
+      ]).filter((tag) => tag && tag !== "none");
+    const maxIdentifiabilityPercentile = (evidence) => {
+      const percentiles = identifiabilityRecords(evidence)
+        .map((record) => record.confusabilityPercentile)
+        .filter(Number.isFinite);
+      return percentiles.length ? Math.max(...percentiles) : null;
+    };
+    const hasStrongIdentifiabilityEvidence = (evidence) =>
+      identifiabilityRecords(evidence).some(
+        (record) =>
+          record.strongReviewRecommended ||
+          (record.confusabilityPercentile ?? 0) >= 0.9
+      );
+    const strongestIdentifiabilityRecord = (evidence) =>
+      [...identifiabilityRecords(evidence)].sort(
+        (a, b) => (b.confusabilityScore ?? -Infinity) - (a.confusabilityScore ?? -Infinity)
+      )[0] || null;
+    const tooltipDefinition = (token) => DEFAULT_TOOLTIP_TERMS[token] || "";
+    const displayIdentifiabilityTags = (tokens, fallback = "no identifiability cue") => {
+      const labels = uniqueStringsForPlot(tokens || []).map(
+        (token) => identifiabilityTagLabel[token] || token
+      );
+      return labels.length ? labels.join(", ") : fallback;
+    };
+    const firstDefinitionsFor = (tokens, limit = 2) =>
+      tokens
+        .slice(0, limit)
+        .map((token) => tooltipDefinition(token))
+        .filter(Boolean)
+        .join(" ");
     const componentState = (sample, component) => {
       const evidence = evidenceFor(sample, component);
       if (component === "burden") {
@@ -3184,20 +3265,30 @@ Renders a plot of the mutational spectra for one or more patients in a given div
           : "ok";
       }
       if (component === "ambiguity") {
-        const classes = evidence.activeAmbiguityClasses || [];
-        if (classes.includes("high")) {
+        const activeSignatures = evidence.activeSignatures || [];
+        const reviewSignatures = evidence.activeReviewRecommendedSignatures || [];
+        if (!activeSignatures.length && !identifiabilityRecords(evidence).length) {
+          return "missing";
+        }
+        if (hasStrongIdentifiabilityEvidence(evidence)) {
           return "concern";
         }
-        if (classes.includes("moderate")) {
+        if (
+          reviewSignatures.length ||
+          hasAnyWarning(sample, ["SIGNATURE_AMBIGUITY"])
+        ) {
           return "caution";
         }
-        return classes.length ? "ok" : "missing";
+        return identifiabilityTags(evidence).length ? "observed" : "ok";
       }
       if (component === "catalog") {
         if (evidence.status === "suspected_out_of_reference") {
           return "concern";
         }
-        if (evidence.status && evidence.status !== "not_checked") {
+        if (evidence.status === "possible_out_of_reference") {
+          return "caution";
+        }
+        if (evidence.status === "catalog_sufficient_for_fit") {
           return "ok";
         }
         return "missing";
@@ -3219,24 +3310,35 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       }
       if (component === "bootstrap") {
         if (!evidence.measured) {
-          return "not run";
+          return "n/a";
         }
         return evidence.warningCodes?.length ? "warn" : "ok";
       }
       if (component === "threshold") {
         if (!evidence.measured) {
-          return "not run";
+          return "n/a";
         }
         return evidence.warningCodes?.length ? "warn" : "ok";
       }
       if (component === "ambiguity") {
-        const classes = evidence.activeAmbiguityClasses || [];
-        return compactText(
-          classes.length ? uniqueStringsForPlot(classes).join("/") : "NA"
-        );
+        const activeSignatures = evidence.activeSignatures || [];
+        const reviewSignatures = evidence.activeReviewRecommendedSignatures || [];
+        if (!activeSignatures.length && !identifiabilityRecords(evidence).length) {
+          return "n/a";
+        }
+        if (hasStrongIdentifiabilityEvidence(evidence)) {
+          return "review+";
+        }
+        if (
+          reviewSignatures.length ||
+          hasAnyWarning(sample, ["SIGNATURE_AMBIGUITY"])
+        ) {
+          return "review";
+        }
+        return identifiabilityTags(evidence).length ? "noted" : "ok";
       }
       if (component === "catalog") {
-        return compactText(evidence.status || "not checked");
+        return catalogStatusLabel[evidence.status] || "n/a";
       }
       return "NA";
     };
@@ -3250,8 +3352,8 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       }
       if (component === "reconstruction") {
         return [
-          ["Cosine", formatPlotNumber(evidence.cosineSimilarity, 4)],
-          ["RMSE", formatPlotNumber(evidence.rmse, 5)],
+          ["Cosine", formatEvidenceNumber(evidence.cosineSimilarity, 4)],
+          ["RMSE", formatEvidenceNumber(evidence.rmse, 5)],
         ];
       }
       if (component === "residual") {
@@ -3264,24 +3366,52 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         return [
           ["Measured", evidence.measured ? "yes" : "no"],
           ["Warnings", evidence.warningCodes?.join(", ") || "none"],
-          ["Max interval width", formatPlotNumber(evidence.maxConfidenceWidth, 4)],
+          ["Max interval width", formatEvidenceNumber(evidence.maxConfidenceWidth, 4)],
         ];
       }
       if (component === "threshold") {
         return [
           ["Measured", evidence.measured ? "yes" : "no"],
           ["Warnings", evidence.warningCodes?.join(", ") || "none"],
-          ["L1 change", formatPlotNumber(evidence.l1Change, 4)],
+          ["L1 change", formatEvidenceNumber(evidence.l1Change, 4)],
         ];
       }
       if (component === "ambiguity") {
+        const tags = identifiabilityTags(evidence);
+        const strongest = strongestIdentifiabilityRecord(evidence);
+        const maxScore = Number.isFinite(evidence.maxActiveConfusabilityScore)
+          ? evidence.maxActiveConfusabilityScore
+          : strongest?.confusabilityScore;
         return [
           ["Active signatures", evidence.activeSignatures?.join(", ") || "none"],
-          ["Classes", evidence.activeAmbiguityClasses?.join(", ") || "none"],
+          [
+            "Review signatures",
+            displayList(evidence.activeReviewRecommendedSignatures || []),
+          ],
+          ["Identifiability cues", displayIdentifiabilityTags(tags)],
+          [
+            "Evidence meaning",
+            firstDefinitionsFor(tags) ||
+              "No active catalog-relative identifiability evidence tags.",
+          ],
+          ["Max confusability", formatEvidenceNumber(maxScore, 3)],
+          [
+            "Max percentile",
+            formatPercentEvidence(maxIdentifiabilityPercentile(evidence), 1),
+          ],
+          ["Highest-review-cue signature", strongest?.signatureName || "NA"],
+          [
+            "Interpretation",
+            "Continuous catalog-relative evidence; this is not based on a single hard reconstruction-cosine cutoff.",
+          ],
         ];
       }
       if (component === "catalog") {
-        return [["Status", evidence.status || "not checked"]];
+        const status = evidence.status || "not_checked";
+        return [
+          ["Status", catalogStatusLabel[status] || "n/a"],
+          ["Meaning", tooltipDefinition(status) || "Catalog sufficiency was not checked."],
+        ];
       }
       return [];
     };
@@ -3303,14 +3433,14 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
       title: "Fit-quality evidence summary",
       subtitle:
-        "QC evidence summarizes burden, reconstruction, residuals, bootstrap stability, threshold sensitivity, signature ambiguity, and catalog sufficiency.",
+        "QC evidence summarizes burden, reconstruction, residuals, bootstrap stability, threshold sensitivity, catalog-relative signature identifiability, and catalog sufficiency. Hover cells for definitions and full values.",
       badges: [
         {
           label: "Samples",
           value: String(samples.length),
         },
         {
-          label: "Mean flags",
+          label: "Mean review cues",
           value: Number.isFinite(meanFlagCount)
             ? formatPlotNumber(meanFlagCount, 1)
             : "NA",
@@ -3369,9 +3499,9 @@ Renders a plot of the mutational spectra for one or more patients in a given div
           event,
           tooltipRows([
             ["Sample", sample.sample],
-            ["Review flags", String(reviewFlagCountFor(sample))],
+            ["Review cues", String(reviewFlagCountFor(sample))],
             ["Reporting mode", classLabel[reportingModeFor(sample)] || reportingModeFor(sample)],
-            ["Flag codes", sample.reviewFlagCodes?.join(", ") || "none"],
+            ["Cue codes", sample.reviewFlagCodes?.join(", ") || "none"],
             ["Burden class", sample.metrics?.burdenClass || "NA"],
             ["Cosine", formatPlotNumber(sample.metrics?.cosineSimilarity, 4)],
             ["Unexplained", d3.format(".1%")(sample.metrics?.unexplainedFraction || 0)],
@@ -3411,12 +3541,32 @@ Renders a plot of the mutational spectra for one or more patients in a given div
         detailRows: componentDetail(sample, key),
       }))
     );
+    const heatTextMaxChars = Math.max(4, Math.floor((heatCellWidth - 12) / 5.4));
+    const heatCellX = (row) =>
+      components.findIndex(({ key }) => key === row.component) * heatCellWidth;
+    const heatClipPrefix = `msig-fit-quality-cell-clip-${Math.random()
+      .toString(36)
+      .slice(2)}`;
+
+    heatPlot
+      .append("defs")
+      .selectAll("clipPath.msig-fit-quality-cell-clip")
+      .data(heatRows)
+      .join("clipPath")
+      .attr("class", "msig-fit-quality-cell-clip")
+      .attr("id", (_row, index) => `${heatClipPrefix}-${index}`)
+      .append("rect")
+      .attr("x", (row) => heatCellX(row) + 4)
+      .attr("y", (row) => y(row.sample) + 1)
+      .attr("width", heatCellWidth - 12)
+      .attr("height", Math.max(1, y.bandwidth() - 2));
+
     heatPlot
       .selectAll("rect.msig-fit-quality-component")
       .data(heatRows)
       .join("rect")
       .attr("class", "msig-fit-quality-component")
-      .attr("x", (row) => components.findIndex(({ key }) => key === row.component) * heatCellWidth)
+      .attr("x", (row) => heatCellX(row))
       .attr("y", (row) => y(row.sample))
       .attr("width", heatCellWidth - 4)
       .attr("height", y.bandwidth())
@@ -3429,7 +3579,12 @@ Renders a plot of the mutational spectra for one or more patients in a given div
           event,
           tooltipRows([
             ["Sample", row.sample],
-            ["Evidence field", componentLabel[row.component] || row.component],
+            [
+              "Evidence field",
+              componentTooltipLabel[row.component] ||
+                componentLabel[row.component] ||
+                row.component,
+            ],
             ["Status", stateLabel[row.state] || row.state],
             ["Value", row.value],
             ...row.detailRows,
@@ -3443,9 +3598,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       .join("text")
       .attr("class", "msig-fit-quality-component-label")
       .attr("x", (row) =>
-        components.findIndex(({ key }) => key === row.component) * heatCellWidth +
-        heatCellWidth / 2 -
-        2
+        heatCellX(row) + heatCellWidth / 2 - 2
       )
       .attr("y", (row) => y(row.sample) + y.bandwidth() / 2)
       .attr("dy", "0.35em")
@@ -3456,7 +3609,9 @@ Renders a plot of the mutational spectra for one or more patients in a given div
           : SCIENTIFIC_COLORS.darkGray
       )
       .attr("font", "700 9px Arial, sans-serif")
-      .text((row) => compactText(row.value, 12));
+      .attr("clip-path", (_row, index) => `url(#${heatClipPrefix}-${index})`)
+      .style("pointer-events", "none")
+      .text((row) => compactText(row.value, heatTextMaxChars));
     heatPlot
       .selectAll("text.msig-fit-quality-component-header")
       .data(components)
@@ -3479,7 +3634,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       .attr("x", margin.left + flagWidth / 2)
       .attr("y", height - 14)
       .attr("text-anchor", "middle")
-      .text("Review flag count");
+      .text("Review cue count");
     svg
       .append("text")
       .attr("class", "msig-d3-axis-title")
@@ -3664,12 +3819,12 @@ Renders a plot of the mutational spectra for one or more patients in a given div
       not_assessable: SCIENTIFIC_COLORS.orange,
     };
     const tierLabel = {
-      higher_review_support: "Higher support",
-      limited_review_support: "Limited support",
-      not_detected_within_review_settings: "Not detected",
-      strong_evidence: "Higher support",
-      weak_evidence: "Limited support",
-      not_detected: "Not detected",
+      higher_review_support: "Higher review",
+      limited_review_support: "Limited review",
+      not_detected_within_review_settings: "Below threshold",
+      strong_evidence: "Higher review",
+      weak_evidence: "Limited review",
+      not_detected: "Below threshold",
       not_assessable: "Not assessable",
     };
     const width = Math.max(860, 170 + signatureNames.length * 86);
@@ -3892,6 +4047,11 @@ Renders a plot of the mutational spectra for one or more patients in a given div
    * @returns {Promise<Object|Element>} Render metadata or an error element.
    */
   async function plotBootstrapConfidenceIntervals(divID, bootstrapResult) {
+    const sampleName =
+      bootstrapResult.sampleName ||
+      bootstrapResult.sample ||
+      bootstrapResult.inputSummary?.sample ||
+      null;
     const signatures = [...(bootstrapResult.signatures || [])].sort(
       (a, b) => b.mean - a.mean
     );
@@ -3924,9 +4084,9 @@ Renders a plot of the mutational spectra for one or more patients in a given div
 
     const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
       title: "Bootstrap exposure uncertainty",
-      subtitle:
-        "Each row shows the bootstrap exposure distribution for one signature, with the confidence interval, mean exposure, and threshold-selection frequency.",
+      subtitle: `${sampleName ? `Sample: ${sampleName}. ` : ""}Each row shows the bootstrap exposure distribution for one signature, with the confidence interval, mean exposure, and threshold-selection frequency.`,
       badges: [
+        ...(sampleName ? [{ label: "Sample", value: sampleName }] : []),
         { label: "Iterations", value: String(bootstrapResult.iterations || 0) },
         { label: "Interval", value: `${confidenceLabel}%` },
         { label: "Selected", value: `${selectedCount}/${rows.length}` },
@@ -5537,6 +5697,7 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     compareSignatureExposures,
     computeFitQualityEvidence,
     computeSignatureAmbiguity,
+    computeSignatureIdentifiability,
     detectOutOfReferenceSignal,
     recommendAnalysisStrategy,
     summarizeRestrictedAssayEvidence,
@@ -5592,17 +5753,23 @@ Renders a plot of the mutational spectra for one or more patients in a given div
     bootstrapRows,
     burdenSampleRows,
     compactSummary,
+    DEFAULT_TOOLTIP_TERMS,
     details: presentationDetails,
     exposureRows,
+    fitQualityEvidenceRows,
+    fitQualityEvidenceTable,
     formatCell,
     formatNumber,
     metrics: presentationMetrics,
     nmfMatchRows,
     note: presentationNote,
+    panelEvidenceRows,
+    panelEvidenceTable,
     reconstructionRows,
     reportFieldRows,
     table: presentationTable,
     thresholdRows,
+    tooltipTable,
   };
 
   const runners = {

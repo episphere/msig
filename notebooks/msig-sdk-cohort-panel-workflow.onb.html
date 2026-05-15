@@ -23,7 +23,9 @@
     } = await import("./msig-notebook-fixtures.js");
     const {
       exposureRows,
+      fitQualityEvidenceTable,
       metrics,
+      panelEvidenceTable,
       reconstructionRows,
       table,
     } = mSigSDK.presentation;
@@ -65,11 +67,26 @@
   </script>
 
   <script type="text/markdown">
+    ## Interactive workspace
+
+    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+  </script>
+
+  <script type="module" pinned id="interactive-workspace">
+    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
+    renderInteractiveNotebook({ mode: "cohort-panel", mSigSDK, display });
+  </script>
+
+  <script type="text/markdown">
     ## Step 1. Fit the cohort with metadata
 
     `runCohortFit` keeps the core analysis together: validation, burden, exposures, reconstruction, residuals, subgroup summaries, group comparisons, warnings, recommended actions, and figure descriptors. The metadata table supplies the biological or technical strata that make those outputs interpretable.
 
     Start by asking whether the samples form meaningful groups and whether those groups should be compared. If the metadata are missing or inconsistent, the exposure table may still run, but the cohort story will be weaker.
+  </script>
+
+  <script type="module" pinned id="interactive-step-1">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "cohort-panel", step: 1, phase: "analysis", title: "Step 1. Fit the cohort with metadata", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -130,25 +147,12 @@
     When adapting the workflow, review this section before creating figures. A group difference is not convincing if it is driven by low-burden samples or poor reconstruction.
   </script>
 
+  <script type="module" pinned id="interactive-step-2">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "cohort-panel", step: 2, phase: "review", title: "Step 2. Inspect cohort evidence before reporting group results", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="3">
-    const cpFitQualityRows = cpCohortResult.fitQualityEvidence.samples.map((sample) => ({
-      sample: sample.sample,
-      reportingMode: sample.reportingMode || sample.recommendedReportingMode,
-      reviewFlagCount: sample.reviewFlagCount,
-      reviewFlags: (sample.reviewFlagCodes || []).join(", "),
-      caveats: (sample.caveats || []).join(" "),
-    }));
-    display(table(
-      cpFitQualityRows,
-      [
-        { key: "sample", label: "Sample" },
-        { key: "reportingMode", label: "Reporting mode" },
-        { key: "reviewFlagCount", label: "Review flags" },
-        { key: "reviewFlags", label: "Flag codes" },
-        { key: "caveats", label: "Caveats" },
-      ],
-      { maxRows: 8 }
-    ));
+    display(fitQualityEvidenceTable(cpCohortResult.fitQualityEvidence, { maxRows: 8 }));
     display(table(
       warningRows(cpCohortResult.warnings),
       [
@@ -176,6 +180,10 @@
     `runPanelWorkflow` adds opportunity normalization, restricted-assay evidence summaries, evidence tiers, assessability reasons, and panel-specific limitations. These fields separate a WGS-style decomposition from the narrower question of what a panel or WES assay can support.
 
     Read the assessability reasons carefully. They are the explanation a collaborator, method reviewer, or clinical user needs when a signature is marked reportable, limited, or not assessable.
+  </script>
+
+  <script type="module" pinned id="interactive-step-3">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "cohort-panel", step: 3, phase: "review", title: "Step 3. Ask whether restricted-assay data are assessable", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="4">
@@ -220,18 +228,7 @@
       { label: "Evidence calls", value: cpPanelResult.panel.evidenceSummary.callCount },
       { label: "Warnings", value: cpPanelResult.warnings.length },
     ]));
-    display(table(
-      cpPanelRows,
-      [
-        { key: "sample", label: "Sample" },
-        { key: "signature", label: "Signature" },
-        { key: "exposure", label: "Exposure" },
-        { key: "tier", label: "Evidence tier" },
-        { key: "assessability", label: "Assessability" },
-        { key: "reasons", label: "Assessability reasons" },
-      ],
-      { maxRows: 12 }
-    ));
+    display(panelEvidenceTable(cpPanelResult, { maxRows: 12 }));
     display(table(
       panelValidationSummary,
       [
@@ -250,6 +247,10 @@
     ## Step 4. Save the cohort and panel evidence bundle
 
     The final bundle preserves the fitted exposures, metadata-aware summaries, panel evidence calls, warnings, recommended actions, and report fields. Save these together so downstream applications do not detach a signature call from the assay limitations that qualify it.
+  </script>
+
+  <script type="module" pinned id="interactive-step-4">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "cohort-panel", step: 4, phase: "export", title: "Step 4. Save the cohort and panel evidence bundle", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">

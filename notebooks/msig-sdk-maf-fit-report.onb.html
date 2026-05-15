@@ -57,11 +57,26 @@
   </script>
 
   <script type="text/markdown">
+    ## Interactive workspace
+
+    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+  </script>
+
+  <script type="module" pinned id="interactive-workspace">
+    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
+    renderInteractiveNotebook({ mode: "maf-fit-report", mSigSDK, display });
+  </script>
+
+  <script type="text/markdown">
     ## Step 1. Convert variant rows into an SBS96 matrix
 
     `analyzeMafFiles` accepts either a flat row array or nested per-file arrays. The conversion record stores the genome build, context source, lookup mode, timestamp, and a count reconciliation check between convertible SNV rows and observed SBS96 counts.
 
     Before reading exposures, confirm that the number of convertible SNVs agrees with the total SBS96 counts. A mismatch here points to context annotation, filtering, sample naming, or input-shape problems.
+  </script>
+
+  <script type="module" pinned id="interactive-step-1">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 1, phase: "data", title: "Step 1. Convert variant rows into an SBS96 matrix", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -130,6 +145,10 @@
     Interpret the tables in order: mutation burden tells whether the spectra contain enough signal, reconstruction metrics tell whether the catalog explains the spectra, and exposures tell which signatures contribute after those checks pass.
   </script>
 
+  <script type="module" pinned id="interactive-step-2">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 2, phase: "review", title: "Step 2. Inspect fit evidence after conversion", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="3">
     display(table(
       exposureRows(mafAnalysis.fit.exposures, { minExposure: 0, topN: 12 }),
@@ -173,6 +192,10 @@
     Plots help identify problems that summary tables can hide: a low-burden sample, a systematic residual pattern, or an exposure profile dominated by a questionable signature. Use the plots to decide which samples need manual review before the report is exported.
   </script>
 
+  <script type="module" pinned id="interactive-step-3">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 3, phase: "visualize", title: "Step 3. Render QC plots for visual review", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="4">
     const mafBurdenDiv = document.createElement("div");
     mafBurdenDiv.style.width = "100%";
@@ -193,6 +216,10 @@
     ## Step 4. Save the converted spectra and report
 
     The saved bundle should include the MAF conversion summary, SBS96 matrix, fitted exposures, QC evidence, warnings, recommended actions, report fields, and provenance. These pieces let another researcher trace the result from variant rows to signature interpretation.
+  </script>
+
+  <script type="module" pinned id="interactive-step-4">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "maf-fit-report", step: 4, phase: "export", title: "Step 4. Save the converted spectra and report", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">

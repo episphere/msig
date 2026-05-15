@@ -21,10 +21,12 @@
       burdenSampleRows,
       details,
       exposureRows,
+      fitQualityEvidenceTable,
       formatNumber,
       metrics,
       reconstructionRows,
       table,
+      tooltipTable,
     } = mSigSDK.presentation;
 
     display(metrics([
@@ -50,11 +52,26 @@
   </script>
 
   <script type="text/markdown">
+    ## Interactive workspace
+
+    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+  </script>
+
+  <script type="module" pinned id="interactive-workspace">
+    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
+    renderInteractiveNotebook({ mode: "qc-walkthrough", mSigSDK, display });
+  </script>
+
+  <script type="text/markdown">
     ## 1. Choose the profile, example data, and fitting parameters
 
     The first analysis decision is the mutation matrix. Here we use SBS96, so `getExpectedContexts` returns the 96 trinucleotide contexts used to check spectra and signatures. The mSigPortal calls fetch specific PCAWG WGS Lung-AdenoCA samples with real mutation counts, including high-burden and low-burden examples so the QC flags are visible. In your own project, replace `qcExampleSampleNames` with your local sample IDs or replace the fetch with your own spectra object.
 
     Edit `qcSampleLimit`, `qcMutationBurdenThreshold`, or `qcPreferredSignatureNames` to see how the analysis changes. In a real project, these parameters should come from the assay design, expected mutation burden, and the reference catalog being tested.
+  </script>
+
+  <script type="module" pinned id="interactive-step-1">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 1, phase: "data", title: "1. Choose the profile, example data, and fitting parameters", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -207,6 +224,10 @@
     If validation fails, interpretation stops here. A fit produced from mismatched contexts can look numerical and still be biologically meaningless.
   </script>
 
+  <script type="module" pinned id="interactive-step-2">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 2, phase: "analysis", title: "2. Validate, fit, and build QC objects", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="3">
     const qcSpectraValidation = mSigSDK.validation.validateSpectra(
       qcGroupedSpectra,
@@ -296,6 +317,10 @@
     A low-burden warning does not always require removing a sample. It does require that downstream exposure estimates be reported with more caution.
   </script>
 
+  <script type="module" pinned id="interactive-step-3">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 3, phase: "visualize", title: "3. Check mutation burden", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="4">
     const qcBurdenDiv = document.createElement("div");
     qcBurdenDiv.style.width = "100%";
@@ -309,6 +334,10 @@
     Cosine similarity measures profile-shape agreement; RMSE measures residual magnitude on the relative-profile scale used for fitting. Inspect both because a fit can have good shape agreement while still leaving systematic residuals in specific mutation contexts. Use the mutation-burden table above for count totals.
 
     This is the main checkpoint before reading exposure values as evidence. A poor reconstruction usually means the catalog is incomplete, the sample is noisy, or the matrix needs additional QC.
+  </script>
+
+  <script type="module" pinned id="interactive-step-4">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 4, phase: "review", title: "4. Inspect reconstruction quality", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">
@@ -327,6 +356,10 @@
     Residual plots show where the fitted signature mixture does not reconstruct the observed spectrum. Positive residuals are underfit contexts; negative residuals are overfit contexts. This is often where you identify missing reference signatures, context-specific artifacts, or samples that need a different analysis strategy.
 
     Read residuals as diagnostic evidence, not as a decorative plot. Repeated residual structure across samples may point to a missing signature or a systematic preprocessing issue.
+  </script>
+
+  <script type="module" pinned id="interactive-step-5">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 5, phase: "visualize", title: "5. Inspect residual spectra", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="6">
@@ -348,6 +381,10 @@
     The workflow result is the object to hand to an application or report generator because it keeps the exposure estimates connected to the evidence that qualifies them.
   </script>
 
+  <script type="module" pinned id="interactive-step-6">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "qc-walkthrough", step: 6, phase: "analysis", title: "6. Package the same fit as a workflow result", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="7">
     const qcWorkflowAnalysis = await mSigSDK.workflows.runCohortFit(
       {
@@ -365,30 +402,14 @@
         reportFormat: "object",
       }
     );
-    const qcFitQualityRows = qcWorkflowAnalysis.fitQualityEvidence.samples.map((sample) => ({
-      sample: sample.sample,
-      reportingMode: sample.reportingMode || sample.recommendedReportingMode,
-      reviewFlagCount: sample.reviewFlagCount,
-      flags: (sample.reviewFlagCodes || []).join(", "),
-    }));
-
     display(metrics([
       { label: "Workflow warnings", value: qcWorkflowAnalysis.warnings.length },
       { label: "Recommended actions", value: qcWorkflowAnalysis.recommendedActions.length },
       { label: "Figure descriptors", value: qcWorkflowAnalysis.publicationFigures.length },
       { label: "Report fields", value: Object.keys(qcWorkflowAnalysis.report || {}).length },
     ]));
-    display(table(
-      qcFitQualityRows,
-      [
-        { key: "sample", label: "Sample" },
-        { key: "reportingMode", label: "Reporting mode" },
-        { key: "reviewFlagCount", label: "Review flags" },
-        { key: "flags", label: "Flag codes" },
-      ],
-      { maxRows: 8 }
-    ));
-    display(table(
+    display(fitQualityEvidenceTable(qcWorkflowAnalysis.fitQualityEvidence, { maxRows: 8 }));
+    display(tooltipTable(
       warningRows(qcWorkflowAnalysis.warnings),
       [
         { key: "code", label: "Warning code" },

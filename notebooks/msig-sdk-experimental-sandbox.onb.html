@@ -47,9 +47,24 @@
   </script>
 
   <script type="text/markdown">
+    ## Interactive workspace
+
+    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+  </script>
+
+  <script type="module" pinned id="interactive-workspace">
+    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
+    renderInteractiveNotebook({ mode: "experimental", mSigSDK, display });
+  </script>
+
+  <script type="text/markdown">
     ## Step 1. Define the experimental scope
 
     The first output to inspect is the scope statement. It identifies what the workflow is designed to screen, what assumptions it makes, and what evidence is still needed. A researcher should understand this section before looking at any focal-region table.
+  </script>
+
+  <script type="module" pinned id="interactive-step-1">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "experimental", step: 1, phase: "analysis", title: "Step 1. Define the experimental scope", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -81,6 +96,10 @@
     ## Step 2. Inspect exploratory rainfall evidence
 
     Rainfall-style summaries highlight clustered mutation patterns and focal regions that may deserve follow-up. These tables are useful for triage, but they do not establish mechanism by themselves. Treat dense local clusters as leads to validate with orthogonal evidence, sample-level QC, and study-specific thresholds.
+  </script>
+
+  <script type="module" pinned id="interactive-step-2">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "experimental", step: 2, phase: "review", title: "Step 2. Inspect exploratory rainfall evidence", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="3">
@@ -136,6 +155,10 @@
     The warning and roadmap fields state what remains unvalidated. They are part of the result, not optional annotation. If this section lists missing validation, the workflow should remain in exploratory mode even when the candidate table looks interesting.
   </script>
 
+  <script type="module" pinned id="interactive-step-3">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "experimental", step: 3, phase: "review", title: "Step 3. Read warnings before interpreting candidates", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="4">
     const localizedRoadmapRows = [
       { item: "Input validation", requirement: "Confirm chromosome, position, genome build, and context labels against a pinned variant source." },
@@ -169,6 +192,10 @@
     ## Step 4. Save exploratory outputs with their scope
 
     Experimental outputs should be exported with the scope statement, status, warnings, recommended actions, and validation roadmap. Saving those fields with the candidate regions prevents downstream users from treating a screening result as a validated call.
+  </script>
+
+  <script type="module" pinned id="interactive-step-4">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "experimental", step: 4, phase: "export", title: "Step 4. Save exploratory outputs with their scope", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">

@@ -1250,7 +1250,7 @@ function completionPlan() {
 5. Scenario-calibrated runtime outputs for single-sample, panel/WES, rare-cancer, medium-cohort, portal-scale, and discovery-cohort use cases.
 6. Controlled synthetic exposure-recovery validation with known COSMIC SBS96 mixtures.
 7. Cross-tool concordance experiments on shared PCAWG Lung-AdenoCA spectra and a matched selected COSMIC catalog, including deconstructSigs, SigProfilerAssignment, and MuSiCal-compatible refit review.
-8. Full manuscript draft in \`docs/manuscript/manuscript/MSIGSDK_REVISED_MANUSCRIPT_DRAFT.md\`.
+8. Full manuscript draft in \`docs/manuscript/manuscript/MSIGSDK_FINAL_SUBMISSION_DRAFT.md\`.
 
 ## Highest-Value Additions Before Submission
 
@@ -1696,8 +1696,6 @@ async function main() {
   } catch (_error) {
     await writeFile(join(MANUSCRIPT_TEXT_DIR, "MSIGSDK_FINAL_SUBMISSION_DRAFT.md"), finalManuscriptDraft);
   }
-  await writeFile(join(MANUSCRIPT_TEXT_DIR, "MSIGSDK_REVISED_MANUSCRIPT_DRAFT.md"), finalManuscriptDraft);
-
   await writeFile(
     join(FIGURE_PAGE_DIR, "README.md"),
     `# mSigSDK Figure Pages

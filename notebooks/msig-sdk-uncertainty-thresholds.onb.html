@@ -49,11 +49,26 @@
   </script>
 
   <script type="text/markdown">
+    ## Interactive workspace
+
+    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+  </script>
+
+  <script type="module" pinned id="interactive-workspace">
+    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
+    renderInteractiveNotebook({ mode: "uncertainty-thresholds", mSigSDK, display });
+  </script>
+
+  <script type="text/markdown">
     ## 1. Set the analysis grid
 
     Bootstrap and threshold analyses can be expensive because they repeat fitting. Keep the defaults small while learning the API. Increase `uncBootstrapIterations` for smoother intervals, edit `uncThresholdGrid` to match the thresholds you plan to report, or replace `uncExampleSampleNames` with samples from your cohort.
 
     This step defines the stress test. A confusing uncertainty result is often a sign that the grid does not match the thresholds the project intends to use.
+  </script>
+
+  <script type="module" pinned id="interactive-step-1">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 1, phase: "data", title: "1. Set the analysis grid", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -209,6 +224,10 @@
     These computations are not alternative signature calls. They are checks on how much confidence to place in the fitted call from the main workflow.
   </script>
 
+  <script type="module" pinned id="interactive-step-2">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 2, phase: "visualize", title: "2. Run bootstrap resampling and a threshold sweep", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="3">
     const uncBootstrapResult = await mSigSDK.qc.bootstrapSignatureFit(
       uncReferenceSignatures,
@@ -272,6 +291,10 @@
     Read this table as a statement about repeatability. A signature that appears in only a minority of bootstrap draws should not be described with the same certainty as a consistently selected signature.
   </script>
 
+  <script type="module" pinned id="interactive-step-3">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 3, phase: "visualize", title: "3. Read bootstrap exposure uncertainty", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="4">
     const uncBootstrapDiv = document.createElement("div");
     uncBootstrapDiv.style.width = "100%";
@@ -290,6 +313,10 @@
     If a signature disappears or changes rank across reasonable thresholds, report the dependence explicitly or revise the reporting threshold before producing final figures.
   </script>
 
+  <script type="module" pinned id="interactive-step-4">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 4, phase: "visualize", title: "4. Check threshold stability", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="5">
     const uncThresholdDiv = document.createElement("div");
     uncThresholdDiv.style.width = "100%";
@@ -306,6 +333,10 @@
     Confidence intervals, selection frequency, and threshold drift should be translated into a short decision table before exposures are reported. This table is a compact pattern for manuscript supplements, review memos, or application tooltips.
 
     The final decision table is where uncertainty becomes usable guidance: report, caveat, review manually, or omit from the main interpretation.
+  </script>
+
+  <script type="module" pinned id="interactive-step-5">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "uncertainty-thresholds", step: 5, phase: "review", title: "5. Convert uncertainty output into reporting decisions", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="6">

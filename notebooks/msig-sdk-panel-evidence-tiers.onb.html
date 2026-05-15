@@ -20,7 +20,7 @@
       sbs96Contexts,
       sharedCallableOpportunities,
     } = await import("./msig-notebook-fixtures.js");
-    const { exposureRows, metrics, table } = mSigSDK.presentation;
+    const { exposureRows, metrics, panelEvidenceTable, table, tooltipTable } = mSigSDK.presentation;
 
     const panelContexts = sbs96Contexts();
     const panelSpectra = {
@@ -44,7 +44,7 @@
       { label: "Callable contexts", value: Object.values(callableOpportunities).filter((value) => Number(value) > 0).length },
       { label: "Assay type", value: "panel/WES review" },
     ]));
-    display(table(
+    display(tooltipTable(
       [
         { tier: "higher_review_support", definition: "Assessable sample with exposure at or above the configured higher-support threshold and acceptable fit evidence." },
         { tier: "limited_review_support", definition: "Assessable sample with exposure at or above the lower review threshold but below the higher-support threshold." },
@@ -59,11 +59,26 @@
   </script>
 
   <script type="text/markdown">
+    ## Interactive workspace
+
+    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+  </script>
+
+  <script type="module" pinned id="interactive-workspace">
+    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
+    renderInteractiveNotebook({ mode: "panel-evidence", mSigSDK, display });
+  </script>
+
+  <script type="text/markdown">
     ## Step 1. Run panel/WES evidence review
 
     The panel workflow combines spectra, signatures, assay metadata, and callable opportunity summaries. It returns fitted exposures plus evidence tiers that explain whether each signature can be assessed under the restricted assay.
 
     Start with the evidence tier and assessability fields before interpreting exposure magnitude. A high exposure can still be weak evidence if the assay has poor opportunity for the relevant contexts.
+  </script>
+
+  <script type="module" pinned id="interactive-step-1">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "panel-evidence", step: 1, phase: "review", title: "Step 1. Run panel/WES evidence review", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -107,6 +122,10 @@
     The evidence matrix explains which signatures are supported, limited, or not assessable and why. This is the section that should travel with any panel-derived signature call. It prevents a downstream reader from interpreting a restricted-assay fit as if it came from complete WGS coverage.
   </script>
 
+  <script type="module" pinned id="interactive-step-2">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "panel-evidence", step: 2, phase: "review", title: "Step 2. Read the evidence matrix and assessability table", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="3">
     const panelMatrixDiv = document.createElement("div");
     panelMatrixDiv.style.width = "100%";
@@ -127,19 +146,7 @@
             .join("; "),
         }))
     );
-    display(table(
-      panelRows,
-      [
-        { key: "sample", label: "Sample" },
-        { key: "signature", label: "Signature" },
-        { key: "exposure", label: "Exposure" },
-        { key: "tier", label: "Tier" },
-        { key: "assessability", label: "Assessability" },
-        { key: "totalMutations", label: "Mutations" },
-        { key: "reasons", label: "Reasons" },
-      ],
-      { maxRows: 12 }
-    ));
+    display(panelEvidenceTable(panelResult, { maxRows: 12 }));
   </script>
 
   <script type="text/markdown">
@@ -148,6 +155,10 @@
     The validation summary below is a compact fixture that mirrors the kind of WGS-to-panel sensitivity table a project should include when using restricted-assay evidence tiers. Replace these rows with study-specific simulation, dilution, or matched WGS validation results before making inferential detection claims.
 
     If a signature is marked limited or not assessable, the limitation is part of the result. The correct adaptation is not to hide the row, but to calibrate or replace the evidence model with assay-specific validation.
+  </script>
+
+  <script type="module" pinned id="interactive-step-3">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "panel-evidence", step: 3, phase: "review", title: "Step 3. Review validation evidence and limitations", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="4">
@@ -183,6 +194,10 @@
     ## Step 4. Save evidence calls and report fields
 
     The exported bundle should include the assay definition, evidence tiers, assessability reasons, limitations, validation rows, warnings, recommended actions, and report fields. These files allow a panel or WES interpretation to be reviewed without losing the assay context.
+  </script>
+
+  <script type="module" pinned id="interactive-step-4">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "panel-evidence", step: 4, phase: "export", title: "Step 4. Save evidence calls and report fields", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="5">

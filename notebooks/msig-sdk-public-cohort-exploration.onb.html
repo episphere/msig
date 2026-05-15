@@ -101,11 +101,26 @@
   </script>
 
   <script type="text/markdown">
+    ## Interactive workspace
+
+    Use this workspace to load sample data, paste or upload your own data, adjust parameters, run the notebook workflow, inspect visual results, and export the exact artifacts produced by your settings.
+  </script>
+
+  <script type="module" pinned id="interactive-workspace">
+    const { renderInteractiveNotebook } = await import("./msig-notebook-interactive.js?v=2026-05-15-all-notebooks");
+    renderInteractiveNotebook({ mode: "public-cohort", mSigSDK, display });
+  </script>
+
+  <script type="text/markdown">
     ## Step 1. Review burden, metadata, and validation
 
     The first table describes what was loaded and whether the fallback path was used. The burden and validation outputs tell whether each spectrum contains enough signal and has the expected SBS96 context structure.
 
     Do not move directly to fitting if this section shows low mutation burden, missing contexts, or unexpected sample metadata. Those issues should be resolved or carried as caveats before exposure estimates are interpreted.
+  </script>
+
+  <script type="module" pinned id="interactive-step-1">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "public-cohort", step: 1, phase: "analysis", title: "Step 1. Review burden, metadata, and validation", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="2">
@@ -155,6 +170,10 @@
     Use the plots to decide whether the cohort should be analyzed together, stratified, filtered, or inspected manually before fitting.
   </script>
 
+  <script type="module" pinned id="interactive-step-2">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "public-cohort", step: 2, phase: "visualize", title: "Step 2. Plot burden and similarity structure", mSigSDK, display });
+  </script>
+
   <script type="module" pinned id="3">
     const cohortBurdenDiv = document.createElement("div");
     cohortBurdenDiv.style.width = "100%";
@@ -180,6 +199,10 @@
     ## Step 3. Move the matrix into downstream workflows
 
     Once the spectra pass the initial review, the same matrix can feed known-signature QC, uncertainty analysis, panel review, NMF screening, export/report workflows, or multi-engine comparison. This final section makes the handoff explicit so exploration does not become a dead-end table.
+  </script>
+
+  <script type="module" pinned id="interactive-step-3">
+    (await import("./msig-notebook-interactive.js?v=2026-05-15-stepwise")).renderInteractiveStep({ mode: "public-cohort", step: 3, phase: "visualize", title: "Step 3. Move the matrix into downstream workflows", mSigSDK, display });
   </script>
 
   <script type="module" pinned id="4">
