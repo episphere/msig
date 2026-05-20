@@ -163,10 +163,10 @@ const normalizeChromosome = (chromosome) => {
 
 function normalizeGenomeBuild(genome) {
   const value = String(genome || "hg19").trim().toLowerCase();
-  if (["grch37", "hg19"].includes(value)) {
+  if (["grch37", "hg19"].includes(value) || /(?:grch37|hg19)/.test(value)) {
     return "hg19";
   }
-  if (["grch38", "hg38"].includes(value)) {
+  if (["grch38", "hg38"].includes(value) || /(?:grch38|hg38)/.test(value)) {
     return "hg38";
   }
   if (["t2t", "t2t-chm13", "chm13", "chm13v2.0", "hs1"].includes(value)) {
@@ -1172,6 +1172,7 @@ async function getMutationalContext(
   startPosition,
   { offline = false, contextLookupTable = null, contextSize = 3 } = {}
 ) {
+  const requestedContextSize = Number(contextSize) || 3;
   if (offline) {
     const sequence = lookupOfflineContext(
       contextLookupTable,
@@ -1180,26 +1181,39 @@ async function getMutationalContext(
     );
     if (!sequence) {
       throw new Error(
-        `No offline trinucleotide context for ${normalizeGenomeBuild(genome)} chromosome ${chromosomeNumber} position ${startPosition}.`
+        `No offline ${requestedContextSize}-base context for ${normalizeGenomeBuild(genome)} chromosome ${chromosomeNumber} position ${startPosition}.`
       );
     }
-    return normalizeSequenceWindow(sequence, contextSize) || sequence;
+    const normalized = normalizeSequenceWindow(sequence, requestedContextSize);
+    if (!normalized) {
+      throw new Error(
+        `No offline ${requestedContextSize}-base context for ${normalizeGenomeBuild(genome)} chromosome ${chromosomeNumber} position ${startPosition}.`
+      );
+    }
+    return normalized;
   }
 
   const chrName = String(chromosomeNumber);
-  const flank = Math.floor(Number(contextSize) / 2) || 1;
+  const genomeKey = normalizeGenomeBuild(genome);
+  const flank = Math.floor(requestedContextSize / 2) || 1;
   const startByte = startPosition - flank - 1;
   const endByteExclusive = startPosition + flank;
 
   const alternative = await (
     await fetchURLAndCache("HG19",
-      `https://api.genome.ucsc.edu/getData/sequence?genome=${genome};chrom=chr${chrName};start=${startByte};end=${endByteExclusive
+      `https://api.genome.ucsc.edu/getData/sequence?genome=${genomeKey};chrom=chr${chrName};start=${startByte};end=${endByteExclusive
       }`
     )
   ).json();
 
   const sequence = alternative.dna;
-  return normalizeSequenceWindow(sequence, contextSize) || sequence;
+  const normalized = normalizeSequenceWindow(sequence, requestedContextSize);
+  if (!normalized) {
+    throw new Error(
+      `No live ${requestedContextSize}-base context for ${genomeKey} chromosome ${chromosomeNumber} position ${startPosition}.`
+    );
+  }
+  return normalized;
 }
 
 

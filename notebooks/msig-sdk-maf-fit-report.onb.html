@@ -9,16 +9,15 @@
   </script>
 
   <script type="module" pinned id="maf-to-sbs96-explainer">
-    const mafSdkUrl = new URL("../main.js?v=2026-05-20-profile-plots", location.href).href;
-    const mutationalSpectrumUrl = new URL("../mSigSDKScripts/mutationalSpectrum.js?v=2026-05-20-profile-plots", location.href).href;
+    const mafSdkUrl = new URL("../main.js?v=2026-05-20-context-size", location.href).href;
+    const mutationalSpectrumUrl = new URL("../mSigSDKScripts/mutationalSpectrum.js?v=2026-05-20-context-size", location.href).href;
     const { mSigSDK } = await import(mafSdkUrl);
     const {
       getMutationalContext,
       normalizeChromosome,
-      normalizeSequenceContext,
       normalizeSequenceWindow,
       standardize_substitution,
-      standardize_trinucleotide,
+      standardize_sequence_context,
     } = await import(mutationalSpectrumUrl);
 
     const { details, metrics, note, table } = mSigSDK.presentation;
@@ -663,8 +662,8 @@
       });
     }
 
-    function contextFromRow(row) {
-      return normalizeSequenceContext(findField(row?.raw || row, "context"));
+    function contextFromRow(row, size = activeContextSize()) {
+      return normalizeSequenceWindow(findField(row?.raw || row, "context"), size);
     }
 
     function lookupKey(row) {
@@ -698,6 +697,10 @@
       return mSigSDK.validation.getExpectedContexts(profileOptionsFromKey()) || SBS96_CONTEXTS;
     }
 
+    function activeContextSize() {
+      return activeProfileDefinition()?.matrix === 1536 ? 5 : 3;
+    }
+
     function sdkProfileReady() {
       return Boolean(state.profileConversion?.spectraByProfile?.[state.selectedProfile]);
     }
@@ -727,14 +730,14 @@
       return ACCEPTED_VARIANT_TYPES.has(String(value || "").toLowerCase());
     }
 
-    function lookupContextForRow(row) {
+    function lookupContextForRow(row, size = activeContextSize()) {
       const entry = state.lookupTable[lookupKey(row)];
       if (!entry) return { context: "", source: "" };
       if (typeof entry === "string") {
-        return { context: normalizeSequenceContext(entry), source: "reference lookup table" };
+        return { context: normalizeSequenceWindow(entry, size), source: "reference lookup table" };
       }
       return {
-        context: normalizeSequenceContext(entry.context),
+        context: normalizeSequenceWindow(entry.context, size),
         source: entry.source || "reference lookup table",
       };
     }
@@ -747,6 +750,7 @@
     }
 
     function buildTraceRow(row, index) {
+      const contextSize = activeContextSize();
       const missingFields = REQUIRED_FIELDS
         .filter(([field]) => field !== "sample" && !row[field])
         .map(([, label]) => label.toLowerCase());
@@ -754,18 +758,17 @@
       const alt = String(row.tumor_seq_allele2 || "").toUpperCase();
       const variantTypeOk = variantTypeIsSnv(row.variant_type);
       const alleleOk = /^[ACGT]$/.test(ref) && /^[ACGT]$/.test(alt);
-      const rowSuppliedContext = contextFromRow(row);
-      const lookupContext = lookupContextForRow(row);
+      const rowSuppliedContext = contextFromRow(row, contextSize);
+      const lookupContext = lookupContextForRow(row, contextSize);
       const referenceContext = rowSuppliedContext || lookupContext.context;
       const contextSource = contextSourceLabel(row, Boolean(rowSuppliedContext), lookupContext.source);
-      const referenceMatchesContext = Boolean(referenceContext && referenceContext[1] === ref);
+      const referenceMatchesContext = Boolean(
+        referenceContext && referenceContext[Math.floor(referenceContext.length / 2)] === ref
+      );
       const purineReference = /^[AG]$/.test(ref);
-      const normalizedContext = referenceContext ? standardize_trinucleotide(referenceContext) : null;
+      const normalizedContext = referenceContext ? standardize_sequence_context(referenceContext, contextSize) : null;
       const normalizedSubstitution = alleleOk ? standardize_substitution(ref, alt) : null;
-      const finalBin =
-        normalizedContext && normalizedSubstitution
-          ? `${normalizedContext[0]}[${normalizedSubstitution}]${normalizedContext[2]}`.toUpperCase()
-          : null;
+      const finalBin = sbsContextLabel(normalizedContext, normalizedSubstitution);
       let skippedReason = "";
 
       if (missingFields.length) {
@@ -775,7 +778,7 @@
       } else if (!alleleOk) {
         skippedReason = "ref/alt are not single A/C/G/T bases";
       } else if (!referenceContext) {
-        skippedReason = "missing 5' and 3' reference context";
+        skippedReason = `missing ${contextSize}-base reference context`;
       } else if (!referenceMatchesContext) {
         skippedReason = "reference allele does not match context center";
       } else if (!finalBin || !activeContexts().includes(finalBin) || finalBin.includes("N")) {
@@ -808,6 +811,17 @@
       };
     }
 
+    function sbsContextLabel(standardizedContext, standardizedSubstitution) {
+      if (!standardizedContext || !standardizedSubstitution) return null;
+      if (standardizedContext.length === 3) {
+        return `${standardizedContext[0]}[${standardizedSubstitution}]${standardizedContext[2]}`.toUpperCase();
+      }
+      if (standardizedContext.length === 5) {
+        return `${standardizedContext[0]}${standardizedContext[1]}[${standardizedSubstitution}]${standardizedContext[3]}${standardizedContext[4]}`.toUpperCase();
+      }
+      return null;
+    }
+
     function recompute() {
       if (sdkProfileReady()) {
         state.trace = state.profileConversion.traceByProfile[state.selectedProfile] || [];
@@ -835,7 +849,7 @@
       const inputRows = state.rows.length;
       const countedRows = state.trace.filter((row) => row.counted).length;
       const skippedRows = inputRows - countedRows;
-      const rowContexts = state.rows.filter((row) => contextFromRow(row)).length;
+      const rowContexts = state.rows.filter((row) => contextFromRow(row, activeContextSize())).length;
       const missingLookup = state.trace.filter((row) => row.contextSource === "missing").length;
       const purineRows = state.trace.filter((row) => row.purineReference && row.counted).length;
       const groupRows = Object.keys(state.spectra).map((sample) => {
@@ -1202,20 +1216,21 @@
         .slice(0, limit);
 
       if (!candidates.length) {
-        setStatus("No live lookup needed", "All convertible rows already have context or are not eligible for lookup.", "ready");
+        setStatus("No live lookup needed", "All convertible rows already have the required reference window or are not eligible for lookup.", "ready");
         return;
       }
 
       setStatus("Running live reference lookup", `Looking up reference context for ${candidates.length} row(s).`, "running");
       for (const candidate of candidates) {
         try {
+          const contextSize = activeContextSize();
           const context = await getMutationalContext(
             normalizeChromosome(candidate.chromosome) || candidate.chromosome,
             candidate.build || state.sourceGenome || "hg19",
             Number(candidate.start_position),
-            { offline: false, contextSize: activeProfileDefinition()?.matrix === 1536 ? 5 : 3 }
+            { offline: false, contextSize }
           );
-          const normalizedContext = normalizeSequenceWindow(context, activeProfileDefinition()?.matrix === 1536 ? 5 : 3);
+          const normalizedContext = normalizeSequenceWindow(context, contextSize);
           if (normalizedContext) {
             state.lookupTable[candidate.lookupKey] = {
               context: normalizedContext,
@@ -1784,7 +1799,7 @@
       panel.append(
         heading,
         mafCaption(state.selectedProfile.startsWith("SBS")
-          ? "SBS profiles use reference bases around the substituted base. Run lookup only for rows without a context value."
+          ? "SBS profiles use reference bases around the substituted base. SBS96 requires three bases; SBS1536 requires five bases."
           : "DBS and ID profiles use allele-level event evidence; sequence context is used only when the selected profile requires it."),
         controlRow,
         lookupCard,

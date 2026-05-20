@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   convertMafToProfileSpectra,
   convertMatrix,
+  getMutationalContext,
 } from "../mSigSDKScripts/mutationalSpectrum.js";
 import { getExpectedContexts } from "../mSigSDKScripts/validation.js";
 
@@ -95,6 +96,88 @@ assert.equal(conversion.spectraByProfile.DBS78["sample-a"]["AC>GT"], 1);
 assert.equal(conversion.spectraByProfile.DBS78["sample-a"]["TA>CG"], 1);
 assert.equal(conversion.spectraByProfile.ID83["sample-a"]["1:Ins:C:0"], 1);
 assert.equal(conversion.spectraByProfile.ID83["sample-a"]["1:Del:T:1"], 1);
+
+const lookupBackedSbs1536 = await convertMafToProfileSpectra(
+  [
+    {
+      sample: "lookup-sample",
+      chromosome: "1",
+      start_position: "900",
+      reference_allele: "C",
+      tumor_seq_allele2: "A",
+      variant_type: "SNP",
+      context: "ACG",
+    },
+  ],
+  {
+    profiles: ["SBS1536"],
+    groupBy: "sample",
+    offline: true,
+    contextLookupTable: {
+      "1:900": "AACGT",
+    },
+  }
+);
+
+assert.equal(
+  lookupBackedSbs1536.spectraByProfile.SBS1536["lookup-sample"]["AA[C>A]GT"],
+  1
+);
+assert.equal(
+  lookupBackedSbs1536.traceByProfile.SBS1536[0].contextSource,
+  "offline reference lookup"
+);
+
+const undersizedLookup = await convertMafToProfileSpectra(
+  [
+    {
+      sample: "lookup-sample",
+      chromosome: "1",
+      start_position: "901",
+      reference_allele: "C",
+      tumor_seq_allele2: "A",
+      variant_type: "SNP",
+      context: "ACG",
+    },
+  ],
+  {
+    profiles: ["SBS1536"],
+    groupBy: "sample",
+    offline: true,
+    contextLookupTable: {
+      "1:901": "ACG",
+    },
+  }
+);
+
+assert.equal(
+  undersizedLookup.traceByProfile.SBS1536[0].skippedReason,
+  "missing 5-base reference context"
+);
+
+const originalFetch = globalThis.fetch;
+let fetchedUrl = "";
+globalThis.fetch = async (url) => {
+  fetchedUrl = String(url);
+  return {
+    ok: true,
+    async json() {
+      return { dna: "AACGT" };
+    },
+  };
+};
+try {
+  assert.equal(
+    await getMutationalContext("1", "GRCh38.d1.vd1", 900, {
+      contextSize: 5,
+    }),
+    "AACGT"
+  );
+  assert.match(fetchedUrl, /genome=hg38/);
+  assert.match(fetchedUrl, /start=897;end=902/);
+} finally {
+  globalThis.fetch = originalFetch;
+}
 
 const legacySbs96 = await convertMatrix(rows, "sample", 100, "hg19", false, {
   offline: true,
