@@ -6,7 +6,7 @@
 
 With **mSigSDK**, researchers can:
 - Retrieve public mSigPortal resources and convert them into SDK-ready matrices.
-- Import local spectra or MAF-like rows for client-side validation, fitting, QC, and reporting.
+- Import local spectra or MAF-like rows for client-side validation, profile conversion, fitting, QC, and reporting.
 - Run burden-aware fitting and exploratory discovery workflows with QC evidence, caveats, and next recommended actions.
 - Exchange spectra, signatures, and exposures with SigProfiler-style, COSMIC-style, and MuSiCal-compatible tabular formats.
 - Launch optional browser Pyodide and WebR runners for compatible package execution, including matrix-mode SigProfilerAssignment, WebR-backed deconstructSigs and sigminer checks, and MuSiCal-compatible refit review when required package assets are available.
@@ -19,13 +19,14 @@ With **mSigSDK**, researchers can:
 
 - **Client-Side Computation**: User-supplied spectra can be validated, fitted, assessed, and visualized client-side after import.
 - **Modular Design**: Adheres to ECMAScript ES6 standards, enabling easy integration and extension.
-- **Visualizations**: Supports mSigPortal-style profile plots, D3 QC/workflow panels, and selected Plotly/AMCharts visualizations with standalone figure captions, context fields, and figure metadata downloads.
+- **Visualizations**: Supports mSigPortal-style SBS96, SBS1536, DBS78, ID83, and rearrangement profile plots, D3 QC/workflow panels, and selected Plotly/AMCharts visualizations with standalone figure captions, context fields, and figure metadata downloads.
 - **Research Guidance**: Provides validated burden-aware strategy advice, fit-quality evidence, signature ambiguity checks, and catalog-sufficiency warnings.
 - **APIs**: Seamlessly integrates with mSigPortal's REST APIs to fetch mutational signature data and metadata.
 - **Data Boundary**: Public reference data are retrieved through APIs; user-supplied spectra can remain local for supported client-side workflows.
 - **Interoperability**: Supports SigProfiler-style spectra, COSMIC-style signatures, MuSiCal input/output helpers, and report JSON Schema validation.
 - **External Tool Adapters**: Provides optional Pyodide and WebR runners, SigProfilerAssignment and SigProfilerExtractor matrix-mode adapters, handoff adapters for SigProfilerMatrixGenerator, SigProfilerSimulator, SigProfilerClusters, sigProfilerPlotting, deconstructSigs, and sigminer, MuSiCal-compatible refit adapters, and a multi-tool interoperability bundle with explicit runtime provenance.
-- **Offline Context Path**: MAF conversion can use row-supplied contexts, caller-supplied lookup tables, or bundled smoke-test lookup assets for hg19, hg38, and T2T-CHM13.
+- **MAF Profile Conversion**: MAF conversion preserves the SBS96 default and can also return SBS1536, DBS78, and ID83 spectra with row-level traces, audit summaries, warnings, and profile-specific plotting.
+- **Offline Context Path**: SBS profile conversion can use row-supplied contexts, caller-supplied lookup tables, or bundled smoke-test lookup assets for hg19, hg38, and T2T-CHM13.
 
 ---
 
@@ -86,12 +87,28 @@ console.log(fit.recommendedActions);
 
 The primary entry points are:
 
-- `mSigSDK.workflows.analyzeMafFiles(...)` for MAF-to-spectrum conversion with optional fitting.
+- `mSigSDK.workflows.analyzeMafFiles(...)` for MAF-to-profile conversion with optional compatible-catalog fitting.
 - `mSigSDK.workflows.runSingleSampleFit(...)` for one sample and one signature catalog.
 - `mSigSDK.workflows.runCohortFit(...)` for a spectra matrix and optional metadata.
 - `mSigSDK.workflows.runPanelWorkflow(...)` for panel/WES review with opportunity metadata.
 
 Use `mSigSDK.pipelines` for the full computational API and `mSigSDK.workflows.*Lite` for reduced-option convenience wrappers.
+
+MAF-derived profile conversion keeps SBS96 as the default return path for existing code. Request multiple profiles when the input rows contain enough evidence for larger SBS, DBS, or indel matrices:
+
+```javascript
+const conversion = await mSigSDK.userData.convertMafToProfileSpectra(mafRows, {
+  profiles: ["SBS96", "SBS1536", "DBS78", "ID83"],
+  groupBy: "Tumor_Sample_Barcode",
+  genome: "hg38",
+  offline: true,
+  contextLookupTable,
+});
+
+console.log(conversion.spectraByProfile.SBS1536);
+console.log(conversion.traceByProfile.ID83);
+console.log(conversion.audit.profiles.DBS78);
+```
 
 ---
 
@@ -138,9 +155,9 @@ mSigSDK includes pure helper namespaces for validation, QC, de novo signature ex
 
 The focused notebooks in `notebooks/` exercise the current public SDK surface:
 
-- `mSigSDK.validation`: context helpers, matrix normalization, spectra/signature/exposure validation, and MAF-row validation.
+- `mSigSDK.validation`: profile context helpers, profile registry discovery, matrix normalization, spectra/signature/exposure validation, and MAF-row validation.
 - `mSigSDK.qc`: mutation burden, missing-context summaries, NNLS fitting helpers, residuals, reconstruction error, bootstrap uncertainty, and threshold sensitivity.
-- `mSigSDK.qcPlots`: mutation-burden, SBS96 profile, reconstruction-error, residual-spectrum, fit-quality evidence dashboard, cohort group-comparison, panel evidence-matrix, bootstrap-interval, bootstrap-summary, and threshold-sensitivity plots.
+- `mSigSDK.qcPlots`: mutation-burden, profile-specific COSMIC plots, SBS96 profile, reconstruction-error, residual-spectrum, fit-quality evidence dashboard, cohort group-comparison, panel evidence-matrix, bootstrap-interval, bootstrap-summary, and threshold-sensitivity plots.
 - `mSigSDK.signatureExtraction`: browser NMF extraction, rank selection by reconstruction error, cophenetic correlation, or silhouette, Web Worker extraction, matrix conversion, and reference matching.
 - `mSigSDK.signatureExtractionPlots`: extracted profile, exposure heatmap, and rank-diagnostic plots.
 - `mSigSDK.io`: generic TSV export/import plus SigProfiler, COSMIC, and MuSiCal matrix round trips.
@@ -393,7 +410,7 @@ The SDK includes focused Observable Kit notebooks for browser testing without lo
 - `notebooks/msig-sdk-end-to-end-workflow.onb.html`: complete fit-review-export arc.
 - `notebooks/msig-sdk-public-cohort-exploration.onb.html`: mSigPortal and TCGA/GDC public dataset discovery.
 - `notebooks/msig-sdk-resource-portability.onb.html`: mSigPortal, TCGA/GDC, matrix portability, and provenance.
-- `notebooks/msig-sdk-maf-fit-report.onb.html`: raw variant rows to checked SBS96 spectra.
+- `notebooks/msig-sdk-maf-fit-report.onb.html`: raw variant rows to checked SBS96, SBS1536, DBS78, and ID83 spectra.
 - `notebooks/msig-sdk-qc-walkthrough.onb.html`: known-signature fitting QC and cohort triage.
 - `notebooks/msig-sdk-cohort-panel-workflow.onb.html`: cohort metadata, group interpretation, and restricted-assay review.
 - `notebooks/msig-sdk-panel-evidence-tiers.onb.html`: panel/WES support tiers and assay-coverage evidence.

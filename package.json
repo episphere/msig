@@ -27,6 +27,7 @@
     "serve:observable": "npm run notebooks:manifest && node scripts/serve-observable-sdk.mjs",
     "smoke:adapters": "node scripts/smoke-adapters.mjs",
     "smoke:guidance": "node scripts/smoke-guidance.mjs",
+    "smoke:profile-conversions": "node scripts/smoke-profile-conversions.mjs",
     "smoke:tcga-contexts": "node scripts/smoke-tcga-contexts.mjs",
     "verify:tool-interoperability": "node scripts/verify-tool-interoperability.mjs",
     "benchmark:confusable": "node docs/manuscript/experiments/2026_05_14_confusable_signature_benchmark/code/confusable-signature-benchmark.mjs",

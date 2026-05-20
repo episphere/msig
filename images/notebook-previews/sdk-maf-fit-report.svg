@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="sdk-maf-fit-report-svg-title sdk-maf-fit-report-svg-desc">
-  <title id="sdk-maf-fit-report-svg-title">MAF to SBS96 explainer</title>
-  <desc id="sdk-maf-fit-report-svg-desc">Variant rows mapped through DNA context into SBS96 spectrum channels</desc>
+  <title id="sdk-maf-fit-report-svg-title">MAF to COSMIC profiles</title>
+  <desc id="sdk-maf-fit-report-svg-desc">Variant rows mapped into SBS, DBS, and indel profile channels</desc>
   <defs>
     <linearGradient id="sdk-maf-fit-report-svg-bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#fffaf7"/>

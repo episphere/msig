@@ -1,3 +1,10 @@
+import {
+  getExpectedContexts as getRegisteredExpectedContexts,
+  getSBS96Contexts as getRegisteredSBS96Contexts,
+  listMafConvertibleProfiles as listRegisteredMafConvertibleProfiles,
+  listProfileDefinitions as listRegisteredProfileDefinitions,
+} from "./profileRegistry.js";
+
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -23,19 +30,7 @@ function toFiniteNumber(value) {
  * @returns {string[]} Ordered SBS96 context labels.
  */
 function getSBS96Contexts() {
-  const bases = ["A", "C", "G", "T"];
-  const substitutions = ["C>A", "C>G", "C>T", "T>A", "T>C", "T>G"];
-  const contexts = [];
-
-  for (const fivePrime of bases) {
-    for (const substitution of substitutions) {
-      for (const threePrime of bases) {
-        contexts.push(`${fivePrime}[${substitution}]${threePrime}`);
-      }
-    }
-  }
-
-  return contexts;
+  return getRegisteredSBS96Contexts();
 }
 
 /**
@@ -54,11 +49,29 @@ function getSBS96Contexts() {
  * });
  */
 function getExpectedContexts({ profile = "SBS", matrix = 96 } = {}) {
-  if (String(profile).toUpperCase() === "SBS" && Number(matrix) === 96) {
-    return getSBS96Contexts();
-  }
+  return getRegisteredExpectedContexts({ profile, matrix });
+}
 
-  return null;
+/**
+ * Lists all registered COSMIC-style profile targets known to the SDK.
+ *
+ * @function listProfileDefinitions
+ * @memberof validation
+ * @returns {Object[]} Profile definitions with canonical key, profile family, matrix size, contexts, input requirements, conversion support, and renderer mapping.
+ */
+function listProfileDefinitions() {
+  return listRegisteredProfileDefinitions();
+}
+
+/**
+ * Lists registered profile targets that can be derived directly from MAF-like rows.
+ *
+ * @function listMafConvertibleProfiles
+ * @memberof validation
+ * @returns {Object[]} Registered native MAF-derived targets, including SBS96, SBS1536, DBS78, and ID83.
+ */
+function listMafConvertibleProfiles() {
+  return listRegisteredMafConvertibleProfiles();
 }
 
 function flattenRows(input) {
@@ -562,6 +575,8 @@ export {
   getExpectedContexts,
   getMatrixContexts,
   getSBS96Contexts,
+  listMafConvertibleProfiles,
+  listProfileDefinitions,
   isPlainObject,
   normalizeMatrixObject,
   rowsToMatrix,

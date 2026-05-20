@@ -1,4 +1,9 @@
 import { fetchURLAndCache } from "./utils.js";
+import {
+  getProfileDefinition,
+  listMafConvertibleProfiles,
+  normalizeProfileRequest,
+} from "./profileRegistry.js";
 
 function get_sbs_trinucleotide_contexts() {
   const nucleotide_bases = ["A", "C", "G", "T"];
@@ -72,23 +77,54 @@ initialized to zeros.
 }
 
 function normalizeSequenceContext(value) {
+  return normalizeSequenceWindow(value, 3);
+}
+
+function normalizeSequenceWindow(value, size = 3) {
   const context = lookupContextValue(value);
   if (context === null || context === undefined) {
     return null;
   }
 
   const sequence = String(context).trim().toUpperCase();
-  if (/^[ACGTN]{3}$/.test(sequence)) {
+  if (sequence.length === size && /^[ACGTN]+$/.test(sequence)) {
     return sequence;
   }
-  if (/^[ACGTN]{4,}$/.test(sequence)) {
+  if (sequence.length >= size && /^[ACGTN]+$/.test(sequence)) {
     const center = Math.floor(sequence.length / 2);
-    const start = Math.max(0, center - 1);
-    const trinucleotide = sequence.slice(start, start + 3);
-    return trinucleotide.length === 3 ? trinucleotide : null;
+    const flank = Math.floor(size / 2);
+    const start = Math.max(0, center - flank);
+    const window = sequence.slice(start, start + size);
+    return window.length === size ? window : null;
   }
 
   return null;
+}
+
+function reverseComplement(sequence) {
+  const complementSeq = {
+    A: "T",
+    C: "G",
+    T: "A",
+    G: "C",
+    N: "N",
+  };
+  return String(sequence || "")
+    .toUpperCase()
+    .split("")
+    .reverse()
+    .map((base) => complementSeq[base] || "N")
+    .join("");
+}
+
+function standardize_sequence_context(sequenceContext, size = 3) {
+  const normalized = normalizeSequenceWindow(sequenceContext, size);
+  if (!normalized) {
+    return "N".repeat(size);
+  }
+
+  const center = normalized[Math.floor(normalized.length / 2)];
+  return "AG".includes(center) ? reverseComplement(normalized) : normalized;
 }
 
 function standardize_trinucleotide(trinucleotide_ref) {
@@ -102,24 +138,7 @@ function standardize_trinucleotide(trinucleotide_ref) {
   // :param trinucleotide_ref: trinucleotide sequence seen in the reference genome.
   // :return: a pyrimidine-centric trinucleotide sequence.
 
-  trinucleotide_ref = normalizeSequenceContext(trinucleotide_ref);
-  if (!trinucleotide_ref) {
-    return "NNN";
-  }
-
-  let complement_seq = {
-    A: "T",
-    C: "G",
-    T: "A",
-    G: "C",
-  };
-  let purines = "AG";
-  if (purines.includes(trinucleotide_ref[1])) {
-    return `${complement_seq[trinucleotide_ref[2]]}${complement_seq[trinucleotide_ref[1]]
-      }${complement_seq[trinucleotide_ref[0]]}`;
-  } else {
-    return trinucleotide_ref;
-  }
+  return standardize_sequence_context(trinucleotide_ref, 3);
 }
 
 
@@ -166,13 +185,18 @@ function lookupContextValue(value) {
   return null;
 }
 
-function getRowSuppliedContext(row) {
-  return normalizeSequenceContext(
+function getRowSuppliedContext(row, size = 3) {
+  return normalizeSequenceWindow(
     row.trinucleotide_context ||
       row.trinucleotide ||
       row.sequence_context ||
+      row.pentanucleotide_context ||
+      row.pentanucleotide ||
+      row.five_prime_context ||
       row.context_sequence ||
       row.context
+    ,
+    size
   );
 }
 
@@ -272,13 +296,691 @@ async function loadBundledContextLookupTable(genome) {
   return response.json();
 }
 
+const SNV_VARIANT_TYPES = new Set([
+  "snp",
+  "snv",
+  "single base substitution",
+  "single_base_substitution",
+  "single nucleotide variant",
+  "substitution",
+]);
+
+const DBS_VARIANT_TYPES = new Set([
+  "dnp",
+  "dinucleotide",
+  "doublet",
+  "double base substitution",
+  "double_base_substitution",
+  "dbs",
+]);
+
+const INSERTION_VARIANT_TYPES = new Set(["ins", "insertion"]);
+const DELETION_VARIANT_TYPES = new Set(["del", "deletion"]);
+
+function cleanAllele(value) {
+  const allele = String(value ?? "").trim().toUpperCase();
+  return allele === "-" || allele === "." ? "" : allele;
+}
+
+function finiteInteger(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.trunc(numeric) : null;
+}
+
+function rowValue(row, names) {
+  for (const name of names) {
+    const value = row?.[name];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+  return null;
+}
+
+function normalizeProfileRows(data, groupBy = "project_code", tcga = false) {
+  const normalizedGroupBy = String(groupBy || "project_code").toLowerCase();
+  const grouped = normalizeMafInputRows(data, normalizedGroupBy);
+  const rows = [];
+
+  grouped.forEach((patient, patientIndex) => {
+    patient.forEach((rawRow, rowIndex) => {
+      const nestedRawRow =
+        rawRow?.raw && typeof rawRow.raw === "object" && !Array.isArray(rawRow.raw)
+          ? Object.fromEntries(
+              Object.entries(rawRow.raw).map(([key, value]) => [
+                String(key).toLowerCase(),
+                value,
+              ])
+            )
+          : {};
+      const lowerRow = {
+        ...nestedRawRow,
+        ...Object.fromEntries(
+          Object.entries(rawRow || {}).map(([key, value]) => [
+            String(key).toLowerCase(),
+            value,
+          ])
+        ),
+      };
+      const sample =
+        lowerRow[normalizedGroupBy] ||
+        lowerRow.sample ||
+        lowerRow.sample_id ||
+        lowerRow.tumor_sample_barcode ||
+        lowerRow.case_submitter_id ||
+        `sample_${patientIndex + 1}`;
+      const chromosome = normalizeChromosome(lowerRow.chromosome || lowerRow.chrom || lowerRow.chr);
+      const startPosition = tcga
+        ? lowerRow.chromosome_start
+        : lowerRow.start_position || lowerRow.position || lowerRow.pos || lowerRow.start;
+      const endPosition = tcga
+        ? lowerRow.chromosome_end
+        : lowerRow.end_position || lowerRow.end;
+      const referenceAllele = tcga
+        ? lowerRow.reference_genome_allele
+        : lowerRow.reference_allele || lowerRow.ref;
+      const alternateAllele = tcga
+        ? lowerRow.mutated_to_allele
+        : lowerRow.tumor_seq_allele2 || lowerRow.alternate_allele || lowerRow.alt;
+      const variantType = tcga
+        ? lowerRow.mutation_type
+        : lowerRow.variant_type || lowerRow.variant_class || lowerRow.type;
+
+      rows.push({
+        raw: lowerRow,
+        originalRow: rawRow,
+        index: rows.length,
+        rowIndex,
+        sample: String(sample),
+        chromosome,
+        startPosition: finiteInteger(startPosition),
+        endPosition: finiteInteger(endPosition),
+        referenceAllele: cleanAllele(referenceAllele),
+        alternateAllele: cleanAllele(alternateAllele),
+        variantType: String(variantType || "").trim(),
+        genome: lowerRow.build || lowerRow.ncbi_build || lowerRow.genome_build || null,
+      });
+    });
+  });
+
+  return rows;
+}
+
+function zeroSpectrum(contexts) {
+  return Object.fromEntries((contexts || []).map((context) => [context, 0]));
+}
+
+function ensureSampleSpectrum(spectra, sample, contexts) {
+  if (!spectra[sample]) {
+    spectra[sample] = zeroSpectrum(contexts);
+  }
+  return spectra[sample];
+}
+
+function variantTypeIsSnv(value) {
+  return SNV_VARIANT_TYPES.has(String(value || "").toLowerCase());
+}
+
+function variantTypeIsDbs(value) {
+  return DBS_VARIANT_TYPES.has(String(value || "").toLowerCase());
+}
+
+function variantTypeIsInsertion(value) {
+  return INSERTION_VARIANT_TYPES.has(String(value || "").toLowerCase());
+}
+
+function variantTypeIsDeletion(value) {
+  return DELETION_VARIANT_TYPES.has(String(value || "").toLowerCase());
+}
+
+async function resolveReferenceContext(row, size, options) {
+  const rowSupplied =
+    getRowSuppliedContext(row.raw, size) ||
+    getRowSuppliedContext(row.originalRow, size);
+  if (rowSupplied) {
+    return {
+      context: rowSupplied,
+      source: "row-supplied context",
+    };
+  }
+
+  if (!row.chromosome || !row.startPosition) {
+    return {
+      context: null,
+      source: "missing",
+    };
+  }
+
+  try {
+    const sequence = await getMutationalContext(
+      row.chromosome,
+      row.genome || options.genome || "hg19",
+      row.startPosition,
+      {
+        offline: Boolean(options.offline),
+        contextLookupTable: options.contextLookupTable,
+        contextSize: size,
+      }
+    );
+    return {
+      context: normalizeSequenceWindow(sequence, size),
+      source: options.offline ? "offline reference lookup" : "live reference lookup",
+    };
+  } catch (_error) {
+    return {
+      context: null,
+      source: "missing",
+    };
+  }
+}
+
+function sbsContextLabel(standardizedContext, standardizedSubstitution) {
+  if (!standardizedContext || !standardizedSubstitution) {
+    return null;
+  }
+  if (standardizedContext.length === 3) {
+    return `${standardizedContext[0]}[${standardizedSubstitution}]${standardizedContext[2]}`.toUpperCase();
+  }
+  if (standardizedContext.length === 5) {
+    return `${standardizedContext[0]}${standardizedContext[1]}[${standardizedSubstitution}]${standardizedContext[3]}${standardizedContext[4]}`.toUpperCase();
+  }
+  return null;
+}
+
+async function buildSbsTraceRow(row, profileDefinition, options) {
+  const size = Number(profileDefinition.matrix) === 1536 ? 5 : 3;
+  const contexts = profileDefinition.contexts || [];
+  const ref = row.referenceAllele;
+  const alt = row.alternateAllele;
+  const alleleOk = /^[ACGT]$/.test(ref) && /^[ACGT]$/.test(alt);
+  const variantTypeOk = variantTypeIsSnv(row.variantType);
+  const contextResult = await resolveReferenceContext(row, size, options);
+  const referenceContext = contextResult.context;
+  const centerBase = referenceContext?.[Math.floor(referenceContext.length / 2)];
+  const referenceMatchesContext = Boolean(referenceContext && centerBase === ref);
+  const normalizedContext = referenceContext
+    ? standardize_sequence_context(referenceContext, size)
+    : null;
+  const normalizedSubstitution = alleleOk ? standardize_substitution(ref, alt) : null;
+  const finalBin = sbsContextLabel(normalizedContext, normalizedSubstitution);
+  let skippedReason = "";
+
+  if (!row.chromosome || !row.startPosition) {
+    skippedReason = "missing coordinate";
+  } else if (!variantTypeOk) {
+    skippedReason = "not a single-nucleotide variant";
+  } else if (!alleleOk) {
+    skippedReason = "ref/alt are not single A/C/G/T bases";
+  } else if (!referenceContext) {
+    skippedReason = `missing ${size}-base reference context`;
+  } else if (!referenceMatchesContext) {
+    skippedReason = "reference allele does not match context center";
+  } else if (!finalBin || !contexts.includes(finalBin) || finalBin.includes("N")) {
+    skippedReason = `final ${profileDefinition.key} bin is not valid`;
+  }
+
+  return {
+    profileKey: profileDefinition.key,
+    index: row.index,
+    rowIndices: [row.index],
+    sample: row.sample,
+    chromosome: row.chromosome,
+    start_position: row.startPosition,
+    ref,
+    alt,
+    variantType: row.variantType,
+    originalChange: alleleOk ? `${ref}>${alt}` : `${ref || "?"}>${alt || "?"}`,
+    originalSubstitution: alleleOk ? `${ref}>${alt}` : `${ref || "?"}>${alt || "?"}`,
+    lookupKey: `${row.chromosome || "?"}:${row.startPosition || "?"}`,
+    referenceContext,
+    contextSource: contextResult.source,
+    referenceMatchesContext,
+    purineReference: /^[AG]$/.test(ref),
+    reverseComplementContext: referenceContext ? reverseComplement(referenceContext) : null,
+    normalizedContext,
+    normalizedSubstitution,
+    finalBin,
+    counted: !skippedReason,
+    skippedReason,
+    row: row.originalRow || row.raw,
+  };
+}
+
+function standardizeDbsContext(referenceAlleles, alternateAlleles, contexts) {
+  const ref = cleanAllele(referenceAlleles);
+  const alt = cleanAllele(alternateAlleles);
+  if (!/^[ACGT]{2}$/.test(ref) || !/^[ACGT]{2}$/.test(alt) || ref === alt) {
+    return null;
+  }
+  const direct = `${ref}>${alt}`;
+  if (contexts.includes(direct)) {
+    return direct;
+  }
+  const complemented = `${reverseComplement(ref)}>${reverseComplement(alt)}`;
+  return contexts.includes(complemented) ? complemented : null;
+}
+
+function buildDbsTraceRow(rows, profileDefinition) {
+  const [firstRow, secondRow = null] = rows;
+  const contexts = profileDefinition.contexts || [];
+  const ref = secondRow
+    ? `${firstRow.referenceAllele}${secondRow.referenceAllele}`
+    : firstRow.referenceAllele;
+  const alt = secondRow
+    ? `${firstRow.alternateAllele}${secondRow.alternateAllele}`
+    : firstRow.alternateAllele;
+  const finalBin = standardizeDbsContext(ref, alt, contexts);
+  let skippedReason = "";
+
+  if (!finalBin) {
+    skippedReason = secondRow
+      ? "adjacent SNV pair is not a valid DBS78 substitution"
+      : "not a valid dinucleotide substitution";
+  }
+
+  return {
+    profileKey: profileDefinition.key,
+    index: firstRow.index,
+    rowIndices: rows.map((row) => row.index),
+    sample: firstRow.sample,
+    chromosome: firstRow.chromosome,
+    start_position: firstRow.startPosition,
+    ref,
+    alt,
+    variantType: secondRow ? "paired adjacent SNVs" : firstRow.variantType,
+    originalChange: `${ref || "?"}>${alt || "?"}`,
+    originalSubstitution: `${ref || "?"}>${alt || "?"}`,
+    lookupKey: secondRow
+      ? `${firstRow.chromosome || "?"}:${firstRow.startPosition || "?"}-${secondRow.startPosition || "?"}`
+      : `${firstRow.chromosome || "?"}:${firstRow.startPosition || "?"}`,
+    referenceContext: ref,
+    contextSource: secondRow ? "adjacent SNV pair" : "DNP row",
+    finalBin,
+    counted: !skippedReason,
+    skippedReason,
+    row: secondRow ? rows.map((row) => row.originalRow || row.raw) : firstRow.originalRow || firstRow.raw,
+  };
+}
+
+function buildSkippedProfileTraceRow(row, profileDefinition, skippedReason) {
+  return {
+    profileKey: profileDefinition.key,
+    index: row.index,
+    rowIndices: [row.index],
+    sample: row.sample,
+    chromosome: row.chromosome,
+    start_position: row.startPosition,
+    ref: row.referenceAllele,
+    alt: row.alternateAllele,
+    variantType: row.variantType,
+    originalChange: `${row.referenceAllele || "-"}>${row.alternateAllele || "-"}`,
+    originalSubstitution: `${row.referenceAllele || "-"}>${row.alternateAllele || "-"}`,
+    lookupKey: `${row.chromosome || "?"}:${row.startPosition || "?"}`,
+    referenceContext: null,
+    contextSource: "not used by selected profile",
+    finalBin: null,
+    counted: false,
+    skippedReason,
+    row: row.originalRow || row.raw,
+  };
+}
+
+function buildDbsTrace(rows, profileDefinition) {
+  const traces = [];
+  const representedRows = new Set();
+  const pairedRows = new Set();
+  const usedSnvRows = new Set();
+  const directRows = rows.filter(
+    (row) =>
+      variantTypeIsDbs(row.variantType) ||
+      (/^[ACGT]{2}$/.test(row.referenceAllele) && /^[ACGT]{2}$/.test(row.alternateAllele))
+  );
+
+  directRows.forEach((row) => {
+    traces.push(buildDbsTraceRow([row], profileDefinition));
+    representedRows.add(row.index);
+  });
+
+  const snvRows = rows
+    .filter(
+      (row) =>
+        variantTypeIsSnv(row.variantType) &&
+        /^[ACGT]$/.test(row.referenceAllele) &&
+        /^[ACGT]$/.test(row.alternateAllele) &&
+        row.chromosome &&
+        Number.isFinite(row.startPosition)
+    )
+    .sort((a, b) =>
+      a.sample.localeCompare(b.sample) ||
+      String(a.chromosome).localeCompare(String(b.chromosome)) ||
+      a.startPosition - b.startPosition
+    );
+
+  for (let index = 0; index < snvRows.length - 1; index += 1) {
+    const current = snvRows[index];
+    const next = snvRows[index + 1];
+    if (
+      usedSnvRows.has(current.index) ||
+      usedSnvRows.has(next.index) ||
+      current.sample !== next.sample ||
+      current.chromosome !== next.chromosome ||
+      next.startPosition !== current.startPosition + 1
+    ) {
+      continue;
+    }
+    const trace = buildDbsTraceRow([current, next], profileDefinition);
+    pairedRows.add(current.index);
+    pairedRows.add(next.index);
+    if (trace.counted) {
+      usedSnvRows.add(current.index);
+      usedSnvRows.add(next.index);
+    }
+    traces.push(trace);
+  }
+
+  rows.forEach((row) => {
+    if (representedRows.has(row.index) || pairedRows.has(row.index)) {
+      return;
+    }
+    const isSingleSnv =
+      variantTypeIsSnv(row.variantType) &&
+      /^[ACGT]$/.test(row.referenceAllele) &&
+      /^[ACGT]$/.test(row.alternateAllele);
+    const skippedReason = isSingleSnv
+      ? "single SNV is not paired with an adjacent SNV"
+      : "not an explicit DNP or adjacent SNV pair";
+    traces.push(buildSkippedProfileTraceRow(row, profileDefinition, skippedReason));
+  });
+
+  return traces.sort((a, b) => Number(a.index || 0) - Number(b.index || 0));
+}
+
+function firstFiniteField(row, fields, { subtractOne = false } = {}) {
+  for (const field of fields) {
+    const value = finiteInteger(row.raw?.[field] ?? row.originalRow?.[field]);
+    if (value !== null) {
+      return Math.max(0, Math.min(5, subtractOne ? value - 1 : value));
+    }
+  }
+  return null;
+}
+
+function normalizeIndelBase(sequence) {
+  const base = cleanAllele(sequence)[0];
+  if (base === "C" || base === "T") {
+    return base;
+  }
+  if (base === "A" || base === "G") {
+    return reverseComplement(base);
+  }
+  return null;
+}
+
+function getDirectId83Context(row, contexts) {
+  const value = rowValue(row.raw, [
+    "id83_context",
+    "id83_bin",
+    "cosmic_indel_context",
+    "indel_context",
+  ]);
+  const context = value ? String(value).trim() : "";
+  return contexts.includes(context) ? context : null;
+}
+
+function inferIndelEvent(row) {
+  const ref = row.referenceAllele;
+  const alt = row.alternateAllele;
+  const type = String(row.variantType || "").toLowerCase();
+
+  if (variantTypeIsInsertion(type) || (!ref && alt) || (alt.length > ref.length && alt.startsWith(ref))) {
+    return {
+      kind: "Ins",
+      sequence: alt.startsWith(ref) ? alt.slice(ref.length) : alt,
+    };
+  }
+  if (variantTypeIsDeletion(type) || (ref && !alt) || (ref.length > alt.length && ref.startsWith(alt))) {
+    return {
+      kind: "Del",
+      sequence: ref.startsWith(alt) ? ref.slice(alt.length) : ref,
+    };
+  }
+  return null;
+}
+
+function buildId83TraceRow(row, profileDefinition) {
+  const contexts = profileDefinition.contexts || [];
+  const directContext = getDirectId83Context(row, contexts);
+  const event = inferIndelEvent(row);
+  let finalBin = directContext;
+  let skippedReason = "";
+
+  if (!finalBin && event) {
+    const length = Math.max(1, Math.min(5, cleanAllele(event.sequence).length));
+    if (length === 1) {
+      const base = normalizeIndelBase(event.sequence);
+      const repeatIndex =
+        firstFiniteField(row, ["repeat_index", "homopolymer_index", "id_repeat_index"]) ??
+        firstFiniteField(row, ["repeat_count", "repeat_length", "homopolymer_length", "repeat_units"], { subtractOne: true }) ??
+        0;
+      finalBin = base ? `1:${event.kind}:${base}:${repeatIndex}` : null;
+    } else {
+      const microhomology =
+        event.kind === "Del"
+          ? firstFiniteField(row, ["microhomology", "microhomology_length", "mh_length"])
+          : null;
+      const repeatIndex =
+        firstFiniteField(row, ["repeat_index", "repeat_units", "repeat_count"]) ?? 0;
+      if (microhomology && event.kind === "Del") {
+        finalBin = `${length}:Del:M:${Math.max(1, Math.min(5, microhomology))}`;
+      } else {
+        finalBin = `${length}:${event.kind}:R:${repeatIndex}`;
+      }
+    }
+  }
+
+  if (!event && !directContext) {
+    skippedReason = "not an insertion or deletion";
+  } else if (!finalBin || !contexts.includes(finalBin)) {
+    skippedReason = "insertion/deletion annotation is not a valid ID83 bin";
+  }
+
+  return {
+    profileKey: profileDefinition.key,
+    index: row.index,
+    rowIndices: [row.index],
+    sample: row.sample,
+    chromosome: row.chromosome,
+    start_position: row.startPosition,
+    ref: row.referenceAllele,
+    alt: row.alternateAllele,
+    variantType: row.variantType,
+    originalChange: `${row.referenceAllele || "-"}>${row.alternateAllele || "-"}`,
+    originalSubstitution: `${row.referenceAllele || "-"}>${row.alternateAllele || "-"}`,
+    referenceContext: event?.sequence || directContext || null,
+    contextSource: directContext ? "row-supplied ID83 bin" : "MAF indel alleles",
+    finalBin,
+    counted: !skippedReason,
+    skippedReason,
+    row: row.originalRow || row.raw,
+  };
+}
+
+function buildProfileAudit(profileKeyValue, traces, spectra, sourceRows = null) {
+  const countedEvents = traces.filter((row) => row.counted).length;
+  const countedSourceRowIndices = new Set(
+    traces
+      .filter((row) => row.counted)
+      .flatMap((row) => row.rowIndices || [row.index])
+  );
+  const inputRows = Array.isArray(sourceRows) ? sourceRows.length : traces.length;
+  const skippedRows = Math.max(0, inputRows - countedSourceRowIndices.size);
+  const samples = Object.keys(spectra || {});
+  return {
+    profileKey: profileKeyValue,
+    inputRows,
+    countedRows: countedSourceRowIndices.size,
+    countedEvents,
+    skippedRows,
+    samples: samples.map((sample) => {
+      const total = Object.values(spectra[sample] || {}).reduce(
+        (sum, value) => sum + Number(value || 0),
+        0
+      );
+      const sourceRowsForSample = Array.isArray(sourceRows)
+        ? sourceRows.filter((row) => row.sample === sample)
+        : traces.filter((row) => row.sample === sample);
+      const countedRowsForSample = new Set(
+        traces
+          .filter((row) => row.sample === sample && row.counted)
+          .flatMap((row) => row.rowIndices || [row.index])
+      );
+      return {
+        sample,
+        inputRows: sourceRowsForSample.length,
+        countedRows: countedRowsForSample.size,
+        countedEvents: traces.filter((row) => row.sample === sample && row.counted).length,
+        spectrumTotal: total,
+        nonZeroContexts: Object.values(spectra[sample] || {}).filter((value) => Number(value) > 0).length,
+        countCheck: total === traces.filter((row) => row.sample === sample && row.counted).length ? "pass" : "review",
+      };
+    }),
+  };
+}
+
+async function convertProfileRows(rows, profileDefinition, options) {
+  const spectra = {};
+  const contexts = profileDefinition.contexts || [];
+  let trace = [];
+
+  if (profileDefinition.key.startsWith("SBS")) {
+    for (const row of rows) {
+      trace.push(await buildSbsTraceRow(row, profileDefinition, options));
+    }
+  } else if (profileDefinition.key === "DBS78") {
+    trace = buildDbsTrace(rows, profileDefinition);
+  } else if (profileDefinition.key === "ID83") {
+    trace = rows.map((row) => buildId83TraceRow(row, profileDefinition));
+  }
+
+  for (const traceRow of trace) {
+    const sampleSpectrum = ensureSampleSpectrum(spectra, traceRow.sample, contexts);
+    if (traceRow.counted && traceRow.finalBin) {
+      sampleSpectrum[traceRow.finalBin] = Number(sampleSpectrum[traceRow.finalBin] || 0) + 1;
+    }
+  }
+
+  return {
+    spectra,
+    trace,
+    audit: buildProfileAudit(profileDefinition.key, trace, spectra, rows),
+  };
+}
+
 /**
- * Converts input mutational data into a mutational spectrum matrix grouped by a specified field.
+ * Converts MAF-like rows into one or more COSMIC-style profile matrices.
  *
- * This function processes raw mutational data, extracts trinucleotide contexts, and aggregates 
- * mutational spectra for each group. It supports TCGA and non-TCGA formats, allowing batch processing 
- * for large datasets. The resulting mutational spectrum matrix is formatted for downstream visualization 
- * and analysis.
+ * @async
+ * @function convertMafToProfileSpectra
+ * @memberof userData
+ * @param {Array<Object>|Array<Array<Object>>} data - Flat or nested MAF-like rows.
+ * @param {Object} [options] - Conversion options.
+ * @param {Array<string|Object>} [options.profiles=["SBS96"]] - Profile keys or profile/matrix objects.
+ * @param {string} [options.groupBy="project_code"] - Field used to group spectra.
+ * @param {string} [options.genome="hg19"] - Reference genome build for context lookup.
+ * @param {boolean} [options.tcga=false] - Whether to read TCGA-specific MAF fields.
+ * @param {boolean} [options.offline=false] - Use row-supplied or lookup-table context.
+ * @param {Object} [options.contextLookupTable=null] - Position-indexed context lookup table.
+ * @returns {Promise<Object>} Profile-keyed spectra, trace, audit, warnings, and registry metadata.
+ */
+async function convertMafToProfileSpectra(data, options = {}) {
+  const {
+    profiles = ["SBS96"],
+    groupBy = "project_code",
+    genome = "hg19",
+    tcga = false,
+    offline = false,
+    contextLookupTable = null,
+  } = options;
+  const requestedProfiles = (Array.isArray(profiles) ? profiles : [profiles])
+    .map(normalizeProfileRequest)
+    .map((profile) => getProfileDefinition(profile))
+    .filter(Boolean);
+  const profileDefinitions = requestedProfiles.length
+    ? requestedProfiles
+    : [getProfileDefinition({ profile: "SBS", matrix: 96 })];
+  const rows = normalizeProfileRows(data, groupBy, tcga);
+  const spectraByProfile = {};
+  const traceByProfile = {};
+  const profileAudits = {};
+  const warnings = [];
+  let offlineContextLookupTable = contextLookupTable;
+
+  if (offline && !offlineContextLookupTable) {
+    offlineContextLookupTable = await loadBundledContextLookupTable(genome);
+  }
+
+  for (const definition of profileDefinitions) {
+    if (definition.conversionSupport !== "native_maf") {
+      warnings.push({
+        level: "warning",
+        code: "profile_requires_annotated_input",
+        profileKey: definition.key,
+        message: `${definition.key} requires ${definition.inputKind} input and is not derived from generic MAF rows.`,
+      });
+      continue;
+    }
+
+    const result = await convertProfileRows(rows, definition, {
+      ...options,
+      genome,
+      offline,
+      contextLookupTable: offlineContextLookupTable,
+    });
+    spectraByProfile[definition.key] = result.spectra;
+    traceByProfile[definition.key] = result.trace;
+    profileAudits[definition.key] = result.audit;
+
+    if (result.audit.countedRows === 0 && rows.length > 0) {
+      warnings.push({
+        level: "warning",
+        code: "profile_no_counted_rows",
+        profileKey: definition.key,
+        message: `${definition.key} conversion did not count any rows; review input requirements and skipped-row reasons.`,
+      });
+    }
+  }
+
+  return {
+    schemaVersion: "msig.maf_profile_conversion.v0.1",
+    profiles: profileDefinitions.map((definition) => definition.key),
+    supportedMafProfiles: listMafConvertibleProfiles().map((definition) => definition.key),
+    spectraByProfile,
+    traceByProfile,
+    audit: {
+      inputRows: rows.length,
+      profiles: profileAudits,
+    },
+    warnings,
+    profileRegistry: profileDefinitions.map((definition) => ({
+      key: definition.key,
+      profile: definition.profile,
+      matrix: definition.matrix,
+      conversionSupport: definition.conversionSupport,
+      inputKind: definition.inputKind,
+      requiredFields: definition.requiredFields,
+      contextRequirement: definition.contextRequirement,
+      contextCount: definition.contexts?.length ?? null,
+      renderer: definition.renderer,
+    })),
+  };
+}
+
+/**
+ * Converts MAF-like input into a backward-compatible SBS96 mutational spectrum.
+ *
+ * This wrapper delegates to convertMafToProfileSpectra with the SBS96 target and
+ * returns the legacy sample-by-context matrix shape. Use convertMafToProfileSpectra
+ * for SBS1536, DBS78, ID83, trace, audit, and multi-profile conversion output.
  *
  * @async
  * @function convertMatrix
@@ -292,8 +994,7 @@ async function loadBundledContextLookupTable(genome) {
  * @param {Object} [options={}] - Context lookup options.
  * @param {boolean} [options.offline=false] - Use row-supplied or lookup-table contexts instead of the UCSC sequence API.
  * @param {Object} [options.contextLookupTable=null] - Position-indexed trinucleotide lookup table.
- * @returns {Promise<Object>} - A promise resolving to an object where each key is a group (e.g., "CNIC"),
- * and each value is a mutational spectrum object. The mutational spectrum object contains trinucleotide contexts as keys (e.g., "A[C>A]A") and counts as values.
+ * @returns {Promise<Object>} - A promise resolving to a sample-keyed SBS96 matrix.
  *
  * @example
  * // Example input data
@@ -334,6 +1035,16 @@ async function convertMatrix(
   tcga = false,
   options = {}
 ) {
+  const profileConversion = await convertMafToProfileSpectra(data, {
+    profiles: ["SBS96"],
+    groupBy: group_by,
+    batchSize: batch_size,
+    genome,
+    tcga,
+    ...(typeof options === "boolean" ? { offline: options } : options || {}),
+  });
+  return profileConversion.spectraByProfile.SBS96 || {};
+
   const mutationalSpectra = {};
   group_by = group_by.toLowerCase();
   const contextOptions =
@@ -459,7 +1170,7 @@ async function getMutationalContext(
   chromosomeNumber,
   genome,
   startPosition,
-  { offline = false, contextLookupTable = null } = {}
+  { offline = false, contextLookupTable = null, contextSize = 3 } = {}
 ) {
   if (offline) {
     const sequence = lookupOfflineContext(
@@ -472,22 +1183,23 @@ async function getMutationalContext(
         `No offline trinucleotide context for ${normalizeGenomeBuild(genome)} chromosome ${chromosomeNumber} position ${startPosition}.`
       );
     }
-    return sequence;
+    return normalizeSequenceWindow(sequence, contextSize) || sequence;
   }
 
   const chrName = String(chromosomeNumber);
-  const startByte = startPosition - 2;
-  const endByte = startPosition;
+  const flank = Math.floor(Number(contextSize) / 2) || 1;
+  const startByte = startPosition - flank - 1;
+  const endByteExclusive = startPosition + flank;
 
   const alternative = await (
     await fetchURLAndCache("HG19",
-      `https://api.genome.ucsc.edu/getData/sequence?genome=${genome};chrom=chr${chrName};start=${startByte};end=${endByte + 1
+      `https://api.genome.ucsc.edu/getData/sequence?genome=${genome};chrom=chr${chrName};start=${startByte};end=${endByteExclusive
       }`
     )
   ).json();
 
   const sequence = alternative.dna;
-  return sequence;
+  return normalizeSequenceWindow(sequence, contextSize) || sequence;
 }
 
 
@@ -496,8 +1208,11 @@ export {
   standardize_substitution,
   init_sbs_mutational_spectra,
   standardize_trinucleotide,
+  standardize_sequence_context,
+  normalizeSequenceWindow,
   normalizeSequenceContext,
   normalizeChromosome,
   convertMatrix,
+  convertMafToProfileSpectra,
   getMutationalContext,
 };

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T18:19:33.745Z",
+  "generatedAt": "2026-05-20T19:14:32.438Z",
   "generator": {
     "name": "documentation.js",
     "version": "^14.0.3"
@@ -32,8 +32,8 @@
   ],
   "stats": {
     "namespaces": 21,
-    "functions": 146,
-    "asyncFunctions": 62,
+    "functions": 150,
+    "asyncFunctions": 63,
     "functionsWithExamples": 22
   },
   "namespaces": [
@@ -73,7 +73,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2474
+            "line": 2705
           }
         },
         {
@@ -107,7 +107,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2401
+            "line": 2632
           }
         },
         {
@@ -792,7 +792,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3457
+            "line": 3688
           }
         },
         {
@@ -826,7 +826,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3497
+            "line": 3728
           }
         },
         {
@@ -897,7 +897,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2596
+            "line": 2827
           }
         },
         {
@@ -959,7 +959,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3331
+            "line": 3562
           }
         },
         {
@@ -1014,7 +1014,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2838
+            "line": 3069
           }
         },
         {
@@ -1048,7 +1048,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3497
+            "line": 3728
           }
         },
         {
@@ -1089,7 +1089,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3205
+            "line": 3436
           }
         },
         {
@@ -1130,7 +1130,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2300
+            "line": 2531
           }
         },
         {
@@ -1166,7 +1166,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2228
+            "line": 2447
           }
         },
         {
@@ -1221,7 +1221,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 1930
+            "line": 1972
           }
         },
         {
@@ -1257,7 +1257,7 @@
           ],
           "source": {
             "file": "main.js",
-            "line": 2024
+            "line": 2066
           }
         },
         {
@@ -1298,7 +1298,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2765
+            "line": 2996
           }
         },
         {
@@ -1346,7 +1346,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3457
+            "line": 3688
           }
         },
         {
@@ -1408,7 +1408,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2976
+            "line": 3207
           }
         }
       ]
@@ -1419,11 +1419,88 @@
       "summary": "MAF, panel, and user-supplied spectrum conversion utilities.",
       "functions": [
         {
+          "name": "convertMafToProfileSpectra",
+          "kind": "function",
+          "async": true,
+          "sourceNamespace": "userData",
+          "description": "Converts MAF-like rows into one or more COSMIC-style profile matrices.",
+          "params": [
+            {
+              "name": "data",
+              "type": "Array<Object> | Array<Array<Object>>",
+              "default": null,
+              "description": "Flat or nested MAF-like rows.",
+              "properties": []
+            },
+            {
+              "name": "options",
+              "type": "Object=",
+              "default": null,
+              "description": "Conversion options.",
+              "properties": [
+                {
+                  "name": "options.profiles",
+                  "type": "Array<string | Object>",
+                  "default": "[\"SBS96\"]",
+                  "description": "Profile keys or profile/matrix objects.",
+                  "properties": []
+                },
+                {
+                  "name": "options.groupBy",
+                  "type": "string",
+                  "default": "\"project_code\"",
+                  "description": "Field used to group spectra.",
+                  "properties": []
+                },
+                {
+                  "name": "options.genome",
+                  "type": "string",
+                  "default": "\"hg19\"",
+                  "description": "Reference genome build for context lookup.",
+                  "properties": []
+                },
+                {
+                  "name": "options.tcga",
+                  "type": "boolean",
+                  "default": "false",
+                  "description": "Whether to read TCGA-specific MAF fields.",
+                  "properties": []
+                },
+                {
+                  "name": "options.offline",
+                  "type": "boolean",
+                  "default": "false",
+                  "description": "Use row-supplied or lookup-table context.",
+                  "properties": []
+                },
+                {
+                  "name": "options.contextLookupTable",
+                  "type": "Object",
+                  "default": "null",
+                  "description": "Position-indexed context lookup table.",
+                  "properties": []
+                }
+              ]
+            }
+          ],
+          "returns": [
+            {
+              "type": "Promise<Object>",
+              "description": "Profile-keyed spectra, trace, audit, warnings, and registry metadata."
+            }
+          ],
+          "examples": [],
+          "source": {
+            "file": "mSigSDKScripts/mutationalSpectrum.js",
+            "line": 895
+          }
+        },
+        {
           "name": "convertMatrix",
           "kind": "function",
           "async": true,
           "sourceNamespace": "userData",
-          "description": "Converts input mutational data into a mutational spectrum matrix grouped by a specified field.This function processes raw mutational data, extracts trinucleotide contexts, and aggregates mutational spectra for each group. It supports TCGA and non-TCGA formats, allowing batch processing for large datasets. The resulting mutational spectrum matrix is formatted for downstream visualization and analysis.",
+          "description": "Converts MAF-like input into a backward-compatible SBS96 mutational spectrum.This wrapper delegates to convertMafToProfileSpectra with the SBS96 target and returns the legacy sample-by-context matrix shape. Use convertMafToProfileSpectra for SBS1536, DBS78, ID83, trace, audit, and multi-profile conversion output.",
           "params": [
             {
               "name": "data",
@@ -1486,7 +1563,7 @@
           "returns": [
             {
               "type": "Promise<Object>",
-              "description": "A promise resolving to an object where each key is a group (e.g., \"CNIC\"), and each value is a mutational spectrum object. The mutational spectrum object contains trinucleotide contexts as keys (e.g., \"A[C>A]A\") and counts as values."
+              "description": "A promise resolving to a sample-keyed SBS96 matrix."
             }
           ],
           "examples": [
@@ -1494,7 +1571,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/mutationalSpectrum.js",
-            "line": 329
+            "line": 1030
           }
         },
         {
@@ -1545,7 +1622,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/userData.js",
-            "line": 337
+            "line": 338
           }
         },
         {
@@ -1581,7 +1658,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/userData.js",
-            "line": 106
+            "line": 107
           }
         },
         {
@@ -1651,7 +1728,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/userData.js",
-            "line": 199
+            "line": 200
           }
         }
       ]
@@ -1840,7 +1917,7 @@
           ],
           "source": {
             "file": "main.js",
-            "line": 3104
+            "line": 3335
           }
         },
         {
@@ -1902,7 +1979,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3331
+            "line": 3562
           }
         },
         {
@@ -1943,7 +2020,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3205
+            "line": 3436
           }
         }
       ]
@@ -2146,7 +2223,7 @@
     {
       "name": "validation",
       "label": "Validation",
-      "summary": "SBS96 contexts, matrix normalization, input validation, and assertion helpers.",
+      "summary": "Profile context registries, matrix normalization, input validation, and assertion helpers.",
       "functions": [
         {
           "name": "assertValid",
@@ -2179,7 +2256,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/validation.js",
-            "line": 548
+            "line": 561
           }
         },
         {
@@ -2223,7 +2300,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/validation.js",
-            "line": 56
+            "line": 51
           }
         },
         {
@@ -2250,7 +2327,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/validation.js",
-            "line": 208
+            "line": 221
           }
         },
         {
@@ -2269,7 +2346,45 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/validation.js",
-            "line": 25
+            "line": 32
+          }
+        },
+        {
+          "name": "listMafConvertibleProfiles",
+          "kind": "function",
+          "async": false,
+          "sourceNamespace": "validation",
+          "description": "Lists registered profile targets that can be derived directly from MAF-like rows.",
+          "params": [],
+          "returns": [
+            {
+              "type": "Array<Object>",
+              "description": "Registered native MAF-derived targets, including SBS96, SBS1536, DBS78, and ID83."
+            }
+          ],
+          "examples": [],
+          "source": {
+            "file": "mSigSDKScripts/validation.js",
+            "line": 73
+          }
+        },
+        {
+          "name": "listProfileDefinitions",
+          "kind": "function",
+          "async": false,
+          "sourceNamespace": "validation",
+          "description": "Lists all registered COSMIC-style profile targets known to the SDK.",
+          "params": [],
+          "returns": [
+            {
+              "type": "Array<Object>",
+              "description": "Profile definitions with canonical key, profile family, matrix size, contexts, input requirements, conversion support, and renderer mapping."
+            }
+          ],
+          "examples": [],
+          "source": {
+            "file": "mSigSDKScripts/validation.js",
+            "line": 62
           }
         },
         {
@@ -2311,7 +2426,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/validation.js",
-            "line": 174
+            "line": 187
           }
         },
         {
@@ -2367,7 +2482,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/validation.js",
-            "line": 92
+            "line": 105
           }
         },
         {
@@ -2423,7 +2538,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/validation.js",
-            "line": 136
+            "line": 149
           }
         },
         {
@@ -2479,7 +2594,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/validation.js",
-            "line": 156
+            "line": 169
           }
         },
         {
@@ -2521,7 +2636,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/validation.js",
-            "line": 443
+            "line": 456
           }
         },
         {
@@ -2556,7 +2671,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/validation.js",
-            "line": 483
+            "line": 496
           }
         },
         {
@@ -2605,7 +2720,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/validation.js",
-            "line": 408
+            "line": 421
           }
         },
         {
@@ -2663,7 +2778,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/validation.js",
-            "line": 349
+            "line": 362
           }
         }
       ]
@@ -3320,7 +3435,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6257
+            "line": 6488
           }
         },
         {
@@ -3369,7 +3484,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5876
+            "line": 6107
           }
         },
         {
@@ -3403,7 +3518,84 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5039
+            "line": 5270
+          }
+        },
+        {
+          "name": "plotCosmicProfile",
+          "kind": "function",
+          "async": false,
+          "sourceNamespace": "qcPlots",
+          "description": "Renders a COSMIC-style mutational profile using the renderer that matches the selected matrix.",
+          "params": [
+            {
+              "name": "divID",
+              "type": "string | Element",
+              "default": null,
+              "description": "Container element or element id.",
+              "properties": []
+            },
+            {
+              "name": "spectra",
+              "type": "Object",
+              "default": null,
+              "description": "One context-keyed spectrum or a sample-keyed spectra object.",
+              "properties": []
+            },
+            {
+              "name": "options",
+              "type": "Object=",
+              "default": null,
+              "description": "Plot options.",
+              "properties": [
+                {
+                  "name": "options.profileKey",
+                  "type": "string",
+                  "default": "\"SBS96\"",
+                  "description": "Canonical profile key such as SBS96, SBS1536, DBS78, ID83, or RS32.",
+                  "properties": []
+                },
+                {
+                  "name": "options.profile",
+                  "type": "string=",
+                  "default": null,
+                  "description": "Profile family when profileKey is not supplied.",
+                  "properties": []
+                },
+                {
+                  "name": "options.matrix",
+                  "type": "number=",
+                  "default": null,
+                  "description": "Matrix size when profileKey is not supplied.",
+                  "properties": []
+                },
+                {
+                  "name": "options.sample",
+                  "type": "string",
+                  "default": "null",
+                  "description": "Sample or group to render.",
+                  "properties": []
+                },
+                {
+                  "name": "options.contexts",
+                  "type": "Array<string>",
+                  "default": "null",
+                  "description": "Optional canonical context order.",
+                  "properties": []
+                }
+              ]
+            }
+          ],
+          "returns": [
+            {
+              "type": "Object | Element",
+              "description": "Render metadata or an error element."
+            }
+          ],
+          "examples": [],
+          "source": {
+            "file": "main.js",
+            "line": 2227
           }
         },
         {
@@ -3494,7 +3686,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5465
+            "line": 5696
           }
         },
         {
@@ -3528,7 +3720,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3969
+            "line": 4200
           }
         },
         {
@@ -3569,7 +3761,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5759
+            "line": 5990
           }
         },
         {
@@ -3603,7 +3795,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3519
+            "line": 3750
           }
         },
         {
@@ -3637,7 +3829,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5187
+            "line": 5418
           }
         },
         {
@@ -3686,7 +3878,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3713
+            "line": 3944
           }
         },
         {
@@ -3720,7 +3912,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6620
+            "line": 6851
           }
         },
         {
@@ -3754,7 +3946,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6050
+            "line": 6281
           }
         }
       ]
@@ -4135,7 +4327,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6701
+            "line": 6932
           }
         },
         {
@@ -4169,7 +4361,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6884
+            "line": 7115
           }
         },
         {
@@ -4218,7 +4410,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6636
+            "line": 6867
           }
         }
       ]
@@ -5515,7 +5707,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7196
+            "line": 7427
           }
         },
         {
@@ -5606,7 +5798,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7061
+            "line": 7292
           }
         },
         {
@@ -5851,7 +6043,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7143
+            "line": 7374
           }
         }
       ]
@@ -5892,7 +6084,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7483
+            "line": 7759
           }
         }
       ]
@@ -5962,7 +6154,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 495
+            "line": 498
           }
         },
         {
@@ -5996,7 +6188,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 625
+            "line": 667
           }
         }
       ]

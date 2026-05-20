@@ -114,10 +114,58 @@ async function fetchURLAndCache(cacheName, url, header = null, ICGC = null) {
   const matchedURL = ICGC != null ? ICGC : url;
   const fetchOptions = header || undefined;
 
+  async function fetchWithRuntime() {
+    if (typeof fetch === "function") {
+      return await fetch(url, fetchOptions);
+    }
+
+    const parsedUrl = new URL(url);
+    const transport =
+      parsedUrl.protocol === "http:"
+        ? await import("node:http")
+        : await import("node:https");
+
+    return await new Promise((resolve, reject) => {
+      const request = transport.request(
+        parsedUrl,
+        {
+          method: fetchOptions?.method || "GET",
+          headers: fetchOptions?.headers || {},
+        },
+        (response) => {
+          const chunks = [];
+          response.on("data", (chunk) => chunks.push(chunk));
+          response.on("end", () => {
+            const body = Buffer.concat(chunks).toString("utf8");
+            resolve({
+              ok: response.statusCode >= 200 && response.statusCode < 300,
+              status: response.statusCode,
+              statusText: response.statusMessage || "",
+              async text() {
+                return body;
+              },
+              async json() {
+                return JSON.parse(body);
+              },
+              clone() {
+                return this;
+              },
+            });
+          });
+        }
+      );
+      request.on("error", reject);
+      if (fetchOptions?.body) {
+        request.write(fetchOptions.body);
+      }
+      request.end();
+    });
+  }
+
   async function fetchFromNetwork() {
     let response;
     try {
-      response = await fetch(url, fetchOptions);
+      response = await fetchWithRuntime();
     } catch (error) {
       const detail = error?.message ? `: ${error.message}` : "";
       throw new Error(`Error fetching data from ${url}${detail}`, { cause: error });

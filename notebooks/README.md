@@ -17,7 +17,7 @@ Each notebook should read as a stepwise researcher workflow. Narrative cells sho
 ### Input and resource setup
 
 - `msig-sdk-resource-portability.onb.html`: SDK object shape, source metadata, file round trips, and handoff packages.
-- `msig-sdk-maf-fit-report.onb.html`: sorting raw variant rows into a checked 96-bin mutation pattern before fitting.
+- `msig-sdk-maf-fit-report.onb.html`: sorting raw variant rows into checked SBS96, SBS1536, DBS78, and ID83 mutation profiles before fitting or export.
 
 ### Core analysis
 

@@ -24,6 +24,7 @@ const exportedPlots = [
   "plotFitQualityEvidenceDashboard",
   "plotCohortGroupComparison",
   "plotPanelEvidenceMatrix",
+  "plotCosmicProfile",
   "plotCosmicSbs96Profile",
   "plotFitResiduals",
   "plotBootstrapExposureSummary",
@@ -76,6 +77,7 @@ for (const plotName of exportedPlots) {
   const hasPublicationPath =
     body.includes("createD3PlotFrame") ||
     body.includes("plotGraphWithPlotlyAndMakeDataDownloadable") ||
+    body.includes("plotCosmicProfile") ||
     body.includes("plotCosmicSbs96Profile") ||
     body.includes("plotPatientMutationalSpectrumuserData") ||
     body.includes("plotThresholdSensitivitySummary") ||

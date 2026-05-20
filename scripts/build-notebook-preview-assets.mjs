@@ -494,8 +494,8 @@ const assets = [
   },
   {
     file: "sdk-maf-fit-report.svg",
-    title: "MAF to SBS96 explainer",
-    desc: "Variant rows mapped through DNA context into SBS96 spectrum channels",
+    title: "MAF to COSMIC profiles",
+    desc: "Variant rows mapped into SBS, DBS, and indel profile channels",
     accent: color.orange,
     secondary: color.purple,
     bg: ["#fffaf7", "#f9f2fb", "#edf8f6"],

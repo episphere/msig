@@ -1,21 +1,22 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK MAF to SBS96 explainer</title>
+  <title>mSigSDK MAF to COSMIC profiles</title>
 
   <script type="text/markdown">
-    # MAF to SBS96 explainer
+    # MAF to COSMIC profiles
 
-    A MAF-like row records where a variant happened and which base changed: chromosome, position, reference allele, alternate allele, and variant type. SBS96 spectra need the neighboring 5' and 3' reference bases too. This notebook follows each row from input MAF to reference context, pyrimidine normalization, and final SBS96 bin counts.
+    A MAF-like row records where a variant happened and which allele changed. COSMIC profile matrices use that event evidence differently across SBS, DBS, and indel contexts. This notebook follows rows from raw MAF fields into profile-specific bins, audit checks, exports, and compatible signature review inputs.
   </script>
 
   <script type="module" pinned id="maf-to-sbs96-explainer">
-    const mafSdkUrl = new URL("../main.js?v=2026-05-16-maf-guided-flow", location.href).href;
-    const mutationalSpectrumUrl = new URL("../mSigSDKScripts/mutationalSpectrum.js?v=2026-05-16-maf-guided-flow", location.href).href;
+    const mafSdkUrl = new URL("../main.js?v=2026-05-20-profile-plots", location.href).href;
+    const mutationalSpectrumUrl = new URL("../mSigSDKScripts/mutationalSpectrum.js?v=2026-05-20-profile-plots", location.href).href;
     const { mSigSDK } = await import(mafSdkUrl);
     const {
       getMutationalContext,
       normalizeChromosome,
       normalizeSequenceContext,
+      normalizeSequenceWindow,
       standardize_substitution,
       standardize_trinucleotide,
     } = await import(mutationalSpectrumUrl);
@@ -26,6 +27,8 @@
       profile: "SBS",
       matrix: 96,
     });
+    const PROFILE_DEFINITIONS = mSigSDK.validation.listMafConvertibleProfiles();
+    const PROFILE_BY_KEY = Object.fromEntries(PROFILE_DEFINITIONS.map((profile) => [profile.key, profile]));
     const STEP_ORDER = [
       ["load", "Load"],
       ["fields", "Fields"],
@@ -137,6 +140,8 @@
       lookupTable: {},
       selectedIndex: 0,
       selectedGroup: "",
+      selectedProfile: "SBS96",
+      profileConversion: null,
       trace: [],
       spectra: {},
       audit: null,
@@ -646,6 +651,7 @@
           reference_allele: findField(row, "reference_allele").toUpperCase(),
           tumor_seq_allele2: findField(row, "tumor_seq_allele2").toUpperCase(),
           variant_type: findField(row, "variant_type") || "SNP",
+          context: findField(row, "context"),
           build: findField(row, "build") || state?.sourceGenome || "hg19",
           raw: row,
         };
@@ -671,7 +677,45 @@
     }
 
     function zeroSpectrum() {
-      return Object.fromEntries(SBS96_CONTEXTS.map((context) => [context, 0]));
+      return Object.fromEntries(activeContexts().map((context) => [context, 0]));
+    }
+
+    function profileOptionsFromKey(key = state.selectedProfile) {
+      const match = String(key || "SBS96").match(/^([A-Z-]+)(\d+)$/);
+      return match ? { profile: match[1], matrix: Number(match[2]) } : { profile: "SBS", matrix: 96 };
+    }
+
+    function activeProfileDefinition() {
+      return PROFILE_BY_KEY[state.selectedProfile] || PROFILE_BY_KEY.SBS96;
+    }
+
+    function activeContexts() {
+      return mSigSDK.validation.getExpectedContexts(profileOptionsFromKey()) || SBS96_CONTEXTS;
+    }
+
+    function sdkProfileReady() {
+      return Boolean(state.profileConversion?.spectraByProfile?.[state.selectedProfile]);
+    }
+
+    function sdkAuditForActiveProfile() {
+      const profileAudit = state.profileConversion?.audit?.profiles?.[state.selectedProfile];
+      if (!profileAudit) return null;
+      return {
+        rows: [
+          { checkpoint: "Input rows", value: state.rows.length },
+          { checkpoint: `Source rows used for ${state.selectedProfile}`, value: profileAudit.countedRows },
+          { checkpoint: "Profile events counted", value: profileAudit.countedEvents ?? profileAudit.countedRows },
+          { checkpoint: "Rows skipped", value: profileAudit.skippedRows },
+        ],
+        groupRows: (profileAudit.samples || []).map((row) => ({
+          sample: row.sample,
+          inputRows: row.inputRows ?? state.rows.filter((inputRow) => inputRow.sample === row.sample).length,
+          countedRows: row.countedRows,
+          countedEvents: row.countedEvents ?? row.spectrumTotal,
+          spectrumTotal: row.spectrumTotal,
+          countCheck: row.countCheck,
+        })),
+      };
     }
 
     function variantTypeIsSnv(value) {
@@ -729,8 +773,8 @@
         skippedReason = "missing 5' and 3' reference context";
       } else if (!referenceMatchesContext) {
         skippedReason = "reference allele does not match context center";
-      } else if (!finalBin || !SBS96_CONTEXTS.includes(finalBin) || finalBin.includes("N")) {
-        skippedReason = "final SBS96 bin is not valid";
+      } else if (!finalBin || !activeContexts().includes(finalBin) || finalBin.includes("N")) {
+        skippedReason = `final ${state.selectedProfile} bin is not valid`;
       }
 
       return {
@@ -760,6 +804,15 @@
     }
 
     function recompute() {
+      if (sdkProfileReady()) {
+        state.trace = state.profileConversion.traceByProfile[state.selectedProfile] || [];
+        state.spectra = state.profileConversion.spectraByProfile[state.selectedProfile] || {};
+        const groups = Object.keys(state.spectra);
+        if (!groups.includes(state.selectedGroup)) state.selectedGroup = groups[0] || "";
+        if (state.selectedIndex >= state.rows.length) state.selectedIndex = 0;
+        state.audit = sdkAuditForActiveProfile();
+        return;
+      }
       state.trace = state.rows.map(buildTraceRow);
       const spectra = {};
       for (const traceRow of state.trace) {
@@ -791,7 +844,8 @@
           sample,
           inputRows: inputForGroup,
           countedRows: countedForGroup,
-          observedSbs96Count,
+          countedEvents: countedForGroup,
+          spectrumTotal: observedSbs96Count,
           countCheck: countedForGroup === observedSbs96Count ? "pass" : "review",
         };
       });
@@ -801,7 +855,8 @@
           { checkpoint: "Rows with row-supplied context", value: rowContexts },
           { checkpoint: "Rows still missing context", value: missingLookup },
           { checkpoint: "Rows needing reverse complement", value: purineRows },
-          { checkpoint: "Rows counted into SBS96", value: countedRows },
+          { checkpoint: `Rows counted into ${state.selectedProfile}`, value: countedRows },
+          { checkpoint: "Profile events counted", value: countedRows },
           { checkpoint: "Rows skipped", value: skippedRows },
         ],
         groupRows,
@@ -845,6 +900,27 @@
           message,
         },
       ].slice(-8);
+    }
+
+    async function refreshProfileConversion({ renderAfter = false } = {}) {
+      if (!state.rows.length) {
+        state.profileConversion = null;
+        return;
+      }
+      try {
+        state.profileConversion = await mSigSDK.userData.convertMafToProfileSpectra(state.rows, {
+          profiles: PROFILE_DEFINITIONS.map((profile) => profile.key),
+          groupBy: "sample",
+          genome: state.sourceGenome,
+          offline: true,
+          contextLookupTable: state.lookupTable,
+        });
+        recompute();
+        if (renderAfter) render();
+      } catch (error) {
+        console.warn("Profile conversion failed.", error);
+        state.profileConversion = null;
+      }
     }
 
     function setActiveStep(step) {
@@ -909,9 +985,10 @@
 
     function currentSpectraToTsv(spectra) {
       const samples = Object.keys(spectra || {});
+      const contexts = activeContexts();
       return [
         ["MutationType", ...samples].join("\t"),
-        ...SBS96_CONTEXTS.map((context) =>
+        ...contexts.map((context) =>
           [context, ...samples.map((sample) => spectra[sample]?.[context] || 0)].join("\t")
         ),
       ].join("\n");
@@ -938,7 +1015,7 @@
     }
 
     function downloadCurrentSpectra() {
-      mafDownloadText("maf_converted_sbs96.tsv", currentSpectraToTsv(state.spectra));
+      mafDownloadText(`maf_converted_${state.selectedProfile.toLowerCase()}.tsv`, currentSpectraToTsv(state.spectra));
     }
 
     function applyRows(rows, {
@@ -957,6 +1034,7 @@
       state.tcgaMetadata = metadata;
       state.selectedTcgaRows = selectedTcgaRows;
       state.lookupTable = {};
+      state.profileConversion = null;
       state.selectedIndex = 0;
       state.activeStep = "fields";
       if (!preserveProgress) state.progress = [];
@@ -966,6 +1044,7 @@
         `Loaded ${state.rows.length} row(s) from ${source === "tcga-gdc" ? "TCGA/GDC" : filename || "pasted/uploaded text"}.`,
         "ready"
       );
+      refreshProfileConversion({ renderAfter: true });
     }
 
     function applyPastedData(text, filename = "pasted-maf") {
@@ -1129,9 +1208,9 @@
             normalizeChromosome(candidate.chromosome) || candidate.chromosome,
             candidate.build || state.sourceGenome || "hg19",
             Number(candidate.start_position),
-            { offline: false }
+            { offline: false, contextSize: activeProfileDefinition()?.matrix === 1536 ? 5 : 3 }
           );
-          const normalizedContext = normalizeSequenceContext(context);
+          const normalizedContext = normalizeSequenceWindow(context, activeProfileDefinition()?.matrix === 1536 ? 5 : 3);
           if (normalizedContext) {
             state.lookupTable[candidate.lookupKey] = {
               context: normalizedContext,
@@ -1142,6 +1221,7 @@
           console.warn("Live reference lookup failed.", candidate, error);
         }
       }
+      await refreshProfileConversion();
       recompute();
       setStatus("Live lookup finished", `Resolved context for up to ${candidates.length} row(s).`, "ready");
     }
@@ -1165,23 +1245,63 @@
       const hero = document.createElement("div");
       hero.className = "maf-hero";
       const title = document.createElement("h3");
-      title.textContent = "MAF to SBS96 conversion";
+      title.textContent = "MAF to COSMIC profile conversion";
       const copy = document.createElement("p");
       copy.textContent =
-        "Load TCGA/GDC or uploaded MAF rows, then review context lookup, pyrimidine normalization, and SBS96 binning.";
+        "Load TCGA/GDC or uploaded MAF rows, choose a COSMIC profile matrix, then review event classification, binning, audit checks, and exports.";
       hero.append(title, copy);
       return hero;
     }
 
+    function renderProfilePanel() {
+      const definition = activeProfileDefinition();
+      const panel = document.createElement("div");
+      panel.className = "maf-step-panel";
+      const heading = document.createElement("h3");
+      heading.textContent = "Profile target";
+      const selector = document.createElement("select");
+      PROFILE_DEFINITIONS.forEach((profile) => {
+        const option = document.createElement("option");
+        option.value = profile.key;
+        option.textContent = profile.key;
+        selector.append(option);
+      });
+      selector.value = state.selectedProfile;
+      selector.addEventListener("change", () => {
+        state.selectedProfile = selector.value;
+        state.selectedGroup = "";
+        recompute();
+        render();
+      });
+      const requirements = table(PROFILE_DEFINITIONS.map((profile) => ({
+        profile: profile.key,
+        source: profile.inputKind,
+        requirement: profile.contextRequirement,
+        contexts: profile.contexts?.length || "annotated input",
+      })), [
+        { key: "profile", label: "Profile" },
+        { key: "source", label: "Input evidence" },
+        { key: "requirement", label: "Requirement" },
+        { key: "contexts", label: "Bins" },
+      ], { title: "MAF-derived profile targets", maxRows: PROFILE_DEFINITIONS.length });
+      panel.append(
+        heading,
+        mafField("COSMIC profile matrix", selector, definition?.contextRequirement || ""),
+        requirements
+      );
+      return panel;
+    }
+
     function renderMetrics() {
-      const counted = state.trace.filter((row) => row.counted).length;
-      const skipped = state.trace.length - counted;
+      const profileAudit = state.profileConversion?.audit?.profiles?.[state.selectedProfile];
+      const counted = profileAudit?.countedEvents ?? state.trace.filter((row) => row.counted).length;
+      const skipped = profileAudit?.skippedRows ?? state.trace.length - counted;
       const missing = state.trace.filter((row) => row.contextSource === "missing").length;
       return metrics([
         { label: "Input source", value: state.inputSource === "none" ? "not loaded" : state.inputSource },
         { label: "Rows", value: state.rows.length },
         { label: "Samples", value: Object.keys(state.spectra).length },
-        { label: "Rows counted", value: counted },
+        { label: "Events counted", value: counted },
         { label: "Rows skipped", value: skipped },
         { label: "Missing contexts", value: missing },
       ]);
@@ -1565,6 +1685,37 @@
         return panel;
       }
       const traceRow = selectedTrace();
+      if (!state.selectedProfile.startsWith("SBS")) {
+        heading.textContent = "3. Resolve profile evidence";
+        const rows = state.trace.slice(0, 50).map((row) => ({
+          row: (row.rowIndices || [row.index]).map((value) => Number(value) + 1).join(", "),
+          sample: row.sample,
+          event: row.originalChange || `${row.ref || "-"}>${row.alt || "-"}`,
+          evidence: row.contextSource || "-",
+          status: row.counted ? "counted" : row.skippedReason,
+        }));
+        const sourceRows = Object.entries(
+          state.trace.reduce((acc, row) => {
+            const source = row.contextSource || "missing";
+            acc[source] = (acc[source] || 0) + 1;
+            return acc;
+          }, {})
+        ).map(([source, rows]) => ({ source, rows }));
+        panel.append(
+          heading,
+          mafCaption("DBS78 uses explicit DNP rows or adjacent SNV pairs. ID83 uses insertion/deletion alleles and repeat or microhomology annotations when present."),
+          table(rows, [
+            { key: "row", label: "Row" },
+            { key: "sample", label: "Sample" },
+            { key: "event", label: "Event" },
+            { key: "evidence", label: "Evidence" },
+            { key: "status", label: "Status" },
+          ], { title: `${state.selectedProfile} evidence source`, maxRows: 50 }),
+          renderContextSourceSummary(sourceRows),
+          renderStepFooter()
+        );
+        return panel;
+      }
       const liveLimit = document.createElement("input");
       liveLimit.type = "number";
       liveLimit.min = "1";
@@ -1622,7 +1773,9 @@
       ).map(([source, rows]) => ({ source, rows }));
       panel.append(
         heading,
-        mafCaption("SBS96 uses the bases immediately before and after the variant. Run lookup only for rows without a context value."),
+        mafCaption(state.selectedProfile.startsWith("SBS")
+          ? "SBS profiles use reference bases around the substituted base. Run lookup only for rows without a context value."
+          : "DBS and ID profiles use allele-level event evidence; sequence context is used only when the selected profile requires it."),
         controlRow,
         lookupCard,
         renderContextSourceSummary(sourceRows),
@@ -1635,9 +1788,33 @@
       const panel = document.createElement("section");
       panel.className = "maf-step-panel";
       const heading = document.createElement("h3");
-      heading.textContent = "4. Pyrimidine-normalize";
+      heading.textContent = state.selectedProfile.startsWith("SBS") ? "4. Pyrimidine-normalize" : "4. Classify event evidence";
       if (!state.rows.length) {
         panel.append(heading, renderNoRowsMessage(), renderStepFooter());
+        return panel;
+      }
+      if (!state.selectedProfile.startsWith("SBS")) {
+        const rows = state.trace.slice(0, 50).map((row) => ({
+          row: (row.rowIndices || [row.index]).map((value) => Number(value) + 1).join(", "),
+          sample: row.sample,
+          event: row.originalChange || `${row.ref || "-"}>${row.alt || "-"}`,
+          evidence: row.contextSource || "-",
+          bin: row.counted ? row.finalBin : "-",
+          status: row.counted ? "counted" : row.skippedReason,
+        }));
+        panel.append(
+          heading,
+          note("The selected profile uses the MAF event type and alleles to classify rows before binning. DBS78 accepts explicit DNP rows or adjacent SNV pairs; ID83 accepts insertion and deletion alleles with repeat or microhomology annotations when present."),
+          table(rows, [
+            { key: "row", label: "Row" },
+            { key: "sample", label: "Sample" },
+            { key: "event", label: "Event" },
+            { key: "evidence", label: "Evidence" },
+            { key: "bin", label: `${state.selectedProfile} bin` },
+            { key: "status", label: "Status" },
+          ], { title: "Profile-specific event classification", maxRows: 50 }),
+          renderStepFooter()
+        );
         return panel;
       }
       const traceRow = normalizationExampleTrace();
@@ -1713,7 +1890,7 @@
         const key = `${row.sample}\t${row.finalBin}`;
         counts.set(key, {
           sample: row.sample,
-          sbs96Bin: row.finalBin,
+          profileBin: row.finalBin,
           count: (counts.get(key)?.count || 0) + 1,
         });
       });
@@ -1724,7 +1901,7 @@
       const panel = document.createElement("section");
       panel.className = "maf-step-panel";
       const heading = document.createElement("h3");
-      heading.textContent = "5. Assign SBS96 bins";
+      heading.textContent = `5. Assign ${state.selectedProfile} bins`;
       if (!state.rows.length) {
         panel.append(heading, renderNoRowsMessage(), renderStepFooter());
         return panel;
@@ -1746,9 +1923,9 @@
         binCard,
         table(countedBinRows(), [
           { key: "sample", label: "Sample" },
-          { key: "sbs96Bin", label: "SBS96 bin" },
+          { key: "profileBin", label: `${state.selectedProfile} bin` },
           { key: "count", label: "Running count" },
-        ], { title: "Current non-zero SBS96 bins", maxRows: 20 })
+        ], { title: `Current non-zero ${state.selectedProfile} bins`, maxRows: 20 })
       );
       const traceRows = state.trace.slice(0, 50).map((row) => ({
         row: row.index + 1,
@@ -1760,14 +1937,14 @@
       }));
       panel.append(
         heading,
-        note("The normalized context and substitution select one SBS96 bin. Counted rows increment that bin for their sample."),
+        note("The profile-specific event evidence selects one COSMIC bin. Counted rows increment that bin for their sample."),
         grid,
         table(traceRows, [
           { key: "row", label: "Row" },
           { key: "sample", label: "Sample" },
           { key: "originalChange", label: "Original ref>alt" },
           { key: "normalizedChange", label: "Pyrimidine change" },
-          { key: "finalBin", label: "SBS96 bin" },
+          { key: "finalBin", label: `${state.selectedProfile} bin` },
           { key: "status", label: "Status" },
         ], { title: "Per-row binning trace", maxRows: 50 }),
         renderStepFooter()
@@ -1809,7 +1986,7 @@
         ["Current MAF TSV", () => downloadCurrentMaf("tsv")],
         ["Current MAF CSV", () => downloadCurrentMaf("csv")],
         ["Trace JSON", () => mafDownloadJson("maf_conversion_trace.json", state.trace)],
-        ["SBS96 TSV", downloadCurrentSpectra],
+        [`${state.selectedProfile} TSV`, downloadCurrentSpectra],
         ["Audit CSV", () => mafDownloadText("maf_conversion_audit.csv", mafRowsToCsv([
           ...(state.audit?.rows || []).map((row) => ({ level: "input", ...row })),
           ...(state.audit?.groupRows || []).map((row) => ({ level: "group", ...row })),
@@ -1832,8 +2009,9 @@
         table(state.audit?.groupRows || [], [
           { key: "sample", label: "Sample" },
           { key: "inputRows", label: "Input rows" },
-          { key: "countedRows", label: "Counted rows" },
-          { key: "observedSbs96Count", label: "Spectrum total" },
+          { key: "countedRows", label: "Source rows used" },
+          { key: "countedEvents", label: "Events counted" },
+          { key: "spectrumTotal", label: "Spectrum total" },
           { key: "countCheck", label: "Count check" },
         ], { title: "Group count reconciliation", maxRows: 10 }),
         downloads,
@@ -1842,13 +2020,19 @@
       );
       requestAnimationFrame(() => {
         if (!state.selectedGroup) return;
-        mSigSDK.qcPlots.plotCosmicSbs96Profile(plotFrame, state.spectra, {
+        mSigSDK.qcPlots.plotCosmicProfile(plotFrame, state.spectra, {
+          profileKey: state.selectedProfile,
+          profile: activeProfileDefinition()?.profile,
+          matrix: activeProfileDefinition()?.matrix || activeContexts().length,
           sample: state.selectedGroup,
-          contexts: SBS96_CONTEXTS,
-          title: "Converted SBS96 spectrum",
+          contexts: activeContexts(),
+          title: `Converted ${state.selectedProfile} spectrum`,
           subtitle:
-            "Every x-axis label is a trinucleotide bin. The selected row's bin is outlined when it contributes to this sample.",
-          showContextLabels: true,
+            state.selectedProfile === "SBS96"
+              ? "Every x-axis label is a trinucleotide bin. The selected row's bin is outlined when it contributes to this sample."
+              : `${state.selectedProfile} is rendered with its profile-specific COSMIC bin order.`,
+          dataset: "MAF-derived profile",
+          showContextLabels: state.selectedProfile === "SBS96",
           highlightContexts: highlightedContext ? [highlightedContext] : [],
         });
       });
@@ -1869,6 +2053,7 @@
       root.replaceChildren(
         renderHero(),
         statusCard(),
+        renderProfilePanel(),
         renderMetrics(),
         renderStepper(),
         renderActiveStep()

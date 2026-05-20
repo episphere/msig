@@ -146,6 +146,7 @@ const kFoldCV = machineLearningModule.kFoldCV || missingDependency("kFoldCV");
 
 const {
   convertMatrix,
+  convertMafToProfileSpectra,
   convertWGStoPanel,
   createWGStoPanelValidationPairs,
   init_sbs_mutational_spectra,
@@ -194,6 +195,8 @@ const {
 const {
   assertValid,
   getExpectedContexts,
+  listMafConvertibleProfiles,
+  listProfileDefinitions,
   getMatrixContexts,
   getSBS96Contexts,
   normalizeMatrixObject,
@@ -574,6 +577,45 @@ const mSigSDK = (function () {
           /^[ACGT]$/.test(alternateAllele)
         );
       }).length;
+  }
+
+  function workflowProfileKey(profileRequest = "SBS96") {
+    if (typeof profileRequest === "string") {
+      const value = profileRequest.trim().toUpperCase();
+      const match = value.match(/^([A-Z-]+)(\d+)$/);
+      return match ? `${match[1] === "RNA-SBS" ? "RNA" : match[1]}${match[2]}` : value;
+    }
+    const profile = String(profileRequest.profile || "SBS").toUpperCase();
+    const matrix = profileRequest.matrix || profileRequest.matrixSize || 96;
+    return `${profile}${matrix}`;
+  }
+
+  function profileOptionsFromKey(profileKey = "SBS96") {
+    const match = String(profileKey).toUpperCase().match(/^([A-Z-]+)(\d+)$/);
+    return match
+      ? { profile: match[1] === "RNA-SBS" ? "RNA" : match[1], matrix: Number(match[2]) }
+      : { profile: "SBS", matrix: 96 };
+  }
+
+  function matrixContextsMatch(matrix, expectedContexts) {
+    if (!expectedContexts?.length) return false;
+    const observed = getMatrixContexts(matrix);
+    if (observed.length !== expectedContexts.length) return false;
+    const expected = new Set(expectedContexts);
+    return observed.every((context) => expected.has(context));
+  }
+
+  function selectMafProfileForSignatures(profileKeys, signatures) {
+    if (!signatures) {
+      return profileKeys[0] || "SBS96";
+    }
+    for (const key of profileKeys) {
+      const expected = getExpectedContexts(profileOptionsFromKey(key));
+      if (matrixContextsMatch(signatures, expected)) {
+        return key;
+      }
+    }
+    return null;
   }
 
   function sumSpectraCounts(spectra) {
@@ -2096,6 +2138,183 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
     return Object.keys(mutationalSpectra || {});
   }
 
+  function normalizeProfileSpectrumCollection(
+    spectra,
+    fallbackSample = "Spectrum"
+  ) {
+    if (!spectra || typeof spectra !== "object" || Array.isArray(spectra)) {
+      return {};
+    }
+
+    const values = Object.values(spectra);
+    if (
+      values.length > 0 &&
+      values.every((value) => Number.isFinite(Number(value)))
+    ) {
+      return { [fallbackSample]: spectra };
+    }
+
+    return Object.fromEntries(
+      Object.entries(spectra).filter(
+        ([, record]) =>
+          record &&
+          typeof record === "object" &&
+          !Array.isArray(record) &&
+          Object.values(record).some((value) => Number.isFinite(Number(value)))
+      )
+    );
+  }
+
+  function inferProfileKeyFromPlotRequest(matrixSize, options = {}) {
+    if (options.profileKey) {
+      return workflowProfileKey(options.profileKey);
+    }
+    if (options.profile || options.matrix || options.matrixSize) {
+      return workflowProfileKey({
+        profile: options.profile || "SBS",
+        matrix: options.matrix || options.matrixSize || matrixSize || 96,
+      });
+    }
+    const numericSize = Number(matrixSize);
+    if (numericSize === 1536) return "SBS1536";
+    if (numericSize === 78) return "DBS78";
+    if (numericSize === 83) return "ID83";
+    return numericSize === 96 || !Number.isFinite(numericSize)
+      ? "SBS96"
+      : `SBS${numericSize}`;
+  }
+
+  function profilePlotRenderer(profileKeyValue) {
+    const key = workflowProfileKey(profileKeyValue);
+    if (key === "SBS1536") return plotMutationalProfileSBS1536;
+    if (key === "DBS78") return plotMutationalProfileDBS78;
+    if (key === "ID83") return plotMutationalProfileID83;
+    if (key === "RS32" || key === "SV32") return plotMutationalProfileRS32;
+    return null;
+  }
+
+  function profileRowsForPlotly(record, contexts, sample, profileKeyValue) {
+    const profileOptions = profileOptionsFromKey(profileKeyValue);
+    return contexts.map((context) => {
+      const mutations = Number(record?.[context] || 0);
+      return {
+        sample,
+        signatureName: sample,
+        profile: profileOptions.profile,
+        matrix: profileOptions.matrix,
+        mutationType: context,
+        mutations,
+        contribution: mutations,
+      };
+    });
+  }
+
+  /**
+   * Renders a COSMIC-style mutational profile using the renderer that matches the selected matrix.
+   *
+   * @function plotCosmicProfile
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} spectra - One context-keyed spectrum or a sample-keyed spectra object.
+   * @param {Object} [options] - Plot options.
+   * @param {string} [options.profileKey="SBS96"] - Canonical profile key such as SBS96, SBS1536, DBS78, ID83, or RS32.
+   * @param {string} [options.profile] - Profile family when profileKey is not supplied.
+   * @param {number} [options.matrix] - Matrix size when profileKey is not supplied.
+   * @param {string} [options.sample=null] - Sample or group to render.
+   * @param {string[]} [options.contexts=null] - Optional canonical context order.
+   * @returns {Object|Element} Render metadata or an error element.
+   */
+  function plotCosmicProfile(divID, spectra, options = {}) {
+    const profileKeyValue = inferProfileKeyFromPlotRequest(
+      options.matrixSize || options.matrix,
+      options
+    );
+    if (profileKeyValue === "SBS96") {
+      return plotCosmicSbs96Profile(divID, spectra, {
+        ...options,
+        contexts:
+          options.contexts ||
+          getExpectedContexts({ profile: "SBS", matrix: 96 }),
+      });
+    }
+
+    const renderer = profilePlotRenderer(profileKeyValue);
+    const contexts =
+      options.contexts ||
+      getExpectedContexts(profileOptionsFromKey(profileKeyValue)) ||
+      [];
+    const collection = normalizeProfileSpectrumCollection(
+      spectra,
+      options.sample || options.sampleName || "Spectrum"
+    );
+    const sampleNames = Object.keys(collection);
+
+    if (!renderer) {
+      return plotGroupedMutationalProfilesWithPlotly(
+        divID,
+        collection,
+        `COSMIC-style ${profileKeyValue} profile`,
+        options
+      );
+    }
+
+    if (!sampleNames.length) {
+      return renderPlotError(
+        divID,
+        `No ${profileKeyValue} spectra available to plot.`
+      );
+    }
+
+    const selectedSample =
+      sampleNames.find(
+        (name) => name === options.sample || name === options.sampleName
+      ) || sampleNames[0];
+    const record = collection[selectedSample] || {};
+    const orderedContexts = contexts.length ? contexts : Object.keys(record);
+    const rows = profileRowsForPlotly(
+      record,
+      orderedContexts,
+      selectedSample,
+      profileKeyValue
+    );
+    const total = rows.reduce((sum, row) => sum + Number(row.mutations || 0), 0);
+
+    if (!rows.length || total === 0) {
+      return renderPlotError(
+        divID,
+        `No counted ${profileKeyValue} bins are available for ${selectedSample}.`
+      );
+    }
+
+    const title = options.title || `Converted ${profileKeyValue} spectrum`;
+    const rendered = renderer(rows, title);
+    const layout = {
+      ...(rendered.layout || {}),
+      meta: {
+        ...(rendered.layout?.meta || {}),
+        subtitle:
+          options.subtitle ||
+          `COSMIC-style ${profileKeyValue} profile rendered with its profile-specific bin order.`,
+        figureContext: mergeFigureContext(options.figureContext, {
+          dataset: options.dataset || "Input spectra",
+          sample: selectedSample,
+          profile: profileOptionsFromKey(profileKeyValue).profile,
+          matrix: profileOptionsFromKey(profileKeyValue).matrix,
+          contexts: orderedContexts.length,
+          plottedMetric: "mutation count",
+        }),
+      },
+    };
+
+    plotGraphWithPlotlyAndMakeDataDownloadable(
+      divID,
+      rendered.traces || [],
+      layout,
+      options.publication || {}
+    );
+    return { traces: rendered.traces || [], layout, rows };
+  }
+
   function plotGroupedMutationalProfilesWithPlotly(
     divID,
     mutationalSpectra,
@@ -2231,6 +2450,18 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
     divID = "mutationalSpectrumMatrix",
     options = {}
   ) {
+    const requestedProfileKey = inferProfileKeyFromPlotRequest(
+      matrixSize,
+      options
+    );
+    if (["SBS1536", "DBS78", "ID83", "RS32", "SV32"].includes(requestedProfileKey)) {
+      return plotCosmicProfile(divID, mutationalSpectra, {
+        ...options,
+        profileKey: requestedProfileKey,
+        matrixSize,
+      });
+    }
+
     if (!mutationalSpectra || typeof mutationalSpectra !== "object") {
       return renderPlotError(
         divID,
@@ -7201,6 +7432,7 @@ Renders a plot of mutational profiles in a given div element ID.
       batchSize = 100,
       genome = "hg19",
       tcga = false,
+      profiles = ["SBS96"],
       expectedContexts = null,
       reportFormat = "object",
       fitting = {},
@@ -7222,6 +7454,7 @@ Renders a plot of mutational profiles in a given div element ID.
   ) {
     const contextFetchTimestamp = new Date().toISOString();
     const contextLookupMode = offline ? "offline_table" : "live_ucsc_api";
+    const requestedProfileKeys = (Array.isArray(profiles) ? profiles : [profiles]).map(workflowProfileKey);
     const apiEndpointSnapshot = offline
       ? null
       : buildUCSCContextEndpointSnapshot({
@@ -7229,19 +7462,26 @@ Renders a plot of mutational profiles in a given div element ID.
           contextApiEndpoint,
         });
     const expectedConvertibleSnvCount = countConvertibleSnvRows(mafFiles, { tcga });
-    const spectra = await convertMatrix(
-      mafFiles,
+    const profileConversion = await convertMafToProfileSpectra(mafFiles, {
+      profiles: requestedProfileKeys,
       groupBy,
       batchSize,
       genome,
       tcga,
-      {
-        offline,
-        contextLookupTable,
-      }
-    );
+      offline,
+      contextLookupTable,
+    });
+    const selectedProfileKey =
+      selectMafProfileForSignatures(requestedProfileKeys, signatures) ||
+      requestedProfileKeys[0] ||
+      "SBS96";
+    const selectedProfileOptions = profileOptionsFromKey(selectedProfileKey);
+    const selectedExpectedContexts =
+      expectedContexts || getExpectedContexts(selectedProfileOptions);
+    const spectra = profileConversion.spectraByProfile[selectedProfileKey] || {};
     const observedSbs96Count = sumSpectraCounts(spectra);
     const contextWarnings =
+      selectedProfileKey.startsWith("SBS") &&
       expectedConvertibleSnvCount !== observedSbs96Count
         ? [
             makeWorkflowWarning(
@@ -7256,8 +7496,26 @@ Renders a plot of mutational profiles in a given div element ID.
             ),
           ]
         : [];
+    const profileWarnings = [
+      ...(profileConversion.warnings || []),
+      ...(signatures && !selectMafProfileForSignatures(requestedProfileKeys, signatures)
+        ? [
+            makeWorkflowWarning(
+              "SIGNATURE_PROFILE_MISMATCH",
+              "The supplied signature catalog does not match any requested MAF-derived profile matrix; fitting was not run.",
+              {
+                requestedProfiles: requestedProfileKeys,
+                signatureContexts: getMatrixContexts(signatures).length,
+              }
+            ),
+          ]
+        : []),
+    ];
     const contextMetadata = {
       genomeBuild: genome,
+      requestedProfiles: requestedProfileKeys,
+      selectedProfile: selectedProfileKey,
+      profileConversionRegistry: profileConversion.profileRegistry,
       contextSource,
       contextApiVersion,
       contextApiEndpoint,
@@ -7271,24 +7529,33 @@ Renders a plot of mutational profiles in a given div element ID.
           : "Context sequence requests use the SDK fetchURLAndCache utility; reproducibility still depends on pinning the genome build and endpoint behavior.",
       expectedConvertibleSnvCount,
       observedSbs96Count,
+      observedProfileCount: observedSbs96Count,
       sbs96CountMatchesConvertibleSnvCount:
+        selectedProfileKey.startsWith("SBS") &&
+        expectedConvertibleSnvCount === observedSbs96Count,
+      profileCountMatchesConvertibleRows:
+        !selectedProfileKey.startsWith("SBS") ||
         expectedConvertibleSnvCount === observedSbs96Count,
       validationRule:
-        "The sum of SBS96 context counts should equal the number of convertible single-base substitution rows.",
+        selectedProfileKey.startsWith("SBS")
+          ? "The sum of SBS context counts should equal the number of convertible single-base substitution rows."
+          : "The selected non-SBS profile uses profile-specific event classification; inspect profileConversion.audit for row-level count reconciliation.",
     };
     const parameters = {
       groupBy,
       batchSize,
       genome,
       tcga,
+      profiles: requestedProfileKeys,
+      selectedProfile: selectedProfileKey,
       contextMetadata,
       ...fitting,
     };
 
-    if (signatures) {
+    if (signatures && selectMafProfileForSignatures(requestedProfileKeys, signatures)) {
       const fitResult = await analyzeSpectraWithSignatures(spectra, signatures, {
         ...fitting,
-        expectedContexts,
+        expectedContexts: selectedExpectedContexts,
         parameters,
         reportFormat,
         catalogVersion,
@@ -7299,6 +7566,7 @@ Renders a plot of mutational profiles in a given div element ID.
       const mergedWarnings = [
         ...(fitResult.warnings || fitResult.primaryWarnings || []),
         ...contextWarnings,
+        ...profileWarnings,
       ];
       return {
         ...fitResult,
@@ -7319,6 +7587,9 @@ Renders a plot of mutational profiles in a given div element ID.
             reconstructionError: fitResult.qc?.reconstructionError,
           },
         spectra,
+        spectraByProfile: profileConversion.spectraByProfile,
+        traceByProfile: profileConversion.traceByProfile,
+        profileConversion,
         mafConversion: contextMetadata,
         contextMetadata,
         conversionWarnings: contextWarnings,
@@ -7329,9 +7600,9 @@ Renders a plot of mutational profiles in a given div element ID.
         ],
 	        publicationFigures: [
 	          {
-	            id: "converted_sbs96_profile",
-	            title: "Converted COSMIC-style SBS96 profile",
-	            recommendedRenderer: "mSigSDK.qcPlots.plotCosmicSbs96Profile",
+	            id: `converted_${selectedProfileKey.toLowerCase()}_profile`,
+	            title: `Converted COSMIC-style ${selectedProfileKey} profile`,
+	            recommendedRenderer: "mSigSDK.qcPlots.plotCosmicProfile",
 	            dataFields: ["spectra"],
 	          },
 	          ...(fitResult.publicationFigures || []),
@@ -7360,7 +7631,7 @@ Renders a plot of mutational profiles in a given div element ID.
     const validation = {
       maf: validateMafRows(mafFiles),
       spectra: validateSpectra(spectra, {
-        expectedContexts,
+        expectedContexts: selectedExpectedContexts,
         ...(Number.isFinite(mutationBurdenOptions.lowBurdenThreshold)
           ? { minTotalMutations: mutationBurdenOptions.lowBurdenThreshold }
           : {}),
@@ -7374,10 +7645,10 @@ Renders a plot of mutational profiles in a given div element ID.
     };
     const qc = {
       mutationBurden: summarizeMutationBurden(spectra, {
-        expectedContexts,
+        expectedContexts: selectedExpectedContexts,
         ...mutationBurdenOptions,
       }),
-      missingContexts: summarizeMissingContexts(spectra, { expectedContexts }),
+      missingContexts: summarizeMissingContexts(spectra, { expectedContexts: selectedExpectedContexts }),
     };
     const provenanceRecord = createProvenance({
       analysis: "MAF to mutational spectra",
@@ -7415,6 +7686,9 @@ Renders a plot of mutational profiles in a given div element ID.
       ],
       parameters,
       spectra,
+      spectraByProfile: profileConversion.spectraByProfile,
+      traceByProfile: profileConversion.traceByProfile,
+      profileConversion,
       mafConversion: contextMetadata,
       contextMetadata,
       validation,
@@ -7422,8 +7696,8 @@ Renders a plot of mutational profiles in a given div element ID.
       fit: null,
       extraction: null,
       panel: null,
-      warnings: contextWarnings,
-      recommendedActions: contextWarnings.length
+      warnings: [...contextWarnings, ...profileWarnings],
+      recommendedActions: contextWarnings.length || profileWarnings.length
         ? [
             "Verify genome build, grouping field, and trinucleotide-context lookup before fitting signatures.",
           ]
@@ -7438,9 +7712,9 @@ Renders a plot of mutational profiles in a given div element ID.
 	          dataFields: ["qc.mutationBurden"],
 	        },
 	        {
-	          id: "converted_sbs96_profile",
-	          title: "Converted COSMIC-style SBS96 profile",
-	          recommendedRenderer: "mSigSDK.qcPlots.plotCosmicSbs96Profile",
+	          id: `converted_${selectedProfileKey.toLowerCase()}_profile`,
+	          title: `Converted COSMIC-style ${selectedProfileKey} profile`,
+	          recommendedRenderer: "mSigSDK.qcPlots.plotCosmicProfile",
 	          dataFields: ["spectra"],
 	        },
 	      ],
@@ -7456,10 +7730,12 @@ Renders a plot of mutational profiles in a given div element ID.
           methodBasis: {
             mafConversion:
               offline
-                ? "MAF rows are converted to SBS96 spectra after offline trinucleotide-context lookup against the configured genome build."
-                : "MAF rows are converted to SBS96 spectra after remote trinucleotide-context lookup against the configured genome build.",
+                ? `MAF rows are converted to ${selectedProfileKey} spectra after offline profile-context lookup against the configured genome build.`
+                : `MAF rows are converted to ${selectedProfileKey} spectra after remote profile-context lookup against the configured genome build.`,
             contextFetching:
-              "The sum of SBS96 context counts is checked against convertible SNV rows to detect failed or partial context lookup.",
+              selectedProfileKey.startsWith("SBS")
+                ? "The sum of SBS context counts is checked against convertible SNV rows to detect failed or partial context lookup."
+                : "Profile-specific counted rows are reconciled in profileConversion.audit.",
           },
           provenance: provenanceRecord,
           notes: contextWarnings.map((warning) => warning.message),
@@ -7484,6 +7760,7 @@ Renders a plot of mutational profiles in a given div element ID.
     const allowedOptions = [
       "groupBy",
       "genome",
+      "profiles",
       "offline",
       "contextLookupTable",
       "expectedContexts",
@@ -7548,8 +7825,10 @@ Renders a plot of mutational profiles in a given div element ID.
 
 	  const userData = {
 	    convertMatrix,
+	    convertMafToProfileSpectra,
 	    convertWGStoPanel,
 	    createWGStoPanelValidationPairs,
+	    plotCosmicProfile,
 	    plotCosmicSbs96Profile,
 	    plotPatientMutationalSpectrumuserData,
 	    convertMutationalSpectraIntoJSON,
@@ -7581,6 +7860,8 @@ Renders a plot of mutational profiles in a given div element ID.
   const validation = {
     assertValid,
     getExpectedContexts,
+    listMafConvertibleProfiles,
+    listProfileDefinitions,
     getMatrixContexts,
     getSBS96Contexts,
     normalizeMatrixObject,
@@ -7611,6 +7892,7 @@ Renders a plot of mutational profiles in a given div element ID.
 	    plotBootstrapConfidenceIntervals,
 	    plotBootstrapExposureSummary,
 	    plotCohortGroupComparison,
+	    plotCosmicProfile,
 	    plotCosmicSbs96Profile,
 	    plotFitQualityEvidenceDashboard,
 	    plotFitResiduals,

@@ -1,6 +1,7 @@
 import {
   init_sbs_mutational_spectra,
   convertMatrix,
+  convertMafToProfileSpectra,
   normalizeChromosome,
 } from "./mutationalSpectrum.js";
 
@@ -383,6 +384,7 @@ function convertMutationalSpectraIntoJSON(MAFfiles, mutSpec, sample_name, dataTy
 
 export {
   convertMatrix,
+  convertMafToProfileSpectra,
   convertWGStoPanel,
   createWGStoPanelValidationPairs,
   init_sbs_mutational_spectra,

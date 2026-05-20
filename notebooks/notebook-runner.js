@@ -29,8 +29,8 @@ const DEFAULT_NOTEBOOKS = [
   },
   {
     file: "msig-sdk-maf-fit-report.onb.html",
-    title: "MAF to SBS96 explainer",
-    summary: "Step through position/ref/alt rows, reference context lookup, pyrimidine normalization, and labeled SBS96 spectra.",
+    title: "MAF to COSMIC profiles",
+    summary: "Convert MAF rows into SBS96, SBS1536, DBS78, and ID83 matrices with profile-specific binning and audit checks.",
     workflowGroup: "input",
     workflowGroupLabel: "Load Data",
   },
