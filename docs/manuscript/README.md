@@ -1,11 +1,11 @@
 # mSigSDK Manuscript Workspace
 
-This directory contains the current manuscript package, generated assets, and reproducibility material.
+This directory contains the current BMC Bioinformatics software-article draft, generated assets, validation data, and reproducibility material.
 
 ## Current Folders
 
-- `manuscript/`: submission drafts.
-- `data/`: current benchmark, cross-tool concordance, confusable-signature, panel-validation, and synthetic-validation outputs used by manuscript generators.
+- `manuscript/`: synchronized submission draft generated from `scripts/generate-manuscript-v03-assets.mjs`.
+- `data/`: benchmark, cross-tool concordance, confusable-signature, panel-validation, and synthetic-validation outputs used by the manuscript.
 - `google-doc-tables/`: standalone HTML tables designed for copy/paste into Word or Google Docs.
 - `actual-figure-pages/`: reproducible HTML figure pages, cached public PCAWG/COSMIC data, and PNG screenshots.
 - `experiments/`: dated experiment packages with README, data, tables, figures, and code.
@@ -23,4 +23,8 @@ npm run concordance:cross-tools
 npm run assets:manuscript
 ```
 
-`npm run benchmark:manuscript -- --repeats=5` writes Node.js runtime outputs to `data/`. The experiment packages regenerate the synthetic stress tests, panel validation, browser benchmarks, and cross-tool concordance source data. Browser benchmarking runs Chrome from the local installation and records Firefox as unavailable when no Firefox executable is installed. `npm run assets:manuscript` regenerates manuscript tables, figure pages, and the synchronized manuscript drafts.
+`npm run assets:manuscript` regenerates the manuscript draft, manuscript tables, figure pages, and workspace READMEs from the synchronized generator.
+
+## BMC Submission Checkpoint
+
+Create a GitHub release or tag for the final manuscript asset snapshot before submission. Use that tag in the manuscript Availability and requirements section. Do not claim a DOI unless a Zenodo or other archival DOI exists.

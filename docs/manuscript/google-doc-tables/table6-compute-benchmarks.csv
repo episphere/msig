@@ -21,7 +21,7 @@ Rare-cancer cohort,WES/WGS,"Bootstrap uncertainty, one sample",40,300,96,18,100 
 Rare-cancer cohort,WES/WGS,Burden-aware review summary,40,300,96,18,Default,5,14.9 (14.1-16.3),3,11.7 (11.3-14.4),22.46,performance.memory.usedJSHeapSize,87.84
 Rare-cancer cohort,WES/WGS,Fit-quality review summary,40,300,96,18,Default,5,19.7 (19.2-23.4),3,21.3 (19.7-22.7),35.89,performance.memory.usedJSHeapSize,87.91
 Rare-cancer cohort,WES/WGS,Cohort fit workflow,40,300,96,18,Default,5,53.2 (49.0-57.8),3,49.2 (46.1-51.2),16.15,performance.memory.usedJSHeapSize,88.16
-Rare-cancer cohort,WES/WGS,Subgroup discovery workflow,12,300,96,18,75 iterations; ranks 2,5,55.5 (54.9-95.9),3,61.6 (59.4-77.2),28.62,performance.memory.usedJSHeapSize,88.27
+Rare-cancer cohort,WES/WGS,Cohort subgroup-structure review,12,300,96,18,75 iterations; ranks 2,5,55.5 (54.9-95.9),3,61.6 (59.4-77.2),28.62,performance.memory.usedJSHeapSize,88.27
 Medium research cohort,WGS/WES,Validation and burden summary,120,1200,96,24,Default,5,4.3 (3.9-5.3),3,3.6 (3.0-3.6),19.64,performance.memory.usedJSHeapSize,69.52
 Medium research cohort,WGS/WES,Known-signature refitting,120,1200,96,24,Default,5,19.8 (18.5-20.6),3,24.2 (22.7-24.4),17.34,performance.memory.usedJSHeapSize,69.70
 Medium research cohort,WGS/WES,Reconstruction quality metrics,120,1200,96,24,Default,5,8.1 (6.5-9.8),3,16.1 (15.8-17.7),9.52,performance.memory.usedJSHeapSize,69.73

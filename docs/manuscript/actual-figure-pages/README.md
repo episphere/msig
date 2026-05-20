@@ -1,6 +1,6 @@
 # mSigSDK Figure Pages
 
-These HTML pages generate analytic manuscript figure panels using mSigSDK workflows. The central graphical abstract is stored separately at `docs/manuscript/figures/figure1-graphical-abstract.svg`; the pages below provide the reproducible cohort, QC, panel, and NMF displays used by the manuscript figure set.
+These HTML pages generate the manuscript figure panels using mSigSDK workflows. The central graphical abstract is stored separately at `docs/manuscript/figures/figure1-graphical-abstract.svg`; the pages below correspond to manuscript Figures 2-6.
 
 Run the local server from the repository root:
 

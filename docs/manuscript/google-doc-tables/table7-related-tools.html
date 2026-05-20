@@ -7,59 +7,8 @@
 <body>
 <p style="font-family:Arial, Helvetica, sans-serif;font-size:11pt;line-height:1.3;margin:0 0 6px 0;color:#111827"><strong>Table 7.</strong> Functional positioning relative to related mutational-signature software.</p>
 <table style="border-collapse:collapse;width:100%;font-family:Arial, Helvetica, sans-serif;font-size:10.5pt;line-height:1.25;color:#1f2933">
-<thead>
-<tr>
-<th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">Tool or platform</th>
-<th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">Primary role</th>
-<th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">Browser execution</th>
-<th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">Interoperability with mSigSDK</th>
-<th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">QC/reporting layer</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Browser-native review SDK for spectra import, validation, NNLS refitting, QC, panel review, exploratory NMF, interoperability, and reporting.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Yes, JavaScript core; optional Pyodide for compatible Python packages.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Native nested matrices plus SigProfiler, COSMIC, MuSiCal-compatible, and report JSON Schema formats.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Structured warnings, fit-quality evidence, recommended actions, figures, and provenance.</td>
-</tr>
-<tr>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigPortal</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Public mutational-signature portal and API.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Portal hosted.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK retrieves public mSigPortal spectra and signatures and reuses selected plotting conventions.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Portal-specific.</td>
-</tr>
-<tr>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">SigProfilerExtractor</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Production de novo mutational-signature extraction.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Not directly; used through local Python or server execution.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK exports matrix inputs, creates a runnable Python script, and parses extracted signature and exposure TSV outputs.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">SigProfilerExtractor stability diagnostics plus mSigSDK screening and report metadata.</td>
-</tr>
-<tr>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">deconstructSigs</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">R-based known-signature decomposition.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Not directly; used through local R or external execution.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK exports deconstructSigs-compatible TSV inputs and parses sample-by-signature exposure tables.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">deconstructSigs fit outputs plus mSigSDK uncertainty, threshold sensitivity, and provenance.</td>
-</tr>
-<tr>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">SigProfilerAssignment</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Known-signature assignment against a supplied catalog.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Optional browser execution through Pyodide matrix-mode runs when package installation and dependencies succeed; local Python remains the production path.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK prepares matrix-mode input, can run compatible Pyodide sessions, and parses exposure outputs.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Assignment metrics plus mSigSDK ambiguity, low-burden, and report fields.</td>
-</tr>
-<tr>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">MuSiCal</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Sparse likelihood-based mutational-signature refitting and discovery.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Package execution depends on Pyodide-compatible wheels; mSigSDK includes a browser-native MuSiCal-compatible sparse NNLS comparator.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK exports/imports MuSiCal-style matrices and compares sparse refits on the same spectra/catalog.</td>
-<td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">MuSiCal metrics from the external tool or comparator plus mSigSDK ambiguity and reporting fields.</td>
-</tr>
-</tbody>
+<thead><tr><th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">Tool or platform</th><th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">Primary role</th><th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">Browser execution</th><th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">Interoperability with mSigSDK</th><th style="border:1px solid #9aa5b1;background:#eef2f7;padding:6px 8px;text-align:left;font-weight:700;vertical-align:top">QC/reporting layer</th></tr></thead>
+<tbody><tr><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Browser-native review SDK for spectra import, validation, profile conversion, NNLS refitting, QC, panel review, exploratory NMF, interoperability, and reporting.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Yes, JavaScript core; optional Pyodide for compatible Python packages.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Native nested matrices plus SigProfiler, COSMIC, MuSiCal-compatible, and report JSON Schema outputs.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Structured warnings, fit-quality evidence, recommended actions, figures, and provenance.</td></tr><tr><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigPortal</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Public mutational-signature portal and API.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Portal hosted.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK retrieves public mSigPortal spectra and signatures and reuses selected plotting conventions.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Portal-specific.</td></tr><tr><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">SigProfilerExtractor</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Production de novo mutational-signature extraction.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Not directly; used through local Python or server execution.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK exports matrix inputs, creates a runnable Python script, and parses extracted signature and exposure TSV outputs.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">SigProfilerExtractor stability diagnostics plus mSigSDK screening and report metadata.</td></tr><tr><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">deconstructSigs</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">R-based known-signature decomposition.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Not directly; used through local R or external execution.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK exports deconstructSigs-compatible TSV inputs and parses sample-by-signature exposure tables.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">deconstructSigs fit outputs plus mSigSDK uncertainty, threshold sensitivity, and provenance.</td></tr><tr><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">SigProfilerAssignment</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Known-signature assignment against a supplied catalog.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Optional browser execution through Pyodide matrix-mode runs when package installation and dependencies succeed; local Python remains the production path.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK prepares matrix-mode input, can run compatible Pyodide sessions, and parses exposure outputs.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Assignment metrics plus mSigSDK ambiguity, low-burden, and report fields.</td></tr><tr><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">MuSiCal</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Sparse likelihood-based mutational-signature refitting and discovery.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">Package execution depends on Pyodide-compatible wheels; mSigSDK includes a browser-native MuSiCal-compatible sparse NNLS comparator.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">mSigSDK exports/imports MuSiCal-style matrices and compares sparse refits on the same spectra/catalog.</td><td style="border:1px solid #c8d1dc;padding:6px 8px;vertical-align:top">MuSiCal metrics from the external tool or comparator plus mSigSDK ambiguity and reporting fields.</td></tr></tbody>
 </table>
 <p style="font-family:Arial, Helvetica, sans-serif;font-size:9.5pt;line-height:1.3;margin:6px 0 20px 0;color:#4b5563"><em>Note.</em> The comparison defines intended workflow boundaries. Browser execution for Python and R ecosystem tools depends on package compatibility, wheels, and browser runtime limits.</p>
 </body>
