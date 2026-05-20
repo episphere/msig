@@ -32,7 +32,7 @@ function getSafePath(urlPath) {
 }
 
 const server = createServer((request, response) => {
-  const filePath = getSafePath(request.url || "/");
+  const requestedPath = getSafePath(request.url || "/");
 
   response.setHeader("Access-Control-Allow-Origin", "*");
   response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -43,6 +43,11 @@ const server = createServer((request, response) => {
     response.writeHead(204);
     response.end();
     return;
+  }
+
+  let filePath = requestedPath;
+  if (filePath && existsSync(filePath) && statSync(filePath).isDirectory()) {
+    filePath = join(filePath, "index.html");
   }
 
   if (!filePath || !existsSync(filePath) || !statSync(filePath).isFile()) {
