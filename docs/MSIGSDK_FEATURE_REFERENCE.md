@@ -315,12 +315,6 @@ Outputs:
 - `overall`: sample count, total mutations, low-burden sample count, empty-sample count, threshold, threshold mode, and quantile.
 - `warnings`: `EMPTY_SPECTRUM` or `LOW_BURDEN` warning objects when triggered.
 
-Methodological support:
-
-- Mutation burden is treated as a sampling-noise proxy for fitting reliability.
-- Specific defaults are configurable review settings and should be validated against assay and cohort context.
-- Literature anchors: Koh 2021, Medo 2024, Lawrence 2021.
-
 ### `selectSamplesByMutationBurden(burdenSummary, options)`
 
 Inputs:
@@ -434,12 +428,6 @@ Outputs:
 - Default output: sample-by-signature exposure matrix.
 - With `returnDetails = true`: object containing `schemaVersion`, `workflowRole`, `scopeStatement`, `methodBasis`, `solverVariant = "coordinate_descent_nnls"`, solver caveats, contexts, signatures, and exposures.
 
-Methodological support:
-
-- Coordinate-descent NNLS implementation.
-- Uses Lawson-Hanson NNLS as the classical reference point, and Medo 2024/Jin 2024 for assignment and confusability cautions.
-- Plain NNLS can over-assign confusable signatures compared with likelihood-based sparse methods.
-
 ### `runThresholdSensitivity(signatures, spectra, options)`
 
 Inputs:
@@ -508,12 +496,6 @@ Outputs:
 - `warnings`: `LOW_BOOTSTRAP_ITERATIONS` and/or `LOW_BURDEN`.
 - `reportingMode`: `report_with_caveats` when warnings are present, otherwise `standard_qc_passed`.
 
-Methodological support:
-
-- Multinomial resampling follows the MSA-style parametric bootstrap framing.
-- Intervals estimate statistical uncertainty of the attribution procedure conditional on the observed spectrum, supplied catalog, and settings. They do not estimate total attribution uncertainty, catalog uncertainty, or assay uncertainty.
-- Literature anchors: Senkin/Baez-Ortega MSA 2021, Huang 2018, Koh 2021, Medo 2024.
-
 ## QC plots: `qcPlots`
 
 QC plot helpers render a publication footer with the figure caption and context fields. Each helper accepts optional `figureContext` or `publication` metadata; notebook and report integrations should pass the active data source, selected sample or cohort scope, profile/matrix, signature catalog, and method settings.
@@ -571,12 +553,6 @@ Primary recommendations:
 - De novo extraction is suggested only when sample count, mutation burden, and cohort structure support exploratory extraction.
 - Panel and WES settings are treated as restricted review contexts rather than full WGS-equivalent signature decompositions.
 
-Methodological support:
-
-- Burden and fitting instability: Koh 2021, Medo 2024.
-- Cohort heterogeneity and extraction readiness: Alexandrov 2020, Degasperi 2020, Koh 2021.
-- Thresholds are configurable defaults; exact cutoffs are operational review settings and should be anchored to assay-specific validation.
-
 ### `computeSignatureAmbiguity(signatures, options)` / `computeSignatureIdentifiability(signatures, options)`
 
 Validation status: validated core advisor function for the manuscript.
@@ -613,11 +589,6 @@ Interpretation boundary: use `confusabilityScore`, `confusabilityPercentile`, an
 Interpretation boundary:
 
 - Pairwise similarity and entropy identify signatures that may be confusable during fitting. They do not prove that any specific fitted exposure is wrong.
-
-Literature support:
-
-- Pairwise catalog confusability: Koh 2021, Jin 2024, Wu 2023.
-- Signature catalog context and SBS profiles: Alexandrov 2020.
 
 ### `detectOutOfReferenceSignal(input, options)`
 
@@ -1218,21 +1189,21 @@ These helpers are intended for browser notebooks, reports, and teaching pages. D
 
 | Topic | Reference |
 |---|---|
-| Classical NNLS | Lawson CL, Hanson RJ. Solving least squares problems. SIAM. doi:10.1137/1.9781611971217. |
-| Original NMF extraction framing | Alexandrov LB et al. Signatures of mutational processes in human cancer. Nature. 2013. doi:10.1038/nature12477. |
-| COSMIC signature context and catalog interpretation | Alexandrov LB et al. The repertoire of mutational signatures in human cancer. Nature. 2020. doi:10.1038/s41586-020-1943-3. |
-| Practical signature analysis caveats | Koh G et al. Mutational signatures: emerging concepts, caveats and clinical applications. Nat Rev Cancer. 2021. doi:10.1038/s41568-021-00377-7. |
-| Cohort heterogeneity and practical framework | Degasperi A et al. A practical framework and online tool for mutational signature analyses. Nat Cancer. 2020. doi:10.1038/s43018-020-0027-5. |
-| Burden-dependent fitting behavior and tool comparison | Medo M et al. A comprehensive comparison of tools for fitting mutational signatures. Nat Commun. 2024. doi:10.1038/s41467-024-53711-6. |
-| Likelihood-based sparse assignment and confusability | Jin H et al. Accurate and sensitive mutational signature analysis with MuSiCal. Nat Genet. 2024. doi:10.1038/s41588-024-01659-0. |
-| Known-signature assignment comparator | Diaz-Gay M et al. Assigning mutational signatures to individual samples and individual somatic mutations with SigProfilerAssignment. Bioinformatics. 2023. doi:10.1093/bioinformatics/btad756. |
-| R-based mutational-pattern workflow | Manders F et al. MutationalPatterns: the one stop shop for the analysis of mutational processes. BMC Genomics. 2022. doi:10.1186/s12864-022-08357-3. |
-| Assignment heterogeneity | Wu AJ et al. Mutational signature assignment heterogeneity is widespread and can be addressed by ensemble approaches. Brief Bioinform. 2023. doi:10.1093/bib/bbad331. |
-| Statistical confidence in signature detection | Huang X et al. Detecting presence of mutational signatures in cancer with confidence. Bioinformatics. 2018. doi:10.1093/bioinformatics/btx604. |
-| Panel sequencing considerations | Lawrence L et al. Performance characteristics of mutational signature analysis in targeted panel sequencing. Arch Pathol Lab Med. 2021. doi:10.5858/arpa.2020-0536-OA. |
-| Parametric bootstrap attribution uncertainty | Senkin S, Baez-Ortega A. MSA: reproducible mutational signature attribution with confidence based on simulations. BMC Bioinformatics. 2021. doi:10.1186/s12859-021-04450-8. |
-| SigProfilerExtractor and production extraction | Islam SMA et al. Uncovering novel mutational signatures by de novo extraction with SigProfilerExtractor. Cell Genomics. 2022. doi:10.1016/j.xgen.2022.100179. |
-| Reproducibility and provenance | Wilkinson MD et al. The FAIR Guiding Principles for scientific data management and stewardship. Sci Data. 2016. doi:10.1038/sdata.2016.18. |
+| Classical NNLS | Lawson CL, Hanson RJ. Solving least squares problems. Philadelphia: SIAM; 1995. Classics in Applied Mathematics; vol. 15. doi:10.1137/1.9781611971217. |
+| Original NMF extraction framing | Alexandrov LB et al. Signatures of mutational processes in human cancer. Nature. 2013;500:415-421. doi:10.1038/nature12477. |
+| COSMIC signature context and catalog interpretation | Alexandrov LB et al. The repertoire of mutational signatures in human cancer. Nature. 2020;578:94-101. doi:10.1038/s41586-020-1943-3. |
+| Practical signature analysis caveats | Koh G et al. Mutational signatures: emerging concepts, caveats and clinical applications. Nat Rev Cancer. 2021;21(10):619-637. doi:10.1038/s41568-021-00377-7. |
+| Cohort heterogeneity and practical framework | Degasperi A et al. A practical framework and online tool for mutational signature analyses show intertissue variation and driver dependencies. Nat Cancer. 2020;1:249-263. doi:10.1038/s43018-020-0027-5. |
+| Burden-dependent fitting behavior and tool comparison | Medo M et al. A comprehensive comparison of tools for fitting mutational signatures. Nat Commun. 2024;15:9467. doi:10.1038/s41467-024-53711-6. |
+| Likelihood-based sparse assignment and confusability | Jin H et al. Accurate and sensitive mutational signature analysis with MuSiCal. Nat Genet. 2024;56:541-552. doi:10.1038/s41588-024-01659-0. |
+| Known-signature assignment comparator | Diaz-Gay M et al. Assigning mutational signatures to individual samples and individual somatic mutations with SigProfilerAssignment. Bioinformatics. 2023;39(12):btad756. doi:10.1093/bioinformatics/btad756. |
+| R-based mutational-pattern workflow | Manders F et al. MutationalPatterns: the one stop shop for the analysis of mutational processes. BMC Genomics. 2022;23:134. doi:10.1186/s12864-022-08357-3. |
+| Assignment heterogeneity | Wu AJ et al. Mutational signature assignment heterogeneity is widespread and can be addressed by ensemble approaches. Brief Bioinform. 2023;24(6):bbad331. doi:10.1093/bib/bbad331. |
+| Statistical confidence in signature detection | Huang X et al. Detecting presence of mutational signatures in cancer with confidence. Bioinformatics. 2018;34(2):330-337. doi:10.1093/bioinformatics/btx604. |
+| Panel sequencing considerations | Lawrence L et al. Performance characteristics of mutational signature analysis in targeted panel sequencing. Arch Pathol Lab Med. 2021;145(11):1424-1431. doi:10.5858/arpa.2020-0536-OA. |
+| Parametric bootstrap attribution uncertainty | Senkin S. MSA: reproducible mutational signature attribution with confidence based on simulations. BMC Bioinformatics. 2021;22:540. doi:10.1186/s12859-021-04450-8. |
+| SigProfilerExtractor and production extraction | Islam SMA et al. Uncovering novel mutational signatures by de novo extraction with SigProfilerExtractor. Cell Genomics. 2022;2(11):100179. doi:10.1016/j.xgen.2022.100179. |
+| Reproducibility and provenance | Wilkinson MD et al. The FAIR Guiding Principles for scientific data management and stewardship. Sci Data. 2016;3:160018. doi:10.1038/sdata.2016.18. |
 
 ## Interpretation boundaries
 

@@ -1770,8 +1770,9 @@ async function runDeconstructSigsWebR(
     adapter: "deconstructsigs",
     runtime: sourceArchiveExecution ? "webr_source_archive" : "webr",
     status: "completed",
-    exactPackageExecution: !sourceArchiveExecution,
+    exactPackageExecution: true,
     sourceArchiveExecution,
+    packageInstallMode: sourceArchiveExecution ? "cran_source_archive" : "webr_binary_repository",
     loadedOutput: sourceArchiveExecution
       ? "Computed by original deconstructSigs 1.8.0 R source in WebR for the active data"
       : "Computed by deconstructSigs in WebR for the active data",

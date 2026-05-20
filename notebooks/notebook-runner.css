@@ -163,6 +163,14 @@ h2 {
   display: none;
 }
 
+.notebook-sidebar p.notebook-scope-note {
+  display: block;
+  margin: 0 0 13px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .notebook-menu {
   display: grid;
   gap: 10px;

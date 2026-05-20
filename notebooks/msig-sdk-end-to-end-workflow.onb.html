@@ -1173,6 +1173,7 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
 	        { field: "Reusable SDK command", value: engine.command },
 	        { field: "Who guessed the signature recipe", value: engine.exposureSource },
 	        { field: "Run status", value: result?.status || analysis?.status || "completed" },
+	        { field: "Execution detail", value: result?.loadedOutput || engine.exposureSource },
 	        { field: "Loaded samples", value: loadedSampleCount || "n/a" },
 	        { field: "Samples fitted", value: fittedSampleCount || "n/a" },
 	        { field: "Uncertainty samples", value: uncertaintySampleCount || "not run yet" },
