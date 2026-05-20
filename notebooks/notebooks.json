@@ -3,7 +3,7 @@
     {
       "file": "msig-sdk-notebooks.onb.html",
       "title": "Workflow guide",
-      "summary": "Choose an educational example and learn where each SDK pattern fits.",
+      "summary": "Find the notebook that matches the SDK task.",
       "image": "images/notebook-previews/sdk-workflow-guide.svg",
       "workflowGroup": "orientation",
       "workflowGroupLabel": "Orientation"
@@ -11,7 +11,7 @@
     {
       "file": "msig-sdk-end-to-end-workflow.onb.html",
       "title": "End-to-end workflow",
-      "summary": "Inspect the complete fit-review-export arc on demonstration spectra.",
+      "summary": "Inspect the complete fit-review-export arc on demo spectra.",
       "image": "images/notebook-previews/sdk-end-to-end-workflow.svg",
       "workflowGroup": "orientation",
       "workflowGroupLabel": "Orientation"
@@ -50,8 +50,8 @@
     },
     {
       "file": "msig-sdk-cohort-panel-workflow.onb.html",
-      "title": "Cohort and panel workflow",
-      "summary": "Learn how cohort metadata, group interpretation, and restricted-assay limits connect in one example.",
+      "title": "Panel/WES assay planning",
+      "summary": "Plan whether a real WES or panel BED target retains enough evidence for selected signature review.",
       "image": "images/notebook-previews/sdk-cohort-panel-workflow.svg",
       "workflowGroup": "core",
       "workflowGroupLabel": "Analyze Data"
@@ -67,7 +67,7 @@
     {
       "file": "msig-sdk-nmf-extraction.onb.html",
       "title": "Discovery extraction (NMF)",
-      "summary": "Screen demonstration spectra with browser-scale NMF, rank checks, and external handoff files.",
+      "summary": "Screen demo spectra with browser-scale NMF, rank checks, and external handoff files.",
       "image": "images/notebook-previews/sdk-nmf-extraction.svg",
       "workflowGroup": "core",
       "workflowGroupLabel": "Analyze Data"
@@ -83,7 +83,7 @@
     {
       "file": "msig-sdk-export-report.onb.html",
       "title": "Report packet builder",
-      "summary": "Build a demonstration report archive with selected sections, provenance, audit checks, and downloads.",
+      "summary": "Build a demo report archive with selected sections, provenance, audit checks, and downloads.",
       "image": "images/notebook-previews/sdk-report-packet.svg",
       "workflowGroup": "reliability",
       "workflowGroupLabel": "Review And Report"
@@ -91,7 +91,7 @@
     {
       "file": "msig-sdk-multi-engine-comparison.onb.html",
       "title": "Multi-tool comparison",
-      "summary": "Compare fitting-engine outputs on identical demonstration spectra with compact concordance views.",
+      "summary": "Compare fitting-engine outputs on identical demo spectra with compact concordance views.",
       "image": "images/notebook-previews/sdk-multi-tool-comparison.svg",
       "workflowGroup": "reliability",
       "workflowGroupLabel": "Review And Report"

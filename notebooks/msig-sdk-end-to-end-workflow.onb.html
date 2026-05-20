@@ -2725,9 +2725,9 @@ These controls choose the fitting engine and package settings. Check the input f
         setRunFeedback(
           "error",
           "Input check needs data",
-          "Load a public API dataset or apply your own tables before checking inputs."
+          "Load a public API dataset or apply local input tables before checking inputs."
         );
-        runOutput.append(placeholder("Load a public API dataset or apply your own data before checking inputs."));
+        runOutput.append(placeholder("Load a public API dataset or apply local input tables before checking inputs."));
         return;
       }
       setRunFeedback(
@@ -2878,7 +2878,7 @@ These controls choose the fitting engine and package settings. Check the input f
     runButtons.append(validateButton, runButton);
     engineSelect.addEventListener("change", renderEngineSummary);
     renderEngineSummary();
-    runOutput.append(placeholder("Load a public API dataset or apply your own data, check inputs, then run the workflow stages described above."));
+    runOutput.append(placeholder("Load a public API dataset or apply local input tables, check inputs, then run the workflow stages described above."));
 		    runPanel.append(
 		      collapsibleOutput("Run guide", workflowRunGuide()),
 		      parameterGrid,
@@ -2970,6 +2970,176 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 	    ]);
 	    const BURDEN_REFRESH_PARAMETER_KEYS = new Set(["lowBurdenThreshold", "moderateBurdenThreshold"]);
 
+	    function ensureEndToEndReviewStyles() {
+	      const styleId = "msigsdk-end-to-end-review-style";
+	      if (document.getElementById(styleId)) return;
+	      const style = document.createElement("style");
+	      style.id = styleId;
+	      style.textContent = `
+	        #workflow-review .workflow-review-settings {
+	          gap: 8px;
+	          padding: 10px 12px;
+	          background: #ffffff;
+	        }
+	        #workflow-review .workflow-review-settings-header {
+	          align-items: flex-start;
+	        }
+	        #workflow-review .workflow-review-settings-title {
+	          font-size: 13px;
+	        }
+	        #workflow-review .workflow-review-settings-status {
+	          border: 1px solid transparent;
+	          padding: 3px 8px;
+	          font-size: 10px;
+	          letter-spacing: 0;
+	          text-transform: none;
+	        }
+	        #workflow-review .workflow-review-settings-note {
+	          max-width: 760px;
+	          font-size: 12px;
+	        }
+	        #workflow-review .workflow-review-settings-actions {
+	          gap: 8px;
+	        }
+	        #workflow-review .workflow-review-threshold-details summary {
+	          color: var(--ink);
+	          font-size: 12px;
+	          font-weight: 800;
+	        }
+	        #workflow-review .workflow-review-setting-chip {
+	          min-height: 22px;
+	          padding: 2px 7px;
+	          background: #fbfcfb;
+	          color: var(--muted);
+	          font-size: 11px;
+	          font-weight: 700;
+	        }
+	        #workflow-review .workflow-diagnostics-compact {
+	          display: grid;
+	          gap: 12px;
+	          padding: 12px;
+	          border: 1px solid var(--line);
+	          border-radius: 8px;
+	          background: #ffffff;
+	        }
+	        #workflow-review .workflow-diagnostics-header {
+	          display: grid;
+	          gap: 4px;
+	        }
+	        #workflow-review .workflow-diagnostics-header h4 {
+	          margin: 0;
+	          color: var(--ink);
+	          font-size: 15px;
+	          line-height: 1.25;
+	        }
+	        #workflow-review .workflow-diagnostics-header p {
+	          margin: 0;
+	          max-width: 760px;
+	          color: var(--muted);
+	          font-size: 12px;
+	          line-height: 1.4;
+	        }
+	        #workflow-review .workflow-diagnostics-summary {
+	          display: grid;
+	          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+	          gap: 8px;
+	        }
+	        #workflow-review .workflow-diagnostics-stat {
+	          display: grid;
+	          gap: 3px;
+	          padding: 9px;
+	          border: 1px solid var(--rule);
+	          border-radius: 7px;
+	          background: #fbfcfb;
+	          min-width: 0;
+	        }
+	        #workflow-review .workflow-diagnostics-stat span {
+	          color: var(--muted);
+	          font-size: 11px;
+	          font-weight: 800;
+	        }
+	        #workflow-review .workflow-diagnostics-stat strong {
+	          color: var(--ink);
+	          font-size: 17px;
+	          line-height: 1.1;
+	          overflow-wrap: anywhere;
+	        }
+	        #workflow-review .workflow-diagnostics-table {
+	          display: grid;
+	          gap: 0;
+	          overflow-x: auto;
+	          border: 1px solid var(--rule);
+	          border-radius: 8px;
+	          background: #ffffff;
+	        }
+	        #workflow-review .workflow-diagnostics-row {
+	          display: grid;
+	          grid-template-columns: minmax(120px, 1.1fr) minmax(92px, 0.8fr) minmax(220px, 2fr) repeat(4, minmax(84px, 0.7fr));
+	          gap: 8px;
+	          align-items: center;
+	          min-width: 860px;
+	          padding: 8px 10px;
+	          border-top: 1px solid var(--rule);
+	          color: var(--ink);
+	          font-size: 12px;
+	        }
+	        #workflow-review .workflow-diagnostics-row:first-child {
+	          border-top: 0;
+	        }
+	        #workflow-review .workflow-diagnostics-row.header {
+	          background: #fbfcfb;
+	          color: var(--muted);
+	          font-size: 11px;
+	          font-weight: 900;
+	          text-transform: uppercase;
+	        }
+	        #workflow-review .workflow-diagnostics-sample {
+	          font-weight: 900;
+	          overflow-wrap: anywhere;
+	        }
+	        #workflow-review .workflow-diagnostics-cues {
+	          color: var(--muted);
+	          line-height: 1.35;
+	        }
+	        #workflow-review .workflow-diagnostics-badge {
+	          display: inline-flex;
+	          justify-content: center;
+	          width: fit-content;
+	          min-width: 66px;
+	          padding: 3px 7px;
+	          border-radius: 999px;
+	          border: 1px solid var(--rule);
+	          background: #f7faf8;
+	          color: var(--muted);
+	          font-size: 11px;
+	          font-weight: 900;
+	        }
+	        #workflow-review .workflow-diagnostics-badge.priority {
+	          border-color: #f2b6a8;
+	          background: #fff4f1;
+	          color: #a63c20;
+	        }
+	        #workflow-review .workflow-diagnostics-badge.check {
+	          border-color: #f0d27a;
+	          background: #fff8dc;
+	          color: #7a5600;
+	        }
+	        #workflow-review .workflow-diagnostics-badge.routine {
+	          border-color: #b7dfcf;
+	          background: #f1fbf6;
+	          color: #047857;
+	        }
+	        #workflow-review .workflow-diagnostics-footnote {
+	          margin: 0;
+	          color: var(--muted);
+	          font-size: 11px;
+	          line-height: 1.4;
+	        }
+	      `;
+	      document.head.append(style);
+	    }
+	    ensureEndToEndReviewStyles();
+
     function sampleOptions() {
       return Object.keys(workflowState.spectra || {});
     }
@@ -3008,6 +3178,181 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 	        wrapper.append(chip);
 	      });
 	      return wrapper;
+	    }
+
+	    function compactReviewNumber(value, digits = 3) {
+	      const numeric = Number(value);
+	      if (!Number.isFinite(numeric)) return "n/a";
+	      return numeric.toFixed(digits).replace(/\.?0+$/, "");
+	    }
+
+	    function compactReviewPercent(value, digits = 1) {
+	      const numeric = Number(value);
+	      if (!Number.isFinite(numeric)) return "n/a";
+	      return `${(numeric * 100).toFixed(digits).replace(/\.?0+$/, "")}%`;
+	    }
+
+	    function reviewCueLabelsForSample(sample) {
+	      const evidence = sample?.componentEvidence || {};
+	      const cues = [];
+	      if (["low", "insufficient"].includes(evidence.burden?.burdenClass)) {
+	        cues.push(evidence.burden.burdenClass === "insufficient" ? "Very low mutation count" : "Low mutation count");
+	      }
+	      if (evidence.catalog?.fitReviewStatus === "review") {
+	        cues.push("Residual or catalog fit");
+	      } else if (evidence.catalog?.fitReviewStatus === "limited_by_low_burden") {
+	        cues.push("Residual check limited by mutation count");
+	      }
+	      if (
+	        evidence.bootstrap?.reviewSeverity === "concern" ||
+	        evidence.bootstrap?.reviewSeverity === "caution" ||
+	        (evidence.bootstrap?.warningCodes || []).length
+	      ) {
+	        cues.push("Uncertainty interval");
+	      }
+	      if (
+	        evidence.threshold?.reviewSeverity === "concern" ||
+	        evidence.threshold?.reviewSeverity === "caution" ||
+	        (evidence.threshold?.warningCodes || []).length
+	      ) {
+	        cues.push("Cutoff sensitivity");
+	      }
+	      if (evidence.ambiguity?.sampleAmbiguityStatus === "strong_active_confusable_pair") {
+	        cues.push("Very similar active signatures");
+	      } else if (evidence.ambiguity?.sampleAmbiguityStatus === "active_confusable_pair") {
+	        cues.push("Similar active signatures");
+	      }
+	      return cues;
+	    }
+
+	    function reviewSeverityForSample(sample) {
+	      const evidence = sample?.componentEvidence || {};
+	      if (
+	        evidence.burden?.burdenClass === "insufficient" ||
+	        evidence.catalog?.fitReviewStatus === "review" ||
+	        evidence.bootstrap?.reviewSeverity === "concern" ||
+	        evidence.threshold?.reviewSeverity === "concern" ||
+	        evidence.ambiguity?.sampleAmbiguityStatus === "strong_active_confusable_pair"
+	      ) {
+	        return "priority";
+	      }
+	      return reviewCueLabelsForSample(sample).length ? "check" : "routine";
+	    }
+
+	    function mostCommonReviewCue(samples = []) {
+	      const counts = new Map();
+	      samples.flatMap(reviewCueLabelsForSample).forEach((label) => {
+	        counts.set(label, (counts.get(label) || 0) + 1);
+	      });
+	      return [...counts.entries()].sort((a, b) => b[1] - a[1])[0] || null;
+	    }
+
+	    function reviewDiagnosticRows(samples = []) {
+	      return [...samples].sort((a, b) => {
+	        const severityRank = { priority: 2, check: 1, routine: 0 };
+	        const severityDelta =
+	          (severityRank[reviewSeverityForSample(b)] || 0) -
+	          (severityRank[reviewSeverityForSample(a)] || 0);
+	        if (severityDelta) return severityDelta;
+	        return sampleActiveCaveatCount(b) - sampleActiveCaveatCount(a);
+	      });
+	    }
+
+	    function reviewDiagnosticRowNode(sample) {
+	      const row = document.createElement("div");
+	      row.className = "workflow-diagnostics-row";
+	      const evidence = sample?.componentEvidence || {};
+	      const severity = reviewSeverityForSample(sample);
+	      const cues = reviewCueLabelsForSample(sample);
+	      const values = [
+	        { className: "workflow-diagnostics-sample", text: sample.sample || "sample" },
+	        {
+	          node: (() => {
+	            const badge = document.createElement("span");
+	            badge.className = `workflow-diagnostics-badge ${severity}`;
+	            badge.textContent = severity === "priority" ? "Priority" : severity === "check" ? "Check" : "Routine";
+	            return badge;
+	          })(),
+	        },
+	        { className: "workflow-diagnostics-cues", text: cues.join(", ") || "No active review cue" },
+	        { text: compactReviewNumber(evidence.reconstruction?.cosineSimilarity, 3) },
+	        { text: compactReviewPercent(evidence.residual?.unexplainedFraction, 1) },
+	        { text: compactReviewPercent(evidence.bootstrap?.maxConfidenceWidth, 0) },
+	        { text: compactReviewNumber(evidence.threshold?.cosineDrop, 3) },
+	      ];
+	      values.forEach((value) => {
+	        const cell = document.createElement("div");
+	        if (value.className) cell.className = value.className;
+	        if (value.node) {
+	          cell.append(value.node);
+	        } else {
+	          cell.textContent = value.text;
+	        }
+	        row.append(cell);
+	      });
+	      return row;
+	    }
+
+	    function renderCompactReviewDiagnostics(hostId, fitQualityEvidence) {
+	      const host = typeof hostId === "string" ? document.getElementById(hostId) : hostId;
+	      if (!host) return null;
+	      const samples = fitQualityEvidence?.samples || [];
+	      if (!samples.length) {
+	        host.replaceChildren(placeholder("Run the workflow to see review diagnostics."));
+	        return null;
+	      }
+	      const sortedSamples = reviewDiagnosticRows(samples);
+	      const reviewCount = samples.filter((sample) => sampleActiveCaveatCount(sample) > 0).length;
+	      const priorityCount = samples.filter((sample) => reviewSeverityForSample(sample) === "priority").length;
+	      const caveatTotal = samples.reduce((sum, sample) => sum + sampleActiveCaveatCount(sample), 0);
+	      const commonCue = mostCommonReviewCue(samples);
+	      const shownRows = sortedSamples.slice(0, 8);
+
+	      const panel = document.createElement("section");
+	      panel.className = "workflow-diagnostics-compact";
+	      const header = document.createElement("div");
+	      header.className = "workflow-diagnostics-header";
+	      const title = document.createElement("h4");
+	      title.textContent = "Review diagnostics";
+	      const summary = document.createElement("p");
+	      summary.textContent = "Caveats mark samples that need inspection before reporting. They do not mean the fit failed.";
+	      header.append(title, summary);
+
+	      const stats = document.createElement("div");
+	      stats.className = "workflow-diagnostics-summary";
+	      [
+	        ["Samples", samples.length],
+	        ["Needs review", `${reviewCount}/${samples.length}`],
+	        ["Priority", priorityCount],
+	        ["Most common cue", commonCue ? `${commonCue[0]} (${commonCue[1]})` : "None"],
+	      ].forEach(([label, value]) => {
+	        const card = document.createElement("div");
+	        card.className = "workflow-diagnostics-stat";
+	        const labelNode = document.createElement("span");
+	        labelNode.textContent = label;
+	        const valueNode = document.createElement("strong");
+	        valueNode.textContent = String(value);
+	        card.append(labelNode, valueNode);
+	        stats.append(card);
+	      });
+
+	      const rows = document.createElement("div");
+	      rows.className = "workflow-diagnostics-table";
+	      const headerRow = document.createElement("div");
+	      headerRow.className = "workflow-diagnostics-row header";
+	      ["Sample", "Status", "Review cue", "Fit cosine", "Residual", "Max CI", "Cutoff drop"].forEach((label) => {
+	        const cell = document.createElement("div");
+	        cell.textContent = label;
+	        headerRow.append(cell);
+	      });
+	      rows.append(headerRow, ...shownRows.map(reviewDiagnosticRowNode));
+
+	      const footnote = document.createElement("p");
+	      footnote.className = "workflow-diagnostics-footnote";
+	      footnote.textContent = `Showing ${shownRows.length} highest-priority sample${shownRows.length === 1 ? "" : "s"} of ${samples.length}. Fit cosine is higher when the reconstruction matches the observed spectrum; residual, max CI, and cutoff drop are smaller when the fitted recipe is more stable.`;
+	      panel.append(header, stats, rows, footnote);
+	      host.replaceChildren(panel);
+	      return { data: sortedSamples, shownRows };
 	    }
 
 	    function plotParameterGrid(keys = []) {
@@ -3071,11 +3416,11 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 
 	    function reviewAppliedCaveatSummary() {
 	      const samples = workflowState.analysis?.fitQualityEvidence?.samples || [];
-	      if (!samples.length) return "Run the workflow to count active caveats under the applied settings.";
-	      const counts = samples.map((sample) => sample.reviewFlagCount ?? sample.reviewFlagCodes?.length ?? 0);
+	      if (!samples.length) return "Run the workflow to apply these review settings.";
+	      const counts = samples.map((sample) => sampleActiveCaveatCount(sample));
 	      const sampleCount = counts.filter((count) => count > 0).length;
 	      const total = counts.reduce((sum, count) => sum + count, 0);
-	      return `${sampleCount}/${samples.length} samples have active caveats under the applied settings; ${total} total caveat(s).`;
+	      return `${sampleCount}/${samples.length} samples need review; ${total} cue${total === 1 ? "" : "s"} active.`;
 	    }
 
 	    function citationLink(label, href) {
@@ -3138,7 +3483,7 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 	      const unsaved = reviewParameterDraftDiffers();
 	      root.querySelectorAll("[data-review-settings-status]").forEach((node) => {
 	        node.className = `workflow-review-settings-status ${unsaved ? "unsaved" : "applied"}`;
-	        node.textContent = unsaved ? "Unsaved review settings" : "Applied review settings";
+	        node.textContent = unsaved ? "Unsaved" : "Applied";
 	      });
 	      root.querySelectorAll("[data-review-settings-caveats]").forEach((node) => {
 	        node.textContent = reviewAppliedCaveatSummary();
@@ -3148,6 +3493,9 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 	      });
 	      root.querySelectorAll("[data-review-apply]").forEach((buttonNode) => {
 	        buttonNode.disabled = !unsaved;
+	      });
+	      root.querySelectorAll("[data-review-restore]").forEach((buttonNode) => {
+	        buttonNode.hidden = !unsaved;
 	      });
 	    }
 
@@ -3168,6 +3516,8 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 	      caveats.dataset.reviewSettingsCaveats = "true";
 	      const chipHost = document.createElement("div");
 	      chipHost.dataset.reviewSettingsChips = "true";
+	      const chipDetails = collapsibleOutput("Current thresholds", chipHost, { open: false });
+	      chipDetails.classList.add("workflow-review-threshold-details");
 	      const actions = document.createElement("div");
 	      actions.className = "workflow-button-row workflow-review-settings-actions";
 	      const applyButton = button("Apply review settings", "primary");
@@ -3187,18 +3537,18 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 	        renderReviewSettingsStatus(panel);
 	      });
 	      const restoreButton = button("Restore applied settings");
+	      restoreButton.dataset.reviewRestore = "true";
 	      restoreButton.addEventListener("click", () => {
 	        setReviewParameterDraftValues(reviewParameterSnapshot(workflowState.parameters));
 	        renderReviewSettingsStatus(panel);
 	      });
 	      actions.append(applyButton, resetButton, restoreButton);
-	      const methods = reviewMethodsBasis();
 	      const advanced = collapsibleOutput(
 	        "Advanced review thresholds",
 	        plotParameterGroups(REVIEW_SUMMARY_PARAMETER_GROUPS),
 	        { open: false }
 	      );
-	      panel.append(header, caveats, chipHost, actions, methods, advanced);
+	      panel.append(header, caveats, actions, chipDetails, advanced);
 	      renderReviewSettingsStatus(panel);
 	      return panel;
 	    }
@@ -3228,7 +3578,7 @@ Read these before using the fitted signature recipe as evidence. The plots answe
       status.className = "workflow-plot-sample-status";
       section.append(heading);
       if (explanation) {
-        section.append(collapsibleOutput("How to interpret this plot", paragraphNode(explanation, "workflow-plot-explanation")));
+        section.append(collapsibleOutput(options.interpretLabel || "How to interpret this plot", paragraphNode(explanation, "workflow-plot-explanation")));
       }
 	      appendPlotParameters(section, options);
       let selectedSample = options.sample || null;
@@ -3302,15 +3652,15 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 	      tableStack.replaceChildren();
 		      await plotSection(
 		        "Review summary",
-		        (id) => mSigSDK.qcPlots.plotFitQualityEvidenceDashboard(id, analysis.fitQualityEvidence),
+		        (id) => renderCompactReviewDiagnostics(id, analysis.fitQualityEvidence),
 		        fitQualityEvidenceTable(analysis.fitQualityEvidence, {
 		          includeInterpretationEvidence: true,
 		          maxRows: 8,
-		          title: "Review-diagnostics values behind the plot",
-		          caption: "Lists the reporting mode and review cues shown in the review-diagnostics figure.",
+		          title: "Review-diagnostics values",
+		          caption: "Lists the sample-level cues used in the compact review panel.",
 		        }),
-		        "Shows which samples need caveats and which metric triggered them."
-		        , { parameterPanel: reviewSettingsPanel() }
+		        "Ranks samples by review cues so the highest-priority fits are inspected first."
+		        , { parameterPanel: reviewSettingsPanel(), interpretLabel: "How to read this panel" }
 		      );
 		      await plotSection(
 		        "Mutation count",

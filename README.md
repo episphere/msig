@@ -97,7 +97,7 @@ Use `mSigSDK.pipelines` for the full computational API and `mSigSDK.workflows.*L
 
 ## Interactive Examples
 
-The canonical interactive recipes now live with the GitHub Pages site: [mSigSDK educational notebooks](https://episphere.github.io/msig/notebooks/viewer.html). These notebooks use public or bundled demonstration inputs, show the JavaScript cells inline, and can be edited and rerun in the browser. They are learning examples for SDK calls, plots, result objects, and export patterns, not a hosted workspace for private user data, regulated data, or large-cohort production analysis. The resource-portability notebook demonstrates how mSigPortal and TCGA/GDC resources become validated SDK matrices, portable TSV files, and provenance-backed analysis objects.
+The canonical interactive recipes now live with the GitHub Pages site: [mSigSDK example notebooks](https://episphere.github.io/msig/notebooks/viewer.html). These notebooks use public or bundled demo inputs, show the JavaScript cells inline, and can be edited and rerun in the browser. They show SDK calls, plots, result objects, and export patterns; run private data, regulated data, and large cohorts in your own environment. The resource-portability notebook demonstrates how mSigPortal and TCGA/GDC resources become validated SDK matrices, portable TSV files, and provenance-backed analysis objects.
 
 Notebook cards and the runner menu are generated from `notebooks/notebooks.json`. When adding a new `*.onb.html` notebook, run `npm run notebooks:manifest` so it appears automatically on the website and in the runner.
 
@@ -386,7 +386,7 @@ NMF plot helpers are available under `mSigSDK.signatureExtractionPlots`. Extract
 
 ### Observable Notebook Workflows
 
-The SDK includes focused Observable Kit notebooks for educational browser testing without loading every analysis into one runtime. The hosted notebooks use public or bundled demonstration inputs; production analyses should adapt the SDK calls in a controlled local or institutional environment:
+The SDK includes focused Observable Kit notebooks for browser testing without loading every analysis into one runtime. The hosted notebooks use public or bundled demo inputs; production analyses should adapt the SDK calls in a controlled local or institutional environment:
 
 - Hosted notebook gallery: <https://episphere.github.io/msig/notebooks/viewer.html>
 - `notebooks/msig-sdk-notebooks.onb.html`: index of focused notebooks.
@@ -419,8 +419,9 @@ document.body.append(
 
 ### Project and Manuscript Notes
 
-- `docs/MSIGSDK_FEATURE_REFERENCE.html`: rendered source-grounded public API feature reference.
-- `docs/MSIGSDK_FEATURE_REFERENCE.md`: Markdown source for the rendered feature reference.
+- `docs/index.html`: rendered public SDK documentation.
+- `docs/MSIGSDK_FEATURE_REFERENCE.md`: Markdown source for the public SDK documentation.
+- `docs/api-reference.generated.json`: source-derived documentation.js API metadata used for function lookup and audits.
 - `docs/project/MEMORY.md`: durable project context, priorities, and development notes.
 - `docs/manuscript/manuscript/`: current manuscript drafts.
 - `docs/manuscript/google-doc-tables/`: manuscript-ready HTML tables.

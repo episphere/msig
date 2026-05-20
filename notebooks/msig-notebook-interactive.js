@@ -296,7 +296,7 @@ function renderDataGuide(config) {
   heading.textContent = "Data source and format";
   const lead = document.createElement("p");
   lead.textContent =
-    "Start by choosing one source: load the default real public dataset, or paste/upload your own data in the same shape and apply it before running.";
+    "Start by choosing one source: load the default real public dataset, or paste/upload small local inputs in the same shape and apply them before running.";
 
   const grid = document.createElement("div");
   grid.className = "workflow-data-guide-grid";
@@ -1365,7 +1365,7 @@ export function renderInteractiveNotebook({ mode, mSigSDK, display }) {
     resetOutputs(app.outputs, "Loading the default public dataset...");
     try {
       await fillSampleData(mSigSDK, controls, config.kind);
-      resetOutputs(app.outputs, "Default public dataset loaded. Adjust settings, apply your own data instead, or run the workflow.");
+      resetOutputs(app.outputs, "Default public dataset loaded. Adjust settings, apply small local inputs instead, or run the workflow.");
     } catch (error) {
       resetOutputs(app.outputs, `Could not load the default public dataset: ${error.message}`);
     } finally {

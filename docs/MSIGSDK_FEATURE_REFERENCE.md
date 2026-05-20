@@ -1,8 +1,8 @@
-# mSigSDK feature reference
+# mSigSDK documentation
 
 ## Scope
 
-This document describes the public mSigSDK 0.3.0 browser API exposed by `main.js`. It covers every public namespace, every public feature, accepted inputs, configurable parameters, returned outputs, interpretation boundaries, warning semantics, and literature support.
+This document describes the public mSigSDK 0.3.0 browser API exposed by `main.js`. It covers every public namespace, recommended workflows, accepted inputs, configurable parameters, returned outputs, interpretation boundaries, warning semantics, and literature support.
 
 mSigSDK is a browser-native workflow and software-integration SDK for mutational-signature analysis. It does not replace production extraction or assignment engines. Its analytical outputs are research-use review artifacts that are conditional on the supplied spectra, reference catalog, context basis, assay territory, and configured thresholds.
 
@@ -1185,7 +1185,7 @@ These helpers are intended for browser notebooks, reports, and teaching pages. D
 | `nmfMatchRows(matches, { maxRows = 12 })` | Reference match output. | Rows with extracted signature, reference signature, and cosine similarity. |
 | `reportFieldRows(report)` | Report object. | Rows summarizing top-level report fields. |
 
-## Literature support
+## References
 
 | Topic | Reference |
 |---|---|

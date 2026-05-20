@@ -1,15 +1,15 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK cohort and panel workflow</title>
+  <title>mSigSDK Panel/WES assay planning</title>
 
   <script type="text/markdown">
-    # Cohort and panel workflow
+    # Panel/WES assay planning
 
-    Use this page when a WGS-derived signature claim needs a panel or WES check. A signature can appear in the WGS fit, but the same claim may not remain supported after the variant rows are restricted to the assay target territory.
+    Use this page to decide whether a WES or targeted-panel BED file leaves enough usable mutation evidence to review selected mutational signatures.
 
-    The core inputs are WGS-like variant rows, a BED target file, a signature catalog, and optional sample details. The notebook filters the variant rows through panel or WES BED intervals, converts the retained variants into restricted-assay SBS96 spectra, and compares that restricted result with the original fit.
+    The inputs are WGS-like variant rows, a BED target file, a signature catalog, and optional sample details. The notebook filters variants through the selected target territory, builds restricted-assay SBS96 spectra, fits the original and restricted spectra, and summarizes whether the target is usable for signature review.
 
-    If the starting data already came from WES or a panel, use this page as an assay-support review with the matching BED file. It should not be used to pretend that restricted-assay data were originally WGS.
+    If the starting data already came from WES or a panel, load the matching BED file and read the result as an assay planning check for that territory.
   </script>
 
   <script type="module" pinned id="cohort-panel-interactive">
@@ -144,24 +144,8 @@
         .cohort-panel-review-summary { display: grid; gap: 0.7rem; }
         .cohort-panel-review-list { margin: 0; padding-left: 1.1rem; color: #345f72; }
         .cohort-panel-review-list li { margin: 0.25rem 0; }
-        .cohort-panel-evidence-help { color: #345f72; margin: 0 0 0.75rem; max-width: 58rem; line-height: 1.4; }
-        .cohort-panel-evidence-legend { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0 0 0.75rem; }
-        .cohort-panel-evidence-legend span { border: 1px solid rgba(16, 82, 100, 0.2); border-radius: 999px; padding: 0.25rem 0.55rem; background: rgba(255,255,255,0.45); font-weight: 700; font-size: 0.82rem; }
-        .cohort-panel-evidence-wrap { overflow-x: auto; border: 1px solid rgba(16, 82, 100, 0.2); border-radius: 8px; background: rgba(255,255,255,0.32); }
-        .cohort-panel-evidence-matrix { width: 100%; min-width: 760px; border-collapse: separate; border-spacing: 0; }
-        .cohort-panel-evidence-matrix th,
-        .cohort-panel-evidence-matrix td { border-bottom: 1px solid rgba(16, 82, 100, 0.16); border-right: 1px solid rgba(16, 82, 100, 0.12); padding: 0.45rem; text-align: center; }
-        .cohort-panel-evidence-matrix th { font-size: 0.78rem; color: #244c60; background: rgba(255,255,255,0.48); }
-        .cohort-panel-evidence-matrix th:first-child,
-        .cohort-panel-evidence-matrix td:first-child { position: sticky; left: 0; z-index: 1; text-align: left; background: #d7ecf9; min-width: 8.5rem; }
-        .cohort-panel-evidence-cell { min-width: 4.6rem; border-radius: 6px; color: #123245; font-weight: 800; line-height: 1.05; }
-        .cohort-panel-evidence-cell strong { display: block; font-size: 0.95rem; }
-        .cohort-panel-evidence-cell span { display: block; margin-top: 0.2rem; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.02em; }
-        .cohort-panel-evidence-cell.high { background: #087f8c; color: #fff; }
-        .cohort-panel-evidence-cell.limited { background: #56b4a2; color: #082f36; }
-        .cohort-panel-evidence-cell.detected { background: #bfe5df; color: #123245; }
-        .cohort-panel-evidence-cell.not-detected { background: #edf6f9; color: #587584; }
-        .cohort-panel-evidence-cell.not-assessable { background: repeating-linear-gradient(135deg, #e8eef2, #e8eef2 6px, #d7e2e8 6px, #d7e2e8 12px); color: #587584; }
+        .cohort-panel-plot-host svg { display: block; width: 100%; height: auto; min-width: 560px; }
+        .cohort-panel-chart-note { margin-top: 0.5rem; color: #547184; font-size: 0.85rem; }
         @media (max-width: 760px) {
           .cohort-panel-grid,
           .cohort-panel-grid.three,
@@ -186,11 +170,11 @@
       infoCards([
         {
           title: "WGS-derived spectra",
-          text: "Load public TCGA/GDC MAF rows or project variant rows. The page creates the original spectra, filters variants to the target intervals, and reruns the fit on the retained variants.",
+          text: "Load public TCGA/GDC MAF rows or project variant rows. The page measures how many mutations remain after the selected BED target is applied.",
         },
         {
           title: "Already WES or panel",
-          text: "Load those variant rows with the matching target BED. The page reviews support for that assay; it does not treat restricted data as if it started as WGS.",
+          text: "Load those variant rows with the matching target BED. The result describes whether the target supports review of the selected signatures.",
         },
         {
           title: "BED target files",
@@ -203,9 +187,9 @@
       { label: "WES: Illumina Exome v1.2 hg38", value: "wes" },
       { label: "Panel: TruSight Cancer v1.0 hg38", value: "panel" },
     ]);
-    const publicMaxFilesInput = input("4", "number", "1");
+    const publicMaxFilesInput = input("8", "number", "1");
     publicMaxFilesInput.max = "12";
-    const publicMaxVariantsInput = input("360", "number", "20");
+    const publicMaxVariantsInput = input("2000", "number", "20");
     publicMaxVariantsInput.max = "2000";
     const loadPublicButton = button("Load selected public cohort", "primary");
     const applyDataButton = button("Apply pasted/uploaded data", "primary");
@@ -234,7 +218,7 @@
     const ownData = document.createElement("details");
     ownData.open = true;
     ownData.append(
-      summary("Paste or upload project data"),
+      summary("Paste small local inputs"),
       div(
         "cohort-panel-grid",
         field("WGS-like variant rows", variantRowsText, "Rows need sample, chromosome, position, reference allele, alternate allele, and variant type. Row-supplied trinucleotide context is used when present."),
@@ -253,8 +237,8 @@
     stepData.append(dataGuide, publicSource, ownData, dataOutput);
 
     const stepRun = section(
-      "2. Set review rules and run",
-      "Set the fitted-signature threshold and the assay-support thresholds used to classify each sample-signature call."
+      "2. Set planning rules and run",
+      "Set the mutation-count and evidence-tier thresholds used to judge whether the target can support signature review."
     );
     const groupKeyInput = input("burdenGroup");
     const exposureThresholdInput = input("0.01", "number", "0.005");
@@ -264,12 +248,14 @@
     const higherSupportInput = input("0.20", "number", "0.01");
     const coverageScaleInput = input("1", "number", "0.1");
     const genomeBuildInput = input("GRCh38");
-    const runButton = button("Run cohort and assay review", "primary");
+    const signaturesToPlanInput = input("");
+    signaturesToPlanInput.placeholder = "All loaded signatures";
+    const runButton = button("Run assay plan", "primary");
     const runStatus = p("cohort-panel-status", "Load data, then run.");
     const advancedRules = document.createElement("details");
     advancedRules.open = true;
     advancedRules.append(
-      summary("Assay support settings"),
+      summary("Assay planning settings"),
       div(
         "cohort-panel-grid",
         field("Low mutation-count cutoff", lowBurdenInput),
@@ -283,6 +269,7 @@
         "cohort-panel-grid",
         field("Sample group column", groupKeyInput, "Use a column from the sample details table."),
         field("Minimum signature contribution", exposureThresholdInput),
+        field("Signatures to plan for", signaturesToPlanInput, "Comma-separated signature names. Leave blank to include every loaded signature."),
         field("Limited-support cutoff", limitedSupportInput),
         field("Higher-support cutoff", higherSupportInput)
       ),
@@ -291,8 +278,8 @@
     );
 
     const stepReview = section(
-      "3. Review evidence",
-      "Read the cohort fit and restricted-assay evidence together before treating any signature contribution as reportable."
+      "3. Review assay plan",
+      "Read target retention, assessability, and review blockers before using the assay for signature interpretation."
     );
     const reviewOutput = div("cohort-panel-output");
     const plotOutput = div("cohort-panel-plots");
@@ -300,7 +287,7 @@
 
     const stepDownload = section(
       "4. Download files",
-      "Save the inputs, fitted signature contributions, panel/WES evidence calls, and the full run bundle."
+      "Save the assay-planning summaries, evidence calls, and full run bundle."
     );
     const downloadOutput = div("cohort-panel-output");
     stepDownload.append(downloadOutput);
@@ -315,8 +302,8 @@
         const targetMode = publicTargetSelect.value || "wes";
         const project = publicProjectSelect.value || "TCGA-LUAD";
         const preset = targetPresets[targetMode] || targetPresets.wes;
-        const maxFiles = Math.max(1, Math.min(12, Math.round(numberValue(publicMaxFilesInput.value, 4))));
-        const maxVariants = Math.max(20, Math.min(2000, Math.round(numberValue(publicMaxVariantsInput.value, 360))));
+        const maxFiles = Math.max(1, Math.min(12, Math.round(numberValue(publicMaxFilesInput.value, 8))));
+        const maxVariants = Math.max(20, Math.min(2000, Math.round(numberValue(publicMaxVariantsInput.value, 2000))));
         dataOutput.replaceChildren(note(`Loading ${project} public MAF rows and ${preset.label}...`));
         genomeBuildInput.value = preset.genomeBuild || "GRCh38";
         const [dataset, mafData] = await Promise.all([
@@ -358,6 +345,7 @@
         variantRowsText.value = cpRowsToCsv(publicVariants);
         bedText.value = defaultBedText;
         signaturesText.value = JSON.stringify(state.signatures, null, 2);
+        signaturesToPlanInput.placeholder = Object.keys(state.signatures || {}).join(", ") || "All loaded signatures";
         metadataText.value = cpRowsToCsv(state.metadata);
         renderDataPreview();
         clearResults();
@@ -388,6 +376,7 @@
         state.downsamplingSummary = derived.summary;
         state.source = "Project variant rows with BED target downsampling";
         state.publicSelection = null;
+        signaturesToPlanInput.placeholder = Object.keys(state.signatures || {}).join(", ") || "All loaded signatures";
         renderDataPreview();
         clearResults();
         runStatus.textContent = "Project data applied. Adjust settings or run.";
@@ -403,7 +392,7 @@
         if (!state.spectra || !state.restrictedSpectra || !state.signatures) {
           throw new Error("Load a public cohort or apply project variant rows, a BED target file, and signatures before running.");
         }
-        runStatus.textContent = "Running WGS fit, BED-restricted fit, and assay-support review...";
+        runStatus.textContent = "Running WGS fit, BED-restricted fit, and assay planning summary...";
         reviewOutput.replaceChildren(note("Running current data and settings."));
         plotOutput.replaceChildren();
         downloadOutput.replaceChildren();
@@ -506,72 +495,84 @@
     }
 
     function renderResults(params, cohort, panel) {
-      const panelCallRows = panelRows(panel);
-      const comparisonRows = fullContextComparisonRows(cohort, panel, params).slice(0, 24);
+      const panelCallRows = panelRows(panel).filter((row) => params.selectedSignatures.includes(row.signature));
+      const signatureRows = planningSignatureRows(cohort, panel, params);
+      const samplePlanningRows = planningSampleRows(cohort, panel, params);
+      const verdict = planningVerdict(signatureRows, samplePlanningRows, params);
       reviewOutput.replaceChildren(
         focusMessage(
-          "WGS fit first, BED-restricted fit second.",
-          "The table compares each original fitted contribution with the contribution after retaining only variants inside the BED target intervals. Support tiers summarize whether the restricted assay carries enough evidence for the same signature claim."
+          "The target file is the planning decision.",
+          "The result shows whether the selected BED target keeps enough mutations and callable signature context to support review of the selected signatures."
         ),
         miniMetrics([
-          { label: "Samples", value: Object.keys(state.spectra || {}).length },
-          { label: "Target mode", value: targetModeLabel(state.targetMode) },
-          { label: "Group field", value: params.groupKey },
-          { label: "BED-retained variants", value: `${state.downsamplingSummary?.retainedVariants ?? 0}/${state.downsamplingSummary?.totalVariants ?? 0}` },
-          { label: "Callable coverage", value: format(panel.opportunityMetadata?.opportunityCoverage) },
-          { label: "Opportunity source", value: params.callableOpportunitySource },
-          { label: "Review calls", value: panel.panel?.evidenceSummary?.callCount || 0 },
+          { label: "Source cohort", value: state.publicSelection?.project || state.source },
+          { label: "BED target", value: state.bedSource },
+          { label: "Retained variants", value: `${state.downsamplingSummary?.retainedVariants ?? 0}/${state.downsamplingSummary?.totalVariants ?? 0}` },
+          { label: "Assessable samples", value: `${verdict.assessableSamples}/${samplePlanningRows.length}` },
+          { label: "Assessable signatures", value: `${verdict.assessableSignatures}/${signatureRows.length}` },
+          { label: "Main blocker", value: verdict.mainBlocker },
         ]),
         div(
           "cohort-panel-result-grid",
           div(
             "cohort-panel-output",
-            blockTitle("Fitted exposure versus assay support"),
-            compactTable(comparisonRows, ["sample", "signature", "fittedExposure", "opportunityAdjustedExposure", "supportTier"])
+            blockTitle("Signature planning summary"),
+            presentation.table(
+              signatureRows,
+              [
+                { key: "signature", label: "Signature" },
+                { key: "callableSignatureMass", label: "Callable mass" },
+                { key: "originalFitSamples", label: "Original-fit samples" },
+                { key: "higherSupport", label: "Higher" },
+                { key: "limitedSupport", label: "Limited" },
+                { key: "notDetected", label: "Not detected" },
+                { key: "notAssessable", label: "Not assessable" },
+                { key: "recommendation", label: "Recommendation" },
+              ],
+              {
+                maxRows: 8,
+                title: false,
+                caption: "One row per selected signature, summarizing whether the target territory can support a review statement.",
+              }
+            )
           ),
           div(
             "cohort-panel-output",
             blockTitle("Warnings and review actions"),
             renderReviewSummary(cohort, panel, panelCallRows)
           )
+        ),
+        div(
+          "cohort-panel-output",
+          blockTitle("Sample planning summary"),
+          presentation.table(
+            samplePlanningRows,
+            [
+              { key: "sample", label: "Sample" },
+              { key: "originalMutations", label: "Original mutations" },
+              { key: "retainedMutations", label: "Retained mutations" },
+              { key: "retention", label: "Retention" },
+              { key: "strongestOriginalSignature", label: "Strongest original signature" },
+              { key: "restrictedAssaySupport", label: "Restricted-assay support" },
+              { key: "blockerOrReviewNote", label: "Blocker or review note" },
+            ],
+            {
+              maxRows: 6,
+              title: false,
+              caption: "All samples are shown through pagination. Retention is the share of original variant rows retained inside the selected BED target.",
+            }
+          )
         )
       );
       plotOutput.replaceChildren();
-      addPlot("Panel/WES review evidence matrix", (host) => host.replaceChildren(renderEvidenceMatrix(panelCallRows)), null, { primary: true });
-      addPlot(
-        "Loaded spectra mutation burden",
-        (host) => mSigSDK.qcPlots.plotMutationBurdenSummary(host, cohort.qc.mutationBurden, {
-          figureContext: {
-            dataset: state.source,
-            assay: "Original WGS-like spectra before BED filtering",
-            sampleCount: Object.keys(state.spectra || {}).length,
-            profile: "SBS",
-            matrix: "96",
-          },
-        }),
-        null,
-        { secondary: true }
-      );
-      addPlot(
-        "BED-restricted mutation burden",
-        (host) => mSigSDK.qcPlots.plotMutationBurdenSummary(host, panel.qc.mutationBurden, {
-          figureContext: {
-            dataset: state.bedSource,
-            assay: "Variants retained inside BED intervals",
-            sampleCount: Object.keys(state.restrictedSpectra || {}).length,
-            profile: "SBS",
-            matrix: "96",
-          },
-        }),
-        null,
-        { secondary: true }
-      );
+      addPlot("Retained mutation burden by sample", (host) => host.replaceChildren(renderRetainedBurdenFigure(samplePlanningRows)), null, { primary: true });
+      addPlot("Signature assessability by target", (host) => host.replaceChildren(renderSignatureAssessabilityFigure(signatureRows)), null, { secondary: true });
     }
 
     function renderDownloads(params, cohort, panel, opportunityInputs) {
-      const exposureCsv = cpRowsToCsv(presentation.exposureRows(cohort.fit.exposures, { minExposure: 0, topN: 1000 }));
-      const panelCsv = cpRowsToCsv(panelRows(panel));
-      const comparisonCsv = cpRowsToCsv(fullContextComparisonRows(cohort, panel, params));
+      const evidenceRows = panelRows(panel).filter((row) => params.selectedSignatures.includes(row.signature));
+      const signatureRows = planningSignatureRows(cohort, panel, params);
+      const samplePlanningRows = planningSampleRows(cohort, panel, params);
       const bundle = {
         source: state.source,
         parameters: params,
@@ -604,21 +605,17 @@
           warnings: panel.warnings,
           recommendedActions: panel.recommendedActions,
         },
+        planning: {
+          signatures: signatureRows,
+          samples: samplePlanningRows,
+          evidenceCalls: evidenceRows,
+        },
       };
       const downloads = [
-        { filename: "cohort_panel_variant_rows.csv", text: cpRowsToCsv(state.variantRows), label: "Download variant rows CSV" },
-        { filename: "cohort_panel_targets.bed", text: state.bedText, label: "Download BED targets" },
-        { filename: "cohort_panel_wgs_spectra.tsv", text: mSigSDK.io.exportSigProfilerMatrix(state.spectra, { contexts }), label: "Download WGS-like spectra TSV" },
-        { filename: "cohort_panel_bed_restricted_spectra.tsv", text: mSigSDK.io.exportSigProfilerMatrix(state.restrictedSpectra, { contexts }), label: "Download BED-restricted spectra TSV" },
-        { filename: "cohort_panel_signatures.tsv", text: mSigSDK.io.exportCOSMICSignatureMatrix(state.signatures, { contexts }), label: "Download signatures TSV" },
-        { filename: "cohort_panel_sample_details.csv", text: cpRowsToCsv(state.metadata), label: "Download sample details CSV" },
-        ...(opportunityInputs.callableOpportunities
-          ? [{ filename: "cohort_panel_callable_opportunities.csv", text: opportunityRowsToCsv(opportunityInputs.callableOpportunities, opportunityInputs.referenceOpportunities), label: "Download callable opportunities CSV" }]
-          : []),
-        { filename: "cohort_signature_contributions.csv", text: exposureCsv, label: "Download cohort signature contributions CSV" },
-        { filename: "fitted_exposure_vs_assay_support.csv", text: comparisonCsv, label: "Download fitted exposure versus assay support CSV" },
-        { filename: "panel_evidence_calls.csv", text: panelCsv, label: "Download panel/WES evidence CSV" },
-        { filename: "cohort_panel_bundle.json", value: bundle, type: "json", label: "Download review bundle JSON" },
+        { filename: "assay_planning_signature_summary.csv", text: cpRowsToCsv(signatureRows), label: "Download signature planning CSV" },
+        { filename: "assay_planning_sample_summary.csv", text: cpRowsToCsv(samplePlanningRows), label: "Download sample planning CSV" },
+        { filename: "assay_planning_evidence_calls.csv", text: cpRowsToCsv(evidenceRows), label: "Download evidence calls CSV" },
+        { filename: "assay_planning_bundle.json", value: bundle, type: "json", label: "Download assay planning bundle JSON" },
       ];
       downloadOutput.replaceChildren(downloadList(downloads));
     }
@@ -627,12 +624,13 @@
       state.cohort = null;
       state.panel = null;
       state.lastOpportunityInputs = null;
-      reviewOutput.replaceChildren(note("Run the workflow to review cohort and panel/WES evidence."));
+      reviewOutput.replaceChildren(note("Run the assay plan to summarize target retention and signature assessability."));
       plotOutput.replaceChildren();
       downloadOutput.replaceChildren(note("Downloads appear after a run."));
     }
 
     function readParams() {
+      const availableSignatures = Object.keys(state.signatures || {});
       return {
         groupKey: groupKeyInput.value.trim() || "burdenGroup",
         exposureThreshold: numberValue(exposureThresholdInput.value, 0.01),
@@ -642,7 +640,23 @@
         higherSupportExposureThreshold: numberValue(higherSupportInput.value, 0.2),
         coverageScale: numberValue(coverageScaleInput.value, 1),
         genomeBuild: genomeBuildInput.value.trim() || "GRCh38",
+        selectedSignatures: signatureSelectionFromInput(signaturesToPlanInput.value, availableSignatures),
       };
+    }
+
+    function signatureSelectionFromInput(value, availableSignatures = []) {
+      const available = availableSignatures.filter(Boolean);
+      const requested = String(value || "")
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+      if (!requested.length) return available;
+      const availableSet = new Set(available);
+      const unknown = requested.filter((signature) => !availableSet.has(signature));
+      if (unknown.length) {
+        throw new Error(`Unknown signature name${unknown.length === 1 ? "" : "s"}: ${unknown.join(", ")}`);
+      }
+      return requested;
     }
 
     function parseMatrix(text, kind) {
@@ -1068,102 +1082,310 @@
           exposure: call.exposure,
           tier: call.tier,
           assessability: call.assessabilityClass,
+          totalMutations: call.totalMutations,
+          expectedSignatureMutations: call.restrictedAssayEvidence?.expectedSignatureMutations,
+          expectedCallableSignatureMutations: call.restrictedAssayEvidence?.expectedCallableSignatureMutations,
+          callableSignatureMass: call.restrictedAssayEvidence?.callableEvidence?.signatureMassInCallableContexts,
           reasons: (call.assessabilityReasons || []).map((reason) => reason.detail || reason.code).join("; "),
         }))
       );
     }
 
-    function fullContextComparisonRows(cohort, panel, params) {
+    function planningSignatureRows(cohort, panel, params) {
+      const signatures = params.selectedSignatures || Object.keys(state.signatures || {});
+      const sampleCount = Object.keys(state.spectra || {}).length;
       const fullExposures = cohort?.fit?.exposures || {};
-      const panelByKey = new Map(panelRows(panel).map((row) => [`${row.sample}\u0000${row.signature}`, row]));
-      return Object.entries(fullExposures)
-        .flatMap(([sample, exposures]) =>
-          Object.entries(exposures || {}).map(([signature, fullExposure]) => {
-            const panelCall = panelByKey.get(`${sample}\u0000${signature}`);
-            const restrictedAssayExposure = Number(panelCall?.exposure || 0);
-            return {
-              sample,
-              signature,
-              fullContextExposureValue: Number(fullExposure || 0),
-              restrictedAssayExposureValue: restrictedAssayExposure,
-              fittedExposure: formatPercentPrecise(fullExposure),
-              opportunityAdjustedExposure: panelCall ? formatPercentPrecise(restrictedAssayExposure) : "not run",
-              supportTier: panelCall ? tierLabel(panelCall) : "not assessed",
-              reviewBasis: panelCall?.reasons || "Fitted contribution compared with restricted-assay review tier.",
-            };
-          })
-        )
-        .filter((row) =>
-          row.fullContextExposureValue >= params.exposureThreshold ||
-          row.restrictedAssayExposureValue >= params.limitedSupportExposureThreshold ||
-          ["high", "limited"].includes(row.supportTier)
-        )
-        .sort((a, b) =>
-          Math.max(b.fullContextExposureValue, b.restrictedAssayExposureValue) -
-          Math.max(a.fullContextExposureValue, a.restrictedAssayExposureValue)
-        )
-        .map(({ fullContextExposureValue, restrictedAssayExposureValue, ...row }) => row);
+      const calls = panelRows(panel).filter((row) => signatures.includes(row.signature));
+      const restrictedSignatures =
+        panel?.panel?.restrictedAssayEvidenceSummary?.signatures ||
+        panel?.restrictedAssayEvidenceSummary?.signatures ||
+        [];
+      const restrictedBySignature = new Map(restrictedSignatures.map((row) => [row.signatureName, row]));
+
+      return signatures.map((signature) => {
+        const signatureCalls = calls.filter((row) => row.signature === signature);
+        const tierCounts = summarizeTiers(signatureCalls);
+        const originalFitCount = Object.values(fullExposures).filter(
+          (row) => Number(row?.[signature] || 0) >= params.exposureThreshold
+        ).length;
+        const callableMass =
+          restrictedBySignature.get(signature)?.callableEvidence?.signatureMassInCallableContexts ??
+          firstFinite(signatureCalls.map((row) => row.callableSignatureMass));
+        const higherSupport = tierCounts.high || 0;
+        const limitedSupport = tierCounts.limited || 0;
+        const notDetected = tierCounts["not detected"] || 0;
+        const notAssessable = tierCounts["not assessable"] || 0;
+
+        return {
+          signature,
+          callableSignatureMass: formatFractionPercent(callableMass),
+          callableSignatureMassValue: Number.isFinite(Number(callableMass)) ? Number(callableMass) : null,
+          originalFitSamples: `${originalFitCount}/${sampleCount}`,
+          originalFitSampleCount: originalFitCount,
+          higherSupport,
+          limitedSupport,
+          notDetected,
+          notAssessable,
+          recommendation: signaturePlanningRecommendation({
+            sampleCount,
+            callableMass,
+            originalFitCount,
+            higherSupport,
+            limitedSupport,
+            notDetected,
+            notAssessable,
+          }),
+        };
+      });
     }
 
-    function renderEvidenceMatrix(rows = []) {
-      const data = Array.isArray(rows) ? rows : [];
-      const samples = cpUnique(data.map((row) => row.sample));
-      const signatures = cpUnique(data.map((row) => row.signature));
-      const byKey = new Map(data.map((row) => [`${row.sample}\u0000${row.signature}`, row]));
-      const node = div("cohort-panel-evidence-panel");
-      const help = document.createElement("p");
-      help.className = "cohort-panel-evidence-help";
-      help.textContent = "Rows are samples and columns are signatures. Each cell combines fitted contribution, mutation burden, fit quality, and callable territory into a review tier.";
-      const legend = div("cohort-panel-evidence-legend");
-      [
-        ["High", "Reportable support under current settings"],
-        ["Limited", "Detected, but needs caveats"],
-        ["Not detected", "Below the review threshold"],
-        ["Not assessable", "Assay coverage or burden is insufficient"],
-      ].forEach(([label, title]) => {
-        const chip = document.createElement("span");
-        chip.textContent = label;
-        chip.title = title;
-        legend.append(chip);
-      });
-      const wrap = div("cohort-panel-evidence-wrap");
-      const matrix = document.createElement("table");
-      matrix.className = "cohort-panel-evidence-matrix";
-      const thead = document.createElement("thead");
-      const headerRow = document.createElement("tr");
-      headerRow.append(document.createElement("th"));
-      for (const signature of signatures) {
-        const th = document.createElement("th");
-        th.textContent = signature;
-        headerRow.append(th);
+    function planningSampleRows(cohort, panel, params) {
+      const signatures = params.selectedSignatures || Object.keys(state.signatures || {});
+      const calls = panelRows(panel).filter((row) => signatures.includes(row.signature));
+      const callsBySample = groupRowsBy(calls, "sample");
+      const sampleNames = cpUnique([
+        ...Object.keys(state.spectra || {}),
+        ...Object.keys(state.restrictedSpectra || {}),
+        ...Object.keys(cohort?.fit?.exposures || {}),
+      ]);
+
+      return sampleNames.map((sample) => {
+        const sampleCalls = callsBySample.get(sample) || [];
+        const tierCounts = summarizeTiers(sampleCalls);
+        const originalMutationCount = Math.round(sumRecord(state.spectra?.[sample] || {}));
+        const retainedMutationCount = Math.round(sumRecord(state.restrictedSpectra?.[sample] || {}));
+        const retentionFraction = originalMutationCount ? retainedMutationCount / originalMutationCount : null;
+        const strongest = strongestSignature(cohort?.fit?.exposures?.[sample], signatures);
+        const highSupport = tierCounts.high || 0;
+        const limitedSupport = tierCounts.limited || 0;
+        const notDetected = tierCounts["not detected"] || 0;
+        const notAssessable = tierCounts["not assessable"] || 0;
+
+        return {
+          sample,
+          originalMutationCount,
+          retainedMutationCount,
+          retentionFraction,
+          originalMutations: originalMutationCount,
+          retainedMutations: retainedMutationCount,
+          retention: formatFractionPercent(retentionFraction),
+          strongestOriginalSignature: strongest,
+          highSupport,
+          limitedSupport,
+          notDetected,
+          notAssessable,
+          restrictedAssaySupport: supportSummary({ highSupport, limitedSupport, notDetected, notAssessable }),
+          blockerOrReviewNote: samplePlanningNote({
+            retainedMutationCount,
+            minAssessableMutations: params.minAssessableMutations,
+            highSupport,
+            limitedSupport,
+            notDetected,
+            notAssessable,
+            signatureCount: signatures.length,
+          }),
+        };
+      }).sort((a, b) => b.retainedMutationCount - a.retainedMutationCount || a.sample.localeCompare(b.sample));
+    }
+
+    function planningVerdict(signatureRows = [], sampleRows = [], params = {}) {
+      const assessableSamples = sampleRows.filter((row) => row.notAssessable < (params.selectedSignatures || []).length).length;
+      const assessableSignatures = signatureRows.filter((row) => row.notAssessable < sampleRows.length).length;
+      const totalSupported = signatureRows.reduce((sum, row) => sum + row.higherSupport + row.limitedSupport, 0);
+      const retained = state.downsamplingSummary?.retainedVariants ?? 0;
+      let mainBlocker = "Review supported signatures";
+      if (!retained) {
+        mainBlocker = "No variants retained";
+      } else if (!assessableSamples) {
+        mainBlocker = "Restricted burden too low";
+      } else if (!assessableSignatures) {
+        mainBlocker = "Target lacks callable context";
+      } else if (!totalSupported) {
+        mainBlocker = "No selected signature support";
       }
-      thead.append(headerRow);
-      const tbody = document.createElement("tbody");
-      for (const sample of samples) {
-        const row = document.createElement("tr");
-        const sampleCell = document.createElement("td");
-        sampleCell.textContent = shortSample(sample);
-        sampleCell.title = sample;
-        row.append(sampleCell);
-        for (const signature of signatures) {
-          const call = byKey.get(`${sample}\u0000${signature}`);
-          const cell = document.createElement("td");
-          const inner = div(`cohort-panel-evidence-cell ${tierClass(call)}`);
-          const exposure = document.createElement("strong");
-          exposure.textContent = call ? formatPercent(call.exposure) : "";
-          const tier = document.createElement("span");
-          tier.textContent = call ? tierLabel(call) : "missing";
-          inner.title = call?.reasons || tier.textContent;
-          inner.append(exposure, tier);
-          cell.append(inner);
-          row.append(cell);
+      return { assessableSamples, assessableSignatures, mainBlocker };
+    }
+
+    function signaturePlanningRecommendation(values) {
+      if (!values.sampleCount) return "Load samples before planning.";
+      if (Number(values.callableMass) === 0) return "Target does not cover this signature context.";
+      if (values.notAssessable >= values.sampleCount) return "Not assessable under the current target and burden settings.";
+      if (values.higherSupport > 0) return "Target supports review in higher-support samples.";
+      if (values.limitedSupport > 0) return "Target can support limited review with caveats.";
+      if (values.originalFitCount > 0) return "Original signal is not supported after target restriction.";
+      return "No selected-cohort signal to plan around in this run.";
+    }
+
+    function samplePlanningNote(values) {
+      if (values.retainedMutationCount < values.minAssessableMutations) {
+        return `Retained burden is below ${values.minAssessableMutations} mutations.`;
+      }
+      if (values.highSupport + values.limitedSupport > 0) {
+        return "Review supported signatures and fit-quality warnings.";
+      }
+      if (values.notAssessable >= values.signatureCount) {
+        return "No selected signature is assessable in this sample.";
+      }
+      return "Assay is assessable, but selected signatures are below review thresholds.";
+    }
+
+    function supportSummary(counts) {
+      const high = counts.highSupport ?? counts.higherSupport ?? 0;
+      const limited = counts.limitedSupport ?? 0;
+      const notDetected = counts.notDetected ?? 0;
+      const notAssessable = counts.notAssessable ?? 0;
+      return [
+        high ? `${high} high` : null,
+        limited ? `${limited} limited` : null,
+        notDetected ? `${notDetected} not detected` : null,
+        notAssessable ? `${notAssessable} not assessable` : null,
+      ].filter(Boolean).join(", ") || "No calls";
+    }
+
+    function firstFinite(values = []) {
+      for (const value of values) {
+        const number = finiteNumber(value);
+        if (number !== null) return number;
+      }
+      return null;
+    }
+
+    function finiteNumber(value) {
+      if (value === null || value === undefined || value === "") return null;
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    function groupRowsBy(rows = [], key) {
+      const grouped = new Map();
+      for (const row of rows) {
+        const value = row?.[key];
+        if (!grouped.has(value)) grouped.set(value, []);
+        grouped.get(value).push(row);
+      }
+      return grouped;
+    }
+
+    function strongestSignature(exposures = {}, signatures = []) {
+      const candidates = signatures.length ? signatures : Object.keys(exposures || {});
+      let bestSignature = "";
+      let bestExposure = 0;
+      for (const signature of candidates) {
+        const exposure = Number(exposures?.[signature] || 0);
+        if (exposure > bestExposure) {
+          bestSignature = signature;
+          bestExposure = exposure;
         }
-        tbody.append(row);
       }
-      matrix.append(thead, tbody);
-      wrap.append(matrix);
-      node.append(help, legend, wrap);
+      return bestSignature ? `${bestSignature} (${formatPercentPrecise(bestExposure)})` : "none";
+    }
+
+    function formatFractionPercent(value) {
+      const number = finiteNumber(value);
+      if (number === null) return "not available";
+      return formatPercentPrecise(number);
+    }
+
+    function renderRetainedBurdenFigure(rows = []) {
+      const data = [...rows]
+        .sort((a, b) => b.retainedMutationCount - a.retainedMutationCount || a.sample.localeCompare(b.sample))
+        .slice(0, 30);
+      if (!data.length) return note("No samples to plot.");
+      const node = div("cohort-panel-chart");
+      const width = 760;
+      const rowHeight = 28;
+      const margin = { top: 48, right: 90, bottom: 42, left: 170 };
+      const plotWidth = width - margin.left - margin.right;
+      const height = margin.top + margin.bottom + data.length * rowHeight;
+      const maxValue = Math.max(1, ...data.flatMap((row) => [row.originalMutationCount, row.retainedMutationCount]));
+      const x = (value) => margin.left + (Math.max(0, Number(value) || 0) / maxValue) * plotWidth;
+      const svg = svgElement("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": "Retained mutation burden by sample" });
+      svg.append(svgElement("text", { x: margin.left, y: 22, fill: "#123245", "font-size": 16, "font-weight": 800 }, "Original and BED-retained mutations"));
+      svg.append(svgElement("text", { x: margin.left, y: 40, fill: "#547184", "font-size": 12 }, "Gray bars show original mutations. Teal bars show variants retained inside the selected target."));
+      [0, 0.5, 1].forEach((fraction) => {
+        const value = Math.round(maxValue * fraction);
+        const gx = x(value);
+        svg.append(svgElement("line", { x1: gx, x2: gx, y1: margin.top - 4, y2: height - margin.bottom + 4, stroke: "rgba(16,82,100,0.18)" }));
+        svg.append(svgElement("text", { x: gx, y: height - 15, fill: "#547184", "font-size": 11, "text-anchor": "middle" }, String(value)));
+      });
+      data.forEach((row, index) => {
+        const y = margin.top + index * rowHeight;
+        const label = shortSample(row.sample);
+        svg.append(svgElement("text", { x: margin.left - 10, y: y + 15, fill: "#244c60", "font-size": 11, "text-anchor": "end" }, label));
+        svg.append(svgElement("rect", { x: margin.left, y: y + 3, width: Math.max(1, x(row.originalMutationCount) - margin.left), height: 18, rx: 3, fill: "#d7e2e8" }));
+        svg.append(svgElement("rect", { x: margin.left, y: y + 7, width: Math.max(1, x(row.retainedMutationCount) - margin.left), height: 10, rx: 3, fill: "#087f8c" }));
+        svg.append(svgElement("text", { x: Math.min(width - 10, x(row.retainedMutationCount) + 6), y: y + 16, fill: "#123245", "font-size": 11 }, String(row.retainedMutationCount)));
+      });
+      node.append(svg);
+      if (rows.length > data.length) {
+        node.append(chartNote(`Showing the 30 samples with the most retained mutations. The table contains all ${rows.length} samples.`));
+      }
       return node;
+    }
+
+    function renderSignatureAssessabilityFigure(rows = []) {
+      const data = [...rows];
+      if (!data.length) return note("No signatures to plot.");
+      const node = div("cohort-panel-chart");
+      const width = 760;
+      const rowHeight = 30;
+      const margin = { top: 74, right: 30, bottom: 36, left: 130 };
+      const plotWidth = width - margin.left - margin.right;
+      const height = margin.top + margin.bottom + data.length * rowHeight;
+      const tiers = [
+        { key: "higherSupport", label: "Higher", color: "#087f8c" },
+        { key: "limitedSupport", label: "Limited", color: "#56b4a2" },
+        { key: "notDetected", label: "Not detected", color: "#cfe5ee" },
+        { key: "notAssessable", label: "Not assessable", color: "#b9c6cf" },
+      ];
+      const maxCalls = Math.max(1, ...data.map((row) => tiers.reduce((sum, tier) => sum + Number(row[tier.key] || 0), 0)));
+      const x = (value) => margin.left + (Math.max(0, Number(value) || 0) / maxCalls) * plotWidth;
+      const svg = svgElement("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": "Signature assessability counts by target" });
+      svg.append(svgElement("text", { x: margin.left, y: 22, fill: "#123245", "font-size": 16, "font-weight": 800 }, "Assay-planning tiers by signature"));
+      let legendX = margin.left;
+      tiers.forEach((tier) => {
+        svg.append(svgElement("rect", { x: legendX, y: 42, width: 14, height: 14, rx: 3, fill: tier.color }));
+        svg.append(svgElement("text", { x: legendX + 20, y: 53, fill: "#244c60", "font-size": 11 }, tier.label));
+        legendX += 120;
+      });
+      [0, 0.5, 1].forEach((fraction) => {
+        const value = Math.round(maxCalls * fraction);
+        const gx = x(value);
+        svg.append(svgElement("line", { x1: gx, x2: gx, y1: margin.top - 8, y2: height - margin.bottom + 4, stroke: "rgba(16,82,100,0.18)" }));
+        svg.append(svgElement("text", { x: gx, y: height - 12, fill: "#547184", "font-size": 11, "text-anchor": "middle" }, String(value)));
+      });
+      data.forEach((row, index) => {
+        const y = margin.top + index * rowHeight;
+        let cursor = margin.left;
+        svg.append(svgElement("text", { x: margin.left - 10, y: y + 16, fill: "#244c60", "font-size": 11, "text-anchor": "end" }, row.signature));
+        tiers.forEach((tier) => {
+          const count = Number(row[tier.key] || 0);
+          const segmentWidth = x(count) - margin.left;
+          if (count > 0) {
+            svg.append(svgElement("rect", { x: cursor, y: y + 5, width: Math.max(1, segmentWidth), height: 16, rx: 3, fill: tier.color }));
+          }
+          cursor += segmentWidth;
+        });
+        svg.append(svgElement("text", { x: Math.min(width - 10, cursor + 6), y: y + 17, fill: "#123245", "font-size": 11 }, supportSummary(row)));
+      });
+      node.append(svg);
+      return node;
+    }
+
+    function svgElement(name, attributes = {}, text = null) {
+      const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+      Object.entries(attributes).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) element.setAttribute(key, String(value));
+      });
+      if (text !== null) element.textContent = text;
+      return element;
+    }
+
+    function chartNote(text) {
+      const element = document.createElement("p");
+      element.className = "cohort-panel-chart-note";
+      element.textContent = text;
+      return element;
     }
 
     function focusMessage(title, text) {

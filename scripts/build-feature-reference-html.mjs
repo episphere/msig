@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 const sourcePath = path.join(rootDir, "docs", "MSIGSDK_FEATURE_REFERENCE.md");
-const outputPath = path.join(rootDir, "docs", "MSIGSDK_FEATURE_REFERENCE.html");
+const outputPath = path.join(rootDir, "docs", "index.html");
+const redirectPath = path.join(rootDir, "docs", "MSIGSDK_FEATURE_REFERENCE.html");
 
 const markdown = readFileSync(sourcePath, "utf8").replace(/\r\n/g, "\n");
 
@@ -206,7 +207,11 @@ const html = `<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>mSigSDK feature reference</title>
+    <meta
+      name="description"
+      content="mSigSDK documentation for browser-native mutational signature workflows, inputs, outputs, warnings, defaults, reports, adapters, and interpretation boundaries."
+    />
+    <title>mSigSDK documentation</title>
     <style>
       :root {
         --bg: #f7f8f4;
@@ -494,7 +499,7 @@ const html = `<!doctype html>
   </head>
   <body>
     <header class="site-header">
-      <nav class="nav" aria-label="Feature reference navigation">
+      <nav class="nav" aria-label="Documentation navigation">
         <a class="brand" href="../">
           <span class="brand-mark">mS</span>
           <span>mSigSDK</span>
@@ -502,12 +507,13 @@ const html = `<!doctype html>
         <div class="nav-links">
           <a href="./">Docs</a>
           <a href="../notebooks/viewer.html">Notebooks</a>
+          <a href="./api-reference.generated.json">API metadata</a>
           <a href="https://github.com/episphere/msig">GitHub</a>
         </div>
       </nav>
     </header>
     <main class="page">
-      <aside class="toc" aria-label="Feature reference table of contents">
+      <aside class="toc" aria-label="Documentation table of contents">
         <strong>Contents</strong>
         ${toc}
       </aside>
@@ -520,4 +526,26 @@ const html = `<!doctype html>
 `;
 
 writeFileSync(outputPath, html, "utf8");
+writeFileSync(
+  redirectPath,
+  `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content="0; url=./" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="canonical" href="./" />
+    <title>mSigSDK documentation</title>
+    <script>
+      window.location.replace("./");
+    </script>
+  </head>
+  <body>
+    <p><a href="./">Open mSigSDK documentation</a></p>
+  </body>
+</html>
+`,
+  "utf8",
+);
 console.log(`Wrote ${path.relative(rootDir, outputPath)}`);
+console.log(`Wrote ${path.relative(rootDir, redirectPath)}`);

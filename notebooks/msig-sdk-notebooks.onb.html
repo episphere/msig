@@ -5,40 +5,40 @@
   <script type="text/markdown">
     # mSigSDK workflow guide
 
-    Choose the educational example that matches the SDK capability you want to inspect.
+    Find the notebook that matches the SDK task you want to understand.
 
-    These notebooks are hosted learning workflows. They use public or bundled demonstration inputs to show SDK calls, expected result objects, plots, and export patterns. They are not a production workspace for private user data, regulated data, or large-cohort analysis.
+    The notebooks use public or bundled demo inputs to show how mSigSDK loads data, validates spectra, fits signatures, reviews QC, creates plots, and exports results. They are not designed for private datasets, regulated data, or large production cohorts.
 
-    The code is hidden by default. Open the cells to inspect the JavaScript, copy the SDK calls, and adapt them in a controlled environment with the compute resources, data governance, and validation plan required for real studies.
+    Open the hidden cells to see the JavaScript behind each result. For real studies, run adapted code in your own controlled environment.
 
     ## Start with your question
 
-    - **I need to choose the right example:** stay on [Workflow guide](?notebook=msig-sdk-notebooks.onb.html).
-    - **I want to inspect the fit-review-export pattern:** open [End-to-end workflow](?notebook=msig-sdk-end-to-end-workflow.onb.html).
-    - **I want to see public spectra and cohort retrieval:** open [Public cohort explorer](?notebook=msig-sdk-public-cohort-exploration.onb.html).
-    - **I want to learn SBS96 matrix movement between tools:** open [Resource portability](?notebook=msig-sdk-resource-portability.onb.html).
-    - **I want to see MAF rows become SBS96 spectra:** open [MAF to SBS96 explainer](?notebook=msig-sdk-maf-fit-report.onb.html).
-    - **I want to learn fitted-sample QC triage:** open [Cohort QC triage](?notebook=msig-sdk-qc-walkthrough.onb.html).
-    - **I want to review group interpretation and panel limits:** open [Cohort and panel workflow](?notebook=msig-sdk-cohort-panel-workflow.onb.html).
-    - **I want to inspect panel or WES evidence tiers:** open [Panel/WES evidence review](?notebook=msig-sdk-panel-evidence-tiers.onb.html).
-    - **I want to see candidate signature extraction:** open [Discovery extraction (NMF)](?notebook=msig-sdk-nmf-extraction.onb.html).
-    - **I want to learn cutoff and uncertainty checks:** open [Uncertainty and cutoffs](?notebook=msig-sdk-uncertainty-thresholds.onb.html).
-    - **I want to see report archive construction:** open [Report packet builder](?notebook=msig-sdk-export-report.onb.html).
-    - **I want to compare fitting-engine outputs:** open [Multi-tool comparison](?notebook=msig-sdk-multi-engine-comparison.onb.html).
+    - **Find a starting point:** stay on [Workflow guide](?notebook=msig-sdk-notebooks.onb.html).
+    - **Fit signatures and review outputs:** open [End-to-end workflow](?notebook=msig-sdk-end-to-end-workflow.onb.html).
+    - **Load public spectra and cohort examples:** open [Public cohort explorer](?notebook=msig-sdk-public-cohort-exploration.onb.html).
+    - **Move SBS96 matrices between tools:** open [Resource portability](?notebook=msig-sdk-resource-portability.onb.html).
+    - **Convert MAF rows into SBS96 spectra:** open [MAF to SBS96 explainer](?notebook=msig-sdk-maf-fit-report.onb.html).
+    - **Review fitted-sample QC:** open [Cohort QC triage](?notebook=msig-sdk-qc-walkthrough.onb.html).
+    - **Plan panel or WES target support:** open [Panel/WES assay planning](?notebook=msig-sdk-cohort-panel-workflow.onb.html).
+    - **Review panel or WES evidence tiers:** open [Panel/WES evidence review](?notebook=msig-sdk-panel-evidence-tiers.onb.html).
+    - **Screen candidate signatures:** open [Discovery extraction (NMF)](?notebook=msig-sdk-nmf-extraction.onb.html).
+    - **Check cutoffs and uncertainty:** open [Uncertainty and cutoffs](?notebook=msig-sdk-uncertainty-thresholds.onb.html).
+    - **Build a report archive:** open [Report packet builder](?notebook=msig-sdk-export-report.onb.html).
+    - **Compare fitting-engine outputs:** open [Multi-tool comparison](?notebook=msig-sdk-multi-engine-comparison.onb.html).
 
     ## Complete notebook map
 
-    Each entry demonstrates an SDK pattern on demonstration inputs. Production analyses belong in a local or institutional environment where data access, scale, and validation are controlled.
+    Each notebook demonstrates one browser-scale SDK pattern on demo inputs. Production work belongs in an environment where data access, scale, and validation are controlled.
 
-    1. [Workflow guide](?notebook=msig-sdk-notebooks.onb.html): choose an example and learn the shared terms.
+    1. [Workflow guide](?notebook=msig-sdk-notebooks.onb.html): choose a notebook and learn the shared terms.
     2. [End-to-end workflow](?notebook=msig-sdk-end-to-end-workflow.onb.html): inspect the complete fit-review-export path.
     3. [Public cohort explorer](?notebook=msig-sdk-public-cohort-exploration.onb.html): inspect public mSigPortal and TCGA/GDC-derived examples.
     4. [Resource portability](?notebook=msig-sdk-resource-portability.onb.html): normalize, export, and round-trip SBS96 matrices.
     5. [MAF to SBS96 explainer](?notebook=msig-sdk-maf-fit-report.onb.html): convert variant rows into mutation spectra.
     6. [Cohort QC triage](?notebook=msig-sdk-qc-walkthrough.onb.html): rank fitted samples by quality concern.
-    7. [Cohort and panel workflow](?notebook=msig-sdk-cohort-panel-workflow.onb.html): connect group interpretation with assay limits.
+    7. [Panel/WES assay planning](?notebook=msig-sdk-cohort-panel-workflow.onb.html): test whether a BED target retains enough evidence for selected signature review.
     8. [Panel/WES evidence review](?notebook=msig-sdk-panel-evidence-tiers.onb.html): review support tiers for restricted assays.
-    9. [Discovery extraction (NMF)](?notebook=msig-sdk-nmf-extraction.onb.html): extract candidate signatures from demonstration spectra.
+    9. [Discovery extraction (NMF)](?notebook=msig-sdk-nmf-extraction.onb.html): extract candidate signatures from demo spectra.
     10. [Uncertainty and cutoffs](?notebook=msig-sdk-uncertainty-thresholds.onb.html): stress-test fit stability and reporting thresholds.
     11. [Report packet builder](?notebook=msig-sdk-export-report.onb.html): build a reviewable report archive.
     12. [Multi-tool comparison](?notebook=msig-sdk-multi-engine-comparison.onb.html): compare fitting-engine outputs on the same spectra.

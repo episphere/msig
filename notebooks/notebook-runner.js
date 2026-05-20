@@ -2,14 +2,14 @@ const DEFAULT_NOTEBOOKS = [
   {
     file: "msig-sdk-notebooks.onb.html",
     title: "Workflow guide",
-    summary: "Choose an educational example and learn where each SDK pattern fits.",
+    summary: "Find the notebook that matches the SDK task.",
     workflowGroup: "orientation",
     workflowGroupLabel: "Orientation",
   },
   {
     file: "msig-sdk-end-to-end-workflow.onb.html",
     title: "End-to-end workflow",
-    summary: "Inspect the complete fit-review-export arc on demonstration spectra.",
+    summary: "Inspect the complete fit-review-export arc on demo spectra.",
     workflowGroup: "orientation",
     workflowGroupLabel: "Orientation",
   },
@@ -44,7 +44,7 @@ const DEFAULT_NOTEBOOKS = [
   {
     file: "msig-sdk-nmf-extraction.onb.html",
     title: "Discovery extraction (NMF)",
-    summary: "Screen demonstration spectra with browser-scale NMF, rank checks, and external handoff files.",
+    summary: "Screen demo spectra with browser-scale NMF, rank checks, and external handoff files.",
     workflowGroup: "core",
     workflowGroupLabel: "Analyze Data",
   },
@@ -72,14 +72,14 @@ const DEFAULT_NOTEBOOKS = [
   {
     file: "msig-sdk-multi-engine-comparison.onb.html",
     title: "Multi-tool comparison",
-    summary: "Compare fitting-engine outputs on identical demonstration spectra with compact concordance views.",
+    summary: "Compare fitting-engine outputs on identical demo spectra with compact concordance views.",
     workflowGroup: "reliability",
     workflowGroupLabel: "Review And Report",
   },
   {
     file: "msig-sdk-export-report.onb.html",
     title: "Report packet builder",
-    summary: "Build a demonstration report archive with selected sections, provenance, audit checks, and downloads.",
+    summary: "Build a demo report archive with selected sections, provenance, audit checks, and downloads.",
     workflowGroup: "reliability",
     workflowGroupLabel: "Review And Report",
   },

@@ -37,6 +37,17 @@ const DEFAULT_SPP_PACKAGE = "sigProfilerPlotting==1.4.3";
 const DEFAULT_DECONSTRUCTSIGS_WEBR_PACKAGES = ["deconstructSigs"];
 const DEFAULT_DECONSTRUCTSIGS_SOURCE_ARCHIVE_URL =
   "https://cran.r-project.org/src/contrib/Archive/deconstructSigs/deconstructSigs_1.8.0.tar.gz";
+const DEFAULT_DECONSTRUCTSIGS_SOURCE_VERSION = "1.8.0";
+const DEFAULT_DECONSTRUCTSIGS_SOURCE_COMMIT = "725f909dea9fb86ce4dea8a43b727b105da8bdd2";
+const DEFAULT_DECONSTRUCTSIGS_SOURCE_FILES = [
+  "golden_section_search.R",
+  "internal.scripts.R",
+  "normalize.data.R",
+  "whichSignatures.R",
+].map((name) => ({
+  path: `/input/deconstructSigs/R/${name}`,
+  url: `https://raw.githubusercontent.com/cran/deconstructSigs/${DEFAULT_DECONSTRUCTSIGS_SOURCE_COMMIT}/R/${name}`,
+}));
 const DEFAULT_SIGMINER_WEBR_PACKAGES = ["sigminer"];
 const DEFAULT_PYODIDE_SCIENTIFIC_PACKAGES = [
   "numpy",
@@ -1265,8 +1276,14 @@ function createDeconstructSigsRScript({
   outputPath = "deconstructsigs_exposures.tsv",
   signatureCutoff = 0.01,
   sourceArchiveUrl = null,
+  sourceFilePaths = null,
 } = {}) {
-  const loader = sourceArchiveUrl
+  const normalizedSourceFilePaths = normalizeArray(sourceFilePaths).filter(Boolean);
+  const loader = normalizedSourceFilePaths.length
+    ? normalizedSourceFilePaths.map(
+        (sourceFilePath) => `source(${JSON.stringify(sourceFilePath)}, local = globalenv())`
+      )
+    : sourceArchiveUrl
     ? [
         `.deconstructSigs_archive <- ${JSON.stringify(sourceArchiveUrl)}`,
         `.deconstructSigs_tar <- tempfile(fileext = ".tar.gz")`,
@@ -1564,6 +1581,56 @@ function uniquePackages(packages) {
   return [...new Set(normalizeArray(packages).filter(Boolean))];
 }
 
+function normalizeDeconstructSigsSourceFiles(sourceFiles = DEFAULT_DECONSTRUCTSIGS_SOURCE_FILES) {
+  return normalizeArray(sourceFiles)
+    .map((file) => {
+      if (typeof file === "string") {
+        return {
+          path: `/input/deconstructSigs/R/${file.split("/").pop()}`,
+          url: file,
+        };
+      }
+      return {
+        path: file?.path,
+        url: file?.url,
+        text: file?.text,
+      };
+    })
+    .filter((file) => file.path && (file.url || file.text !== undefined));
+}
+
+async function fetchTextSourceFile(file) {
+  if (file.text !== undefined) {
+    return String(file.text);
+  }
+  if (typeof fetch !== "function") {
+    throw new Error(
+      "Cannot fetch the original deconstructSigs source files because fetch is unavailable in this runtime."
+    );
+  }
+  const response = await fetch(file.url, { cache: "force-cache" });
+  if (!response.ok) {
+    throw new Error(
+      `Could not fetch original deconstructSigs source file ${file.url}: HTTP ${response.status}.`
+    );
+  }
+  return await response.text();
+}
+
+async function prepareDeconstructSigsSourceFileInputs(sourceFiles) {
+  const normalized = normalizeDeconstructSigsSourceFiles(sourceFiles);
+  if (!normalized.length) {
+    return [];
+  }
+  return await Promise.all(
+    normalized.map(async (file) => ({
+      path: file.path,
+      text: await fetchTextSourceFile(file),
+      sourceUrl: file.url || null,
+    }))
+  );
+}
+
 function sigminerSolverPackage(method = "NNLS") {
   const normalized = String(method || "NNLS").trim().toUpperCase();
   if (normalized === "QP") {
@@ -1703,6 +1770,7 @@ async function runDeconstructSigsWebR(
     skipPackageCheck = false,
     useSourceArchiveOnMissingPackage = true,
     sourceArchiveUrl = DEFAULT_DECONSTRUCTSIGS_SOURCE_ARCHIVE_URL,
+    sourceFiles = DEFAULT_DECONSTRUCTSIGS_SOURCE_FILES,
     timeoutMs = 300000,
     runnerOptions = {},
   } = {}
@@ -1735,13 +1803,17 @@ async function runDeconstructSigsWebR(
   if (availability && !sourceArchiveExecution) {
     assertWebRAdapterAvailable(availability, "deconstructSigs");
   }
+  const sourceFileInputs = sourceArchiveExecution
+    ? await prepareDeconstructSigsSourceFileInputs(sourceFiles)
+    : [];
   const rSnippet = sourceArchiveExecution
     ? createDeconstructSigsRScript({
         spectraPath,
         signaturePath,
         outputPath,
         signatureCutoff,
-        sourceArchiveUrl,
+        sourceArchiveUrl: sourceFileInputs.length ? null : sourceArchiveUrl,
+        sourceFilePaths: sourceFileInputs.map((file) => file.path),
       })
     : prepared.rSnippet;
 
@@ -1749,7 +1821,7 @@ async function runDeconstructSigsWebR(
     {
       r: rSnippet,
       rPackages: sourceArchiveExecution ? [] : uniquePackages(rPackages),
-      files: prepared.files,
+      files: [...prepared.files, ...sourceFileInputs],
       outputFiles: [prepared.manifest.outputPath],
       timeoutMs,
       repositoryUrl,
@@ -1772,7 +1844,15 @@ async function runDeconstructSigsWebR(
     status: "completed",
     exactPackageExecution: true,
     sourceArchiveExecution,
-    packageInstallMode: sourceArchiveExecution ? "cran_source_archive" : "webr_binary_repository",
+    packageInstallMode: sourceArchiveExecution
+      ? sourceFileInputs.length
+        ? "cran_source_files"
+        : "cran_source_archive"
+      : "webr_binary_repository",
+    sourceFiles: sourceFileInputs.map((file) => ({
+      path: file.path,
+      sourceUrl: file.sourceUrl || null,
+    })),
     loadedOutput: sourceArchiveExecution
       ? "Computed by original deconstructSigs 1.8.0 R source in WebR for the active data"
       : "Computed by deconstructSigs in WebR for the active data",
@@ -1784,10 +1864,10 @@ async function runDeconstructSigsWebR(
       tool: "deconstructSigs",
       runtime: "webr",
       packageName: "deconstructSigs",
-      packageVersion: sourceArchiveExecution ? "1.8.0" : null,
+      packageVersion: sourceArchiveExecution ? DEFAULT_DECONSTRUCTSIGS_SOURCE_VERSION : null,
       parameters: prepared.manifest,
       notes: sourceArchiveExecution
-        ? "Original deconstructSigs 1.8.0 R source loaded from the CRAN archive and executed in webR because the active WebR binary repository did not provide the archived package."
+        ? "Original deconstructSigs 1.8.0 R source loaded from the pinned CRAN mirror source files and executed in webR because the active WebR binary repository did not provide the archived package."
         : "Exact package execution through webR. Availability depends on compatible WebAssembly package builds in the active repository.",
     }),
   };

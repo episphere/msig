@@ -1224,7 +1224,7 @@
           ...(dataset.selection || {}),
         },
         status: dataset.status || "user supplied",
-        source: dataset.source || "browser-local user data",
+        source: dataset.source || "browser-local input",
       };
       state.analysis = null;
       state.packet = null;
@@ -1275,7 +1275,7 @@
             signatures,
             metadata,
             contexts,
-            source: "browser-local user data",
+            source: "browser-local input",
             status: "user supplied",
             selection: {
               study: "User supplied",

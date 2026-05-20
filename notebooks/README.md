@@ -1,6 +1,6 @@
 # mSigSDK Observable Kit notebooks
 
-Focused Observable Kit workflows for testing and adapting mSigSDK analyses without loading every example into one runtime. Start with the end-to-end workflow to understand the complete arc, then move to the page whose unique goal matches the next decision. The examples load real count-scale SBS96 matrices, COSMIC signature catalogs, public mSigPortal resources, and TCGA/GDC MAF rows where those sources are part of the workflow.
+Focused Observable Kit workflows for trying mSigSDK tasks without loading every example into one runtime. Start with the end-to-end workflow to understand the complete arc, then move to the page whose unique goal matches the next decision. The examples use public or bundled demo inputs. Private datasets, regulated data, and large cohorts belong in a controlled local or institutional environment.
 
 The workflows expose the structured outputs that make an analysis reviewable: input checks, fit-quality evidence, cautions, suggested follow-up, portable table exports, provenance, reports, or run records as appropriate for the workflow's goal. New examples should enter through the primary `mSigSDK.workflows` surface before expanding into `mSigSDK.pipelines`, `mSigSDK.quickstart`, or advanced namespace-specific calls.
 
@@ -22,9 +22,9 @@ Each notebook should read as a stepwise researcher workflow. Narrative cells sho
 ### Core analysis
 
 - `msig-sdk-qc-walkthrough.onb.html`: known-signature QC objects: burden, reconstruction, residuals, warnings, and review steps.
-- `msig-sdk-cohort-panel-workflow.onb.html`: cohort metadata, group interpretation, and restricted-assay limits in one applied workflow.
+- `msig-sdk-cohort-panel-workflow.onb.html`: panel/WES assay planning with public cohorts, real BED targets, retained burden, and signature assessability.
 - `msig-sdk-panel-evidence-tiers.onb.html`: panel/WES support tiers, assay-coverage visuals, and review reasons.
-- `msig-sdk-nmf-extraction.onb.html`: discovery extraction, rank diagnostics, learned profiles, sample contributions, and production run files.
+- `msig-sdk-nmf-extraction.onb.html`: discovery extraction, rank diagnostics, learned profiles, sample contributions, and external handoff files.
 
 ### Reliability, reporting, and interoperability
 

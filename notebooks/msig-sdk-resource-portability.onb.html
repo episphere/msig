@@ -305,7 +305,9 @@
 
         .resource-preview {
           width: 100%;
-          min-height: 260px;
+          height: clamp(132px, 24vh, 210px);
+          min-height: 0;
+          max-height: 210px;
           box-sizing: border-box;
           border: 1px solid var(--rule);
           border-radius: 8px;
@@ -315,8 +317,15 @@
           font-size: 12px;
           line-height: 1.5;
           overflow: auto;
+          overscroll-behavior: contain;
           padding: 12px;
+          scrollbar-gutter: stable;
           white-space: pre;
+        }
+
+        .resource-preview:focus {
+          outline: 2px solid var(--teal);
+          outline-offset: 2px;
         }
 
         .resource-editor {
@@ -1021,6 +1030,8 @@
         state.generatedFiles[0];
       const preview = document.createElement("pre");
       preview.className = "resource-preview";
+      preview.tabIndex = 0;
+      preview.setAttribute("aria-label", selectedFile ? `Preview of ${selectedFile.filename}` : "Generated file preview");
       preview.textContent = selectedFile
         ? previewText(selectedFile.text)
         : "Build handoff files to preview generated TSV content.";

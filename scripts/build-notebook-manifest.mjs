@@ -33,14 +33,14 @@ const previewImages = {
 const overrides = {
   "msig-sdk-notebooks.onb.html": {
     title: "Workflow guide",
-    summary: "Choose an educational example and learn where each SDK pattern fits.",
+    summary: "Find the notebook that matches the SDK task.",
     image: previewImages.workflowGuide,
     workflowGroup: "orientation",
     order: 0,
   },
   "msig-sdk-end-to-end-workflow.onb.html": {
     title: "End-to-end workflow",
-    summary: "Inspect the complete fit-review-export arc on demonstration spectra.",
+    summary: "Inspect the complete fit-review-export arc on demo spectra.",
     image: previewImages.endToEnd,
     workflowGroup: "orientation",
     order: 4,
@@ -74,8 +74,8 @@ const overrides = {
     order: 15,
   },
   "msig-sdk-cohort-panel-workflow.onb.html": {
-    title: "Cohort and panel workflow",
-    summary: "Learn how cohort metadata, group interpretation, and restricted-assay limits connect in one example.",
+    title: "Panel/WES assay planning",
+    summary: "Plan whether a real WES or panel BED target retains enough evidence for selected signature review.",
     image: previewImages.cohortPanel,
     workflowGroup: "core",
     order: 28,
@@ -89,7 +89,7 @@ const overrides = {
   },
   "msig-sdk-nmf-extraction.onb.html": {
     title: "Discovery extraction (NMF)",
-    summary: "Screen demonstration spectra with browser-scale NMF, rank checks, and external handoff files.",
+    summary: "Screen demo spectra with browser-scale NMF, rank checks, and external handoff files.",
     image: previewImages.nmfExtraction,
     workflowGroup: "core",
     order: 40,
@@ -103,14 +103,14 @@ const overrides = {
   },
   "msig-sdk-multi-engine-comparison.onb.html": {
     title: "Multi-tool comparison",
-    summary: "Compare fitting-engine outputs on identical demonstration spectra with compact concordance views.",
+    summary: "Compare fitting-engine outputs on identical demo spectra with compact concordance views.",
     image: previewImages.multiTool,
     workflowGroup: "reliability",
     order: 58,
   },
   "msig-sdk-export-report.onb.html": {
     title: "Report packet builder",
-    summary: "Build a demonstration report archive with selected sections, provenance, audit checks, and downloads.",
+    summary: "Build a demo report archive with selected sections, provenance, audit checks, and downloads.",
     image: previewImages.reportPacket,
     workflowGroup: "reliability",
     order: 55,

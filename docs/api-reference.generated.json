@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T18:01:11.296Z",
+  "generatedAt": "2026-05-20T18:19:33.745Z",
   "generator": {
     "name": "documentation.js",
     "version": "^14.0.3"
@@ -6308,7 +6308,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1650
+            "line": 1717
           }
         },
         {
@@ -6335,7 +6335,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1664
+            "line": 1731
           }
         },
         {
@@ -6384,7 +6384,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 2159
+            "line": 2240
           }
         },
         {
@@ -6433,7 +6433,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1330
+            "line": 1347
           }
         },
         {
@@ -6482,7 +6482,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 2115
+            "line": 2196
           }
         },
         {
@@ -6531,7 +6531,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1485
+            "line": 1502
           }
         },
         {
@@ -6588,7 +6588,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 349
+            "line": 360
           }
         },
         {
@@ -6630,7 +6630,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1095
+            "line": 1106
           }
         },
         {
@@ -6672,7 +6672,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 470
+            "line": 481
           }
         },
         {
@@ -6714,7 +6714,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 858
+            "line": 869
           }
         },
         {
@@ -6770,7 +6770,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1204
+            "line": 1215
           }
         },
         {
@@ -6812,7 +6812,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 995
+            "line": 1006
           }
         },
         {
@@ -6861,7 +6861,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1690
+            "line": 1757
           }
         },
         {
@@ -6895,7 +6895,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 2406
+            "line": 2487
           }
         },
         {
@@ -6944,7 +6944,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1808
+            "line": 1889
           }
         },
         {
@@ -6978,7 +6978,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1909
+            "line": 1990
           }
         },
         {
@@ -7012,7 +7012,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1999
+            "line": 2080
           }
         },
         {
@@ -7046,7 +7046,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 2289
+            "line": 2370
           }
         }
       ]
