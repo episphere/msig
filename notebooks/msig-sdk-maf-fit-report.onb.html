@@ -853,6 +853,10 @@
       return state.selectedProfile === "SBS96" || state.selectedProfile === "SBS1536";
     }
 
+    function apiReferenceContextSize() {
+      return activeProfileUsesReferenceApi() ? 5 : activeContextSize();
+    }
+
     function sdkProfileReady() {
       return Boolean(state.profileConversion?.spectraByProfile?.[state.selectedProfile]);
     }
@@ -1122,7 +1126,7 @@
       renderAfter = false,
     } = {}) {
       if (!state.rows.length || !activeProfileUsesReferenceApi()) return { resolved: 0, failed: 0, requested: 0 };
-      const contextSize = activeContextSize();
+      const contextSize = apiReferenceContextSize();
       const candidates = apiContextCandidateRows(contextSize, { force, limit });
       if (!candidates.length) {
         await refreshProfileConversion({ renderAfter });
@@ -1131,7 +1135,7 @@
 
       setStatus(
         "Resolving reference sequence",
-        `Querying the UCSC Genome Browser API for ${candidates.length} ${contextSize}-base context window(s).`,
+        `Querying the UCSC Genome Browser API for ${candidates.length} 5-base reference window(s).`,
         "running"
       );
 
@@ -1164,13 +1168,13 @@
       );
       pushProgress(
         "context-api",
-        `Resolved ${resolved}/${candidates.length} reference context window(s) from the UCSC Genome Browser API${failed ? `; ${failed} failed` : ""}.`
+        `Resolved ${resolved}/${candidates.length} 5-base reference window(s) from the UCSC Genome Browser API${failed ? `; ${failed} failed` : ""}.`
       );
       await refreshProfileConversion({ renderAfter: false });
       recompute();
       setStatus(
         "Reference context ready",
-        `Resolved ${resolved}/${candidates.length} context window(s) from the UCSC Genome Browser API${failed ? `; ${failed} failed and kept row-supplied context when available` : ""}.`,
+        `Resolved ${resolved}/${candidates.length} 5-base reference window(s) from the UCSC Genome Browser API${failed ? `; ${failed} failed and kept row-supplied context when available` : ""}.`,
         failed ? "ready" : "ready"
       );
       if (renderAfter) render();
@@ -1319,9 +1323,11 @@
         `Loaded ${state.rows.length} row(s) from ${source === "tcga-gdc" ? "TCGA/GDC" : filename || "pasted/uploaded text"}.`,
         "ready"
       );
-      refreshProfileConversion({ renderAfter: true }).then(() => {
+      if (activeProfileUsesReferenceApi()) {
         resolveApiContextsForActiveProfile({ renderAfter: true });
-      });
+      } else {
+        refreshProfileConversion({ renderAfter: true });
+      }
     }
 
     function applyPastedData(text, filename = "pasted-maf") {
@@ -2023,7 +2029,7 @@
       panel.append(
         heading,
         mafCaption(state.selectedProfile.startsWith("SBS")
-          ? "SBS profiles use reference bases fetched from the UCSC Genome Browser API. SBS96 requires three bases; SBS1536 requires five bases."
+          ? "SBS profiles use 5-base reference windows fetched from the UCSC Genome Browser API. SBS96 uses the centered trinucleotide; SBS1536 uses the full pentanucleotide."
           : "DBS and ID profiles use allele-level event evidence; sequence context is used only when the selected profile requires it."),
         controlRow,
         lookupCard,
