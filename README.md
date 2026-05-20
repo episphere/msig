@@ -25,8 +25,8 @@ With **mSigSDK**, researchers can:
 - **Data Boundary**: Public reference data are retrieved through APIs; user-supplied spectra can remain local for supported client-side workflows.
 - **Interoperability**: Supports SigProfiler-style spectra, COSMIC-style signatures, MuSiCal input/output helpers, and report JSON Schema validation.
 - **External Tool Adapters**: Provides optional Pyodide and WebR runners, SigProfilerAssignment and SigProfilerExtractor matrix-mode adapters, handoff adapters for SigProfilerMatrixGenerator, SigProfilerSimulator, SigProfilerClusters, sigProfilerPlotting, deconstructSigs, and sigminer, MuSiCal-compatible refit adapters, and a multi-tool interoperability bundle with explicit runtime provenance.
-- **MAF Profile Conversion**: MAF conversion preserves the SBS96 default and can also return SBS1536, DBS78, and ID83 spectra with row-level traces, audit summaries, warnings, and profile-specific plotting.
-- **Offline Context Path**: SBS profile conversion can use row-supplied contexts, caller-supplied lookup tables, or bundled smoke-test lookup assets for hg19, hg38, and T2T-CHM13.
+- **MAF Profile Conversion**: MAF conversion preserves the SBS96 default and can also return SBS1536, DBS78, and ID83 spectra with row-level traces, audit summaries, warnings, and profile-specific plotting. SBS profiles can resolve 5-base reference windows through the UCSC Genome Browser API; SBS96 uses the centered trinucleotide and SBS1536 uses the full pentanucleotide.
+- **Offline Context Path**: SBS profile conversion can use row-supplied contexts, caller-supplied lookup tables, or bundled smoke-test lookup assets for hg19, hg38, and T2T-CHM13 when live genome context lookup is not used.
 
 ---
 
@@ -109,6 +109,8 @@ console.log(conversion.spectraByProfile.SBS1536);
 console.log(conversion.traceByProfile.ID83);
 console.log(conversion.audit.profiles.DBS78);
 ```
+
+For live SBS conversion, omit `offline` and `contextLookupTable` so eligible rows can retrieve 5-base reference windows from the UCSC Genome Browser sequence API for the selected genome build. For strict offline use, provide row-level sequence context or a position-indexed lookup table.
 
 ---
 

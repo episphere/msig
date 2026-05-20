@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T19:14:32.438Z",
+  "generatedAt": "2026-05-20T20:26:47.392Z",
   "generator": {
     "name": "documentation.js",
     "version": "^14.0.3"
@@ -73,7 +73,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2705
+            "line": 2902
           }
         },
         {
@@ -107,7 +107,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2632
+            "line": 2829
           }
         },
         {
@@ -792,7 +792,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3688
+            "line": 3885
           }
         },
         {
@@ -826,7 +826,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3728
+            "line": 3925
           }
         },
         {
@@ -897,7 +897,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2827
+            "line": 3024
           }
         },
         {
@@ -959,7 +959,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3562
+            "line": 3759
           }
         },
         {
@@ -1014,7 +1014,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3069
+            "line": 3266
           }
         },
         {
@@ -1048,7 +1048,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3728
+            "line": 3925
           }
         },
         {
@@ -1089,7 +1089,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3436
+            "line": 3633
           }
         },
         {
@@ -1130,7 +1130,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2531
+            "line": 2728
           }
         },
         {
@@ -1166,7 +1166,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2447
+            "line": 2644
           }
         },
         {
@@ -1221,7 +1221,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 1972
+            "line": 1982
           }
         },
         {
@@ -1257,7 +1257,7 @@
           ],
           "source": {
             "file": "main.js",
-            "line": 2066
+            "line": 2076
           }
         },
         {
@@ -1298,7 +1298,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2996
+            "line": 3193
           }
         },
         {
@@ -1346,7 +1346,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3688
+            "line": 3885
           }
         },
         {
@@ -1408,7 +1408,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3207
+            "line": 3404
           }
         }
       ]
@@ -1492,7 +1492,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/mutationalSpectrum.js",
-            "line": 895
+            "line": 930
           }
         },
         {
@@ -1571,7 +1571,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/mutationalSpectrum.js",
-            "line": 1030
+            "line": 1065
           }
         },
         {
@@ -1917,7 +1917,7 @@
           ],
           "source": {
             "file": "main.js",
-            "line": 3335
+            "line": 3532
           }
         },
         {
@@ -1979,7 +1979,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3562
+            "line": 3759
           }
         },
         {
@@ -2020,7 +2020,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3436
+            "line": 3633
           }
         }
       ]
@@ -3435,7 +3435,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6488
+            "line": 6685
           }
         },
         {
@@ -3484,7 +3484,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6107
+            "line": 6304
           }
         },
         {
@@ -3518,7 +3518,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5270
+            "line": 5467
           }
         },
         {
@@ -3595,7 +3595,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2227
+            "line": 2405
           }
         },
         {
@@ -3686,7 +3686,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5696
+            "line": 5893
           }
         },
         {
@@ -3720,7 +3720,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 4200
+            "line": 4397
           }
         },
         {
@@ -3761,7 +3761,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5990
+            "line": 6187
           }
         },
         {
@@ -3795,7 +3795,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3750
+            "line": 3947
           }
         },
         {
@@ -3829,7 +3829,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5418
+            "line": 5615
           }
         },
         {
@@ -3878,7 +3878,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3944
+            "line": 4141
           }
         },
         {
@@ -3912,7 +3912,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6851
+            "line": 7048
           }
         },
         {
@@ -3946,7 +3946,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6281
+            "line": 6478
           }
         }
       ]
@@ -4327,7 +4327,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6932
+            "line": 7129
           }
         },
         {
@@ -4361,7 +4361,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7115
+            "line": 7312
           }
         },
         {
@@ -4410,7 +4410,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6867
+            "line": 7064
           }
         }
       ]
@@ -5707,7 +5707,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7427
+            "line": 7624
           }
         },
         {
@@ -5798,7 +5798,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7292
+            "line": 7489
           }
         },
         {
@@ -6043,7 +6043,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7374
+            "line": 7571
           }
         }
       ]
@@ -6084,7 +6084,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7759
+            "line": 7956
           }
         }
       ]
