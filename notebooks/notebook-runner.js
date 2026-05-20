@@ -78,8 +78,8 @@ const DEFAULT_NOTEBOOKS = [
   },
   {
     file: "msig-sdk-export-report.onb.html",
-    title: "Export and reports",
-    summary: "Check round trips, required report fields, provenance, and run records needed to rerun or review an analysis.",
+    title: "Report packet builder",
+    summary: "Turn a completed signature fit into a reviewable archive with selected report sections, provenance, audit checks, and downloads.",
     workflowGroup: "reliability",
     workflowGroupLabel: "Review And Report",
   },

@@ -5,15 +5,13 @@
   <script type="text/markdown">
     # Uncertainty and cutoffs
 
-    After known-signature fitting, two questions come up immediately: are the estimated signature contributions stable, and do the conclusions depend on the minimum contribution cutoff?
+    Post-fit stability review answers a narrow question: whether a fitted signature contribution is stable enough to report. Cohort QC, panel/WES evidence, cross-tool comparison, and report packaging live in separate notebooks.
 
-    The code uses count-scale public mSigPortal spectra selected from moderate-to-high mutation-count PCAWG WGS Lung-AdenoCA samples, but the same functions work with your own spectra and reference signatures. Replace the loading block with your own tables, keep the uncertainty and cutoff cells, and tune the iteration count and cutoff grid for your analysis plan.
-
-    The review begins after a fit already exists. A researcher now asks which fitted signatures are stable enough to report and which depend too strongly on sampling noise or cutoff choice.
+    Choose public example data or provide project spectra and signatures, run the resampling and cutoff sweep, then read the decision table with the bootstrap and cutoff figures before reporting a fitted signature contribution.
   </script>
 
-  <script type="module" pinned id="1">
-    const uncSdkUrl = new URL("../main.js?v=2026-05-15-bootstrap-draw-cloud", location.href).href;
+  <script type="module" pinned id="interactive-uncertainty-review">
+    const uncSdkUrl = new URL("../main.js?v=2026-05-20-uncertainty-upload-figures", location.href).href;
     const { mSigSDK } = await import(uncSdkUrl);
     const {
       loadPublicSbs96Dataset,
@@ -22,48 +20,16 @@
       bootstrapRows,
       burdenSampleRows,
       metrics,
+      note,
       table,
       thresholdRows,
     } = mSigSDK.presentation;
 
-    display(metrics([
-      { label: "SDK", value: mSigSDK.name },
-      { label: "Version", value: mSigSDK.version },
-      { label: "Question", value: "Are signature contributions stable?" },
-      { label: "Main namespace", value: "qc" },
-    ]));
-    display(table(
-      [
-        { functionName: "qc.bootstrapSignatureFit", workflowValue: "Shows confidence intervals and selection frequency for one sample" },
-        { functionName: "qc.runThresholdSensitivity", workflowValue: "Tests whether signature contribution conclusions depend on the reporting floor" },
-        { functionName: "qcPlots.*", workflowValue: "Turns the returned objects into interpretable figures" },
-        { functionName: "presentation.*", workflowValue: "Formats compact evidence tables" },
-      ],
-      [
-        { key: "functionName", label: "Function" },
-        { key: "workflowValue", label: "Workflow value" },
-      ]
-    ));
-  </script>
-<script type="text/markdown">
-    ## Step 1. Set the analysis grid
-
-    Uncertainty and cutoff analyses can be expensive because they repeat fitting. Keep the defaults small for quick browser runs. Increase `uncBootstrapIterations` for smoother intervals, edit `uncThresholdGrid` to match the cutoffs you plan to report, or replace `uncExampleSampleNames` with samples from your cohort.
-
-    This step defines the stress test. A confusing uncertainty result is often a sign that the grid does not match the cutoffs the project intends to use.
-  </script>
-<script type="module" pinned id="2">
-    const uncContexts = mSigSDK.validation.getExpectedContexts({
+    const DEFAULT_CONTEXTS = mSigSDK.validation.getExpectedContexts({
       profile: "SBS",
       matrix: 96,
     });
-    const uncStudy = "PCAWG";
-    const uncGenomeDataType = "WGS";
-    const uncCancerType = "Lung-AdenoCA";
-    const uncMutationType = "SBS";
-    const uncMatrixSize = 96;
-    const uncSignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
-    const uncExampleSampleNames = [
+    const DEFAULT_PUBLIC_SAMPLES = [
       "SP50611",
       "SP53387",
       "SP50827",
@@ -71,11 +37,7 @@
       "SP52667",
       "SP52232",
     ];
-    const uncSampleLimit = uncExampleSampleNames.length;
-    const uncExposureThreshold = 0.01;
-    const uncBootstrapIterations = 40;
-    const uncThresholdGrid = [0, 0.005, 0.01, 0.03, 0.05, 0.1];
-    const uncPreferredSignatureNames = [
+    const DEFAULT_SIGNATURES = [
       "SBS1",
       "SBS2",
       "SBS4",
@@ -87,259 +49,846 @@
       "SBS40",
     ];
 
-    const uncDataset = await loadPublicSbs96Dataset(mSigSDK, {
-      study: uncStudy,
-      genomeDataType: uncGenomeDataType,
-      cancerType: uncCancerType,
-      mutationType: uncMutationType,
-      matrixSize: uncMatrixSize,
-      signatureSetName: uncSignatureSetName,
-      sampleNames: uncExampleSampleNames,
-      sampleLimit: uncSampleLimit,
-      signatureNames: uncPreferredSignatureNames,
-      allowAlternate: false,
-    });
-    const uncDataSourceStatus = uncDataset.status;
-    const uncAllGroupedSpectra = uncDataset.spectra;
-    const uncAllReferenceSignatures = uncDataset.allSignatures;
-    const uncAllBurden = mSigSDK.qc.summarizeMutationBurden(
-      uncAllGroupedSpectra,
-      { expectedContexts: uncContexts }
-    );
-    const uncAvailableSampleNames = uncExampleSampleNames.filter(
-      (sample) => uncAllGroupedSpectra[sample]
-    );
-    const uncSelectedBurdenSamples = mSigSDK.qc.selectSamplesByMutationBurden(
-      uncAllBurden,
-      {
-        sampleNames: uncAvailableSampleNames.length
-          ? uncAvailableSampleNames
-          : Object.keys(uncAllGroupedSpectra),
-        minTotalMutations: 1,
-        limit: uncSampleLimit,
+    function addUncertaintyStyles() {
+      if (document.getElementById("uncertainty-review-styles")) return;
+      const style = document.createElement("style");
+      style.id = "uncertainty-review-styles";
+      style.textContent = `
+        .uncertainty-review-grid {
+          display: grid;
+          gap: 14px;
+        }
+        .uncertainty-review-step {
+          display: grid;
+          gap: 12px;
+          border: 1px solid var(--rule);
+          border-radius: 8px;
+          background: var(--surface);
+          padding: 14px;
+        }
+        .uncertainty-review-step header {
+          display: grid;
+          gap: 4px;
+        }
+        .uncertainty-review-step h3 {
+          margin: 0;
+          color: var(--ink);
+          font-size: 16px;
+          line-height: 1.25;
+        }
+        .uncertainty-review-step p {
+          margin: 0;
+          color: var(--muted);
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .uncertainty-review-status {
+          min-height: 44px;
+        }
+        .uncertainty-upload-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          gap: 12px;
+        }
+        .uncertainty-upload-grid textarea {
+          min-height: 170px;
+        }
+        .uncertainty-figure-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          gap: 12px;
+        }
+        .uncertainty-figure-card {
+          display: grid;
+          gap: 8px;
+          min-width: 0;
+          border: 1px solid var(--rule);
+          border-radius: 8px;
+          background: #fbfcfa;
+          padding: 12px;
+        }
+        .uncertainty-figure-card h4 {
+          margin: 0;
+          color: var(--ink);
+          font-size: 14px;
+          line-height: 1.25;
+        }
+        .uncertainty-figure-card p {
+          margin: 0;
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.4;
+        }
+        .uncertainty-plot-host {
+          min-height: 300px;
+          overflow-x: auto;
+        }
+        .uncertainty-downloads {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 9px;
+        }
+      `;
+      document.head.append(style);
+    }
+
+    function element(tag, className = "", text = "") {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text) node.textContent = text;
+      return node;
+    }
+
+    function field(label, control, help = "") {
+      const wrapper = element("label", "workflow-field");
+      const labelNode = document.createElement("span");
+      labelNode.textContent = label;
+      wrapper.append(labelNode, control);
+      if (help) {
+        const helpNode = document.createElement("small");
+        helpNode.textContent = help;
+        wrapper.append(helpNode);
       }
-    );
-    const uncSelectedSampleNames = uncSelectedBurdenSamples.map(
-      (sample) => sample.sample
-    );
-    const uncGroupedSpectra = Object.fromEntries(
-      uncSelectedSampleNames.map((sample) => [sample, uncAllGroupedSpectra[sample]])
-    );
-    const uncPreferredAvailableSignatures = uncPreferredSignatureNames
-      .filter((signature) => uncAllReferenceSignatures[signature])
-      .slice(0, 8);
-    const uncSelectedSignatureNames = uncPreferredAvailableSignatures.length
-      ? uncPreferredAvailableSignatures
-      : Object.keys(uncAllReferenceSignatures).slice(0, 8);
-    const uncReferenceSignatures = Object.fromEntries(
-      uncSelectedSignatureNames.map((signature) => [
+      return wrapper;
+    }
+
+    function button(label, primary = false) {
+      const node = document.createElement("button");
+      node.type = "button";
+      node.className = primary ? "workflow-button primary" : "workflow-button";
+      node.textContent = label;
+      return node;
+    }
+
+    function input(value, type = "text", step = null) {
+      const node = document.createElement("input");
+      node.type = type;
+      node.value = String(value);
+      if (step !== null) node.step = String(step);
+      if (type === "number") node.min = "0";
+      return node;
+    }
+
+    function textarea(placeholder, rows = 8) {
+      const node = document.createElement("textarea");
+      node.placeholder = placeholder;
+      node.rows = rows;
+      return node;
+    }
+
+    function select(values) {
+      const node = document.createElement("select");
+      node.replaceChildren(...values.map((value) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        return option;
+      }));
+      return node;
+    }
+
+    function fileInput(target) {
+      const node = document.createElement("input");
+      node.type = "file";
+      node.accept = ".json,.txt,.tsv,.csv";
+      node.addEventListener("change", async () => {
+        if (!node.files?.[0]) return;
+        target.value = await readFileAsText(node.files[0]);
+      });
+      return node;
+    }
+
+    function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("Unable to read file."));
+        reader.readAsText(file);
+      });
+    }
+
+    function setStatus(title, detail = "", mode = "") {
+      statusCard.className = `workflow-status-card uncertainty-review-status ${mode}`.trim();
+      statusTitle.textContent = title;
+      statusDetail.textContent = detail;
+    }
+
+    function parseNumber(value, fallback) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function parseThresholds(value) {
+      const thresholds = String(value || "")
+        .split(/[,\s]+/)
+        .map((item) => Number(item.trim()))
+        .filter(Number.isFinite)
+        .filter((item) => item >= 0)
+        .sort((a, b) => a - b);
+      return [...new Set(thresholds)];
+    }
+
+    function formatFraction(value) {
+      return Number.isFinite(value) ? Number(value.toFixed(4)) : null;
+    }
+
+    function parseMatrix(text, kind) {
+      const trimmed = String(text || "").trim();
+      if (!trimmed) throw new Error(`${kind} input is empty.`);
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch (_error) {
+        // Try tabular matrix import after JSON parsing fails.
+      }
+      const firstLine = trimmed.split(/\r?\n/, 1)[0] || "";
+      const delimiter = firstLine.includes("\t") ? "\t" : ",";
+      return kind === "spectra"
+        ? mSigSDK.io.importSigProfilerMatrix(trimmed, { delimiter })
+        : mSigSDK.io.importCOSMICSignatureMatrix(trimmed, { delimiter });
+    }
+
+    function matrixNames(matrix) {
+      return Object.keys(matrix || {});
+    }
+
+    function inferContexts(spectra, signatures) {
+      const contexts = [
+        ...Object.values(spectra || {}).flatMap((record) => Object.keys(record || {})),
+        ...Object.values(signatures || {}).flatMap((record) => Object.keys(record || {})),
+      ];
+      const unique = [...new Set(contexts)];
+      return unique.length ? unique : DEFAULT_CONTEXTS;
+    }
+
+    function sumRecord(record = {}) {
+      return Object.values(record || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+    }
+
+    function sampleRows(spectra = {}) {
+      return Object.entries(spectra).map(([sample, record]) => ({
+        sample,
+        mutations: sumRecord(record),
+        nonZeroContexts: Object.values(record || {}).filter((value) => Number(value) > 0).length,
+      }));
+    }
+
+    function signatureRows(signatures = {}) {
+      return Object.entries(signatures).map(([signature, record]) => ({
         signature,
-        uncAllReferenceSignatures[signature],
-      ])
-    );
-    const uncBootstrapSample = uncSelectedSampleNames.includes("SP50611")
-      ? "SP50611"
-      : uncSelectedSampleNames[0];
+        nonZeroContexts: Object.values(record || {}).filter((value) => Number(value) > 0).length,
+        totalWeight: formatFraction(sumRecord(record)),
+      }));
+    }
 
-    display(metrics([
-      { label: "Data source", value: uncDataSourceStatus },
-      { label: "Samples", value: uncSelectedSampleNames.length },
-      { label: "Signatures", value: uncSelectedSignatureNames.length },
-      { label: "Bootstrap sample", value: uncBootstrapSample },
-      { label: "Bootstrap iterations", value: uncBootstrapIterations },
-      { label: "Cutoffs tested", value: uncThresholdGrid.length },
-    ]));
-    display(table(
-      burdenSampleRows(uncAllBurden, uncSelectedSampleNames),
-      [
-        { key: "sample", label: "Selected sample" },
-        { key: "mutations", label: "Total mutations" },
-        { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
-      ],
-      { maxRows: 6 }
-    ));
-    display(table(
-      uncThresholdGrid.map((threshold) => ({
-        threshold,
-        meaning: threshold === 0 ? "Keep every fitted exposure" : `Zero exposures below ${threshold}`,
-      })),
-      [
-        { key: "threshold", label: "Contribution cutoff" },
-        { key: "meaning", label: "Interpretation" },
-      ]
-    ));
-  </script>
+    function updateSampleSelect(preferred = "") {
+      const samples = matrixNames(state.spectra);
+      sampleSelect.replaceChildren(...samples.map((sample) => {
+        const option = document.createElement("option");
+        option.value = sample;
+        option.textContent = sample;
+        return option;
+      }));
+      sampleSelect.value = samples.includes(preferred) ? preferred : samples[0] || "";
+    }
 
-  <script type="text/markdown">
-    ## Step 2. Run uncertainty resampling and a cutoff sweep
+    function clearReview() {
+      reviewState.sample = null;
+      reviewState.iterations = null;
+      reviewState.seed = null;
+      reviewState.exposureThreshold = null;
+      reviewState.thresholds = [];
+      reviewState.bootstrap = null;
+      reviewState.thresholdSensitivity = null;
+      reviewState.bootstrapRows = [];
+      reviewState.thresholdRows = [];
+      reviewState.decisions = [];
+      resultsOutput.replaceChildren(note("Run the stability review with the current data and settings.", "info"));
+      figuresOutput.replaceChildren(note("Figures appear after the stability review finishes.", "info"));
+      exportsOutput.replaceChildren();
+    }
 
-    Bootstrap resampling repeatedly perturbs one sample and refits signature contributions. Cutoff sensitivity fits the cohort across a grid of minimum contribution values. Read the summary rows first; the plots in the next cells are wrappers around the same uncertainty and cutoff checks.
+    function renderDataSummary() {
+      const burden = mSigSDK.qc.summarizeMutationBurden(state.spectra, {
+        expectedContexts: state.contexts,
+      });
+      const selectedSample = sampleSelect.value;
+      dataOutput.replaceChildren(
+        metrics([
+          { label: "Data source", value: state.source },
+          { label: "Samples", value: matrixNames(state.spectra).length },
+          { label: "Signatures", value: matrixNames(state.signatures).length },
+          { label: "Contexts", value: state.contexts.length },
+        ]),
+        table(
+          burdenSampleRows(burden, selectedSample ? [selectedSample] : matrixNames(state.spectra)),
+          [
+            { key: "sample", label: "Sample" },
+            { key: "mutations", label: "Total mutations" },
+            { key: "nonZeroContexts", label: "Nonzero contexts" },
+          ],
+          {
+            title: "Selected sample",
+            caption: "The bootstrap uncertainty check runs on this sample.",
+            maxRows: 8,
+          }
+        ),
+        table(
+          signatureRows(state.signatures).slice(0, 12),
+          [
+            { key: "signature", label: "Signature" },
+            { key: "nonZeroContexts", label: "Nonzero contexts" },
+            { key: "totalWeight", label: "Total weight" },
+          ],
+          {
+            title: "Reference signature catalog",
+            caption: "The cutoff sweep uses the same signature catalog across all loaded samples.",
+            maxRows: 12,
+          }
+        )
+      );
+    }
 
-    These computations are not alternative signature calls. They are checks on how much confidence to place in the fitted call from the main workflow.
-  </script>
-<script type="module" pinned id="3">
-    const uncBootstrapResult = await mSigSDK.qc.bootstrapSignatureFit(
-      uncReferenceSignatures,
-      uncGroupedSpectra[uncBootstrapSample],
-      {
-        iterations: uncBootstrapIterations,
-        confidenceLevel: 0.95,
-        exposureThreshold: uncExposureThreshold,
-        seed: 42,
-        contexts: uncContexts,
+    function markStale() {
+      clearReview();
+      setStatus("Settings ready", "Run the stability review to refresh tables, figures, and downloads.", "");
+    }
+
+    async function loadPublicData() {
+      const requestedLimit = Math.max(1, Math.min(
+        DEFAULT_PUBLIC_SAMPLES.length,
+        Math.round(parseNumber(publicSampleLimitInput.value, DEFAULT_PUBLIC_SAMPLES.length))
+      ));
+      setStatus("Loading public example data", "Fetching public mSigPortal spectra and compatible COSMIC SBS96 signatures.", "running");
+      dataOutput.replaceChildren(note("Loading public spectra and signatures...", "info"));
+      const dataset = await loadPublicSbs96Dataset(mSigSDK, {
+        study: "PCAWG",
+        genomeDataType: "WGS",
+        cancerType: "Lung-AdenoCA",
+        mutationType: "SBS",
+        matrixSize: 96,
+        signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
+        sampleNames: DEFAULT_PUBLIC_SAMPLES.slice(0, requestedLimit),
+        sampleLimit: requestedLimit,
+        signatureNames: DEFAULT_SIGNATURES,
+        allowAlternate: false,
+      });
+      const selectedSignatures = DEFAULT_SIGNATURES
+        .filter((signature) => dataset.allSignatures?.[signature])
+        .slice(0, 8);
+      state.spectra = dataset.spectra;
+      state.signatures = Object.fromEntries(
+        (selectedSignatures.length ? selectedSignatures : Object.keys(dataset.signatures || {}))
+          .map((signature) => [signature, (dataset.allSignatures || dataset.signatures)[signature]])
+          .filter(([, value]) => value)
+      );
+      state.contexts = dataset.contexts || DEFAULT_CONTEXTS;
+      state.source = dataset.status || "live mSigPortal";
+      state.datasetStatus = dataset.status;
+      spectraText.value = mSigSDK.io.exportSigProfilerMatrix(state.spectra, { contexts: state.contexts });
+      signaturesText.value = mSigSDK.io.exportCOSMICSignatureMatrix(state.signatures, { contexts: state.contexts });
+      updateSampleSelect(DEFAULT_PUBLIC_SAMPLES[0]);
+      renderDataSummary();
+      clearReview();
+      setStatus("Public data loaded", "Adjust the sample and review settings or paste/upload project data.", "success");
+    }
+
+    function applyUploadedData() {
+      const spectra = parseMatrix(spectraText.value, "spectra");
+      const signatures = parseMatrix(signaturesText.value, "signatures");
+      if (!matrixNames(spectra).length) throw new Error("No spectra samples were found.");
+      if (!matrixNames(signatures).length) throw new Error("No reference signatures were found.");
+      state.spectra = spectra;
+      state.signatures = signatures;
+      state.contexts = inferContexts(spectra, signatures);
+      state.source = "uploaded or pasted matrices";
+      state.datasetStatus = "user supplied";
+      updateSampleSelect(sampleSelect.value);
+      renderDataSummary();
+      clearReview();
+      setStatus("Uploaded data applied", "Run the review after confirming the selected sample and settings.", "success");
+    }
+
+    function cutoffRangeForSignature(signature) {
+      const sample = reviewState.sample;
+      const values = (reviewState.thresholdSensitivity?.runs || [])
+        .map((run) => Number(run.exposures?.[sample]?.[signature]))
+        .filter(Number.isFinite);
+      if (!values.length) return null;
+      return Math.max(...values) - Math.min(...values);
+    }
+
+    function buildDecisionRows() {
+      const minSelection = parseNumber(selectionInput.value, 0.8);
+      const maxWidth = parseNumber(widthInput.value, 0.2);
+      return reviewState.bootstrapRows.map((row) => {
+        const width = Number(row.upper95 || 0) - Number(row.lower95 || 0);
+        const cutoffRange = cutoffRangeForSignature(row.signature);
+        const selectedOften = Number(row.selectionFrequency || 0) >= minSelection;
+        const intervalNarrow = width <= maxWidth;
+        const cutoffStable = cutoffRange === null || cutoffRange <= maxWidth;
+        const decision = selectedOften && intervalNarrow && cutoffStable
+          ? "report with QC context"
+          : selectedOften
+            ? "report with uncertainty caveat"
+            : "do not emphasize";
+        return {
+          signature: row.signature,
+          meanExposure: formatFraction(row.mean),
+          ciWidth: formatFraction(width),
+          selectionFrequency: formatFraction(row.selectionFrequency),
+          cutoffRange: formatFraction(cutoffRange),
+          decision,
+        };
+      });
+    }
+
+    function warningTableRows(warnings = []) {
+      return warningRows(warnings).map((row) => ({
+        code: row.code,
+        message: row.message,
+        resolution: row.resolution,
+      }));
+    }
+
+    async function renderFigureCard(title, caption, render) {
+      const card = element("section", "uncertainty-figure-card");
+      card.append(element("h4", "", title), element("p", "", caption));
+      const host = element("div", "uncertainty-plot-host");
+      card.append(host);
+      figuresGrid.append(card);
+      try {
+        await render(host);
+      } catch (error) {
+        host.replaceChildren(note(error.message, "warning"));
       }
-    );
-    const uncThresholdSensitivityResult = await mSigSDK.qc.runThresholdSensitivity(
-      uncReferenceSignatures,
-      uncGroupedSpectra,
-      {
-        thresholds: uncThresholdGrid,
-        contexts: uncContexts,
+    }
+
+    async function renderFigures() {
+      figuresOutput.replaceChildren();
+      if (!reviewState.bootstrap || !reviewState.thresholdSensitivity) {
+        figuresOutput.append(note("Figures appear after the stability review finishes.", "info"));
+        return;
       }
-    );
+      figuresGrid.replaceChildren();
+      figuresOutput.append(figuresGrid);
+      await renderFigureCard(
+        "Bootstrap confidence intervals",
+        "Shows repeat-fit mean exposure, 95% confidence intervals, and selection frequency for the selected sample.",
+        (host) => mSigSDK.qcPlots.plotBootstrapConfidenceIntervals(host, reviewState.bootstrap)
+      );
+      await renderFigureCard(
+        "Cutoff sensitivity",
+        "Shows how reconstruction quality and active-signature count change across the configured contribution cutoffs.",
+        (host) => mSigSDK.qcPlots.plotThresholdSensitivity(host, reviewState.thresholdSensitivity)
+      );
+    }
 
-    const uncBootstrapRows = bootstrapRows(uncBootstrapResult, { topN: 8 });
-    const uncThresholdRows = thresholdRows(uncThresholdSensitivityResult);
+    function selectedResultTable() {
+      const view = tableViewSelect.value;
+      const warnings = [
+        ...warningTableRows(reviewState.bootstrap?.warnings || []),
+        ...warningTableRows(reviewState.thresholdSensitivity?.warnings || []),
+      ];
+      if (view === "bootstrap") {
+        return table(
+          reviewState.bootstrapRows,
+          [
+            { key: "signature", label: "Signature" },
+            { key: "mean", label: "Mean exposure" },
+            { key: "lower95", label: "Lower 95% CI" },
+            { key: "upper95", label: "Upper 95% CI" },
+            { key: "selectionFrequency", label: "Selection frequency" },
+          ],
+          {
+            title: "Bootstrap uncertainty",
+            caption: "Shows repeat-fit exposure estimates for the selected sample.",
+          }
+        );
+      }
+      if (view === "cutoff") {
+        return table(
+          reviewState.thresholdRows,
+          [
+            { key: "threshold", label: "Contribution cutoff" },
+            { key: "averageCosineSimilarity", label: "Mean cosine" },
+            { key: "averageRmse", label: "Mean RMSE" },
+            { key: "averageActiveSignatures", label: "Mean active signatures" },
+          ],
+          {
+            title: "Cutoff sensitivity",
+            caption: "Shows whether reconstruction and active-signature counts change when small contributions are removed.",
+          }
+        );
+      }
+      if (view === "warnings") {
+        return table(
+          warnings,
+          [
+            { key: "code", label: "Warning code" },
+            { key: "message", label: "Message" },
+            { key: "resolution", label: "Resolution" },
+          ],
+          {
+            title: "Review warnings",
+            caption: "Shows SDK cues raised by uncertainty or cutoff checks.",
+          }
+        );
+      }
+      return table(
+        reviewState.decisions,
+        [
+          { key: "signature", label: "Signature" },
+          { key: "meanExposure", label: "Mean exposure" },
+          { key: "ciWidth", label: "95% CI width" },
+          { key: "selectionFrequency", label: "Selection frequency" },
+          { key: "cutoffRange", label: "Cutoff range" },
+          { key: "decision", label: "Decision" },
+        ],
+        {
+          title: "Reporting decision",
+          caption: "Translates uncertainty and cutoff drift into a compact reporting recommendation for each fitted signature.",
+        }
+      );
+    }
 
-    display(metrics([
-      { label: "Bootstrap signatures", value: uncBootstrapResult.signatures.length },
-      { label: "Cutoff runs", value: uncThresholdSensitivityResult.runs.length },
-      { label: "Confidence level", value: "95%" },
-      { label: "Seed", value: 42 },
-    ]));
-    display(table(
-      uncBootstrapRows,
-      [
-        { key: "signature", label: "Signature" },
-        { key: "mean", label: "Mean exposure" },
-        { key: "lower95", label: "Lower CI" },
-        { key: "upper95", label: "Upper CI" },
-        { key: "selectionFrequency", label: "Selection frequency" },
-      ]
-    ));
-    display(table(
-      uncThresholdRows,
-      [
-        { key: "threshold", label: "Cutoff" },
-        { key: "averageCosineSimilarity", label: "Mean cosine" },
-        { key: "averageRmse", label: "Mean RMSE" },
-        { key: "averageActiveSignatures", label: "Mean active signatures" },
-      ]
-    ));
-  </script>
+    function artifactText({ text, value }) {
+      return text ?? JSON.stringify(value ?? {}, null, 2);
+    }
 
-  <script type="text/markdown">
-    ## Step 3. Read signature contribution uncertainty
+    function makeDownloadButton({ filename, label, type = "text/plain;charset=utf-8", text, value }) {
+      const node = button(label);
+      node.addEventListener("click", () => {
+        const content = artifactText({ text, value });
+        const blob = new Blob([String(content)], { type });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      });
+      return node;
+    }
 
-    The plot shows bootstrap draws, confidence intervals, mean exposures, and selection frequencies. Stable signatures have narrow intervals and high selection frequency. Wide intervals or low selection frequency suggest that a fitted exposure should be reported cautiously.
+    function makeCopyButton({ filename, label, text, value }) {
+      const node = button(label);
+      node.addEventListener("click", async () => {
+        const content = String(artifactText({ text, value }));
+        try {
+          await navigator.clipboard.writeText(content);
+          setStatus("Output copied", `${filename} copied to the clipboard.`, "success");
+        } catch (error) {
+          setStatus("Copy failed", error.message, "error");
+        }
+      });
+      return node;
+    }
 
-    Read this table as a statement about repeatability. A signature that appears in only a minority of bootstrap draws should not be described with the same certainty as a consistently selected signature.
-  </script>
-<script type="module" pinned id="4">
-    const uncBootstrapDiv = document.createElement("div");
-    uncBootstrapDiv.style.width = "100%";
-    await mSigSDK.qcPlots.plotBootstrapConfidenceIntervals(
-      uncBootstrapDiv,
-      uncBootstrapResult
-    );
-    display(uncBootstrapDiv);
-  </script>
-
-  <script type="text/markdown">
-    ## Step 4. Check cutoff stability
-
-    The sensitivity plot compares every cutoff against the baseline cutoff. The line chart shows percent change in reconstruction cosine, RMSE, and active-signature count. Lines near 0 mean the fitted recipe is stable across cutoffs; sharp movement means the result depends strongly on the cutoff choice.
-
-    The heatmap repeats those signed changes by metric and cutoff, while the drift bars summarize which cutoffs create the largest overall change. In your own analyses, this is a useful place to document why you chose a reporting cutoff.
-
-    If a signature disappears or changes rank across reasonable cutoffs, report the dependence explicitly or revise the reporting cutoff before producing final figures.
-  </script>
-<script type="module" pinned id="5">
-    const uncThresholdDiv = document.createElement("div");
-    uncThresholdDiv.style.width = "100%";
-    await mSigSDK.qcPlots.plotThresholdSensitivity(
-      uncThresholdDiv,
-      uncThresholdSensitivityResult
-    );
-    display(uncThresholdDiv);
-  </script>
-
-  <script type="text/markdown">
-    ## Step 5. Convert uncertainty output into reporting decisions
-
-    Confidence intervals, selection frequency, and cutoff drift should be translated into a short decision table before signature contributions are reported. Cutoff drift is the total absolute change in fitted signature fractions across the tested cutoff range. This table is a compact pattern for manuscript supplements, review memos, or application tooltips.
-
-    The final decision table is where uncertainty becomes usable guidance: report, caveat, review manually, or omit from the main interpretation.
-  </script>
-<script type="module" pinned id="6">
-    const uncDecisionRows = uncBootstrapRows.map((row) => {
-      const width = Number(row.upper95 || 0) - Number(row.lower95 || 0);
-      const stableSelection = Number(row.selectionFrequency || 0) >= 0.8;
-      const narrowInterval = width <= 0.2;
-      return {
-        signature: row.signature,
-        meanExposure: row.mean,
-        intervalWidth: width,
-        selectionFrequency: row.selectionFrequency,
-        reportingDecision:
-          stableSelection && narrowInterval
-            ? "routine_with_qc_context"
-            : "report_with_uncertainty_caveat",
-      };
-    });
-    const uncWarningRows = [
-      ...warningRows(uncBootstrapResult.warnings || []),
-      ...warningRows(uncThresholdSensitivityResult.warnings || []),
-    ];
-
-    display(table(
-      uncDecisionRows,
-      [
-        { key: "signature", label: "Signature" },
-        { key: "meanExposure", label: "Mean exposure" },
-        { key: "intervalWidth", label: "95% CI width" },
-        { key: "selectionFrequency", label: "Selection frequency" },
-        { key: "reportingDecision", label: "Reporting decision" },
-      ],
-      { maxRows: 8 }
-    ));
-    display(table(
-      uncWarningRows,
-      [
-        { key: "code", label: "Warning code" },
-        { key: "message", label: "Message" },
-        { key: "resolution", label: "Resolution" },
-      ],
-      { maxRows: 8 }
-    ));
-    display(downloadMany([
-      {
-        filename: "uncertainty_bootstrap.csv",
-        text: rowsToCsv(uncBootstrapRows),
-        label: "Download bootstrap CSV",
-      },
-      {
-        filename: "uncertainty_thresholds.csv",
-        text: rowsToCsv(uncThresholdRows),
-        label: "Download cutoff CSV",
-      },
-      {
-        filename: "uncertainty_report.json",
-        type: "json",
-        value: {
-          dataSourceStatus: uncDataSourceStatus,
-          bootstrap: uncBootstrapResult,
-          thresholdSensitivity: uncThresholdSensitivityResult,
-          decisions: uncDecisionRows,
-          warnings: uncWarningRows,
-          parameters: {
-            bootstrapIterations: uncBootstrapIterations,
-            exposureThreshold: uncExposureThreshold,
-            thresholdGrid: uncThresholdGrid,
-          },
+    function renderDownloads() {
+      exportsOutput.replaceChildren();
+      if (!reviewState.bootstrap || !reviewState.thresholdSensitivity) return;
+      const wrapper = element("div", "uncertainty-downloads");
+      const reviewPayload = {
+        dataSource: state.source,
+        sample: reviewState.sample,
+        settings: {
+          iterations: reviewState.iterations,
+          seed: reviewState.seed,
+          exposureThreshold: reviewState.exposureThreshold,
+          thresholds: reviewState.thresholds,
         },
-        label: "Download uncertainty JSON",
-      },
-    ]));
+        decisions: reviewState.decisions,
+        bootstrap: reviewState.bootstrap,
+        thresholdSensitivity: reviewState.thresholdSensitivity,
+      };
+      const artifacts = [
+        {
+          filename: "uncertainty_decisions.csv",
+          label: "decisions CSV",
+          text: rowsToCsv(reviewState.decisions),
+        },
+        {
+          filename: "uncertainty_bootstrap.csv",
+          label: "bootstrap CSV",
+          text: rowsToCsv(reviewState.bootstrapRows),
+        },
+        {
+          filename: "uncertainty_thresholds.csv",
+          label: "cutoff CSV",
+          text: rowsToCsv(reviewState.thresholdRows),
+        },
+        {
+          filename: "uncertainty_review.json",
+          label: "review JSON",
+          type: "application/json;charset=utf-8",
+          value: reviewPayload,
+        },
+      ];
+      artifacts.forEach((artifact) => {
+        wrapper.append(
+          makeDownloadButton({
+            ...artifact,
+            label: `Download ${artifact.label}`,
+          }),
+          makeCopyButton({
+            ...artifact,
+            label: `Copy ${artifact.label}`,
+          })
+        );
+      });
+      exportsOutput.append(
+        note(
+          "Use Copy when the browser blocks native downloads, including some embedded preview browsers.",
+          "info"
+        ),
+        wrapper
+      );
+    }
+
+    async function renderResults() {
+      if (!reviewState.bootstrap || !reviewState.thresholdSensitivity) {
+        resultsOutput.replaceChildren(note("Run the stability review with the current data and settings.", "info"));
+        figuresOutput.replaceChildren(note("Figures appear after the stability review finishes.", "info"));
+        exportsOutput.replaceChildren();
+        return;
+      }
+      reviewState.decisions = buildDecisionRows();
+      resultsOutput.replaceChildren(
+        metrics([
+          { label: "Data source", value: state.source },
+          { label: "Bootstrap sample", value: reviewState.sample },
+          { label: "Iterations", value: reviewState.iterations },
+          { label: "Cutoffs tested", value: reviewState.thresholds.length },
+          { label: "Max mean cutoff drift", value: formatFraction(reviewState.thresholdSensitivity.summary?.maxMeanL1ExposureDrift) },
+        ]),
+        selectedResultTable()
+      );
+      await renderFigures();
+      renderDownloads();
+    }
+
+    async function runReview() {
+      if (!matrixNames(state.spectra).length || !matrixNames(state.signatures).length) {
+        setStatus("Load data first", "Use the public example or apply uploaded spectra and signatures.", "warning");
+        return;
+      }
+      const thresholds = parseThresholds(thresholdInput.value);
+      if (thresholds.length < 3) {
+        setStatus("Add at least three cutoffs", "A cutoff sweep needs a small grid to show whether results drift.", "warning");
+        return;
+      }
+      const sample = sampleSelect.value || matrixNames(state.spectra)[0];
+      if (!state.spectra[sample]) {
+        setStatus("Choose a valid sample", "The selected sample is not present in the current spectra table.", "warning");
+        return;
+      }
+      const iterations = Math.max(5, Math.round(parseNumber(iterationsInput.value, 40)));
+      const seed = Math.round(parseNumber(seedInput.value, 42));
+      const exposureThreshold = parseNumber(exposureInput.value, 0.01);
+
+      runButton.disabled = true;
+      setStatus("Running stability review", `Computing ${iterations} bootstrap refits for ${sample} and ${thresholds.length} cutoff settings.`, "running");
+      resultsOutput.replaceChildren(note("Running uncertainty and cutoff calculations...", "info"));
+      figuresOutput.replaceChildren(note("Preparing figures...", "info"));
+      exportsOutput.replaceChildren();
+
+      try {
+        const bootstrap = await mSigSDK.qc.bootstrapSignatureFit(
+          state.signatures,
+          state.spectra[sample],
+          {
+            iterations,
+            confidenceLevel: 0.95,
+            exposureThreshold,
+            seed,
+            contexts: state.contexts,
+          }
+        );
+        const thresholdSensitivity = await mSigSDK.qc.runThresholdSensitivity(
+          state.signatures,
+          state.spectra,
+          {
+            thresholds,
+            baselineThreshold: thresholds.includes(exposureThreshold) ? exposureThreshold : thresholds[0],
+            contexts: state.contexts,
+          }
+        );
+        reviewState.sample = sample;
+        reviewState.iterations = iterations;
+        reviewState.seed = seed;
+        reviewState.exposureThreshold = exposureThreshold;
+        reviewState.thresholds = thresholds;
+        reviewState.bootstrap = bootstrap;
+        reviewState.thresholdSensitivity = thresholdSensitivity;
+        reviewState.bootstrapRows = bootstrapRows(bootstrap, { topN: 12 });
+        reviewState.thresholdRows = thresholdRows(thresholdSensitivity);
+        setStatus("Stability review complete", "Figures, tables, and download buttons reflect the current data and settings.", "success");
+        await renderResults();
+      } catch (error) {
+        setStatus("Review failed", error.message, "error");
+        resultsOutput.replaceChildren(note(error.message, "warning"));
+        figuresOutput.replaceChildren();
+        exportsOutput.replaceChildren();
+      } finally {
+        runButton.disabled = false;
+      }
+    }
+
+    addUncertaintyStyles();
+
+    const root = element("section", "workflow-panel uncertainty-review-grid");
+    const statusCard = element("div", "workflow-status-card uncertainty-review-status");
+    const statusDot = element("div", "workflow-status-dot");
+    const statusText = element("div");
+    const statusTitle = element("strong", "", "Loading public example data");
+    const statusDetail = element("span", "", "Preparing spectra and signatures.");
+    statusText.append(statusTitle, statusDetail);
+    statusCard.append(statusDot, statusText);
+    root.append(statusCard);
+    display(root);
+
+    const state = {
+      source: "not loaded",
+      datasetStatus: "",
+      spectra: {},
+      signatures: {},
+      contexts: DEFAULT_CONTEXTS,
+    };
+    const reviewState = {
+      sample: null,
+      iterations: null,
+      seed: null,
+      exposureThreshold: null,
+      thresholds: [],
+      bootstrap: null,
+      thresholdSensitivity: null,
+      bootstrapRows: [],
+      thresholdRows: [],
+      decisions: [],
+    };
+
+    const publicSampleLimitInput = input(DEFAULT_PUBLIC_SAMPLES.length, "number", 1);
+    publicSampleLimitInput.max = String(DEFAULT_PUBLIC_SAMPLES.length);
+    const spectraText = textarea("Paste spectra JSON or a SigProfiler-style TSV matrix.");
+    const signaturesText = textarea("Paste signature JSON or a COSMIC-style TSV matrix.");
+    const sampleSelect = select([]);
+    const exposureInput = input(0.01, "number", 0.005);
+    const thresholdInput = input("0, 0.005, 0.01, 0.03, 0.05, 0.1");
+    const iterationsInput = input(40, "number", 5);
+    const seedInput = input(42, "number", 1);
+    const tableViewSelect = select(["decision", "bootstrap", "cutoff", "warnings"]);
+    tableViewSelect.options[0].textContent = "Reporting decision";
+    tableViewSelect.options[1].textContent = "Bootstrap table";
+    tableViewSelect.options[2].textContent = "Cutoff table";
+    tableViewSelect.options[3].textContent = "Warnings";
+    const selectionInput = input(0.8, "number", 0.05);
+    const widthInput = input(0.2, "number", 0.05);
+    const loadPublicButton = button("Load public example", true);
+    const applyUploadButton = button("Apply uploaded data", true);
+    const runButton = button("Run stability review", true);
+
+    const dataOutput = element("div", "workflow-output-stack");
+    const resultsOutput = element("div", "workflow-output-stack");
+    const figuresOutput = element("div", "workflow-output-stack");
+    const figuresGrid = element("div", "uncertainty-figure-grid");
+    const exportsOutput = element("div", "workflow-output-stack");
+
+    const step1 = element("section", "uncertainty-review-step");
+    const step1Header = element("header");
+    step1Header.append(
+      element("h3", "", "1. Load data and choose the sample"),
+      element("p", "", "Use the public SBS96 example or upload project spectra and reference signatures in JSON or TSV form.")
+    );
+    const publicControls = element("div", "workflow-control-grid compact");
+    publicControls.append(
+      field("Public sample count", publicSampleLimitInput, "Uses PCAWG WGS Lung-AdenoCA SBS96 spectra."),
+      field("Review sample", sampleSelect, "Changing the sample requires rerunning the stability review.")
+    );
+    const uploadGrid = element("div", "uncertainty-upload-grid");
+    uploadGrid.append(
+      field("Spectra matrix", spectraText, "JSON object keyed by sample or SigProfiler-style TSV."),
+      field("Signature catalog", signaturesText, "JSON object keyed by signature or COSMIC-style TSV.")
+    );
+    const uploadControls = element("div", "workflow-control-grid compact");
+    uploadControls.append(
+      field("Upload spectra", fileInput(spectraText), "Optional file input for the spectra matrix."),
+      field("Upload signatures", fileInput(signaturesText), "Optional file input for the signature catalog.")
+    );
+    const dataActions = element("div", "workflow-button-row");
+    dataActions.append(loadPublicButton, applyUploadButton);
+    step1.append(step1Header, publicControls, uploadGrid, uploadControls, dataActions, dataOutput);
+
+    const step2 = element("section", "uncertainty-review-step");
+    const step2Header = element("header");
+    step2Header.append(
+      element("h3", "", "2. Run the stability test"),
+      element("p", "", "Bootstrap iterations test repeat-fit stability. The cutoff grid tests whether small contribution thresholds change the answer.")
+    );
+    const settingsGrid = element("div", "workflow-control-grid compact");
+    settingsGrid.append(
+      field("Minimum contribution", exposureInput, "Relative exposure floor used for bootstrap selection."),
+      field("Cutoffs to test", thresholdInput, "Comma-separated relative contribution cutoffs."),
+      field("Bootstrap iterations", iterationsInput, "Increase for smoother intervals."),
+      field("Random seed", seedInput, "Keeps the browser run reproducible.")
+    );
+    const runActions = element("div", "workflow-button-row");
+    runActions.append(runButton);
+    step2.append(step2Header, settingsGrid, runActions);
+
+    const step3 = element("section", "uncertainty-review-step");
+    const step3Header = element("header");
+    step3Header.append(
+      element("h3", "", "3. Inspect tables, figures, and downloads"),
+      element("p", "", "The decision table, bootstrap plot, cutoff plot, and download files update from the same review result.")
+    );
+    const resultControls = element("div", "workflow-control-grid compact");
+    resultControls.append(
+      field("Table view", tableViewSelect, "Switch the table without rerunning the calculations."),
+      field("Minimum selection frequency", selectionInput, "A signature below this frequency is not emphasized."),
+      field("Maximum uncertainty width", widthInput, "Applies to 95% CI width and cutoff-driven exposure range.")
+    );
+    step3.append(step3Header, resultControls, resultsOutput, figuresOutput, exportsOutput);
+
+    root.append(step1, step2, step3);
+
+    loadPublicButton.addEventListener("click", async () => {
+      loadPublicButton.disabled = true;
+      try {
+        await loadPublicData();
+      } catch (error) {
+        setStatus("Public data load failed", error.message, "error");
+        dataOutput.replaceChildren(note(error.message, "warning"));
+      } finally {
+        loadPublicButton.disabled = false;
+      }
+    });
+    applyUploadButton.addEventListener("click", () => {
+      try {
+        applyUploadedData();
+      } catch (error) {
+        setStatus("Uploaded data needs review", error.message, "error");
+        dataOutput.replaceChildren(note(error.message, "warning"));
+      }
+    });
+    sampleSelect.addEventListener("change", () => {
+      renderDataSummary();
+      markStale();
+    });
+    [exposureInput, thresholdInput, iterationsInput, seedInput].forEach((control) => {
+      control.addEventListener("input", markStale);
+    });
+    [tableViewSelect, selectionInput, widthInput].forEach((control) => {
+      control.addEventListener("input", renderResults);
+      control.addEventListener("change", renderResults);
+    });
+    runButton.addEventListener("click", runReview);
+
+    await loadPublicData();
+    await runReview();
   </script>
 </notebook>

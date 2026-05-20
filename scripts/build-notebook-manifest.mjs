@@ -87,14 +87,14 @@ const overrides = {
   },
   "msig-sdk-multi-engine-comparison.onb.html": {
     title: "Multi-tool comparison",
-    summary: "Compare fitting engines on identical spectra and inspect package-level and sample-level disagreements.",
+    summary: "Triage fitting-engine disagreements on identical spectra with a compact concordance and selected-sample review surface.",
     image: "images/signatureComparison.png",
     workflowGroup: "reliability",
     order: 58,
   },
   "msig-sdk-export-report.onb.html": {
-    title: "Export and reports",
-    summary: "Check round trips, required report fields, provenance, and run records needed to rerun or review an analysis.",
+    title: "Report packet builder",
+    summary: "Turn a completed signature fit into a reviewable archive with selected report sections, provenance, audit checks, and downloads.",
     image: "images/datasetSummary.png",
     workflowGroup: "reliability",
     order: 55,

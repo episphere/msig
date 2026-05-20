@@ -6,21 +6,20 @@
 <script type="text/markdown">
 # Multi-tool comparison
 
-Run a single mutational spectrum table through the built-in mSigSDK fit, load package outputs from SigProfilerAssignment, deconstructSigs, MuSiCal, and independent R NNLS, prepare sigminer and SigProfilerExtractor handoffs, and compare every result on the same samples and the same COSMIC SBS96 reference catalog.
+Use the same SBS96 spectra and reference-signature catalog across several fitting engines, then triage the samples where the fitted signature recipes disagree.
 
-The workspace uses 38 cached PCAWG lung adenocarcinoma WGS spectra and nine COSMIC SBS96 signatures (`SBS1`, `SBS2`, `SBS4`, `SBS5`, `SBS13`, `SBS17a`, `SBS17b`, `SBS18`, `SBS40`). The same pattern applies to a researcher-owned cohort: replace the spectrum table and package-output CSVs, then rerun the comparison to inspect agreement, disagreement, and tool-specific outputs in one place.
+The page uses 38 cached PCAWG lung adenocarcinoma WGS spectra and nine COSMIC SBS96 signatures (`SBS1`, `SBS2`, `SBS4`, `SBS5`, `SBS13`, `SBS17a`, `SBS17b`, `SBS18`, `SBS40`). mSigSDK is recomputed in the browser. R `nnls`, deconstructSigs, SigProfilerAssignment, and MuSiCal SparseNNLS are imported from package-output CSVs generated from the same input matrix and catalog.
 
-Read this as a reproducibility review rather than a leaderboard. The workflow fixes the input spectra and reference catalog, normalizes every package output into one contribution shape, reviews agreement at package and sample level, highlights disagreements, and exports the run files needed to reproduce the comparison.
+Read the outputs as disagreement triage, not a leaderboard. The useful result is the short list of samples where engine choice changes the exposure vector or top signature enough to require interpretation.
 </script>
 
 <script type="module" pinned>
-const engineSdkUrl = new URL("../main.js?v=2026-05-15-multi-engine-tools", location.href).href;
+const engineSdkUrl = new URL("../main.js?v=2026-05-20-multi-engine-triage", location.href).href;
 const { mSigSDK } = await import(engineSdkUrl);
 
 const {
   metrics,
   table,
-  details,
   formatNumber
 } = mSigSDK.presentation;
 
@@ -131,60 +130,70 @@ function engineCsvNumber(value, digits = 6) {
   return Number.isFinite(value) ? Number(value.toFixed(digits)) : "";
 }
 
-function engineTable(rows, { columns = null, title = "", maxRows = 12 } = {}) {
-  const wrapper = document.createElement("section");
-  wrapper.className = "msigsdk-notebook-output-block";
-  if (title) {
-    const heading = document.createElement("h3");
-    heading.textContent = title;
-    wrapper.append(heading);
+function engineFormatDecimal(value, digits = 3) {
+  return Number.isFinite(value) ? formatNumber(engineRound(value, digits), digits + 1) : "n/a";
+}
+
+function engineField(label, control, help = "") {
+  const wrapper = document.createElement("label");
+  wrapper.className = "workflow-field";
+  const text = document.createElement("span");
+  text.textContent = label;
+  wrapper.append(text, control);
+  if (help) {
+    const small = document.createElement("small");
+    small.textContent = help;
+    wrapper.append(small);
   }
-  wrapper.append(table(rows, columns, { maxRows }));
   return wrapper;
 }
 
-function engineCollectPairwise(engineExposureSets, sampleNames, signatures) {
-  const engineNames = Object.keys(engineExposureSets);
-  const rows = [];
-  for (let i = 0; i < engineNames.length; i += 1) {
-    for (let j = i + 1; j < engineNames.length; j += 1) {
-      const leftName = engineNames[i];
-      const rightName = engineNames[j];
-      const cosines = [];
-      let topMatches = 0;
-      let comparedSamples = 0;
-      for (const sample of sampleNames) {
-        const left = engineExposureSets[leftName]?.[sample];
-        const right = engineExposureSets[rightName]?.[sample];
-        if (!left || !right) continue;
-        comparedSamples += 1;
-        cosines.push(engineExposureCosine(left, right, signatures));
-        if (engineTopExposure(left).signature === engineTopExposure(right).signature) topMatches += 1;
-      }
-      rows.push({
-        engine_a: leftName,
-        engine_b: rightName,
-        samples: comparedSamples,
-        mean_cosine: engineRound(engineMean(cosines), 4),
-        median_cosine: engineRound(engineMedian(cosines), 4),
-        min_cosine: engineRound(Math.min(...cosines), 4),
-        top_signature_matches: topMatches,
-        top_signature_match_rate: comparedSamples ? engineRound(topMatches / comparedSamples, 4) : null
-      });
-    }
-  }
-  return rows;
+function engineSelect(options, value) {
+  const select = document.createElement("select");
+  select.replaceChildren(...options.map((option) => {
+    const node = document.createElement("option");
+    node.value = option.value;
+    node.textContent = option.label;
+    return node;
+  }));
+  select.value = value;
+  return select;
 }
 
-function engineExposureLongRows(engineExposureSets, sampleNames, signatures) {
+function engineNumberInput(value, step, min, max = null) {
+  const input = document.createElement("input");
+  input.type = "number";
+  input.value = value;
+  input.step = step;
+  input.min = min;
+  if (max != null) input.max = max;
+  return input;
+}
+
+function enginePlaceholder(text) {
+  const node = document.createElement("p");
+  node.className = "workflow-placeholder";
+  node.textContent = text;
+  return node;
+}
+
+function engineNotebookTable(rows, columns, options = {}) {
+  return table(rows, columns, {
+    title: options.title,
+    caption: options.caption,
+    maxRows: options.maxRows ?? 12
+  });
+}
+
+function engineExposureLongRows(exposureSets, sampleNames, signatures) {
   const rows = [];
-  for (const [engineName, exposuresBySample] of Object.entries(engineExposureSets)) {
+  for (const [engine, exposuresBySample] of Object.entries(exposureSets)) {
     for (const sample of sampleNames) {
       const exposures = exposuresBySample?.[sample];
       if (!exposures) continue;
       for (const signature of signatures) {
         rows.push({
-          engine: engineName,
+          engine,
           sample,
           signature,
           exposure: engineCsvNumber(exposures[signature] || 0, 8)
@@ -194,34 +203,444 @@ function engineExposureLongRows(engineExposureSets, sampleNames, signatures) {
   }
   return rows;
 }
-</script>
-<script type="text/markdown">
-## Step 1. Define one dataset and one reference catalog
 
-Each engine is evaluated against the same spectra and the same reference-signature matrix. Browser-native mSigSDK execution is run directly in this page. Package outputs generated outside the browser are loaded from CSVs with the same sample and signature labels, so the comparison logic stays identical when local user results are substituted.
+function enginePairComparison(leftName, rightName, sampleNames, signatures) {
+  const leftSet = engineExposureSets[leftName];
+  const rightSet = engineExposureSets[rightName];
+  const sampleRows = [];
+
+  for (const sample of sampleNames) {
+    const left = leftSet?.[sample];
+    const right = rightSet?.[sample];
+    if (!left || !right) continue;
+    const leftTop = engineTopExposure(left);
+    const rightTop = engineTopExposure(right);
+    const cosine = engineExposureCosine(left, right, signatures);
+    sampleRows.push({
+      sample,
+      mutations: engineMutationBurdens[sample],
+      engine_a: leftName,
+      engine_b: rightName,
+      engine_a_top: leftTop.signature,
+      engine_b_top: rightTop.signature,
+      exposure_cosine: cosine,
+      top_signature_match: leftTop.signature === rightTop.signature
+    });
+  }
+
+  return sampleRows;
+}
+
+function enginePairSummary(leftName, rightName, sampleRows, cutoff) {
+  const cosines = sampleRows.map((row) => row.exposure_cosine);
+  const topMatches = sampleRows.filter((row) => row.top_signature_match).length;
+  const belowCutoff = sampleRows.filter((row) => row.exposure_cosine < cutoff).length;
+  const topDisagreements = sampleRows.length - topMatches;
+  return {
+    engine_a: leftName,
+    engine_b: rightName,
+    samples: sampleRows.length,
+    mean_cosine: engineRound(engineMean(cosines), 4),
+    median_cosine: engineRound(engineMedian(cosines), 4),
+    minimum_cosine: engineRound(Math.min(...cosines), 4),
+    samples_below_cutoff: belowCutoff,
+    top_signature_disagreements: topDisagreements,
+    top_signature_match_rate: sampleRows.length ? engineRound(topMatches / sampleRows.length, 4) : null,
+    review_priority: belowCutoff || topDisagreements ? "Review" : "Aligned"
+  };
+}
+
+function engineCurrentState() {
+  return {
+    reference: typeof engineReferenceSelect !== "undefined" ? engineReferenceSelect.value : "mSigSDK live",
+    lens: typeof engineLensSelect !== "undefined" ? engineLensSelect.value : "reference",
+    cutoff: Math.min(1, Math.max(0, Number(typeof engineCosineCutoffInput !== "undefined" ? engineCosineCutoffInput.value : 0.95) || 0.95)),
+    minExposure: Math.max(0, Number(typeof engineMinExposureInput !== "undefined" ? engineMinExposureInput.value : 0.01) || 0.01),
+    sample: typeof engineSampleSelect !== "undefined" ? engineSampleSelect.value : "",
+    exportScope: typeof engineExportScopeSelect !== "undefined" ? engineExportScopeSelect.value : "filtered_review"
+  };
+}
+
+function engineReferenceRows(state) {
+  return Object.keys(engineExposureSets)
+    .filter((engine) => engine !== state.reference)
+    .map((engine) => {
+      const sampleRows = enginePairComparison(state.reference, engine, engineSampleNames, engineSignatureNames);
+      const row = enginePairSummary(state.reference, engine, sampleRows, state.cutoff);
+      return {
+        engine,
+        samples: row.samples,
+        mean_cosine_to_reference: row.mean_cosine,
+        median_cosine_to_reference: row.median_cosine,
+        minimum_cosine_to_reference: row.minimum_cosine,
+        samples_below_cutoff: row.samples_below_cutoff,
+        top_signature_disagreements: row.top_signature_disagreements,
+        top_signature_match_rate: row.top_signature_match_rate,
+        review_priority: row.review_priority
+      };
+    })
+    .sort((left, right) =>
+      right.samples_below_cutoff - left.samples_below_cutoff ||
+      right.top_signature_disagreements - left.top_signature_disagreements ||
+      left.minimum_cosine_to_reference - right.minimum_cosine_to_reference
+    );
+}
+
+function enginePairwiseRows(state) {
+  const engines = Object.keys(engineExposureSets);
+  const rows = [];
+  for (let i = 0; i < engines.length; i += 1) {
+    for (let j = i + 1; j < engines.length; j += 1) {
+      const left = engines[i];
+      const right = engines[j];
+      rows.push(enginePairSummary(left, right, enginePairComparison(left, right, engineSampleNames, engineSignatureNames), state.cutoff));
+    }
+  }
+  return rows.sort((left, right) =>
+    right.samples_below_cutoff - left.samples_below_cutoff ||
+    right.top_signature_disagreements - left.top_signature_disagreements ||
+    left.minimum_cosine - right.minimum_cosine
+  );
+}
+
+function engineSampleRows(state) {
+  return engineSampleNames.map((sample) => {
+    const referenceExposure = engineExposureSets[state.reference]?.[sample];
+    const referenceTop = engineTopExposure(referenceExposure);
+    const comparisons = Object.keys(engineExposureSets)
+      .filter((engine) => engine !== state.reference)
+      .map((engine) => {
+        const engineExposure = engineExposureSets[engine]?.[sample];
+        const engineTop = engineTopExposure(engineExposure);
+        return {
+          engine,
+          cosine: engineExposureCosine(referenceExposure, engineExposure, engineSignatureNames),
+          engineTop,
+          topMatch: referenceTop.signature === engineTop.signature
+        };
+      });
+    const lowest = comparisons.reduce((current, row) => row.cosine < current.cosine ? row : current, comparisons[0]);
+    const topDisagreements = comparisons.filter((row) => !row.topMatch);
+    const belowCutoff = comparisons.filter((row) => row.cosine < state.cutoff);
+    const competingTops = [...new Set([referenceTop.signature, ...topDisagreements.map((row) => row.engineTop.signature)].filter((value) => value !== "NA"))];
+    const ambiguity = engineAmbiguityRowsRaw.find((candidate) => candidate.sample === sample);
+    const needsReview = belowCutoff.length > 0 || topDisagreements.length > 0;
+    return {
+      sample,
+      mutations: engineMutationBurdens[sample],
+      reference_top: referenceTop.signature,
+      lowest_engine: lowest?.engine || "",
+      lowest_cosine: engineRound(lowest?.cosine ?? null, 4),
+      engines_below_cutoff: belowCutoff.length,
+      top_signature_disagreements: topDisagreements.length,
+      competing_top_signatures: competingTops.join(", "),
+      ambiguous_signatures: ambiguity?.high_ambiguity_signatures_in_compared_tops || "",
+      review_action: needsReview
+        ? (topDisagreements.length > 1 ? "Compare competing top signatures" : "Inspect exposure spread")
+        : "No focused review",
+      needs_review: needsReview
+    };
+  }).sort((left, right) =>
+    Number(right.needs_review) - Number(left.needs_review) ||
+    right.engines_below_cutoff - left.engines_below_cutoff ||
+    right.top_signature_disagreements - left.top_signature_disagreements ||
+    left.lowest_cosine - right.lowest_cosine ||
+    right.mutations - left.mutations
+  );
+}
+
+function engineFilteredSampleRows(state) {
+  return engineSampleRows(state).filter((row) => row.needs_review);
+}
+
+function engineConcordanceRows(state) {
+  if (state.lens === "pairwise") {
+    return {
+      rows: enginePairwiseRows(state),
+      columns: [
+        { key: "engine_a", label: "Engine A" },
+        { key: "engine_b", label: "Engine B" },
+        { key: "samples", label: "Samples" },
+        { key: "mean_cosine", label: "Mean cosine" },
+        { key: "minimum_cosine", label: "Minimum cosine" },
+        { key: "samples_below_cutoff", label: "Below cutoff" },
+        { key: "top_signature_disagreements", label: "Top-signature disagreements" },
+        { key: "review_priority", label: "Priority" }
+      ],
+      title: "All pairwise engine concordance"
+    };
+  }
+
+  if (state.lens === "sample") {
+    return {
+      rows: engineFilteredSampleRows(state),
+      columns: [
+        { key: "sample", label: "Sample" },
+        { key: "mutations", label: "Mutations" },
+        { key: "reference_top", label: "Reference top" },
+        { key: "lowest_engine", label: "Lowest engine" },
+        { key: "lowest_cosine", label: "Lowest cosine" },
+        { key: "top_signature_disagreements", label: "Top disagreements" },
+        { key: "competing_top_signatures", label: "Competing tops" }
+      ],
+      title: "Samples crossing the review threshold"
+    };
+  }
+
+  return {
+    rows: engineReferenceRows(state),
+    columns: [
+      { key: "engine", label: "Engine" },
+      { key: "samples", label: "Samples" },
+      { key: "mean_cosine_to_reference", label: "Mean cosine" },
+      { key: "median_cosine_to_reference", label: "Median cosine" },
+      { key: "minimum_cosine_to_reference", label: "Minimum cosine" },
+      { key: "samples_below_cutoff", label: "Below cutoff" },
+      { key: "top_signature_disagreements", label: "Top disagreements" },
+      { key: "review_priority", label: "Priority" }
+    ],
+    title: `Engine concordance against ${state.reference}`
+  };
+}
+
+function engineSelectedSampleComparisonRows(state) {
+  const sample = state.sample || engineFilteredSampleRows(state)[0]?.sample || engineSampleNames[0];
+  const referenceExposure = engineExposureSets[state.reference]?.[sample];
+  const referenceTop = engineTopExposure(referenceExposure);
+  return Object.keys(engineExposureSets)
+    .filter((engine) => engine !== state.reference)
+    .map((engine) => {
+      const exposures = engineExposureSets[engine]?.[sample];
+      const top = engineTopExposure(exposures);
+      return {
+        engine,
+        exposure_cosine_to_reference: engineRound(engineExposureCosine(referenceExposure, exposures, engineSignatureNames), 4),
+        reference_top: referenceTop.signature,
+        engine_top: top.signature,
+        engine_top_exposure: engineRound(top.exposure, 4),
+        second_signature: top.secondSignature,
+        second_exposure: engineRound(top.secondExposure, 4),
+        review_flag: top.signature === referenceTop.signature ? "Top match" : "Top differs"
+      };
+    })
+    .sort((left, right) =>
+      (left.review_flag === "Top differs" ? -1 : 1) - (right.review_flag === "Top differs" ? -1 : 1) ||
+      left.exposure_cosine_to_reference - right.exposure_cosine_to_reference
+    );
+}
+
+function engineSelectedExposureRows(state) {
+  const sample = state.sample || engineFilteredSampleRows(state)[0]?.sample || engineSampleNames[0];
+  const engineNames = Object.keys(engineExposureSets);
+  const signatureRows = engineSignatureNames.map((signature) => {
+    const values = engineNames.map((engine) => engineExposureSets[engine]?.[sample]?.[signature] || 0);
+    const maxExposure = Math.max(...values);
+    const minExposure = Math.min(...values);
+    const row = {
+      signature,
+      maximum_exposure: engineRound(maxExposure, 4),
+      exposure_spread: engineRound(maxExposure - minExposure, 4)
+    };
+    for (const engine of engineNames) row[engine] = engineRound(engineExposureSets[engine]?.[sample]?.[signature] || 0, 4);
+    return row;
+  }).filter((row) => row.maximum_exposure >= state.minExposure);
+
+  return signatureRows.sort((left, right) =>
+    right.exposure_spread - left.exposure_spread ||
+    right.maximum_exposure - left.maximum_exposure ||
+    left.signature.localeCompare(right.signature)
+  );
+}
+
+function engineSyncSampleOptions(state) {
+  if (typeof engineSampleSelect === "undefined" || !engineSampleSelect) return state.sample;
+  const reviewRows = engineFilteredSampleRows(state);
+  const options = (reviewRows.length ? reviewRows : engineSampleRows(state)).map((row) => {
+    const option = document.createElement("option");
+    option.value = row.sample;
+    option.textContent = row.needs_review
+      ? `${row.sample} - ${row.lowest_cosine} min cosine`
+      : row.sample;
+    return option;
+  });
+  const previous = engineSampleSelect.value;
+  engineSampleSelect.replaceChildren(...options);
+  engineSampleSelect.value = options.some((option) => option.value === previous)
+    ? previous
+    : options[0]?.value || "";
+  return engineSampleSelect.value;
+}
+
+function engineExportArtifacts(state) {
+  const reviewRows = engineFilteredSampleRows(state);
+  const sampleComparisonRows = engineSelectedSampleComparisonRows(state);
+  const exposureRows = engineSelectedExposureRows(state);
+  const concordance = engineConcordanceRows(state).rows;
+  const compactState = {
+    referenceEngine: state.reference,
+    comparisonLens: state.lens,
+    cosineCutoff: state.cutoff,
+    minimumExposure: state.minExposure,
+    selectedSample: state.sample,
+    samples: engineSampleNames.length,
+    signatures: engineSignatureNames,
+    engineStatus: engineStatusRows,
+    concordance,
+    reviewRows,
+    selectedSampleEngineComparison: sampleComparisonRows,
+    selectedSampleExposures: exposureRows
+  };
+
+  if (state.exportScope === "current_sample") {
+    return [
+      { filename: "multi_engine_selected_sample_engine_comparison.csv", text: rowsToCsv(sampleComparisonRows), label: "Download selected-sample engine comparison CSV" },
+      { filename: "multi_engine_selected_sample_exposures.csv", text: rowsToCsv(exposureRows), label: "Download selected-sample exposures CSV" },
+      { filename: "multi_engine_selected_sample_state.json", type: "json", value: compactState, label: "Download selected-sample state JSON" }
+    ];
+  }
+
+  if (state.exportScope === "all_triage") {
+    return [
+      { filename: "multi_engine_engine_status.csv", text: rowsToCsv(engineStatusRows), label: "Download engine status CSV" },
+      { filename: "multi_engine_concordance.csv", text: rowsToCsv(concordance), label: "Download concordance CSV" },
+      { filename: "multi_engine_review_samples.csv", text: rowsToCsv(engineSampleRows(state)), label: "Download all sample triage CSV" },
+      { filename: "multi_engine_exposure_long.csv", text: rowsToCsv(engineExposureLongRows(engineExposureSets, engineSampleNames, engineSignatureNames)), label: "Download long-format exposures CSV" },
+      { filename: "multi_engine_triage_state.json", type: "json", value: compactState, label: "Download triage state JSON" }
+    ];
+  }
+
+  return [
+    { filename: "multi_engine_engine_status.csv", text: rowsToCsv(engineStatusRows), label: "Download engine status CSV" },
+    { filename: "multi_engine_concordance.csv", text: rowsToCsv(concordance), label: "Download concordance CSV" },
+    { filename: "multi_engine_filtered_disagreements.csv", text: rowsToCsv(reviewRows), label: "Download filtered disagreements CSV" },
+    { filename: "multi_engine_triage_state.json", type: "json", value: compactState, label: "Download triage state JSON" }
+  ];
+}
+
+function engineRender() {
+  const state = engineCurrentState();
+  state.sample = engineSyncSampleOptions(state);
+  const reviewRows = engineFilteredSampleRows(state);
+  const concordance = engineConcordanceRows(state);
+  const selectedRows = engineSelectedSampleComparisonRows(state);
+  const selectedExposureRows = engineSelectedExposureRows(state);
+
+  if (typeof engineMetricsHost !== "undefined" && engineMetricsHost) {
+    engineMetricsHost.replaceChildren(metrics([
+      { label: "Samples", value: engineSampleNames.length },
+      { label: "Reference", value: state.reference },
+      { label: "Cutoff", value: engineFormatDecimal(state.cutoff, 2) },
+      { label: "Samples needing review", value: reviewRows.length }
+    ]));
+  }
+
+  if (typeof engineStatusHost !== "undefined" && engineStatusHost) {
+    const rows = engineStatusRows.map((row) => ({
+      ...row,
+      reference_role: row.engine === state.reference ? "Reference engine" : "Compared engine"
+    }));
+    engineStatusHost.replaceChildren(engineNotebookTable(rows, [
+      { key: "engine", label: "Engine" },
+      { key: "runtime", label: "Runtime or source" },
+      { key: "samples", label: "Samples" },
+      { key: "loaded_output", label: "Loaded output" },
+      { key: "reference_role", label: "Role" }
+    ], {
+      title: "Engine sources",
+      caption: "Separates browser-native refitting, imported package outputs, and optional browser package execution.",
+      maxRows: rows.length
+    }));
+  }
+
+  if (typeof engineConcordanceHost !== "undefined" && engineConcordanceHost) {
+    engineConcordanceHost.replaceChildren(
+      engineNotebookTable(concordance.rows, concordance.columns, {
+        title: concordance.title,
+        caption: "Cosine values compare exposure vectors after normalization. Rows crossing the cutoff or changing the top signature are review candidates.",
+        maxRows: Math.min(24, Math.max(8, concordance.rows.length))
+      })
+    );
+  }
+
+  if (typeof engineReviewHost !== "undefined" && engineReviewHost) {
+    engineReviewHost.replaceChildren(
+      reviewRows.length
+        ? engineNotebookTable(reviewRows, [
+          { key: "sample", label: "Sample" },
+          { key: "mutations", label: "Mutations" },
+          { key: "reference_top", label: "Reference top" },
+          { key: "lowest_engine", label: "Lowest engine" },
+          { key: "lowest_cosine", label: "Lowest cosine" },
+          { key: "engines_below_cutoff", label: "Below cutoff" },
+          { key: "top_signature_disagreements", label: "Top disagreements" },
+          { key: "competing_top_signatures", label: "Competing tops" },
+          { key: "review_action", label: "Review action" }
+        ], {
+          title: "Samples needing interpretation",
+          caption: "Rows are ranked by cutoff failures, top-signature disagreements, exposure-vector distance, and mutation burden.",
+          maxRows: Math.min(18, reviewRows.length)
+        })
+        : enginePlaceholder("No samples cross the current disagreement threshold.")
+    );
+  }
+
+  if (typeof engineSelectedHost !== "undefined" && engineSelectedHost) {
+    engineSelectedHost.replaceChildren(
+      engineNotebookTable(selectedRows, [
+        { key: "engine", label: "Engine" },
+        { key: "exposure_cosine_to_reference", label: "Cosine to reference" },
+        { key: "reference_top", label: "Reference top" },
+        { key: "engine_top", label: "Engine top" },
+        { key: "engine_top_exposure", label: "Top exposure" },
+        { key: "second_signature", label: "Second signature" },
+        { key: "second_exposure", label: "Second exposure" },
+        { key: "review_flag", label: "Flag" }
+      ], {
+        title: `Selected sample engine comparison: ${state.sample}`,
+        caption: "Shows which engines change the dominant signature or move the exposure vector furthest from the selected reference.",
+        maxRows: selectedRows.length
+      }),
+      engineNotebookTable(selectedExposureRows, [
+        { key: "signature", label: "Signature" },
+        ...Object.keys(engineExposureSets).map((engine) => ({ key: engine, label: engine })),
+        { key: "maximum_exposure", label: "Maximum exposure" },
+        { key: "exposure_spread", label: "Exposure spread" }
+      ], {
+        title: "Selected sample signature exposures",
+        caption: "Filtered to signatures with at least one engine above the minimum exposure control.",
+        maxRows: Math.min(20, selectedExposureRows.length)
+      })
+    );
+  }
+
+  if (typeof engineDownloadHost !== "undefined" && engineDownloadHost) {
+    const selectedSample = typeof engineSampleSelect !== "undefined" ? engineSampleSelect.value : state.sample;
+    engineDownloadHost.replaceChildren(downloadMany(engineExportArtifacts({ ...state, sample: selectedSample || state.sample })));
+  }
+}
+</script>
+
+<script type="text/markdown">
+## Step 1. Fix the shared input and triage settings
+
+Every engine is evaluated against the same spectra and the same reference-signature matrix. Change the controls before reviewing agreement: the selected reference engine defines the comparison baseline, the cosine cutoff defines a review threshold, and the minimum exposure cutoff controls which signatures appear in the selected-sample table.
 </script>
 <script type="module">
 const [
   engineSpectrumRowsRaw,
   engineReferenceRowsRaw,
-  engineMsiSdkRowsRaw,
   engineRnnlsRowsRaw,
   engineDeconstructRowsRaw,
   engineSpaRowsRaw,
   engineMusicalRowsRaw,
-  engineSummaryRowsRaw,
-  engineSampleComparisonRowsRaw,
   engineAmbiguityRowsRaw
 ] = await Promise.all([
   engineFetchCsv(`${engineDataBase}concordance_input_spectra.csv`),
   engineFetchCsv(`${engineDataBase}concordance_reference_signatures.csv`),
-  engineFetchCsv(`${engineDataBase}msigsdk_exposures.csv`),
   engineFetchCsv(`${engineDataBase}r_nnls_exposures.csv`),
   engineFetchCsv(`${engineDataBase}deconstructsigs_exposures.csv`),
   engineFetchCsv(`${engineDataBase}sigprofilerassignment_exposures.csv`),
   engineFetchCsv(`${engineDataBase}musical_sparse_nnls_exposures.csv`),
-  engineFetchCsv(`${engineDataBase}cross_tool_concordance_summary.csv`),
-  engineFetchCsv(`${engineDataBase}cross_tool_concordance_sample_level.csv`),
   engineFetchCsv(`${engineDataBase}cross_tool_ambiguity_disagreement.csv`)
 ]);
 
@@ -234,78 +653,6 @@ const engineMutationBurdens = Object.fromEntries(
   engineSampleNames.map((sample) => [sample, engineSum(Object.values(engineSpectra[sample]))])
 );
 
-const engineRegistryRows = [
-  {
-    engine: "mSigSDK NNLS",
-    task: "Known-signature refit",
-    browser_execution: "Browser run",
-    package_output: "Live SDK result",
-    comparison_role: "Primary browser-native fit"
-  },
-  {
-    engine: "R nnls",
-    task: "Known-signature refit",
-    browser_execution: "Not browser package",
-    package_output: "Cached R 4.1.1 nnls result",
-    comparison_role: "Independent numerical solver"
-  },
-  {
-    engine: "deconstructSigs",
-    task: "Known-signature refit",
-    browser_execution: "R package output import",
-    package_output: "Cached deconstructSigs v1.8.0 result",
-    comparison_role: "R package benchmark"
-  },
-  {
-    engine: "SigProfilerAssignment",
-    task: "Known-signature refit",
-    browser_execution: engineRunSpaLive ? "Pyodide package run requested" : "Optional Pyodide run with runSpa=1",
-    package_output: "Cached SigProfilerAssignment v1.1.3 result",
-    comparison_role: "SigProfiler ecosystem refit"
-  },
-  {
-    engine: "sigminer",
-    task: "Known-signature refit",
-    browser_execution: "R handoff prepared; paste package output when available",
-    package_output: "No cached package output in this notebook",
-    comparison_role: "Additional R supervised fitting adapter"
-  },
-  {
-    engine: "MuSiCal SparseNNLS",
-    task: "Known-signature refit",
-    browser_execution: "Package output imported",
-    package_output: "Cached Park Lab MuSiCal SparseNNLS result",
-    comparison_role: "MuSiCal refit benchmark"
-  }
-];
-
-display(metrics([
-  { label: "Samples", value: engineSampleNames.length },
-  { label: "Contexts", value: engineContextNames.length },
-  { label: "Reference signatures", value: engineSignatureNames.length },
-  { label: "Loaded package outputs", value: 4 },
-  { label: "Prepared adapters", value: engineRegistryRows.length }
-]));
-
-display(engineTable(engineRegistryRows, {
-  columns: [
-    { key: "engine", label: "Engine" },
-    { key: "task", label: "Task" },
-    { key: "browser_execution", label: "Execution path" },
-    { key: "package_output", label: "Loaded output" },
-    { key: "comparison_role", label: "Role" }
-  ],
-  title: "Engine execution and import map",
-  maxRows: engineRegistryRows.length
-}));
-</script>
-
-<script type="text/markdown">
-## Step 2. Run or import each engine output
-
-The mSigSDK fit is recomputed in the browser from the shared spectra and reference catalog. R `nnls`, deconstructSigs, SigProfilerAssignment, and MuSiCal SparseNNLS are loaded from package-output CSVs that were generated with the same input matrix and catalog. SigProfilerAssignment can also be requested through the browser Pyodide adapter with `runSpa=1`, but the default path keeps the page fast and uses the archived full-cohort package output for the comparison.
-</script>
-<script type="module">
 const engineMsiSdkLiveFit = await mSigSDK.signatureFitting.fitMutationalSpectraToSignatures(
   engineReferenceSignatures,
   engineSpectra,
@@ -319,7 +666,6 @@ const engineMsiSdkLiveFit = await mSigSDK.signatureFitting.fitMutationalSpectraT
 );
 
 const engineMsiSdkLiveExposures = engineMsiSdkLiveFit?.exposures || engineMsiSdkLiveFit || {};
-const engineMsiSdkCachedExposures = engineMatrixFromRows(engineMsiSdkRowsRaw, "sample");
 const engineRnnlsExposures = engineMatrixFromRows(engineRnnlsRowsRaw, "sample");
 const engineDeconstructExposures = engineMatrixFromRows(engineDeconstructRowsRaw, "sample");
 const engineSpaCachedExposures = engineMatrixFromRows(engineSpaRowsRaw, "sample");
@@ -327,7 +673,7 @@ const engineMusicalPackageExposures = engineMatrixFromRows(engineMusicalRowsRaw,
 
 let engineSpaLiveResult = null;
 let engineSpaLiveExposures = null;
-let engineSpaLiveStatus = "Not requested";
+let engineSpaLiveStatus = "Optional Pyodide run not requested";
 
 if (engineRunSpaLive) {
   try {
@@ -352,71 +698,6 @@ if (engineRunSpaLive) {
   }
 }
 
-const engineLiveVsCachedCosines = engineSampleNames.map((sample) =>
-  engineExposureCosine(engineMsiSdkLiveExposures[sample], engineMsiSdkCachedExposures[sample], engineSignatureNames)
-);
-
-const engineLoadRows = [
-  {
-    result: "mSigSDK browser refit",
-    workflow_stage: "Known-signature refit",
-    samples: Object.keys(engineMsiSdkLiveExposures).length,
-    execution_mode: "Runs live in the browser",
-    comparison: `Cosine to archived mSigSDK: ${formatNumber(engineRound(engineMean(engineLiveVsCachedCosines), 6), 6)}`,
-    interpretation: "Sanity check that the browser refit reproduces the archived SDK exposure table.",
-    mean_cosine_to_cached_msigsdk: engineRound(engineMean(engineLiveVsCachedCosines), 6)
-  },
-  {
-    result: "R nnls",
-    workflow_stage: "Known-signature refit",
-    samples: Object.keys(engineRnnlsExposures).length,
-    execution_mode: "Imported package output",
-    comparison: "Cosine to archived mSigSDK: 1.000000",
-    interpretation: "Independent numerical solver check; expected to match mSigSDK to numerical precision.",
-    mean_cosine_to_cached_msigsdk: engineRound(engineMean(engineSampleNames.map((sample) => engineExposureCosine(engineRnnlsExposures[sample], engineMsiSdkCachedExposures[sample], engineSignatureNames))), 6)
-  },
-  {
-    result: "deconstructSigs",
-    workflow_stage: "Known-signature refit",
-    samples: Object.keys(engineDeconstructExposures).length,
-    execution_mode: "Imported R package output",
-    comparison: "Cosine to archived mSigSDK: 0.996982",
-    interpretation: "R package benchmark on the same spectra and selected COSMIC signatures.",
-    mean_cosine_to_cached_msigsdk: engineRound(engineMean(engineSampleNames.map((sample) => engineExposureCosine(engineDeconstructExposures[sample], engineMsiSdkCachedExposures[sample], engineSignatureNames))), 6)
-  },
-  {
-    result: "SigProfilerAssignment",
-    workflow_stage: "Known-signature refit",
-    samples: Object.keys(engineSpaCachedExposures).length,
-    execution_mode: engineRunSpaLive ? engineSpaLiveStatus : "Imported package output; live Pyodide run not requested",
-    comparison: "Cosine to archived mSigSDK: 0.907274",
-    interpretation: "SigProfiler ecosystem refit result; sample-level review identifies where it diverges.",
-    mean_cosine_to_cached_msigsdk: engineRound(engineMean(engineSampleNames.map((sample) => engineExposureCosine(engineSpaCachedExposures[sample], engineMsiSdkCachedExposures[sample], engineSignatureNames))), 6)
-  },
-  {
-    result: "MuSiCal SparseNNLS package",
-    workflow_stage: "Known-signature refit",
-    samples: Object.keys(engineMusicalPackageExposures).length,
-    execution_mode: "Imported Python package output",
-    comparison: "Cosine to archived mSigSDK: 0.973457",
-    interpretation: "MuSiCal package refit result generated outside the browser and compared here.",
-    mean_cosine_to_cached_msigsdk: engineRound(engineMean(engineSampleNames.map((sample) => engineExposureCosine(engineMusicalPackageExposures[sample], engineMsiSdkCachedExposures[sample], engineSignatureNames))), 6)
-  }
-];
-
-display(engineTable(engineLoadRows, {
-  columns: [
-    { key: "result", label: "Result" },
-    { key: "workflow_stage", label: "Workflow stage" },
-    { key: "samples", label: "Samples" },
-    { key: "execution_mode", label: "Execution mode" },
-    { key: "comparison", label: "Comparison" },
-    { key: "interpretation", label: "Interpretation" }
-  ],
-  title: "Result inventory and interpretation",
-  maxRows: engineLoadRows.length
-}));
-
 const engineExposureSets = {
   "mSigSDK live": engineMsiSdkLiveExposures,
   "R nnls": engineRnnlsExposures,
@@ -424,311 +705,153 @@ const engineExposureSets = {
   "SigProfilerAssignment": engineSpaCachedExposures,
   "MuSiCal SparseNNLS": engineMusicalPackageExposures
 };
-</script>
 
-<script type="text/markdown">
-## Step 3. Compare package concordance
+if (engineSpaLiveExposures) {
+  engineExposureSets["SigProfilerAssignment Pyodide"] = engineSpaLiveExposures;
+}
 
-The package outputs are compared at the same time rather than reviewed as separate reports. Exposure cosine compares the full signature-exposure vector for each sample, where `1.0` means the vectors are identical after normalization. The top-signature columns count how often the largest exposure is assigned to the same signature.
-</script>
-<script type="module">
-const engineSummaryRows = engineSummaryRowsRaw.map((row) => ({
-  package: row.tool,
-  samples: Number(row.samples),
-  mean_cosine_to_msigsdk: engineRound(Number(row.meanExposureCosineVsMsigSDK), 3),
-  median_cosine_to_msigsdk: engineRound(Number(row.medianExposureCosineVsMsigSDK), 3),
-  min_cosine_to_msigsdk: engineRound(Number(row.minExposureCosineVsMsigSDK), 3),
-  top_signature_matches: Number(row.topSignatureAgreementCount),
-  top_signature_disagreements: Number(row.topSignatureMismatchCount),
-  mean_mutational_fit_similarity: engineRound(Number(row.meanReconstructionCosine), 3)
-}));
-
-const enginePairwiseRows = engineCollectPairwise(engineExposureSets, engineSampleNames, engineSignatureNames);
-
-display(engineTable(engineSummaryRows, {
-  columns: [
-    { key: "package", label: "Package" },
-    { key: "samples", label: "Samples" },
-    { key: "mean_cosine_to_msigsdk", label: "Mean exposure cosine" },
-    { key: "median_cosine_to_msigsdk", label: "Median exposure cosine" },
-    { key: "min_cosine_to_msigsdk", label: "Minimum exposure cosine" },
-    { key: "top_signature_matches", label: "Top-signature matches" },
-    { key: "top_signature_disagreements", label: "Top-signature disagreements" },
-    { key: "mean_mutational_fit_similarity", label: "Mean fitted-spectrum cosine" }
-  ],
-  title: "Package concordance against mSigSDK",
-  maxRows: engineSummaryRows.length
-}));
-
-display(engineTable(enginePairwiseRows, {
-  columns: [
-    { key: "engine_a", label: "Engine A" },
-    { key: "engine_b", label: "Engine B" },
-    { key: "samples", label: "Samples" },
-    { key: "mean_cosine", label: "Mean cosine" },
-    { key: "median_cosine", label: "Median cosine" },
-    { key: "min_cosine", label: "Minimum cosine" },
-    { key: "top_signature_matches", label: "Top-signature matches" },
-    { key: "top_signature_match_rate", label: "Match rate" }
-  ],
-  title: "All-versus-all engine concordance",
-  maxRows: enginePairwiseRows.length
-}));
-</script>
-
-<script type="text/markdown">
-## Step 4. Review sample-level consensus and disagreements
-
-Researchers usually need to identify where tools agree, where they disagree, and whether the disagreement is a numerical detail or a biologically meaningful change in the top signature. The consensus table reports the top signature from every engine for each sample.
-</script>
-<script type="module">
-const engineConsensusRows = engineSampleNames.map((sample) => {
-  const topByEngine = Object.fromEntries(
-    Object.entries(engineExposureSets).map(([engine, exposuresBySample]) => [engine, engineTopExposure(exposuresBySample?.[sample]).signature])
-  );
-  const distinctTopSignatures = [...new Set(Object.values(topByEngine).filter((value) => value !== "NA"))];
-  return {
-    sample,
-    mutations: engineMutationBurdens[sample],
-    msigsdk_top: topByEngine["mSigSDK live"],
-    r_nnls_top: topByEngine["R nnls"],
-    deconstructsigs_top: topByEngine.deconstructSigs,
-    sigprofilerassignment_top: topByEngine.SigProfilerAssignment,
-    musical_sparse_nnls_top: topByEngine["MuSiCal SparseNNLS"],
-    distinct_top_signatures: distinctTopSignatures.length,
-    consensus: distinctTopSignatures.length === 1 ? "Full agreement" : "Review"
-  };
-}).sort((left, right) => right.distinct_top_signatures - left.distinct_top_signatures || right.mutations - left.mutations);
-
-const engineDisagreementRows = engineConsensusRows
-  .filter((row) => row.distinct_top_signatures > 1)
-  .map((row) => {
-    const ambiguity = engineAmbiguityRowsRaw.find((candidate) => candidate.sample === row.sample);
-    return {
-      sample: row.sample,
-      mutations: row.mutations,
-      msigsdk_top: row.msigsdk_top,
-      r_nnls_top: row.r_nnls_top,
-      deconstructsigs_top: row.deconstructsigs_top,
-      sigprofilerassignment_top: row.sigprofilerassignment_top,
-      musical_sparse_nnls_top: row.musical_sparse_nnls_top,
-      high_ambiguity_signatures: ambiguity?.high_ambiguity_signatures_in_compared_tops || "",
-      action: row.distinct_top_signatures > 2 ? "Inspect exposures and fitted spectrum" : "Inspect competing signature exposures"
-    };
-  });
-
-display(engineTable(engineConsensusRows, {
-  columns: [
-    { key: "sample", label: "Sample" },
-    { key: "mutations", label: "Mutations" },
-    { key: "msigsdk_top", label: "mSigSDK" },
-    { key: "r_nnls_top", label: "R nnls" },
-    { key: "deconstructsigs_top", label: "deconstructSigs" },
-    { key: "sigprofilerassignment_top", label: "SigProfilerAssignment" },
-    { key: "musical_sparse_nnls_top", label: "MuSiCal" },
-    { key: "distinct_top_signatures", label: "Distinct top signatures" },
-    { key: "consensus", label: "Consensus" }
-  ],
-  title: "Sample-level engine consensus",
-  maxRows: 38
-}));
-
-display(engineTable(engineDisagreementRows, {
-  columns: [
-    { key: "sample", label: "Sample" },
-    { key: "mutations", label: "Mutations" },
-    { key: "msigsdk_top", label: "mSigSDK" },
-    { key: "r_nnls_top", label: "R nnls" },
-    { key: "deconstructsigs_top", label: "deconstructSigs" },
-    { key: "sigprofilerassignment_top", label: "SigProfilerAssignment" },
-    { key: "musical_sparse_nnls_top", label: "MuSiCal" },
-    { key: "high_ambiguity_signatures", label: "Ambiguous signatures" },
-    { key: "action", label: "Review action" }
-  ],
-  title: "Samples requiring interpretation",
-  maxRows: engineDisagreementRows.length
-}));
-</script>
-
-<script type="text/markdown">
-## Step 5. Inspect exposure profiles for samples requiring interpretation
-
-The long contribution table keeps each package output in a common shape: tool, sample, signature, contribution. Downstream review tools can filter this table by sample, signature family, or tool pair.
-</script>
-<script type="module">
-const engineReviewSamples = engineDisagreementRows.length
-  ? engineDisagreementRows.map((row) => row.sample)
-  : engineConsensusRows.slice(0, 6).map((row) => row.sample);
-
-const engineReviewExposureRows = engineExposureLongRows(engineExposureSets, engineReviewSamples, engineSignatureNames)
-  .filter((row) => Number(row.exposure) >= 0.01)
-  .sort((left, right) =>
-    left.sample.localeCompare(right.sample) ||
-    left.signature.localeCompare(right.signature) ||
-    left.engine.localeCompare(right.engine)
-  );
-
-display(engineTable(engineReviewExposureRows, {
-  columns: [
-    { key: "sample", label: "Sample" },
-    { key: "signature", label: "Signature" },
-    { key: "engine", label: "Engine" },
-    { key: "exposure", label: "Exposure" }
-  ],
-  title: "Engine exposures in samples requiring interpretation",
-  maxRows: 120
-}));
-</script>
-
-<script type="text/markdown">
-## Step 6. Prepare external tool run files
-
-The bundle records the exact input objects and code snippets needed to rerun known-signature refit tools, de novo extraction, SigProfiler plotting, and variant-level SigProfiler workflows outside the browser. Compatible Python package adapters can also run in Pyodide. Fitting package outputs return to the workspace as contribution CSVs with `sample` in the first column and one column per signature.
-</script>
-<script type="module">
-const engineInteropBundle = mSigSDK.adapters.createInteroperabilityBundle(
+const engineStatusRows = [
   {
-    spectra: engineSpectra,
-    signatures: engineReferenceSignatures
+    engine: "mSigSDK live",
+    runtime: "Browser-native JavaScript refit",
+    samples: Object.keys(engineMsiSdkLiveExposures).length,
+    loaded_output: "Live refit from the shared spectra and reference catalog"
   },
   {
-    contexts: engineContextNames,
-    include: [
-      "sigProfilerAssignment",
-      "sigProfilerExtractor",
-      "sigProfilerPlotting",
-      "deconstructSigs",
-      "sigminer",
-      "musical"
-    ]
-  }
-);
-
-const engineStandaloneHandoffs = {
-  sigProfilerMatrixGenerator: mSigSDK.adapters.sigProfilerMatrixGenerator.prepareInput(
-    { files: [] },
-    { project: "multi_engine_matrix_generator", referenceGenome: "GRCh37" }
-  ),
-  sigProfilerSimulator: mSigSDK.adapters.sigProfilerSimulator.prepareInput(
-    { files: [] },
-    { project: "multi_engine_simulator", genome: "GRCh37", simulations: 100 }
-  ),
-  sigProfilerClusters: mSigSDK.adapters.sigProfilerClusters.prepareInput(
-    { files: [] },
-    { project: "multi_engine_clusters", genome: "GRCh37" }
-  )
-};
-
-const engineBundleRows = [
-  ...Object.entries(engineInteropBundle.tools || {}),
-  ...Object.entries(engineStandaloneHandoffs)
-].map(([tool, value]) => {
-  const files = value.files || value.input?.files || [];
-  const snippets = [
-    value.pythonSnippet,
-    value.rSnippet,
-    value.codeSnippet,
-    value.runCommand,
-    value.command
-  ].filter(Boolean);
-  return {
-    tool,
-    files: files.length,
-    code_snippets: snippets.length,
-    output_to_import: tool.includes("MatrixGenerator")
-      ? "Generated SigProfiler matrix table"
-      : tool.includes("Simulator") || tool.includes("Clusters")
-        ? "Package output directory for downstream review"
-        : tool.includes("Plotting")
-          ? "SigProfiler-style plot files"
-          : "Exposure CSV with sample and signature columns",
-    workflow_stage: tool.includes("MatrixGenerator") || tool.includes("Simulator") || tool.includes("Clusters")
-      ? "Variant-level SigProfiler workflow"
-      : tool.includes("Plotting")
-        ? "Plot generation"
-        : "Known-signature refit"
-  };
-});
-
-display(engineTable(engineBundleRows, {
-  columns: [
-    { key: "tool", label: "Tool" },
-    { key: "workflow_stage", label: "Workflow stage" },
-    { key: "files", label: "Prepared files" },
-    { key: "code_snippets", label: "Code snippets" },
-    { key: "output_to_import", label: "Output to import" }
-  ],
-  title: "Prepared package run files",
-  maxRows: engineBundleRows.length
-}));
-
-display(details("Bundle object keys", [
-  `Tools: ${Object.keys(engineInteropBundle.tools || {}).join(", ")}`,
-  `Standalone variant-level tools: ${Object.keys(engineStandaloneHandoffs).join(", ")}`,
-  `Samples: ${engineSampleNames.length}`,
-  `Contexts: ${engineContextNames.length}`,
-  `Signatures: ${engineSignatureNames.join(", ")}`
-]));
-</script>
-
-<script type="text/markdown">
-## Step 7. Export the comparison audit trail
-
-The exported tables provide a reproducible audit trail for a manuscript supplement, internal benchmark, or method-selection report.
-</script>
-<script type="module">
-const engineArtifacts = [
-  {
-    filename: "multi_engine_engine_status.csv",
-    text: rowsToCsv(engineLoadRows),
-    label: "Download engine status CSV"
+    engine: "R nnls",
+    runtime: "Imported R package output",
+    samples: Object.keys(engineRnnlsExposures).length,
+    loaded_output: "Cached R 4.1.1 nnls exposure CSV"
   },
   {
-    filename: "multi_engine_package_concordance.csv",
-    text: rowsToCsv(engineSummaryRows),
-    label: "Download package concordance CSV"
+    engine: "deconstructSigs",
+    runtime: "Imported R package output",
+    samples: Object.keys(engineDeconstructExposures).length,
+    loaded_output: "Cached deconstructSigs v1.8.0 exposure CSV"
   },
   {
-    filename: "multi_engine_pairwise_similarity.csv",
-    text: rowsToCsv(enginePairwiseRows),
-    label: "Download pairwise similarity CSV"
+    engine: "SigProfilerAssignment",
+    runtime: `Imported Python package output; ${engineSpaLiveStatus}`,
+    samples: Object.keys(engineSpaCachedExposures).length,
+    loaded_output: "Cached SigProfilerAssignment v1.1.3 exposure CSV"
   },
   {
-    filename: "multi_engine_sample_consensus.csv",
-    text: rowsToCsv(engineConsensusRows),
-    label: "Download sample consensus CSV"
-  },
-  {
-    filename: "multi_engine_disagreements.csv",
-    text: rowsToCsv(engineDisagreementRows),
-    label: "Download disagreements CSV"
-  },
-  {
-    filename: "multi_engine_exposure_long.csv",
-    text: rowsToCsv(engineExposureLongRows(engineExposureSets, engineSampleNames, engineSignatureNames)),
-    label: "Download long-format signature contributions CSV"
-  },
-  {
-    filename: "multi_engine_workspace.json",
-    type: "json",
-    value: {
-      samples: engineSampleNames,
-      contexts: engineContextNames,
-      signatures: engineSignatureNames,
-      engineRegistry: engineRegistryRows,
-      engineStatus: engineLoadRows,
-      packageConcordance: engineSummaryRows,
-      pairwiseSimilarity: enginePairwiseRows,
-      consensus: engineConsensusRows,
-      disagreements: engineDisagreementRows,
-      handoffs: engineBundleRows,
-      standaloneHandoffs: engineStandaloneHandoffs
-    },
-    label: "Download workspace JSON"
+    engine: "MuSiCal SparseNNLS",
+    runtime: "Imported Python package output",
+    samples: Object.keys(engineMusicalPackageExposures).length,
+    loaded_output: "Cached Park Lab MuSiCal SparseNNLS exposure CSV"
   }
 ];
 
-display(downloadMany(engineArtifacts));
+if (engineSpaLiveExposures) {
+  engineStatusRows.push({
+    engine: "SigProfilerAssignment Pyodide",
+    runtime: "Optional browser Pyodide package run",
+    samples: Object.keys(engineSpaLiveExposures).length,
+    loaded_output: engineSpaLiveStatus
+  });
+}
+
+const engineReferenceSelect = engineSelect(
+  Object.keys(engineExposureSets).map((engine) => ({ value: engine, label: engine })),
+  "mSigSDK live"
+);
+const engineLensSelect = engineSelect([
+  { value: "reference", label: "All engines versus reference" },
+  { value: "pairwise", label: "All pairwise comparisons" },
+  { value: "sample", label: "Samples crossing the review threshold" }
+], "reference");
+const engineCosineCutoffInput = engineNumberInput(0.95, 0.01, 0, 1);
+const engineMinExposureInput = engineNumberInput(0.01, 0.005, 0, 1);
+
+const engineControls = document.createElement("section");
+engineControls.className = "workflow-panel";
+const engineControlGrid = document.createElement("div");
+engineControlGrid.className = "workflow-control-grid compact";
+engineControlGrid.append(
+  engineField("Reference engine", engineReferenceSelect, "Engine used as the comparison baseline."),
+  engineField("Comparison lens", engineLensSelect, "Controls the concordance table in Step 2."),
+  engineField("Review cosine cutoff", engineCosineCutoffInput, "Samples below this exposure-vector cosine enter the review list."),
+  engineField("Minimum shown exposure", engineMinExposureInput, "Signature exposures below this value are hidden in the selected-sample table.")
+);
+
+const engineMetricsHost = document.createElement("div");
+const engineStatusHost = document.createElement("div");
+engineStatusHost.className = "workflow-output-stack";
+engineControls.append(engineControlGrid, engineMetricsHost, engineStatusHost);
+display(engineControls);
+
+for (const control of [engineReferenceSelect, engineLensSelect, engineCosineCutoffInput, engineMinExposureInput]) {
+  control.addEventListener("change", engineRender);
+  control.addEventListener("input", engineRender);
+}
+
+engineRender();
+</script>
+
+<script type="text/markdown">
+## Step 2. Compare engine concordance
+
+The concordance table updates from the selected reference engine and comparison lens. A high exposure cosine indicates that two engines returned similar exposure vectors. Top-signature disagreements are flagged separately because a similar vector can still change the dominant biological interpretation.
+</script>
+<script type="module">
+const engineConcordancePanel = document.createElement("section");
+engineConcordancePanel.className = "workflow-panel";
+var engineConcordanceHost = document.createElement("div");
+engineConcordanceHost.className = "workflow-output-stack";
+engineConcordancePanel.append(engineConcordanceHost);
+display(engineConcordancePanel);
+
+engineRender();
+</script>
+
+<script type="text/markdown">
+## Step 3. Review one disagreement at a time
+
+The review table ranks samples by cutoff failures, top-signature disagreements, and mutation burden. Select a sample to inspect which engine moved furthest from the reference and which signatures account for the difference.
+</script>
+<script type="module">
+const engineReviewPanel = document.createElement("section");
+engineReviewPanel.className = "workflow-panel";
+var engineSampleSelect = engineSelect([], "");
+const engineSampleControls = document.createElement("div");
+engineSampleControls.className = "workflow-control-grid compact";
+engineSampleControls.append(engineField("Sample to inspect", engineSampleSelect, "Defaults to the highest-priority review sample."));
+
+var engineReviewHost = document.createElement("div");
+engineReviewHost.className = "workflow-output-stack";
+var engineSelectedHost = document.createElement("div");
+engineSelectedHost.className = "workflow-output-stack";
+engineReviewPanel.append(engineSampleControls, engineReviewHost, engineSelectedHost);
+display(engineReviewPanel);
+
+engineSampleSelect.addEventListener("change", engineRender);
+engineRender();
+</script>
+
+<script type="text/markdown">
+## Step 4. Export the focused triage record
+
+Download the files that match the current review state. The filtered export preserves the engine status table, the active concordance table, the samples requiring interpretation, and the control values used to generate the view.
+</script>
+<script type="module">
+const engineExportPanel = document.createElement("section");
+engineExportPanel.className = "workflow-panel";
+var engineExportScopeSelect = engineSelect([
+  { value: "filtered_review", label: "Filtered review set" },
+  { value: "current_sample", label: "Selected sample only" },
+  { value: "all_triage", label: "All triage rows" }
+], "filtered_review");
+const engineExportControls = document.createElement("div");
+engineExportControls.className = "workflow-control-grid compact";
+engineExportControls.append(engineField("Export scope", engineExportScopeSelect, "Controls which CSV and JSON files are prepared."));
+var engineDownloadHost = document.createElement("div");
+engineDownloadHost.className = "workflow-output-stack";
+engineExportPanel.append(engineExportControls, engineDownloadHost);
+display(engineExportPanel);
+
+engineExportScopeSelect.addEventListener("change", engineRender);
+engineRender();
 </script>
 
 </notebook>

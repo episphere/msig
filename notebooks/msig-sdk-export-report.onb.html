@@ -1,304 +1,27 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK export and reports</title>
+  <title>mSigSDK report packet builder</title>
 
   <script type="text/markdown">
-    # Export and reports
+    # Report packet builder
 
-    The reporting layer turns exploratory analysis into reusable files. It covers SigProfiler-style table export/import, run records, structured reports, and the high-level workflow helper that bundles input checks, fitting, quality checks, and reporting.
+    A report packet is the reviewable archive that sits beside a fitted mutational signature analysis. It keeps the selected samples, fitted exposures, report fields, provenance, and rerun files together so another researcher can inspect the result without reopening the original browser session.
 
-    The workflow moves from input to saved output: load a small analysis, prove that the table can be exported and read back, compare the high-level workflow helper with manual report assembly, and save the bundle that another researcher would need to reproduce the run.
+    Build the packet from a compact public SBS96 analysis, choose the report sections and files to preserve, audit the archive, then download only the selected files.
   </script>
 
-  <script type="module" pinned id="1">
-    const repSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-report", location.href).href;
-    const { mSigSDK } = await import(repSdkUrl);
+  <script type="module" pinned id="report-packet-builder">
+    const packetSdkUrl = new URL("../main.js?v=2026-05-20-report-packet-builder", location.href).href;
+    const { mSigSDK } = await import(packetSdkUrl);
+    const { loadPublicSbs96Dataset } = await import("./msig-notebook-fixtures.js");
+
     const {
-      loadPublicSbs96Dataset,
-    } = await import("./msig-notebook-fixtures.js");
-    const {
-      burdenSampleRows,
-      details,
-      metrics,
+      exposureRows,
+      formatNumber,
       reportFieldRows,
-      table,
     } = mSigSDK.presentation;
 
-    display(metrics([
-      { label: "SDK", value: mSigSDK.name },
-      { label: "Version", value: mSigSDK.version },
-      { label: "Workflow", value: "Reproducible outputs" },
-      { label: "Main namespaces", value: "io, workflows, reports" },
-    ]));
-    display(table(
-      [
-        { functionName: "io.exportSigProfilerMatrix", workflowValue: "Exports spectra to a common table format" },
-        { functionName: "io.importSigProfilerMatrix", workflowValue: "Reads the same format back into SDK objects" },
-        { functionName: "workflows.analyzeSpectraWithSignatures", workflowValue: "Bundles input checks, fitting, quality checks, run records, and reports" },
-        { functionName: "reports.createAnalysisReport", workflowValue: "Creates a structured report that can be saved or rendered" },
-        { functionName: "presentation.reportFieldRows", workflowValue: "Summarizes report objects without dumping nested JSON" },
-      ],
-      [
-        { key: "functionName", label: "Function" },
-        { key: "workflowValue", label: "What it demonstrates" },
-      ]
-    ));
-  </script>
-<script type="text/markdown">
-    ## Step 1. Load a small dataset for reporting
-
-    The reporting workflow starts from the same input shape as fitting: count spectra by sample and signatures by signature name. This cell uses a compact set of public PCAWG WGS Lung-AdenoCA spectra with both adequate and low mutation counts, so the report demonstrates useful input-check and quality-check fields.
-
-    At this point, the researcher is not judging signatures yet. The question is whether the inputs, sample count, signature count, and source details are clear enough to make the rest of the report interpretable.
-  </script>
-<script type="module" pinned id="2">
-    const repContexts = mSigSDK.validation.getExpectedContexts({
-      profile: "SBS",
-      matrix: 96,
-    });
-    const repStudy = "PCAWG";
-    const repGenomeDataType = "WGS";
-    const repCancerType = "Lung-AdenoCA";
-    const repMutationType = "SBS";
-    const repMatrixSize = 96;
-    const repSignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
-    const repExampleSampleNames = [
-      "SP50611",
-      "SP50592",
-      "SP52284",
-      "SP50406",
-      "SP55004",
-    ];
-    const repSampleLimit = repExampleSampleNames.length;
-    const repMutationBurdenThreshold = 5000;
-    const repExposureThreshold = 0.01;
-    const repPreferredSignatureNames = [
-      "SBS1",
-      "SBS2",
-      "SBS4",
-      "SBS5",
-      "SBS13",
-      "SBS17a",
-      "SBS17b",
-      "SBS18",
-      "SBS40",
-    ];
-
-    const repDataset = await loadPublicSbs96Dataset(mSigSDK, {
-      study: repStudy,
-      genomeDataType: repGenomeDataType,
-      cancerType: repCancerType,
-      mutationType: repMutationType,
-      matrixSize: repMatrixSize,
-      signatureSetName: repSignatureSetName,
-      sampleNames: repExampleSampleNames,
-      sampleLimit: repSampleLimit,
-      signatureNames: repPreferredSignatureNames,
-      allowAlternate: false,
-    });
-    const repDataSourceStatus = repDataset.status;
-    const repAllGroupedSpectra = repDataset.spectra;
-    const repAllReferenceSignatures = repDataset.allSignatures;
-    const repAllBurden = mSigSDK.qc.summarizeMutationBurden(repAllGroupedSpectra, {
-      expectedContexts: repContexts,
-      lowBurdenThresholdMode: "fixed",
-      lowBurdenThreshold: repMutationBurdenThreshold,
-    });
-    const repSelectedBurdenSamples = mSigSDK.qc.selectSamplesByMutationBurden(
-      repAllBurden,
-      {
-        sampleNames: repExampleSampleNames.filter((sample) => repAllGroupedSpectra[sample]).length
-          ? repExampleSampleNames.filter((sample) => repAllGroupedSpectra[sample])
-          : Object.keys(repAllGroupedSpectra),
-        minTotalMutations: 1,
-        limit: repSampleLimit,
-      }
-    );
-    const repSelectedSampleNames = repSelectedBurdenSamples.map(
-      (sample) => sample.sample
-    );
-    const repGroupedSpectra = Object.fromEntries(
-      repSelectedSampleNames.map((sample) => [sample, repAllGroupedSpectra[sample]])
-    );
-    const repPreferredAvailableSignatures = repPreferredSignatureNames.filter(
-      (signature) => repAllReferenceSignatures[signature]
-    );
-    const repSelectedSignatureNames = repPreferredAvailableSignatures.length
-      ? repPreferredAvailableSignatures
-      : Object.keys(repAllReferenceSignatures).slice(0, 8);
-    const repReferenceSignatures = Object.fromEntries(
-      repSelectedSignatureNames.map((signature) => [
-        signature,
-        repAllReferenceSignatures[signature],
-      ])
-    );
-
-    display(metrics([
-      { label: "Data source", value: repDataSourceStatus },
-      { label: "Samples", value: repSelectedSampleNames.length },
-      { label: "Reference signatures", value: repSelectedSignatureNames.length },
-      { label: "Mutation-count cutoff", value: repMutationBurdenThreshold },
-      {
-        label: "Low mutation-count samples",
-        value: repSelectedBurdenSamples.filter(
-          (sample) => sample.totalMutations < repMutationBurdenThreshold
-        ).length,
-      },
-      { label: "Minimum signature contribution", value: repExposureThreshold },
-    ]));
-    display(table(
-      burdenSampleRows(repAllBurden, repSelectedSampleNames),
-      [
-        { key: "sample", label: "Selected sample" },
-        { key: "mutations", label: "Total mutations" },
-        { key: "nonZeroContexts", label: "Nonzero contexts" },
-        { key: "lowBurden", label: "Low mutation-count review cue" },
-      ]
-    ));
-  </script>
-
-  <script type="text/markdown">
-    ## Step 2. Export and read back a SigProfiler-style table
-
-    Tool compatibility matters because signature analysts often move between mSigSDK, SigProfiler, COSMIC tables, R/Bioconductor workflows, and supplemental tables. Exporting and reading back is a practical check that the exported table can be parsed back into the SDK's object shape.
-
-    If the row and column counts change after import, stop here. A report built on a table that cannot be read back will be difficult to reproduce or compare with external tools.
-  </script>
-<script type="module" pinned id="3">
-    const repSigProfilerTsv = mSigSDK.io.exportSigProfilerMatrix(
-      repGroupedSpectra,
-      { contexts: repContexts }
-    );
-    const repRoundTripSpectra =
-      mSigSDK.io.importSigProfilerMatrix(repSigProfilerTsv);
-
-    const repTsvLines = repSigProfilerTsv.split("\n");
-    display(metrics([
-      { label: "Exported TSV lines", value: repTsvLines.length },
-      { label: "Round-trip samples", value: Object.keys(repRoundTripSpectra).length },
-      { label: "First column", value: repTsvLines[0].split("\t")[0] },
-    ]));
-    display(details("Preview first five TSV lines", repTsvLines.slice(0, 5).join("\n")));
-  </script>
-
-  <script type="text/markdown">
-    ## Step 3. Use the high-level workflow helper
-
-    The workflow helper performs fitting, input checking, quality-check object creation, run-record creation, and report assembly in one call. The reusable bundle is the focus here, not interpretation of the fitted signatures.
-
-    Read the workflow output as the standard project bundle: settings, input checks, warnings, fit evidence, report fields, and run record together. The helper is useful when consistency matters more than hand-building every intermediate object.
-  </script>
-<script type="module" pinned id="4">
-    const repWorkflowAnalysis =
-      await mSigSDK.workflows.analyzeSpectraWithSignatures(
-        repGroupedSpectra,
-        repReferenceSignatures,
-        {
-          exposureThreshold: repExposureThreshold,
-          expectedContexts: repContexts,
-          mutationBurdenOptions: {
-            lowBurdenThresholdMode: "fixed",
-            lowBurdenThreshold: repMutationBurdenThreshold,
-          },
-          parameters: {
-            dataset: `${repStudy} ${repCancerType}`,
-            genomeDataType: repGenomeDataType,
-            signatureSetName: repSignatureSetName,
-            samples: repSelectedSampleNames,
-            signatures: repSelectedSignatureNames,
-            matrix: "SBS96",
-          },
-        }
-      );
-
-    display(metrics([
-      { label: "Spectra validation", value: repWorkflowAnalysis.validation.spectra.valid ? "Pass" : "Review" },
-      { label: "Signature validation", value: repWorkflowAnalysis.validation.signatures.valid ? "Pass" : "Review" },
-      { label: "Report title", value: repWorkflowAnalysis.report.title },
-      { label: "Run record SDK version", value: repWorkflowAnalysis.provenance.sdk?.version || mSigSDK.version },
-    ]));
-    display(table(
-      reportFieldRows(repWorkflowAnalysis.report).map((row) => ({
-        section: row.field,
-        contents: row.summary,
-      })),
-      [
-        { key: "section", label: "Report field" },
-        { key: "contents", label: "Contents" },
-      ]
-    ));
-  </script>
-
-  <script type="text/markdown">
-    ## Step 4. Assemble a report manually
-
-    You can also build a report from individual pieces when you want full control over what gets included. This pattern is useful for notebooks, manuscripts, or applications where you want to keep the analysis result, settings, SDK version, source URLs, and warnings together.
-
-    Manual assembly is most useful when an application has already computed some pieces itself or needs to attach study-specific sample details. The responsibility is the same: do not export signature contributions without the quality-check and run-record fields that explain them.
-  </script>
-<script type="module" pinned id="5">
-    const repProvenance = mSigSDK.provenance.createProvenance({
-      analysis: "focused export report workflow",
-      parameters: {
-        sdkUrl: repSdkUrl,
-        study: repStudy,
-        genomeDataType: repGenomeDataType,
-        cancerType: repCancerType,
-        signatureSetName: repSignatureSetName,
-        mutationBurdenThreshold: repMutationBurdenThreshold,
-        exposureThreshold: repExposureThreshold,
-      },
-      sourceUrls: [
-        repSdkUrl,
-        "https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum",
-        "https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature",
-      ],
-    });
-    const repManualReport = mSigSDK.reports.createAnalysisReport({
-      title: "Focused mSigSDK tool-compatible report",
-      validation: repWorkflowAnalysis.validation,
-      qc: repWorkflowAnalysis.qc,
-      provenance: repProvenance,
-    });
-
-    display(metrics([
-      { label: "Report title", value: repManualReport.title },
-      { label: "Top-level fields", value: Object.keys(repManualReport).length },
-      { label: "Generated at", value: repManualReport.generatedAt || "recorded" },
-    ]));
-    const repManualFieldLabels = {
-      schemaVersion: "Report format version",
-      title: "Report title",
-      summary: "Summary",
-      generatedAt: "Created time",
-      parameters: "Run settings",
-      validation: "Input checks",
-      qc: "Quality checks",
-      provenance: "Run record",
-      citations: "Citations",
-      notes: "Notes",
-    };
-    display(table(
-      reportFieldRows(repManualReport).map((row) => ({
-        section: repManualFieldLabels[row.field] || row.field,
-        contents: row.summary,
-      })),
-      [
-        { key: "section", label: "Report section" },
-        { key: "contents", label: "Contents" },
-      ]
-    ));
-  </script>
-
-  <script type="text/markdown">
-    ## Step 5. Check required report fields and save the bundle
-
-    A reusable report should include input settings, input checks, quality checks, a run record, warnings or caveats, and the table export needed to rerun the analysis outside the browser page.
-
-    Treat the final download list as a reproducibility checklist. If a collaborator received only these files, they should be able to identify the inputs, rerun the fit, inspect warnings, and understand how the report was generated.
-  </script>
-<script type="module" pinned id="6">
-    const repRequiredFields = [
+    const PACKET_REQUIRED_FIELDS = [
       "schemaVersion",
       "title",
       "summary",
@@ -306,77 +29,787 @@
       "parameters",
       "validation",
       "qc",
+      "exposures",
       "provenance",
       "citations",
       "notes",
     ];
-    const repFieldLabels = {
-      schemaVersion: "Report format version",
-      title: "Report title",
+
+    const REPORT_SECTION_OPTIONS = [
+      { key: "parameters", label: "Run settings", checked: true },
+      { key: "validation", label: "Input checks", checked: true },
+      { key: "qc", label: "Quality checks", checked: true },
+      { key: "exposures", label: "Fitted exposures", checked: true },
+      { key: "provenance", label: "Run record", checked: true },
+      { key: "notes", label: "Citations and notes", checked: true },
+    ];
+
+    const EXPORT_OPTIONS = [
+      { key: "reportJson", filename: "analysis_report.json", label: "Report JSON", checked: true },
+      { key: "reportHtml", filename: "analysis_report.html", label: "Report HTML", checked: true },
+      { key: "manifestCsv", filename: "packet_manifest.csv", label: "Packet manifest CSV", checked: true },
+      { key: "spectraTsv", filename: "spectra.tsv", label: "Spectra TSV", checked: true },
+      { key: "exposuresCsv", filename: "exposures.csv", label: "Exposures CSV", checked: true },
+      { key: "runRecordJson", filename: "run_record.json", label: "Run record JSON", checked: true },
+    ];
+
+    const FIELD_LABELS = {
+      schemaVersion: "Report schema",
+      title: "Title",
       summary: "Summary",
       generatedAt: "Created time",
       parameters: "Run settings",
       validation: "Input checks",
       qc: "Quality checks",
+      exposures: "Fitted exposures",
       provenance: "Run record",
       citations: "Citations",
       notes: "Notes",
     };
-    const repFieldChecklist = repRequiredFields.map((field) => ({
-      field,
-      fieldLabel: repFieldLabels[field] || field,
-      presentInWorkflowReport: repWorkflowAnalysis.report?.[field] !== undefined,
-      presentInManualReport: repManualReport?.[field] !== undefined,
-    }));
-    const repReproducibilityRows = [
-      { file: "spectra TSV", purpose: "Input table for rerun or external tool comparison" },
-      { file: "workflow report JSON", purpose: "Input checks, quality checks, fitting, run record, and report fields" },
-      { file: "manual report JSON", purpose: "Minimal structured report assembled from selected pieces" },
-      { file: "field checklist CSV", purpose: "Presence check for required report fields" },
-    ];
 
-    display(table(
-      repFieldChecklist,
-      [
-        { key: "fieldLabel", label: "Report section" },
-        { key: "presentInWorkflowReport", label: "Workflow report" },
-        { key: "presentInManualReport", label: "Manual report" },
-      ]
-    ));
-    display(table(
-      repReproducibilityRows,
-      [
-        { key: "file", label: "File" },
-        { key: "purpose", label: "Purpose" },
-      ]
-    ));
-    display(downloadMany([
-      {
-        filename: "export_report_spectra.tsv",
-        text: repSigProfilerTsv,
-        label: "Download spectra TSV",
-      },
-      {
-        filename: "export_report_field_checklist.csv",
-        text: rowsToCsv(repFieldChecklist),
-        label: "Download field checklist CSV",
-      },
-      {
-        filename: "export_report_workflow.json",
-        type: "json",
-        value: {
-          dataSourceStatus: repDataSourceStatus,
-          workflowAnalysis: repWorkflowAnalysis,
-          fieldChecklist: repFieldChecklist,
+    const root = document.createElement("section");
+    root.className = "report-packet-app";
+    root.innerHTML = `
+      <style>
+        .report-packet-app {
+          display: grid;
+          gap: 18px;
+        }
+
+        .report-packet-step {
+          border: 1px solid #d8e1e8;
+          border-radius: 8px;
+          background: #ffffff;
+          padding: 16px;
+        }
+
+        .report-packet-step h2,
+        .report-packet-step h3 {
+          margin: 0 0 8px;
+          color: #102033;
+        }
+
+        .report-packet-step p {
+          max-width: 86ch;
+          margin: 0 0 12px;
+          color: #52616f;
+          line-height: 1.55;
+        }
+
+        .report-packet-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 12px;
+        }
+
+        .report-packet-field {
+          display: grid;
+          gap: 6px;
+          font-size: 14px;
+          color: #102033;
+        }
+
+        .report-packet-field input,
+        .report-packet-field select {
+          width: 100%;
+          border: 1px solid #c8d3dc;
+          border-radius: 6px;
+          padding: 8px 10px;
+          font: inherit;
+        }
+
+        .report-packet-checks {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+          gap: 8px 12px;
+        }
+
+        .report-packet-check {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          border: 1px solid #d8e1e8;
+          border-radius: 6px;
+          padding: 8px 10px;
+          background: #f8fbfd;
+          font-size: 14px;
+        }
+
+        .report-packet-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .report-packet-button {
+          border: 1px solid #0f766e;
+          border-radius: 6px;
+          background: #0f766e;
+          color: #ffffff;
+          cursor: pointer;
+          font: inherit;
+          font-weight: 600;
+          padding: 8px 12px;
+        }
+
+        .report-packet-button.secondary {
+          background: #ffffff;
+          color: #0f766e;
+        }
+
+        .report-packet-button:disabled {
+          cursor: wait;
+          opacity: 0.65;
+        }
+
+        .report-packet-output {
+          display: grid;
+          gap: 12px;
+          margin-top: 12px;
+        }
+
+        .report-packet-metrics {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 8px;
+        }
+
+        .report-packet-metric {
+          border: 1px solid #d8e1e8;
+          border-radius: 6px;
+          padding: 10px;
+          background: #f8fbfd;
+        }
+
+        .report-packet-metric span {
+          display: block;
+          color: #52616f;
+          font-size: 12px;
+          text-transform: uppercase;
+        }
+
+        .report-packet-metric strong {
+          color: #102033;
+          font-size: 20px;
+        }
+
+        .report-packet-table-wrap {
+          overflow-x: auto;
+        }
+
+        .report-packet-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 13px;
+        }
+
+        .report-packet-table th,
+        .report-packet-table td {
+          border-bottom: 1px solid #d8e1e8;
+          padding: 8px;
+          text-align: left;
+          vertical-align: top;
+        }
+
+        .report-packet-table th {
+          color: #102033;
+          background: #eef5f7;
+          font-weight: 700;
+        }
+
+        .report-packet-preview {
+          min-height: 220px;
+          border: 1px solid #d8e1e8;
+          border-radius: 6px;
+          background: #fbfdfe;
+          overflow: auto;
+        }
+
+        .report-packet-preview pre {
+          margin: 0;
+          padding: 12px;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+
+        .report-packet-preview iframe {
+          width: 100%;
+          height: 420px;
+          border: 0;
+          background: #ffffff;
+        }
+
+        .report-packet-status {
+          border-left: 4px solid #0072b2;
+          background: #eef6fb;
+          color: #17324d;
+          margin: 0;
+          padding: 10px 12px;
+        }
+
+        .report-packet-status.review {
+          border-left-color: #d55e00;
+          background: #fff5ee;
+          color: #5f2d08;
+        }
+      </style>
+      <section class="report-packet-step" aria-labelledby="packet-step-1">
+        <h2 id="packet-step-1">1. Choose archive contents</h2>
+        <p>Select the samples, report sections, and files that belong in the review packet.</p>
+        <div class="report-packet-grid">
+          <label class="report-packet-field">
+            <span>Report title</span>
+            <input id="packet-title" type="text" value="Lung SBS96 signature fitting report">
+          </label>
+          <label class="report-packet-field">
+            <span>Mutation-count review cutoff</span>
+            <input id="packet-burden-cutoff" type="number" min="1" step="50" value="500">
+          </label>
+        </div>
+        <h3>Samples</h3>
+        <div id="packet-sample-controls" class="report-packet-checks"></div>
+        <h3>Report sections</h3>
+        <div id="packet-section-controls" class="report-packet-checks"></div>
+        <h3>Export files</h3>
+        <div id="packet-export-controls" class="report-packet-checks"></div>
+      </section>
+
+      <section class="report-packet-step" aria-labelledby="packet-step-2">
+        <h2 id="packet-step-2">2. Build packet</h2>
+        <p>Run the compact fitting workflow with the selected samples and assemble a report packet from the workflow output.</p>
+        <div class="report-packet-actions">
+          <button id="packet-build" class="report-packet-button" type="button">Build packet</button>
+        </div>
+        <div id="packet-build-output" class="report-packet-output"></div>
+      </section>
+
+      <section class="report-packet-step" aria-labelledby="packet-step-3">
+        <h2 id="packet-step-3">3. Audit packet</h2>
+        <p>Review required fields, provenance, warnings, and the selected artifact before downloading the packet.</p>
+        <label class="report-packet-field">
+          <span>Artifact preview</span>
+          <select id="packet-preview-select"></select>
+        </label>
+        <div id="packet-audit-output" class="report-packet-output"></div>
+      </section>
+
+      <section class="report-packet-step" aria-labelledby="packet-step-4">
+        <h2 id="packet-step-4">4. Download packet</h2>
+        <p>The download list is created after the packet has been built and audited.</p>
+        <div class="report-packet-actions">
+          <button id="packet-refresh-downloads" class="report-packet-button secondary" type="button">Refresh download list</button>
+        </div>
+        <div id="packet-download-output" class="report-packet-output"></div>
+      </section>
+    `;
+    display(root);
+
+    const titleInput = root.querySelector("#packet-title");
+    const burdenCutoffInput = root.querySelector("#packet-burden-cutoff");
+    const sampleControls = root.querySelector("#packet-sample-controls");
+    const sectionControls = root.querySelector("#packet-section-controls");
+    const exportControls = root.querySelector("#packet-export-controls");
+    const buildButton = root.querySelector("#packet-build");
+    const buildOutput = root.querySelector("#packet-build-output");
+    const previewSelect = root.querySelector("#packet-preview-select");
+    const auditOutput = root.querySelector("#packet-audit-output");
+    const refreshDownloadsButton = root.querySelector("#packet-refresh-downloads");
+    const downloadOutput = root.querySelector("#packet-download-output");
+
+    const state = {
+      dataset: null,
+      selectedSamples: [],
+      sectionInputs: {},
+      exportInputs: {},
+      packet: null,
+    };
+
+    function escapeText(value) {
+      return String(value ?? "");
+    }
+
+    function makeStatus(message, review = false) {
+      const node = document.createElement("p");
+      node.className = `report-packet-status${review ? " review" : ""}`;
+      node.textContent = message;
+      return node;
+    }
+
+    function metricGrid(rows) {
+      const grid = document.createElement("div");
+      grid.className = "report-packet-metrics";
+      for (const row of rows) {
+        const item = document.createElement("div");
+        item.className = "report-packet-metric";
+        const label = document.createElement("span");
+        label.textContent = row.label;
+        const value = document.createElement("strong");
+        value.textContent = row.value;
+        item.append(label, value);
+        grid.append(item);
+      }
+      return grid;
+    }
+
+    function renderTable(rows, columns) {
+      const wrap = document.createElement("div");
+      wrap.className = "report-packet-table-wrap";
+      const table = document.createElement("table");
+      table.className = "report-packet-table";
+      const thead = document.createElement("thead");
+      const header = document.createElement("tr");
+      for (const column of columns) {
+        const th = document.createElement("th");
+        th.textContent = column.label;
+        header.append(th);
+      }
+      thead.append(header);
+      const tbody = document.createElement("tbody");
+      for (const row of rows) {
+        const tr = document.createElement("tr");
+        for (const column of columns) {
+          const td = document.createElement("td");
+          td.textContent = escapeText(row[column.key]);
+          tr.append(td);
+        }
+        tbody.append(tr);
+      }
+      table.append(thead, tbody);
+      wrap.append(table);
+      return wrap;
+    }
+
+    function makeCheckbox({ key, label, checked = true, name }) {
+      const id = `${name}-${key}`;
+      const labelNode = document.createElement("label");
+      labelNode.className = "report-packet-check";
+      const input = document.createElement("input");
+      input.id = id;
+      input.type = "checkbox";
+      input.checked = checked;
+      const span = document.createElement("span");
+      span.textContent = label;
+      labelNode.append(input, span);
+      return { labelNode, input };
+    }
+
+    function selectedSection(key) {
+      return Boolean(state.sectionInputs[key]?.checked);
+    }
+
+    function selectedExports() {
+      return EXPORT_OPTIONS.filter((option) => state.exportInputs[option.key]?.checked);
+    }
+
+    function selectedSamples() {
+      return Array.from(sampleControls.querySelectorAll("input[type='checkbox']"))
+        .filter((input) => input.checked)
+        .map((input) => input.value);
+    }
+
+    function subsetMatrix(matrix, samples) {
+      return Object.fromEntries(samples.map((sample) => [sample, matrix[sample]]).filter(([, value]) => value));
+    }
+
+    function totalMutations(record = {}) {
+      return Object.values(record || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+    }
+
+    function fieldHasContent(value) {
+      if (value === null || value === undefined) return false;
+      if (typeof value === "string") return value.trim().length > 0;
+      if (Array.isArray(value)) return value.length > 0;
+      if (typeof value === "object") return Object.keys(value).length > 0;
+      return true;
+    }
+
+    function buildManifestRows(packet) {
+      return selectedExports().map((option) => ({
+        file: option.filename,
+        purpose: {
+          reportJson: "Structured report object for machine-readable review",
+          reportHtml: "Standalone report preview for browser review",
+          manifestCsv: "Packet file inventory and audit status",
+          spectraTsv: "Selected SBS96 input spectra for rerun",
+          exposuresCsv: "Fitted signature contribution table",
+          runRecordJson: "SDK, runtime, source, and parameter provenance",
+        }[option.key],
+        samples: packet.selectedSamples.length,
+        auditStatus: packet.reviewItems.length ? "Review" : "Pass",
+      }));
+    }
+
+    function buildPacketFiles(packet) {
+      const files = {
+        reportJson: {
+          filename: "analysis_report.json",
+          type: "json",
+          value: packet.report,
+          label: "Download analysis_report.json",
         },
-        label: "Download workflow report JSON",
-      },
-      {
-        filename: "export_report_manual.json",
-        type: "json",
-        value: repManualReport,
-        label: "Download manual report JSON",
-      },
-    ]));
+        reportHtml: {
+          filename: "analysis_report.html",
+          text: packet.reportHtml,
+          label: "Download analysis_report.html",
+        },
+        manifestCsv: {
+          filename: "packet_manifest.csv",
+          text: rowsToCsv(packet.manifestRows),
+          label: "Download packet_manifest.csv",
+        },
+        spectraTsv: {
+          filename: "spectra.tsv",
+          text: packet.spectraTsv,
+          label: "Download spectra.tsv",
+        },
+        exposuresCsv: {
+          filename: "exposures.csv",
+          text: packet.exposuresCsv,
+          label: "Download exposures.csv",
+        },
+        runRecordJson: {
+          filename: "run_record.json",
+          type: "json",
+          value: packet.runRecord,
+          label: "Download run_record.json",
+        },
+      };
+      return selectedExports().map((option) => files[option.key]).filter(Boolean);
+    }
+
+    function renderPreview(packet) {
+      const preview = document.createElement("div");
+      preview.className = "report-packet-preview";
+      const value = previewSelect.value;
+      if (value === "reportHtml") {
+        const frame = document.createElement("iframe");
+        frame.title = "Analysis report HTML preview";
+        frame.srcdoc = packet.reportHtml;
+        preview.append(frame);
+        return preview;
+      }
+      const pre = document.createElement("pre");
+      const previewText = {
+        reportJson: JSON.stringify(packet.report, null, 2),
+        manifestCsv: rowsToCsv(packet.manifestRows),
+        spectraTsv: packet.spectraTsv,
+        exposuresCsv: packet.exposuresCsv,
+        runRecordJson: JSON.stringify(packet.runRecord, null, 2),
+      }[value] || "Build the packet to preview an artifact.";
+      pre.textContent = previewText;
+      preview.append(pre);
+      return preview;
+    }
+
+    function renderAudit() {
+      auditOutput.replaceChildren();
+      if (!state.packet) {
+        auditOutput.append(makeStatus("Build the packet to populate the audit."));
+        return;
+      }
+
+      const packet = state.packet;
+      const auditRows = PACKET_REQUIRED_FIELDS.map((field) => {
+        const value = packet.report[field];
+        const pass = fieldHasContent(value);
+        return {
+          field: FIELD_LABELS[field] || field,
+          status: pass ? "Pass" : "Review",
+          contents: pass ? reportFieldRows({ [field]: value })[0]?.summary || "recorded" : "not included",
+        };
+      });
+
+      const statusRows = [
+        ...auditRows,
+        ...packet.integrityRows,
+      ];
+      const reviewRows = statusRows.filter((row) => row.status !== "Pass");
+      packet.reviewItems = reviewRows;
+      packet.manifestRows = buildManifestRows(packet);
+
+      auditOutput.append(
+        makeStatus(
+          reviewRows.length
+            ? `${reviewRows.length} packet item(s) need review. Downloads remain available with the review status recorded in the manifest.`
+            : "Packet audit passed. Required fields and archive integrity checks are present.",
+          reviewRows.length > 0
+        )
+      );
+      auditOutput.append(renderTable(statusRows, [
+        { key: "field", label: "Audit item" },
+        { key: "status", label: "Status" },
+        { key: "contents", label: "Contents" },
+      ]));
+      auditOutput.append(renderTable(packet.warningRows, [
+        { key: "level", label: "Level" },
+        { key: "message", label: "Message" },
+        { key: "action", label: "Review action" },
+      ]));
+      auditOutput.append(renderPreview(packet));
+      renderDownloads();
+    }
+
+    function renderDownloads() {
+      downloadOutput.replaceChildren();
+      if (!state.packet) {
+        downloadOutput.append(makeStatus("Build and audit the packet before downloads are created."));
+        return;
+      }
+      const files = buildPacketFiles(state.packet);
+      if (!files.length) {
+        downloadOutput.append(makeStatus("No export files are selected.", true));
+        return;
+      }
+      downloadOutput.append(
+        makeStatus(
+          state.packet.reviewItems.length
+            ? "Selected downloads include the current review status in packet_manifest.csv."
+            : "Selected downloads are ready."
+        )
+      );
+      downloadOutput.append(downloadMany(files));
+    }
+
+    function renderBuildSummary(packet) {
+      buildOutput.replaceChildren(
+        metricGrid([
+          { label: "Dataset", value: state.dataset.status },
+          { label: "Samples", value: packet.selectedSamples.length },
+          { label: "Signatures", value: Object.keys(packet.signatures).length },
+          { label: "Low-count review", value: packet.lowBurdenRows.length },
+          { label: "Exports", value: selectedExports().length },
+        ]),
+        renderTable(packet.lowBurdenRows, [
+          { key: "sample", label: "Sample" },
+          { key: "mutations", label: "Mutations" },
+          { key: "status", label: "Review status" },
+        ])
+      );
+    }
+
+    async function buildPacket({ silent = false } = {}) {
+      const selected = selectedSamples();
+      if (!selected.length) {
+        buildOutput.replaceChildren(makeStatus("Select at least one sample before building the packet.", true));
+        return;
+      }
+
+      const burdenCutoff = Math.max(1, Number(burdenCutoffInput.value || 1));
+      const spectra = subsetMatrix(state.dataset.spectra, selected);
+      const signatures = state.dataset.signatures;
+      const analysis = await mSigSDK.workflows.analyzeSpectraWithSignatures(spectra, signatures, {
+        exposureThreshold: 0.01,
+        expectedContexts: state.dataset.contexts,
+        mutationBurdenOptions: {
+          lowBurdenThresholdMode: "fixed",
+          lowBurdenThreshold: burdenCutoff,
+        },
+        parameters: {
+          packetTitle: titleInput.value.trim() || "mSigSDK signature fitting report",
+          dataset: state.dataset.source,
+          samples: selected,
+          signatureSetName: state.dataset.selection?.signatureSetName,
+          matrix: "SBS96",
+          mutationCountReviewCutoff: burdenCutoff,
+        },
+        catalogVersion: state.dataset.selection?.signatureSetName,
+        catalogSource: state.dataset.source,
+        reportFormat: "object",
+      });
+
+      const lowBurdenRows = selected
+        .map((sample) => ({
+          sample,
+          mutations: totalMutations(spectra[sample]),
+          status: totalMutations(spectra[sample]) < burdenCutoff ? "Review" : "Pass",
+        }))
+        .filter((row) => row.status === "Review");
+
+      const report = mSigSDK.reports.createAnalysisReport({
+        title: titleInput.value.trim() || "mSigSDK signature fitting report",
+        summary: `Report packet for ${selected.length} SBS96 sample(s) fitted against ${Object.keys(signatures).length} reference signatures.`,
+        workflowRole: analysis.workflowRole,
+        scopeStatement: analysis.scopeStatement,
+        methodBasis: analysis.methodBasis,
+        primaryInterpretationFields: analysis.primaryInterpretationFields,
+        parameters: selectedSection("parameters") ? analysis.parameters : null,
+        validation: selectedSection("validation") ? analysis.validation : null,
+        qc: selectedSection("qc") ? analysis.qc : null,
+        exposures: selectedSection("exposures") ? analysis.fit?.exposures : null,
+        provenance: selectedSection("provenance") ? analysis.provenance : null,
+        citations: selectedSection("notes") ? analysis.report?.citations || [] : [],
+        notes: selectedSection("notes")
+          ? [
+              ...(analysis.report?.notes || []),
+              ...lowBurdenRows.map((row) => `${row.sample} has ${row.mutations} mutations, below the selected review cutoff.`),
+            ]
+          : [],
+      });
+
+      const spectraTsv = mSigSDK.io.exportSigProfilerMatrix(spectra, {
+        contexts: state.dataset.contexts,
+      });
+      const roundTrip = mSigSDK.io.importSigProfilerMatrix(spectraTsv);
+      const exposuresCsv = rowsToCsv(exposureRows(analysis.fit?.exposures, {
+        minExposure: 0,
+        topN: 1000,
+      }));
+      const reportHtml = mSigSDK.reports.createAnalysisReportHTML(report);
+      const integrityRows = [
+        {
+          field: "Spectra round trip",
+          status: Object.keys(roundTrip).length === selected.length ? "Pass" : "Review",
+          contents: `${Object.keys(roundTrip).length} of ${selected.length} sample(s) parsed from spectra.tsv`,
+        },
+        {
+          field: "Exposures file",
+          status: exposuresCsv.trim() ? "Pass" : "Review",
+          contents: exposuresCsv.trim() ? "exposures.csv has rows" : "no fitted exposure rows",
+        },
+      ];
+      const warningRows = [
+        ...lowBurdenRows.map((row) => ({
+          level: "review",
+          message: `${row.sample} is below the mutation-count review cutoff.`,
+          action: "Check burden, reconstruction error, and residuals before interpreting fitted exposures.",
+        })),
+        ...(analysis.warnings || []).map((warning) => ({
+          level: warning.level || "warning",
+          message: warning.message || String(warning),
+          action: warning.resolution || "Review the source analysis before reporting.",
+        })),
+      ];
+
+      state.packet = {
+        selectedSamples: selected,
+        spectra,
+        signatures,
+        analysis,
+        report,
+        reportHtml,
+        spectraTsv,
+        exposuresCsv,
+        runRecord: analysis.provenance,
+        lowBurdenRows,
+        integrityRows,
+        warningRows: warningRows.length
+          ? warningRows
+          : [{ level: "info", message: "No packet warnings generated.", action: "Proceed with archive review." }],
+        manifestRows: [],
+        reviewItems: [],
+      };
+      state.packet.manifestRows = buildManifestRows(state.packet);
+
+      if (!silent) {
+        renderBuildSummary(state.packet);
+      }
+      syncPreviewOptions();
+      renderAudit();
+    }
+
+    function syncPreviewOptions() {
+      const options = selectedExports();
+      previewSelect.replaceChildren(
+        ...options.map((option) => {
+          const node = document.createElement("option");
+          node.value = option.key;
+          node.textContent = `${option.label} (${option.filename})`;
+          return node;
+        })
+      );
+      if (!options.some((option) => option.key === previewSelect.value)) {
+        previewSelect.value = options[0]?.key || "";
+      }
+    }
+
+    function queuePacketRefresh(event) {
+      syncPreviewOptions();
+      if (state.packet) {
+        buildPacket({ silent: event?.type === "input" }).catch((error) => {
+          buildOutput.replaceChildren(makeStatus(error.message, true));
+        });
+      }
+    }
+
+    async function initialize() {
+      buildOutput.append(makeStatus("Loading a compact public SBS96 dataset for packet building."));
+      auditOutput.append(makeStatus("Build the packet to populate the audit."));
+      downloadOutput.append(makeStatus("Build and audit the packet before downloads are created."));
+      previewSelect.append(new Option("Build the packet to preview artifacts", ""));
+
+      state.dataset = await loadPublicSbs96Dataset(mSigSDK, {
+        study: "PCAWG",
+        genomeDataType: "WGS",
+        cancerType: "Lung-AdenoCA",
+        mutationType: "SBS",
+        matrixSize: 96,
+        signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
+        sampleNames: ["SP50611", "SP50592", "SP52284", "SP50406", "SP55004"],
+        sampleLimit: 5,
+        signatureNames: ["SBS1", "SBS2", "SBS4", "SBS5", "SBS13", "SBS17a", "SBS17b", "SBS18", "SBS40"],
+        allowAlternate: true,
+        allowDemoFallback: true,
+      });
+
+      const sampleRows = Object.keys(state.dataset.spectra).map((sample) => ({
+        key: sample,
+        label: `${sample} (${formatNumber(totalMutations(state.dataset.spectra[sample]))} mutations)`,
+        checked: true,
+        name: "packet-sample",
+      }));
+      for (const option of sampleRows) {
+        const { labelNode, input } = makeCheckbox(option);
+        input.value = option.key;
+        input.addEventListener("change", queuePacketRefresh);
+        sampleControls.append(labelNode);
+      }
+
+      for (const option of REPORT_SECTION_OPTIONS) {
+        const { labelNode, input } = makeCheckbox({ ...option, name: "packet-section" });
+        input.addEventListener("change", queuePacketRefresh);
+        state.sectionInputs[option.key] = input;
+        sectionControls.append(labelNode);
+      }
+
+      for (const option of EXPORT_OPTIONS) {
+        const { labelNode, input } = makeCheckbox({ ...option, name: "packet-export" });
+        input.addEventListener("change", queuePacketRefresh);
+        state.exportInputs[option.key] = input;
+        exportControls.append(labelNode);
+      }
+
+      buildOutput.replaceChildren(
+        metricGrid([
+          { label: "Dataset", value: state.dataset.status },
+          { label: "Samples loaded", value: Object.keys(state.dataset.spectra).length },
+          { label: "Signatures", value: Object.keys(state.dataset.signatures).length },
+          { label: "Files selected", value: selectedExports().length },
+        ])
+      );
+      syncPreviewOptions();
+    }
+
+    titleInput.addEventListener("input", queuePacketRefresh);
+    burdenCutoffInput.addEventListener("change", queuePacketRefresh);
+    previewSelect.addEventListener("change", renderAudit);
+    refreshDownloadsButton.addEventListener("click", renderDownloads);
+    buildButton.addEventListener("click", async () => {
+      buildButton.disabled = true;
+      buildButton.textContent = "Building...";
+      buildOutput.replaceChildren(makeStatus("Building report packet from selected samples and sections."));
+      try {
+        await buildPacket();
+      } catch (error) {
+        buildOutput.replaceChildren(makeStatus(error.message, true));
+      } finally {
+        buildButton.disabled = false;
+        buildButton.textContent = "Build packet";
+      }
+    });
+
+    initialize().catch((error) => {
+      buildOutput.replaceChildren(makeStatus(`Dataset loading failed: ${error.message}`, true));
+    });
   </script>
 </notebook>

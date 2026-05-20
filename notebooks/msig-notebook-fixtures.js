@@ -142,12 +142,79 @@ function burdenGroup(total) {
   return "low_burden";
 }
 
+function loadDemoSbs96Dataset(options = {}) {
+  const allSpectra = demoSpectra();
+  const allSignatures = demoSignatures();
+  const sampleLimit = Math.max(
+    1,
+    Math.round(Number(options.sampleLimit || Object.keys(allSpectra).length))
+  );
+  const sampleNames = (Array.isArray(options.sampleNames) ? options.sampleNames : Object.keys(allSpectra))
+    .filter((sample) => allSpectra[sample])
+    .slice(0, sampleLimit);
+  const signatureCandidates = Array.isArray(options.signatureNames)
+    ? options.signatureNames
+    : Object.keys(allSignatures);
+  const selectedSignatureNames = signatureCandidates.filter((signature) => allSignatures[signature]);
+  const signatureNames = selectedSignatureNames.length
+    ? selectedSignatureNames
+    : Object.keys(allSignatures);
+  const spectra = Object.fromEntries(sampleNames.map((sample) => [sample, allSpectra[sample]]));
+  const signatures = Object.fromEntries(
+    signatureNames.map((signature) => [signature, allSignatures[signature]])
+  );
+  const metadataBySample = new Map(demoMetadata.map((row) => [row.sample, row]));
+  const metadata = sampleNames.map((sample) => {
+    const totalMutations = matrixRecordTotal(allSpectra[sample]);
+    return {
+      sample,
+      study: "Embedded demo",
+      cancer: "mixed",
+      strategy: metadataBySample.get(sample)?.assay || "SBS96",
+      profile: "SBS",
+      matrix: 96,
+      source: "embedded demo",
+      totalMutations,
+      burdenGroup: burdenGroup(totalMutations),
+      ...(metadataBySample.get(sample) || {}),
+    };
+  });
+  const reason = options.reason ? `; ${String(options.reason).slice(0, 180)}` : "";
+
+  return {
+    contexts: sbs96Contexts(),
+    spectra,
+    signatures,
+    allSignatures,
+    metadata,
+    sampleNames,
+    signatureNames,
+    selection: {
+      study: "Embedded demo",
+      genomeDataType: "SBS96",
+      cancerType: "mixed",
+      mutationType: "SBS",
+      matrixSize: 96,
+      signatureSetName: "Embedded demo signatures",
+      sampleLimit,
+      sampleNames,
+      signatureNames,
+    },
+    source: "Embedded SBS96 QC demo dataset",
+    status: `embedded demo${reason}`,
+    spectrumRows: [],
+    signatureRows: [],
+    optionRows: [],
+  };
+}
+
 async function loadPublicSbs96Dataset(mSigSDK, options = {}) {
   const requestedSelection = {
     ...defaultPublicSbs96Dataset,
     ...options,
   };
   const allowAlternate = options.allowAlternate !== false;
+  const allowDemoFallback = options.allowDemoFallback === true;
 
   async function loadSelection(selection, alternateReason = "") {
     const sampleLimit = Math.max(1, Math.round(Number(selection.sampleLimit || 8)));
@@ -268,14 +335,32 @@ async function loadPublicSbs96Dataset(mSigSDK, options = {}) {
   try {
     return await loadSelection(requestedSelection);
   } catch (error) {
-    if (!allowAlternate) throw error;
-    return await loadSelection(
-      {
-        ...alternatePublicSbs96Dataset,
-        signatureNames: requestedSelection.signatureNames,
-      },
-      `used PCAWG alternate after ${error.message}`
-    );
+    if (allowAlternate) {
+      try {
+        return await loadSelection(
+          {
+            ...alternatePublicSbs96Dataset,
+            signatureNames: requestedSelection.signatureNames,
+          },
+          `used PCAWG alternate after ${error.message}`
+        );
+      } catch (alternateError) {
+        if (allowDemoFallback) {
+          return loadDemoSbs96Dataset({
+            ...options,
+            reason: alternateError.message,
+          });
+        }
+        throw alternateError;
+      }
+    }
+    if (allowDemoFallback) {
+      return loadDemoSbs96Dataset({
+        ...options,
+        reason: error.message,
+      });
+    }
+    throw error;
   }
 }
 
@@ -471,6 +556,7 @@ export {
   gdcResourceFallback,
   loadPublicMafRows,
   loadPublicSbs96Dataset,
+  loadDemoSbs96Dataset,
   panelValidationSummary,
   publicSbs96SignatureNames,
   sbs96Contexts,

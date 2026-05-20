@@ -111,71 +111,42 @@ async function nnls(A, b, maxiter = 3 * A[0].length) {
 
 async function fetchURLAndCache(cacheName, url, header = null, ICGC = null) {
   const isCacheSupported = typeof window !== "undefined" && "caches" in window;
-  let matchedURL;
+  const matchedURL = ICGC != null ? ICGC : url;
+  const fetchOptions = header || undefined;
 
-  if (!isCacheSupported) {
-    return await fetch(url, header || undefined);
-  } else {
-    // Retrieve data from the cache
-
-    if (ICGC != null) {
-      matchedURL = ICGC;
-    } else {
-      matchedURL = url;
+  async function fetchFromNetwork() {
+    let response;
+    try {
+      response = await fetch(url, fetchOptions);
+    } catch (error) {
+      const detail = error?.message ? `: ${error.message}` : "";
+      throw new Error(`Error fetching data from ${url}${detail}`, { cause: error });
     }
 
-    return await caches.open(cacheName).then((cache) => {
-      return cache.match(matchedURL).then(function (response) {
-        // Check if the data was found in the cache
-        if (response) {
-          // Use the cached data
-          // console.log("Data found in cache:", response);
-          return response;
-        } else {
-          // Fetch the data from the server
-          // console.log("Data not found in cache, fetching from server...");
+    if (!response.ok) {
+      const statusText = response.statusText ? ` ${response.statusText}` : "";
+      throw new Error(`Error fetching data from ${url}: HTTP ${response.status}${statusText}`);
+    }
 
-          if (header != null) {
-            return fetch(url, header)
-              .then(function (response) {
-                // Use the fetched data
-
-                const responseClone = response.clone();
-                caches.open(cacheName).then(function (cache) {
-                  // Add the response to the cache
-                  cache.put(matchedURL, responseClone);
-                });
-
-                // console.log("Data fetched from server:", response);
-
-                return response;
-              })
-              .catch(function (error) {
-                throw new Error("Error fetching data:", error);
-              });
-          } else {
-            return fetch(url)
-              .then(function (response) {
-                // Use the fetched data
-
-                const responseClone = response.clone();
-                caches.open(cacheName).then(function (cache) {
-                  // Add the response to the cache
-                  cache.put(matchedURL, responseClone);
-                });
-
-                // console.log("Data fetched from server:", response);
-
-                return response;
-              })
-              .catch(function (error) {
-                throw new Error("Error fetching data:", error);
-              });
-          }
-        }
-      });
-    });
+    return response;
   }
+
+  if (!isCacheSupported) {
+    return await fetchFromNetwork();
+  }
+
+  const cache = await caches.open(cacheName);
+  const response = await cache.match(matchedURL);
+  if (response) return response;
+
+  const networkResponse = await fetchFromNetwork();
+  try {
+    await cache.put(matchedURL, networkResponse.clone());
+  } catch (error) {
+    console.warn(`Unable to cache fetched data from ${url}.`, error);
+  }
+
+  return networkResponse;
 }
 // Write a function that converts the json data from ./now.json to the format in ./structure.json
 

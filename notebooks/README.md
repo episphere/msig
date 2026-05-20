@@ -29,8 +29,8 @@ Each notebook should read as a stepwise researcher workflow. Narrative cells sho
 ### Reliability, reporting, and interoperability
 
 - `msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals, cutoff sensitivity, stability decisions, and uncertainty exports.
-- `msig-sdk-export-report.onb.html`: import/export checks, required report fields, provenance, run records, and workflow helpers.
-- `msig-sdk-multi-engine-comparison.onb.html`: shared-input comparison of mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls outputs with disagreement review tables.
+- `msig-sdk-export-report.onb.html`: focused report-packet builder for selected report sections, provenance, audit checks, and reproducibility downloads.
+- `msig-sdk-multi-engine-comparison.onb.html`: shared-input disagreement triage for mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls outputs.
 
 ### Advanced or experimental
 

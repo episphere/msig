@@ -5,66 +5,106 @@
   <script type="text/markdown">
     # Discovery extraction (NMF)
 
-    Non-negative matrix factorization (NMF) is the exploratory discovery path. Instead of fitting known reference signatures, NMF learns a small set of candidate signature patterns and sample contributions directly from the spectra.
+    Non-negative matrix factorization (NMF) learns candidate mutational signature patterns directly from a cohort. The browser workflow is a screening pass: choose a small count-scale cohort, tune the extraction settings, inspect the learned patterns, compare candidate ranks, and save the files needed for a larger production extraction.
 
-    Browser-scale extraction is useful for screening, not as a full production extraction recipe. For project data, increase the sample count, rank grid, number of random starts, and maximum iterations only after confirming that the browser can handle the workload.
-
-    Discovery starts by checking whether the cohort has enough signal, then inspecting learned profiles, sample contributions, rank diagnostics, and production handoff files.
+    A close reference match can help label a learned component, but it does not make the component a confirmed biological process. Discovery results need stability, cohort context, and external validation before they are used as manuscript-grade signature calls.
   </script>
 
   <script type="module" pinned id="1">
-    const nmfSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-nmf", location.href).href;
+    const nmfSdkUrl = new URL("../main.js?v=2026-05-20-nmf-workflow-tool", location.href).href;
     const { mSigSDK } = await import(nmfSdkUrl);
-    const {
-      loadPublicSbs96Dataset,
-    } = await import("./msig-notebook-fixtures.js");
+    const { loadPublicSbs96Dataset } = await import("./msig-notebook-fixtures.js");
     const {
       burdenSampleRows,
-      formatNumber,
+      details,
       metrics,
       nmfMatchRows,
       table,
     } = mSigSDK.presentation;
 
-    display(metrics([
-      { label: "SDK", value: mSigSDK.name },
-      { label: "Version", value: mSigSDK.version },
-      { label: "Workflow", value: "Exploratory extraction" },
-      { label: "Main namespace", value: "signatureExtraction" },
-    ]));
-    display(table(
-      [
-        { functionName: "extractSignaturesNMF", workflowValue: "Runs exploratory discovery directly in the browser" },
-        { functionName: "compareExtractedToReference", workflowValue: "Compares learned patterns to known COSMIC profiles" },
-        { functionName: "selectNMFRank", workflowValue: "Provides rank diagnostics instead of a fixed black-box rank" },
-        { functionName: "presentation.nmfMatchRows", workflowValue: "Formats reference matching as a compact table" },
-      ],
-      [
-        { key: "functionName", label: "Function" },
-        { key: "workflowValue", label: "Workflow capability" },
-      ]
-    ));
-  </script>
-<script type="text/markdown">
-    ## Step 1. Choose data and NMF settings
+    const nmfStyleId = "msigsdk-nmf-workflow-style";
+    if (!document.getElementById(nmfStyleId)) {
+      const style = document.createElement("style");
+      style.id = nmfStyleId;
+      style.textContent = `
+        .nmf-workflow {
+          display: grid;
+          gap: 12px;
+        }
+        .nmf-workflow-output {
+          display: grid;
+          gap: 12px;
+          min-width: 0;
+        }
+        .nmf-status {
+          display: grid;
+          gap: 3px;
+          border: 1px solid var(--rule);
+          border-left: 4px solid var(--teal);
+          border-radius: 8px;
+          background: #fbfcfa;
+          color: var(--muted);
+          font-size: 13px;
+          line-height: 1.4;
+          padding: 10px 12px;
+        }
+        .nmf-status strong {
+          color: var(--ink);
+          font-size: 13px;
+        }
+        .nmf-status.warning {
+          border-left-color: var(--coral);
+          background: #fff8f2;
+        }
+        .nmf-status.success {
+          border-left-color: var(--green);
+          background: #edf6f1;
+        }
+        .nmf-two-column {
+          display: grid;
+          grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+          gap: 12px;
+          align-items: start;
+        }
+        .nmf-plot {
+          min-width: 0;
+          min-height: 260px;
+          overflow-x: auto;
+          border: 1px solid var(--rule);
+          border-radius: 8px;
+          background: #fbfcfa;
+          padding: 10px;
+        }
+        .nmf-empty {
+          margin: 0;
+          color: var(--muted);
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .nmf-source-panel {
+          display: grid;
+          gap: 12px;
+          border: 1px solid var(--rule);
+          border-radius: 8px;
+          background: #fbfcfa;
+          padding: 12px;
+        }
+        .nmf-source-panel[hidden] {
+          display: none;
+        }
+        @media (max-width: 820px) {
+          .nmf-two-column {
+            grid-template-columns: 1fr;
+          }
+        }
+      `;
+      document.head.append(style);
+    }
 
-    NMF is more sensitive to cohort size, mutation count, number of patterns, and random starts than known-signature fitting. This example fetches specific high-count PCAWG WGS Lung-AdenoCA spectra so the browser has enough count-scale signal to extract simple patterns quickly.
-
-    Edit `nmfRank`, `nmfRuns`, and `nmfMaxIterations` to see the speed and stability tradeoff. In a larger analysis, use more random starts and a broader rank grid.
-
-    Underpowered discovery usually reflects limited cohort size, low mutation count, or too few repeated optimizations.
-  </script>
-<script type="module" pinned id="2">
     const nmfContexts = mSigSDK.validation.getExpectedContexts({
       profile: "SBS",
       matrix: 96,
     });
-    const nmfStudy = "PCAWG";
-    const nmfGenomeDataType = "WGS";
-    const nmfCancerType = "Lung-AdenoCA";
-    const nmfMutationType = "SBS";
-    const nmfMatrixSize = 96;
-    const nmfSignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
     const nmfExampleSampleNames = [
       "SP53810",
       "SP55142",
@@ -73,240 +113,1225 @@
       "SP55509",
       "SP53618",
     ];
-    const nmfSampleLimit = nmfExampleSampleNames.length;
-    const nmfRank = 3;
-    const nmfRuns = 3;
-    const nmfMaxIterations = 180;
+    const nmfPreset = {
+      study: "PCAWG",
+      genomeDataType: "WGS",
+      cancerType: "Lung-AdenoCA",
+      mutationType: "SBS",
+      matrixSize: 96,
+      signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
+    };
+    const nmfPublicApiBase = "https://analysistools.cancer.gov/mutational-signatures/api/";
+    const nmfPublicFetchBatchSize = 50;
+    const nmfPublicSampleLimitMax = 50;
 
     const nmfDataset = await loadPublicSbs96Dataset(mSigSDK, {
-      study: nmfStudy,
-      genomeDataType: nmfGenomeDataType,
-      cancerType: nmfCancerType,
-      mutationType: nmfMutationType,
-      matrixSize: nmfMatrixSize,
-      signatureSetName: nmfSignatureSetName,
+      ...nmfPreset,
       sampleNames: nmfExampleSampleNames,
-      sampleLimit: nmfSampleLimit,
+      sampleLimit: nmfExampleSampleNames.length,
       allowAlternate: false,
+      allowDemoFallback: true,
     });
-    const nmfDataSourceStatus = nmfDataset.status;
-    const nmfAllGroupedSpectra = nmfDataset.spectra;
-    const nmfAllReferenceSignatures = nmfDataset.allSignatures;
-    const nmfAllBurden = mSigSDK.qc.summarizeMutationBurden(nmfAllGroupedSpectra, {
-      expectedContexts: nmfContexts,
-    });
-    const nmfSelectedBurdenSamples = mSigSDK.qc.selectSamplesByMutationBurden(
-      nmfAllBurden,
-      {
-        sampleNames: nmfExampleSampleNames.filter((sample) => nmfAllGroupedSpectra[sample]).length
-          ? nmfExampleSampleNames.filter((sample) => nmfAllGroupedSpectra[sample])
-          : Object.keys(nmfAllGroupedSpectra),
-        minTotalMutations: 1,
-        limit: nmfSampleLimit,
-      }
-    );
-    const nmfSelectedSampleNames = nmfSelectedBurdenSamples.map(
-      (sample) => sample.sample
-    );
-    const nmfGroupedSpectra = Object.fromEntries(
-      nmfSelectedSampleNames.map((sample) => [sample, nmfAllGroupedSpectra[sample]])
-    );
 
-    display(metrics([
-      { label: "Data source", value: nmfDataSourceStatus },
-      { label: "Samples", value: nmfSelectedSampleNames.length },
-      { label: "Rank", value: nmfRank },
-      { label: "Random starts", value: nmfRuns },
-      { label: "Max iterations", value: nmfMaxIterations },
-    ]));
-    display(table(
-      burdenSampleRows(nmfAllBurden, nmfSelectedSampleNames),
-      [
-        { key: "sample", label: "Selected sample" },
-        { key: "mutations", label: "Total mutations" },
-        { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
-        { key: "lowBurden", label: "Low mutation-count review cue" },
-      ]
-    ));
-  </script>
+    const nmfState = {
+      sourceMode: "public",
+      sampleLimit: Math.min(6, Object.keys(nmfDataset.spectra || {}).length || 6),
+      rank: 3,
+      nRuns: 3,
+      maxIterations: 180,
+      seed: 123,
+      matchTopN: 3,
+      matchFloor: 0.75,
+      selectedSignature: "",
+      exposureScale: "relative",
+      selectedSample: "",
+      rankMin: 2,
+      rankMax: 4,
+      rankRuns: 2,
+      rankIterations: 140,
+      rankCriterion: "reconstruction_error",
+      exportMinimumSignatures: 2,
+      exportMaximumSignatures: 6,
+      exportReplicates: 100,
+    };
 
-  <script type="text/markdown">
-    ## Step 2. Extract signatures and compare them to references
-
-    `extractSignaturesNMF` returns learned patterns, sample contributions, fit measurements, and run details. `compareExtractedToReference` is an interpretation aid used after fitting: it finds similar COSMIC profiles, but it does not prove that a learned pattern is biologically identical to a named signature.
-
-    Read the reference-match table as a labeling aid, not as the extraction result itself. A learned pattern with a weak match may still be meaningful, and a learned pattern with a strong match still needs stability and cohort-context review.
-  </script>
-<script type="module" pinned id="3">
-    const nmfResult = mSigSDK.signatureExtraction.extractSignaturesNMF(
-      nmfGroupedSpectra,
-      {
-        rank: nmfRank,
-        nRuns: nmfRuns,
-        maxIterations: nmfMaxIterations,
-        tolerance: 1e-5,
-        seed: 123,
-        contexts: nmfContexts,
-        signaturePrefix: "NMF",
-      }
-    );
-    const nmfMatches = mSigSDK.signatureExtraction.compareExtractedToReference(
-      nmfResult.signatures,
-      nmfAllReferenceSignatures,
-      { contexts: nmfContexts, topN: 3 }
-    );
-
-    const nmfReferenceMatchRows = nmfMatchRows(nmfMatches, { maxRows: 9 });
-
-    display(metrics([
-      { label: "Extracted rank", value: nmfResult.rank },
-      { label: "Converged", value: nmfResult.converged ? "Yes" : "No" },
-      { label: "Reconstruction error", value: formatNumber(nmfResult.reconstructionError) },
-      { label: "Mean sample cosine", value: formatNumber(nmfResult.averageSampleCosineSimilarity) },
-      { label: "Best run", value: nmfResult.bestRun },
-    ]));
-    display(table(
-      nmfReferenceMatchRows,
-      [
-        { key: "extractedSignature", label: "Extracted component" },
-        { key: "referenceSignature", label: "Closest reference" },
-        { key: "cosineSimilarity", label: "Cosine similarity" },
-      ],
-      { maxRows: 9 }
-    ));
-    display(table(
-      nmfReferenceMatchRows.map((row) => ({
-        extractedSignature: row.extractedSignature,
-        closestReference: row.referenceSignature,
-        interpretation: "Similarity aid; not an etiologic assignment",
-      })),
-      [
-        { key: "extractedSignature", label: "Extracted component" },
-        { key: "closestReference", label: "Closest reference" },
-        { key: "interpretation", label: "Interpretation boundary" },
-      ],
-      { maxRows: 9 }
-    ));
-  </script>
-
-  <script type="text/markdown">
-    ## Step 3. Inspect extracted signature profiles
-
-    Profiles are shown through the established mSigPortal SBS96 renderer so the mutation-context colors match COSMIC conventions. Check whether each learned component has a coherent profile before looking at sample contributions.
-
-    A coherent profile is one that has recognizable context structure rather than scattered noise. If the profile looks unstable, return to sample selection, rank, or random starts before interpreting exposure heatmaps.
-  </script>
-<script type="module" pinned id="4">
-    const nmfProfilesDiv = document.createElement("div");
-    nmfProfilesDiv.style.width = "100%";
-    await mSigSDK.signatureExtractionPlots.plotNMFSignatureProfiles(
-      nmfProfilesDiv,
-      nmfResult
-    );
-    display(nmfProfilesDiv);
-  </script>
-
-  <script type="text/markdown">
-    ## Step 4. Inspect sample contributions
-
-    The contribution heatmap shows whether learned patterns are broad cohort processes or concentrated in a few samples. A component driven by only one or two samples may still be useful, but it should be interpreted differently from a component distributed across the cohort.
-
-    Broad components suggest cohort-wide processes, while concentrated components suggest outliers, technical effects, or rare biology that needs follow-up.
-  </script>
-<script type="module" pinned id="5">
-    const nmfExposureDiv = document.createElement("div");
-    nmfExposureDiv.style.width = "100%";
-    await mSigSDK.signatureExtractionPlots.plotNMFExposureHeatmap(
-      nmfExposureDiv,
-      nmfResult,
-      { relative: true }
-    );
-    display(nmfExposureDiv);
-  </script>
-
-  <script type="text/markdown">
-    ## Step 5. Compare candidate ranks
-
-    Rank selection is not a single-number decision. This small grid is intentionally modest for browser performance. In production, use more ranks and random starts, then judge reconstruction, stability, and interpretability together.
-
-    A useful rank should improve reconstruction without splitting a biological process into unstable fragments. Use this table to decide what needs a production rerun, not to declare a final rank from the browser example alone.
-  </script>
-<script type="module" pinned id="6">
-    const nmfRankSelection = mSigSDK.signatureExtraction.selectNMFRank(
-      nmfGroupedSpectra,
-      {
-        ranks: [2, 3],
-        nRuns: 2,
-        maxIterations: 120,
-        seed: 456,
-        contexts: nmfContexts,
-      }
-    );
-    const nmfRankDiv = document.createElement("div");
-    nmfRankDiv.style.width = "100%";
-    await mSigSDK.signatureExtractionPlots.plotNMFRankSelection(
-      nmfRankDiv,
-      nmfRankSelection
-    );
-    display(nmfRankDiv);
-  </script>
-
-  <script type="text/markdown">
-    ## Step 6. Prepare files for production extraction
-
-    Browser NMF is a screening tool. The same spectra can be exported as table-mode input for SigProfilerExtractor so production extraction and stability analysis can be run outside the browser.
-
-    The browser screen identifies whether discovery is worth pursuing, and the production tool runs the heavier stability analysis.
-  </script>
-<script type="module" pinned id="7">
-    const nmfExtractorInput = mSigSDK.adapters.sigProfilerExtractor.prepareInput(
-      { spectra: nmfGroupedSpectra },
-      {
-        contexts: nmfContexts,
-        minimumSignatures: 2,
-        maximumSignatures: 6,
-        nmfReplicates: 100,
-      }
-    );
-    const nmfHandoffRows = nmfExtractorInput.files.map((file) => ({
-      path: file.path,
-      bytes: file.text.length,
-      role: "SigProfilerExtractor table-mode input",
-    }));
-    display(table(
-      nmfHandoffRows,
-      [
-        { key: "path", label: "File" },
-        { key: "bytes", label: "Characters" },
-        { key: "role", label: "Role" },
-      ]
-    ));
-    display(downloadMany([
-      ...nmfExtractorInput.files.map((file) => ({
-        filename: file.path.split("/").pop(),
-        text: file.text,
-        label: `Download ${file.path.split("/").pop()}`,
-      })),
-      {
-        filename: "nmf_extraction_bundle.json",
-        type: "json",
-        value: {
-          dataSourceStatus: nmfDataSourceStatus,
-          nmfSettings: {
-            rank: nmfRank,
-            randomStarts: nmfRuns,
-            maxIterations: nmfMaxIterations,
-          },
-          extraction: nmfResult,
-          referenceMatches: nmfMatches,
-          rankSelection: nmfRankSelection,
-          handoff: {
-            manifest: nmfExtractorInput.manifest,
-            pythonSnippet: nmfExtractorInput.pythonSnippet,
-          },
-        },
-        label: "Download NMF extraction bundle JSON",
+    const nmfApp = {
+      contexts: nmfDataset.contexts || nmfContexts,
+      dataSourceStatus: nmfDataset.status,
+      spectra: nmfDataset.spectra,
+      referenceSignatures: nmfDataset.allSignatures || nmfDataset.signatures,
+      defaultReferenceSignatures: nmfDataset.allSignatures || nmfDataset.signatures,
+      sampleOrder: nmfDataset.sampleNames || Object.keys(nmfDataset.spectra || {}),
+      sourceLabel: nmfDataset.source || "mSigPortal public API",
+      publicSelection: nmfDataset.selection || nmfPreset,
+      publicOptions: {
+        spectra: [],
+        signatures: [],
+        loaded: false,
       },
-    ]));
+      burden: null,
+      result: null,
+      matches: [],
+      matchRows: [],
+      rankSelection: null,
+      renderers: {},
+      statuses: {},
+      running: false,
+    };
+
+    nmfApp.burden = mSigSDK.qc.summarizeMutationBurden(nmfApp.spectra, {
+      expectedContexts: nmfApp.contexts,
+    });
+
+    function nmfNode(tag, className = "", text = "") {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text) node.textContent = text;
+      return node;
+    }
+
+    function nmfStatus(target, title, detail = "", tone = "") {
+      target.className = `nmf-status ${tone}`.trim();
+      target.replaceChildren(nmfNode("strong", "", title));
+      if (detail) target.append(nmfNode("span", "", detail));
+    }
+
+    function nmfButton(label, tone = "") {
+      const button = nmfNode("button", `workflow-button ${tone}`.trim(), label);
+      button.type = "button";
+      return button;
+    }
+
+    function nmfNumberInput(value, { min, max, step = 1 } = {}) {
+      const input = document.createElement("input");
+      input.type = "number";
+      input.value = String(value);
+      if (min !== undefined) input.min = String(min);
+      if (max !== undefined) input.max = String(max);
+      input.step = String(step);
+      return input;
+    }
+
+    function nmfTextArea(value = "", rows = 8) {
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.rows = rows;
+      textarea.spellcheck = false;
+      return textarea;
+    }
+
+    function nmfOption(label, value = label) {
+      const option = document.createElement("option");
+      option.value = String(value);
+      option.textContent = String(label);
+      return option;
+    }
+
+    function nmfSetSelectOptions(select, items, preferred = "") {
+      const normalized = items.map((item) =>
+        typeof item === "object" ? item : { label: item, value: item }
+      );
+      select.replaceChildren(...normalized.map((item) => nmfOption(item.label, item.value)));
+      const preferredValue = String(preferred || "");
+      if (preferredValue && normalized.some((item) => String(item.value) === preferredValue)) {
+        select.value = preferredValue;
+      } else if (normalized.length) {
+        select.value = String(normalized[0].value);
+      }
+      return select.value;
+    }
+
+    function nmfRangeInput(value, { min, max, step = 1 } = {}) {
+      const wrapper = nmfNode("div", "nmf-workflow-output");
+      const input = document.createElement("input");
+      const readout = nmfNode("small", "", String(value));
+      input.type = "range";
+      input.min = String(min);
+      input.max = String(max);
+      input.step = String(step);
+      input.value = String(value);
+      input.addEventListener("input", () => {
+        readout.textContent = input.value;
+      });
+      wrapper.append(input, readout);
+      return { wrapper, input };
+    }
+
+    function nmfSelect(options, value) {
+      const select = document.createElement("select");
+      options.forEach((entry) => {
+        const option = document.createElement("option");
+        if (Array.isArray(entry)) {
+          option.value = entry[0];
+          option.textContent = entry[1];
+        } else {
+          option.value = entry;
+          option.textContent = entry;
+        }
+        select.append(option);
+      });
+      select.value = String(value);
+      return select;
+    }
+
+    function nmfField(label, control, help = "") {
+      const wrapper = nmfNode("label", "workflow-field");
+      wrapper.append(nmfNode("span", "", label), control);
+      if (help) wrapper.append(nmfNode("small", "", help));
+      return wrapper;
+    }
+
+    function nmfEmpty(message) {
+      return nmfNode("p", "nmf-empty", message);
+    }
+
+    function nmfFormat(value, digits = 4) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return "NA";
+      if (Math.abs(number) >= 1000) return number.toLocaleString(undefined, { maximumFractionDigits: 0 });
+      return number.toPrecision(digits);
+    }
+
+    function nmfUniqueSorted(values) {
+      return [...new Set(values.filter((value) => value !== undefined && value !== null && value !== ""))]
+        .map(String)
+        .sort((a, b) => a.localeCompare(b));
+    }
+
+    function nmfPublicApiUrl(endpoint, params = {}) {
+      const url = new URL(endpoint, nmfPublicApiBase);
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null && value !== "") {
+          url.searchParams.set(key, value);
+        }
+      }
+      return url;
+    }
+
+    async function nmfFetchPublicApiRows(endpoint, params = {}, limit = 100000) {
+      const rows = [];
+      let offset = 0;
+      for (let page = 0; page < 10; page += 1) {
+        const response = await fetch(nmfPublicApiUrl(endpoint, { ...params, limit, offset }).href);
+        if (!response.ok) throw new Error(`${endpoint} returned ${response.status}`);
+        const pageRows = await response.json();
+        if (!Array.isArray(pageRows)) throw new Error(`${endpoint} response was not an array.`);
+        rows.push(...pageRows);
+        if (pageRows.length < limit) break;
+        offset += limit;
+      }
+      return rows;
+    }
+
+    function nmfParseMatrix(text, kind) {
+      const trimmed = String(text || "").trim();
+      if (!trimmed) throw new Error(`${kind} input is empty.`);
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+      } catch (_error) {
+        // Fall through to delimited matrix import.
+      }
+      const delimiter = trimmed.split(/\r?\n/)[0]?.includes(",") ? "," : "\t";
+      return kind === "spectra"
+        ? mSigSDK.io.importSigProfilerMatrix(trimmed, { delimiter })
+        : mSigSDK.io.importCOSMICSignatureMatrix(trimmed, { delimiter });
+    }
+
+    function nmfInferContexts(...matrices) {
+      const contexts = [
+        ...new Set(
+          matrices.flatMap((matrix) =>
+            Object.values(matrix || {}).flatMap((record) => Object.keys(record || {}))
+          )
+        ),
+      ];
+      return contexts.length ? contexts : nmfContexts;
+    }
+
+    function nmfSetDataset({
+      spectra,
+      referenceSignatures = null,
+      contexts = null,
+      sourceLabel = "Custom spectra",
+      dataSourceStatus = "custom data",
+      sampleOrder = null,
+      publicSelection = null,
+    }) {
+      const normalizedSpectra = spectra || {};
+      const normalizedReference = referenceSignatures && Object.keys(referenceSignatures).length
+        ? referenceSignatures
+        : nmfApp.defaultReferenceSignatures;
+      if (Object.keys(normalizedSpectra).length < 2) {
+        throw new Error("NMF discovery needs at least two samples.");
+      }
+      nmfApp.spectra = normalizedSpectra;
+      nmfApp.referenceSignatures = normalizedReference;
+      nmfApp.contexts = contexts || nmfInferContexts(normalizedSpectra, normalizedReference);
+      nmfApp.sampleOrder = Array.isArray(sampleOrder) && sampleOrder.length
+        ? sampleOrder.filter((sample) => normalizedSpectra[sample])
+        : Object.keys(normalizedSpectra);
+      nmfApp.sourceLabel = sourceLabel;
+      nmfApp.dataSourceStatus = dataSourceStatus;
+      nmfApp.publicSelection = publicSelection;
+      nmfApp.burden = mSigSDK.qc.summarizeMutationBurden(nmfApp.spectra, {
+        expectedContexts: nmfApp.contexts,
+      });
+      nmfState.sampleLimit = Math.max(
+        2,
+        Math.min(Math.round(Number(nmfState.sampleLimit || 6)), nmfApp.sampleOrder.length)
+      );
+      nmfInvalidateExtraction();
+    }
+
+    function nmfSelectedSampleNames() {
+      const preferred = (nmfApp.sampleOrder || []).filter((sample) => nmfApp.spectra[sample]);
+      const candidates = preferred.length ? preferred : Object.keys(nmfApp.spectra);
+      return mSigSDK.qc.selectSamplesByMutationBurden(nmfApp.burden, {
+        sampleNames: candidates,
+        minTotalMutations: 1,
+        limit: Math.max(2, Math.min(candidates.length, Math.round(Number(nmfState.sampleLimit || 2)))),
+      }).map((sample) => sample.sample);
+    }
+
+    function nmfGroupedSpectra() {
+      return Object.fromEntries(
+        nmfSelectedSampleNames().map((sample) => [sample, nmfApp.spectra[sample]])
+      );
+    }
+
+    function nmfSignatureNames() {
+      return Object.keys(nmfApp.result?.signatures || {});
+    }
+
+    function nmfResultBestRunLabel(result) {
+      if (!result?.bestRun) return "not run";
+      return `run ${result.bestRun.run}, seed ${result.bestRun.seed}`;
+    }
+
+    function nmfTopContextRows(signatureRecord, maxRows = 8) {
+      return Object.entries(signatureRecord || {})
+        .map(([context, weight]) => ({ context, weight: Number(weight || 0) }))
+        .sort((left, right) => right.weight - left.weight)
+        .slice(0, maxRows)
+        .map((row) => ({
+          context: row.context,
+          weight: nmfFormat(row.weight, 3),
+        }));
+    }
+
+    function nmfSampleExposureRows(sample) {
+      const exposures = nmfApp.result?.exposures?.[sample] || {};
+      const total = Object.values(exposures).reduce((sum, value) => sum + Number(value || 0), 0);
+      return Object.entries(exposures)
+        .map(([signature, exposure]) => {
+          const raw = Number(exposure || 0);
+          return {
+            signature,
+            rawExposure: raw,
+            fraction: total > 0 ? raw / total : 0,
+          };
+        })
+        .sort((left, right) => right.fraction - left.fraction)
+        .map((row) => ({
+          component: row.signature,
+          rawExposure: nmfFormat(row.rawExposure, 4),
+          withinSampleFraction: `${(row.fraction * 100).toFixed(1)}%`,
+        }));
+    }
+
+    function nmfFilteredMatchRows() {
+      const rows = nmfApp.matchRows.filter(
+        (row) => Number(row.cosineSimilarity) >= Number(nmfState.matchFloor)
+      );
+      const counts = {};
+      return rows.filter((row) => {
+        counts[row.extractedSignature] = (counts[row.extractedSignature] || 0) + 1;
+        return counts[row.extractedSignature] <= Number(nmfState.matchTopN);
+      });
+    }
+
+    function nmfRankList() {
+      const min = Math.max(2, Math.round(Number(nmfState.rankMin || 2)));
+      const max = Math.max(min, Math.round(Number(nmfState.rankMax || min)));
+      return Array.from({ length: max - min + 1 }, (_, index) => min + index);
+    }
+
+    function nmfInvalidateExtraction() {
+      nmfApp.result = null;
+      nmfApp.matches = [];
+      nmfApp.matchRows = [];
+      nmfApp.rankSelection = null;
+      nmfState.selectedSignature = "";
+      nmfState.selectedSample = "";
+    }
+
+    async function nmfRenderAll() {
+      for (const renderer of Object.values(nmfApp.renderers)) {
+        await renderer();
+      }
+    }
+
+    async function nmfRunExtraction() {
+      if (nmfApp.running) return;
+      nmfApp.running = true;
+      const spectra = nmfGroupedSpectra();
+      const sampleCount = Object.keys(spectra).length;
+      Object.values(nmfApp.statuses).forEach((target) =>
+        nmfStatus(
+          target,
+          "Running NMF screen",
+          `${sampleCount} samples, rank ${nmfState.rank}, ${nmfState.nRuns} random starts.`,
+          "warning"
+        )
+      );
+      try {
+        const result = mSigSDK.signatureExtraction.extractSignaturesNMF(spectra, {
+          rank: Number(nmfState.rank),
+          nRuns: Number(nmfState.nRuns),
+          maxIterations: Number(nmfState.maxIterations),
+          tolerance: 1e-5,
+          seed: Number(nmfState.seed),
+          contexts: nmfApp.contexts,
+          signaturePrefix: "NMF",
+        });
+        const matches = mSigSDK.signatureExtraction.compareExtractedToReference(
+          result.signatures,
+          nmfApp.referenceSignatures,
+          { contexts: nmfApp.contexts, topN: 8 }
+        );
+        nmfApp.result = result;
+        nmfApp.matches = matches;
+        nmfApp.matchRows = nmfMatchRows(matches, { maxRows: 40 });
+        nmfApp.rankSelection = null;
+        nmfState.selectedSignature = nmfSignatureNames()[0] || "";
+        nmfState.selectedSample = Object.keys(result.exposures || {})[0] || "";
+        await nmfRenderAll();
+      } catch (error) {
+        Object.values(nmfApp.statuses).forEach((target) =>
+          nmfStatus(target, "NMF screen failed", error.message, "warning")
+        );
+      } finally {
+        nmfApp.running = false;
+      }
+    }
+
+    async function nmfRunRankGrid() {
+      if (!nmfApp.result || nmfApp.running) {
+        await nmfApp.renderers.rankExport?.();
+        return;
+      }
+      const status = nmfApp.statuses.rankExport;
+      nmfStatus(
+        status,
+        "Running rank grid",
+        `Testing ranks ${nmfRankList().join(", ")} with ${nmfState.rankRuns} starts each.`,
+        "warning"
+      );
+      try {
+        nmfApp.rankSelection = mSigSDK.signatureExtraction.selectNMFRank(nmfGroupedSpectra(), {
+          ranks: nmfRankList(),
+          nRuns: Number(nmfState.rankRuns),
+          maxIterations: Number(nmfState.rankIterations),
+          tolerance: 1e-5,
+          seed: Number(nmfState.seed) + 1000,
+          contexts: nmfApp.contexts,
+          rankSelectionCriterion: nmfState.rankCriterion,
+        });
+        await nmfApp.renderers.rankExport?.();
+      } catch (error) {
+        nmfStatus(status, "Rank grid failed", error.message, "warning");
+      }
+    }
+  </script>
+
+  <script type="text/markdown">
+    ## Step 1. Choose cohort and settings
+
+    Discovery starts with the spectra matrix. Load a public mSigPortal SBS96 cohort or paste a project SBS96 matrix, then set the browser extraction budget.
+  </script>
+
+  <script type="module" pinned id="2">
+    const nmfSetupRoot = nmfNode("section", "nmf-workflow");
+    const nmfSourceControls = nmfNode("div", "workflow-control-grid compact");
+    const nmfPublicPanel = nmfNode("section", "nmf-source-panel");
+    const nmfOwnPanel = nmfNode("section", "nmf-source-panel");
+    const nmfPublicControls = nmfNode("div", "workflow-control-grid compact");
+    const nmfOwnControls = nmfNode("div", "workflow-control-grid");
+    const nmfPublicActions = nmfNode("div", "workflow-button-row");
+    const nmfOwnActions = nmfNode("div", "workflow-button-row");
+    const nmfSetupControls = nmfNode("div", "workflow-control-grid compact");
+    const nmfSetupActions = nmfNode("div", "workflow-button-row");
+    const nmfSetupStatus = nmfNode("div", "nmf-status");
+    const nmfSetupOutput = nmfNode("div", "nmf-workflow-output");
+
+    const sourceMode = nmfSelect(
+      [
+        ["public", "mSigPortal public API"],
+        ["own", "Own SBS96 matrix"],
+      ],
+      nmfState.sourceMode
+    );
+    const sampleLimit = nmfNumberInput(nmfState.sampleLimit, { min: 2, max: nmfPublicSampleLimitMax, step: 1 });
+    const rank = nmfRangeInput(nmfState.rank, { min: 2, max: 4 });
+    const starts = nmfRangeInput(nmfState.nRuns, { min: 1, max: 5 });
+    const iterations = nmfRangeInput(nmfState.maxIterations, { min: 80, max: 260, step: 20 });
+    const seed = nmfNumberInput(nmfState.seed, { min: 1, max: 999999, step: 1 });
+    const publicStudy = document.createElement("select");
+    const publicCancer = document.createElement("select");
+    const publicStrategy = document.createElement("select");
+    const publicProfile = document.createElement("select");
+    const publicMatrix = document.createElement("select");
+    const publicSignatureSet = document.createElement("select");
+    const publicStatus = nmfNode("div", "nmf-status");
+    const refreshPublicMenu = nmfButton("Refresh public menu");
+    const loadPublicData = nmfButton("Load selected public cohort", "primary");
+    const ownSpectraText = nmfTextArea("", 9);
+    const ownReferenceText = nmfTextArea("", 7);
+    const ownStatus = nmfNode("div", "nmf-status");
+    const fillTemplate = nmfButton("Use current dataset as template");
+    const applyOwnData = nmfButton("Apply own data", "primary");
+    const runExtraction = nmfButton("Run extraction", "primary");
+
+    function nmfUpdateSourcePanels() {
+      nmfState.sourceMode = sourceMode.value;
+      nmfPublicPanel.hidden = nmfState.sourceMode !== "public";
+      nmfOwnPanel.hidden = nmfState.sourceMode !== "own";
+    }
+
+    function nmfSelectedPublicRows() {
+      const matrix = Number(publicMatrix.value);
+      return nmfApp.publicOptions.spectra.filter((row) =>
+        row.study === publicStudy.value &&
+        row.strategy === publicStrategy.value &&
+        row.profile === publicProfile.value &&
+        Number(row.matrix) === matrix &&
+        row.cancer === publicCancer.value
+      );
+    }
+
+    function nmfPublicSampleOptions() {
+      const bySample = new Map();
+      for (const row of nmfSelectedPublicRows()) {
+        if (!bySample.has(row.sample)) bySample.set(row.sample, row);
+      }
+      return [...bySample.values()];
+    }
+
+    function nmfPopulatePublicSignatureSets({ strategy, profile, matrix, preferred = nmfPreset.signatureSetName }) {
+      const exactRows = nmfApp.publicOptions.signatures.filter((row) =>
+        row.strategy === strategy &&
+        row.profile === profile &&
+        String(row.matrix) === String(matrix)
+      );
+      const fallbackRows = nmfApp.publicOptions.signatures.filter((row) =>
+        row.profile === profile &&
+        String(row.matrix) === String(matrix)
+      );
+      const rows = exactRows.length ? exactRows : fallbackRows;
+      nmfSetSelectOptions(publicSignatureSet, nmfUniqueSorted(rows.map((row) => row.signatureSetName)), preferred);
+    }
+
+    function nmfUpdatePublicStatus() {
+      const samples = nmfPublicSampleOptions();
+      const requested = Math.max(2, Math.min(nmfPublicSampleLimitMax, Math.round(Number(sampleLimit.value || nmfState.sampleLimit))));
+      const willLoad = Math.min(requested, samples.length);
+      nmfStatus(
+        publicStatus,
+        nmfApp.publicOptions.loaded ? "Public menu ready" : "Public menu not loaded",
+        nmfApp.publicOptions.loaded
+          ? `${samples.length} samples match this selection. Loading will fetch ${willLoad}.`
+          : "Use the refresh button to load available mSigPortal cohorts.",
+        nmfApp.publicOptions.loaded ? "success" : ""
+      );
+    }
+
+    function nmfPopulatePublicMenus(preferred = {}) {
+      const current = {
+        study: publicStudy.value || preferred.study || nmfPreset.study,
+        strategy: publicStrategy.value || preferred.strategy || nmfPreset.genomeDataType,
+        profile: publicProfile.value || preferred.profile || nmfPreset.mutationType,
+        matrix: publicMatrix.value || preferred.matrix || String(nmfPreset.matrixSize),
+        cancer: publicCancer.value || preferred.cancer || nmfPreset.cancerType,
+        signatureSetName: publicSignatureSet.value || preferred.signatureSetName || nmfPreset.signatureSetName,
+      };
+      const study = nmfSetSelectOptions(publicStudy, nmfUniqueSorted(nmfApp.publicOptions.spectra.map((row) => row.study)), current.study);
+      const studyRows = nmfApp.publicOptions.spectra.filter((row) => row.study === study);
+      const strategy = nmfSetSelectOptions(publicStrategy, nmfUniqueSorted(studyRows.map((row) => row.strategy)), current.strategy);
+      const strategyRows = studyRows.filter((row) => row.strategy === strategy);
+      const profile = nmfSetSelectOptions(publicProfile, nmfUniqueSorted(strategyRows.map((row) => row.profile)), current.profile);
+      const profileRows = strategyRows.filter((row) => row.profile === profile);
+      const matrix = nmfSetSelectOptions(publicMatrix, nmfUniqueSorted(profileRows.map((row) => row.matrix)), current.matrix);
+      const matrixRows = profileRows.filter((row) => String(row.matrix) === String(matrix));
+      nmfSetSelectOptions(publicCancer, nmfUniqueSorted(matrixRows.map((row) => row.cancer)), current.cancer);
+      nmfPopulatePublicSignatureSets({ strategy, profile, matrix, preferred: current.signatureSetName });
+      nmfUpdatePublicStatus();
+    }
+
+    async function nmfLoadPublicMenus() {
+      nmfStatus(publicStatus, "Loading public menu", "Fetching mSigPortal cohort and reference catalog options.", "warning");
+      refreshPublicMenu.disabled = true;
+      loadPublicData.disabled = true;
+      try {
+        const [spectraOptions, signatureOptions] = await Promise.all([
+          nmfFetchPublicApiRows("mutational_spectrum_options"),
+          nmfFetchPublicApiRows("mutational_signature_options", { source: "Reference_signatures" }),
+        ]);
+        nmfApp.publicOptions.spectra = spectraOptions;
+        nmfApp.publicOptions.signatures = signatureOptions;
+        nmfApp.publicOptions.loaded = true;
+        nmfPopulatePublicMenus({
+          study: nmfPreset.study,
+          strategy: nmfPreset.genomeDataType,
+          profile: nmfPreset.mutationType,
+          matrix: nmfPreset.matrixSize,
+          cancer: nmfPreset.cancerType,
+          signatureSetName: nmfPreset.signatureSetName,
+        });
+      } catch (error) {
+        nmfStatus(publicStatus, "Public menu failed", error.message, "warning");
+      } finally {
+        refreshPublicMenu.disabled = false;
+        loadPublicData.disabled = false;
+      }
+    }
+
+    async function nmfLoadSelectedPublicData() {
+      if (!nmfApp.publicOptions.loaded) await nmfLoadPublicMenus();
+      const requested = Math.max(2, Math.min(nmfPublicSampleLimitMax, Math.round(Number(sampleLimit.value || nmfState.sampleLimit))));
+      const available = nmfPublicSampleOptions();
+      const selected = available.slice(0, requested);
+      if (!selected.length) throw new Error("No public samples match the selected cohort.");
+      if (!publicSignatureSet.value) throw new Error("No compatible reference signature set is available.");
+      nmfStatus(publicStatus, "Loading public cohort", `Fetching ${selected.length} public spectra and the selected signature catalog.`, "warning");
+      const dataset = await loadPublicSbs96Dataset(mSigSDK, {
+        study: publicStudy.value,
+        genomeDataType: publicStrategy.value,
+        cancerType: publicCancer.value,
+        mutationType: publicProfile.value,
+        matrixSize: Number(publicMatrix.value),
+        signatureSetName: publicSignatureSet.value,
+        sampleNames: selected.map((row) => row.sample),
+        sampleLimit: selected.length,
+        allowAlternate: false,
+        allowDemoFallback: true,
+      });
+      nmfState.sampleLimit = Math.min(selected.length, Object.keys(dataset.spectra || {}).length);
+      sampleLimit.value = String(nmfState.sampleLimit);
+      nmfSetDataset({
+        spectra: dataset.spectra,
+        referenceSignatures: dataset.allSignatures || dataset.signatures,
+        contexts: dataset.contexts || nmfContexts,
+        sourceLabel: dataset.source,
+        dataSourceStatus: dataset.status,
+        sampleOrder: dataset.sampleNames,
+        publicSelection: dataset.selection,
+      });
+      nmfStatus(publicStatus, "Public cohort loaded", `${Object.keys(dataset.spectra || {}).length} samples are active.`, "success");
+      await nmfRenderAll();
+    }
+
+    function nmfApplyOwnData() {
+      const spectra = nmfParseMatrix(ownSpectraText.value, "spectra");
+      const reference = String(ownReferenceText.value || "").trim()
+        ? nmfParseMatrix(ownReferenceText.value, "reference signatures")
+        : nmfApp.defaultReferenceSignatures;
+      nmfSetDataset({
+        spectra,
+        referenceSignatures: reference,
+        contexts: nmfInferContexts(spectra, reference),
+        sourceLabel: "Pasted SBS96 spectra",
+        dataSourceStatus: "custom SBS96 matrix",
+        sampleOrder: Object.keys(spectra),
+        publicSelection: null,
+      });
+      sampleLimit.value = String(nmfState.sampleLimit);
+      nmfStatus(ownStatus, "Own data loaded", `${Object.keys(spectra).length} samples are active.`, "success");
+    }
+
+    sourceMode.addEventListener("change", async () => {
+      nmfUpdateSourcePanels();
+      await nmfApp.renderers.setup();
+    });
+    sampleLimit.addEventListener("change", async () => {
+      const max = Math.max(2, Math.min(nmfPublicSampleLimitMax, Object.keys(nmfApp.spectra || {}).length || nmfPublicSampleLimitMax));
+      nmfState.sampleLimit = Math.max(2, Math.min(max, Math.round(Number(sampleLimit.value || nmfState.sampleLimit))));
+      sampleLimit.value = String(nmfState.sampleLimit);
+      nmfInvalidateExtraction();
+      nmfUpdatePublicStatus();
+      await nmfRenderAll();
+    });
+    rank.input.addEventListener("input", async () => {
+      nmfState.rank = Number(rank.input.value);
+      nmfInvalidateExtraction();
+      await nmfRenderAll();
+    });
+    starts.input.addEventListener("input", async () => {
+      nmfState.nRuns = Number(starts.input.value);
+      nmfInvalidateExtraction();
+      await nmfRenderAll();
+    });
+    iterations.input.addEventListener("input", async () => {
+      nmfState.maxIterations = Number(iterations.input.value);
+      nmfInvalidateExtraction();
+      await nmfRenderAll();
+    });
+    seed.addEventListener("change", async () => {
+      nmfState.seed = Math.max(1, Math.round(Number(seed.value || 123)));
+      seed.value = String(nmfState.seed);
+      nmfInvalidateExtraction();
+      await nmfRenderAll();
+    });
+    runExtraction.addEventListener("click", nmfRunExtraction);
+    [publicStudy, publicCancer, publicStrategy, publicProfile, publicMatrix, publicSignatureSet].forEach((select) => {
+      select.addEventListener("change", () => {
+        if (select !== publicCancer && select !== publicSignatureSet) nmfPopulatePublicMenus();
+        nmfUpdatePublicStatus();
+      });
+    });
+    refreshPublicMenu.addEventListener("click", () => void nmfLoadPublicMenus());
+    loadPublicData.addEventListener("click", async () => {
+      loadPublicData.disabled = true;
+      try {
+        await nmfLoadSelectedPublicData();
+      } catch (error) {
+        nmfStatus(publicStatus, "Public cohort failed", error.message, "warning");
+      } finally {
+        loadPublicData.disabled = false;
+      }
+    });
+    fillTemplate.addEventListener("click", () => {
+      ownSpectraText.value = JSON.stringify(nmfApp.spectra, null, 2);
+      ownReferenceText.value = JSON.stringify(nmfApp.referenceSignatures, null, 2);
+      nmfStatus(ownStatus, "Template loaded", "Edit the JSON or replace it with a SigProfiler-style SBS96 matrix.", "success");
+    });
+    applyOwnData.addEventListener("click", async () => {
+      try {
+        nmfApplyOwnData();
+        await nmfRenderAll();
+      } catch (error) {
+        nmfStatus(ownStatus, "Own data failed", error.message, "warning");
+      }
+    });
+
+    nmfSourceControls.append(
+      nmfField("Data source", sourceMode, "Switch between public mSigPortal data and a pasted project matrix."),
+      nmfField("Sample cap", sampleLimit, "Limits the browser extraction workload for the active dataset.")
+    );
+    nmfPublicControls.append(
+      nmfField("Study", publicStudy),
+      nmfField("Cancer type", publicCancer),
+      nmfField("Strategy", publicStrategy),
+      nmfField("Profile", publicProfile),
+      nmfField("Matrix", publicMatrix),
+      nmfField("Signature set", publicSignatureSet)
+    );
+    nmfPublicActions.append(refreshPublicMenu, loadPublicData);
+    nmfPublicPanel.append(nmfPublicControls, nmfPublicActions, publicStatus);
+
+    ownSpectraText.placeholder = [
+      "Paste JSON {\"SampleA\":{\"ACA\":12,...}}",
+      "or a SigProfiler-style SBS96 matrix with mutation types in rows and samples in columns.",
+    ].join("\n");
+    ownReferenceText.placeholder = [
+      "Optional: paste COSMIC-style signature matrix JSON/TSV.",
+      "If left blank, the current public reference catalog is used only for post hoc similarity labels.",
+    ].join("\n");
+    nmfOwnControls.append(
+      nmfField("SBS96 spectra", ownSpectraText, "Required. Counts must be sample by SBS96 context."),
+      nmfField("Reference signatures", ownReferenceText, "Optional. Used for similarity labels after extraction.")
+    );
+    nmfOwnActions.append(fillTemplate, applyOwnData);
+    nmfOwnPanel.append(nmfOwnControls, nmfOwnActions, ownStatus);
+    nmfSetupControls.append(
+      nmfField("Rank", rank.wrapper, "Candidate signatures to extract."),
+      nmfField("Random starts", starts.wrapper, "Repeated initializations for the same rank."),
+      nmfField("Max iterations", iterations.wrapper, "Higher values can improve convergence at a time cost."),
+      nmfField("Seed", seed, "Reproducible browser screen.")
+    );
+    nmfSetupActions.append(runExtraction);
+    nmfSetupRoot.append(nmfSourceControls, nmfPublicPanel, nmfOwnPanel, nmfSetupControls, nmfSetupActions, nmfSetupStatus, nmfSetupOutput);
+    nmfApp.statuses.setup = nmfSetupStatus;
+
+    nmfApp.renderers.setup = async () => {
+      const selectedSamples = nmfSelectedSampleNames();
+      sampleLimit.value = String(nmfState.sampleLimit);
+      nmfUpdateSourcePanels();
+      nmfStatus(
+        nmfSetupStatus,
+        nmfApp.result ? "Extraction settings applied" : "Settings ready",
+        nmfApp.result
+          ? "Change a setting to revise the screen, then rerun extraction."
+          : "Run extraction to learn candidate patterns from the selected samples.",
+        nmfApp.result ? "success" : ""
+      );
+      nmfSetupOutput.replaceChildren(
+        metrics([
+          { label: "Data source", value: nmfApp.dataSourceStatus },
+          { label: "Active cohort", value: nmfApp.sourceLabel },
+          { label: "Selected samples", value: selectedSamples.length },
+          { label: "Compute budget", value: `${nmfState.nRuns} x ${nmfState.maxIterations}` },
+        ]),
+        table(
+          burdenSampleRows(nmfApp.burden, selectedSamples),
+          [
+            { key: "sample", label: "Sample" },
+            { key: "mutations", label: "Total mutations" },
+            { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
+            { key: "lowBurden", label: "Low-count cue" },
+          ],
+          { maxRows: 6 }
+        )
+      );
+    };
+
+    nmfStatus(publicStatus, "Public menu not loaded", "Use the refresh button to load available mSigPortal cohorts.");
+    nmfStatus(ownStatus, "Own data ready", "Paste SBS96 spectra or load the active dataset as a template.");
+    nmfUpdateSourcePanels();
+    await nmfApp.renderers.setup();
+    display(nmfSetupRoot);
+    await nmfLoadPublicMenus();
+  </script>
+
+  <script type="text/markdown">
+    ## Step 2. Run discovery screen
+
+    The extraction returns learned profiles, sample contributions, run metrics, and reference similarities. Read the reference table as a labeling aid, not as a final assignment.
+  </script>
+
+  <script type="module" pinned id="3">
+    const nmfDiscoveryRoot = nmfNode("section", "nmf-workflow");
+    const nmfDiscoveryControls = nmfNode("div", "workflow-control-grid compact");
+    const nmfDiscoveryActions = nmfNode("div", "workflow-button-row");
+    const nmfDiscoveryStatus = nmfNode("div", "nmf-status");
+    const nmfDiscoveryOutput = nmfNode("div", "nmf-workflow-output");
+
+    const matchCount = nmfSelect([["1", "Top 1"], ["2", "Top 2"], ["3", "Top 3"]], nmfState.matchTopN);
+    const matchFloor = nmfRangeInput(nmfState.matchFloor, { min: 0.5, max: 0.95, step: 0.05 });
+    const rerunExtraction = nmfButton("Rerun extraction", "primary");
+
+    matchCount.addEventListener("change", async () => {
+      nmfState.matchTopN = Number(matchCount.value);
+      await nmfApp.renderers.discovery();
+    });
+    matchFloor.input.addEventListener("input", async () => {
+      nmfState.matchFloor = Number(matchFloor.input.value);
+      await nmfApp.renderers.discovery();
+    });
+    rerunExtraction.addEventListener("click", nmfRunExtraction);
+
+    nmfDiscoveryControls.append(
+      nmfField("Reference matches", matchCount, "Closest reference rows shown for each learned component."),
+      nmfField("Similarity floor", matchFloor.wrapper, "Lower the floor to inspect weaker labeling candidates.")
+    );
+    nmfDiscoveryActions.append(rerunExtraction);
+    nmfDiscoveryRoot.append(nmfDiscoveryControls, nmfDiscoveryActions, nmfDiscoveryStatus, nmfDiscoveryOutput);
+    nmfApp.statuses.discovery = nmfDiscoveryStatus;
+
+    nmfApp.renderers.discovery = async () => {
+      if (!nmfApp.result) {
+        nmfStatus(nmfDiscoveryStatus, "Extraction not run", "Run extraction from Step 1 or this section.", "warning");
+        nmfDiscoveryOutput.replaceChildren(nmfEmpty("No learned components are available yet."));
+        return;
+      }
+      const rows = nmfFilteredMatchRows();
+      nmfStatus(
+        nmfDiscoveryStatus,
+        nmfApp.result.converged ? "Extraction converged" : "Browser budget reached",
+        `${nmfResultBestRunLabel(nmfApp.result)}; reconstruction error ${nmfFormat(nmfApp.result.reconstructionError)}.`,
+        nmfApp.result.converged ? "success" : "warning"
+      );
+      nmfDiscoveryOutput.replaceChildren(
+        metrics([
+          { label: "Extracted rank", value: nmfApp.result.rank },
+          { label: "Mean sample cosine", value: nmfFormat(nmfApp.result.averageSampleCosineSimilarity) },
+          { label: "Iterations", value: nmfApp.result.iterations },
+          { label: "Best run", value: nmfResultBestRunLabel(nmfApp.result) },
+        ]),
+        table(
+          rows,
+          [
+            { key: "extractedSignature", label: "Component" },
+            { key: "referenceSignature", label: "Closest reference" },
+            { key: "cosineSimilarity", label: "Cosine similarity" },
+          ],
+          {
+            maxRows: 12,
+            caption: "Similarity summarizes profile shape only. It does not establish etiology.",
+          }
+        )
+      );
+    };
+
+    display(nmfDiscoveryRoot);
+    await nmfRunExtraction();
+  </script>
+
+  <script type="text/markdown">
+    ## Step 3. Review interpretability
+
+    A useful discovery screen shows coherent SBS96 structure and interpretable sample contributions. Switch components, heatmap scale, and sample details before deciding whether the result is worth a production run.
+  </script>
+
+  <script type="module" pinned id="4">
+    const nmfReviewRoot = nmfNode("section", "nmf-workflow");
+    const nmfReviewControls = nmfNode("div", "workflow-control-grid compact");
+    const nmfReviewStatus = nmfNode("div", "nmf-status");
+    const nmfProfilePlot = nmfNode("div", "nmf-plot");
+    const nmfProfileOutput = nmfNode("div", "nmf-workflow-output");
+    const nmfExposurePlot = nmfNode("div", "nmf-plot");
+    const nmfExposureOutput = nmfNode("div", "nmf-workflow-output");
+
+    const componentSelect = nmfSelect([], "");
+    const exposureScale = nmfSelect([["relative", "Relative per sample"], ["raw", "Raw contribution"]], nmfState.exposureScale);
+    const sampleSelect = nmfSelect([], "");
+
+    componentSelect.addEventListener("change", async () => {
+      nmfState.selectedSignature = componentSelect.value;
+      await nmfApp.renderers.review();
+    });
+    exposureScale.addEventListener("change", async () => {
+      nmfState.exposureScale = exposureScale.value;
+      await nmfApp.renderers.review();
+    });
+    sampleSelect.addEventListener("change", async () => {
+      nmfState.selectedSample = sampleSelect.value;
+      await nmfApp.renderers.review();
+    });
+
+    nmfReviewControls.append(
+      nmfField("Component", componentSelect, "Redraws the SBS96 profile for one learned pattern."),
+      nmfField("Exposure scale", exposureScale, "Relative values compare components within each sample."),
+      nmfField("Sample", sampleSelect, "Shows the component mix for one sample.")
+    );
+    const reviewColumns = nmfNode("div", "nmf-two-column");
+    const profileSide = nmfNode("div", "nmf-workflow-output");
+    const exposureSide = nmfNode("div", "nmf-workflow-output");
+    profileSide.append(nmfProfilePlot, nmfProfileOutput);
+    exposureSide.append(nmfExposurePlot, nmfExposureOutput);
+    reviewColumns.append(profileSide, exposureSide);
+    nmfReviewRoot.append(nmfReviewControls, nmfReviewStatus, reviewColumns);
+    nmfApp.statuses.review = nmfReviewStatus;
+
+    nmfApp.renderers.review = async () => {
+      const signatureNames = nmfSignatureNames();
+      const sampleNames = Object.keys(nmfApp.result?.exposures || {});
+      if (!signatureNames.length || !sampleNames.length) {
+        componentSelect.replaceChildren();
+        sampleSelect.replaceChildren();
+        nmfStatus(nmfReviewStatus, "Review not available", "Run extraction before inspecting learned profiles and exposures.", "warning");
+        nmfProfilePlot.replaceChildren(nmfEmpty("No profile is available yet."));
+        nmfExposurePlot.replaceChildren(nmfEmpty("No exposure heatmap is available yet."));
+        nmfProfileOutput.replaceChildren();
+        nmfExposureOutput.replaceChildren();
+        return;
+      }
+
+      componentSelect.replaceChildren(...signatureNames.map((signature) => {
+        const option = document.createElement("option");
+        option.value = signature;
+        option.textContent = signature;
+        return option;
+      }));
+      sampleSelect.replaceChildren(...sampleNames.map((sample) => {
+        const option = document.createElement("option");
+        option.value = sample;
+        option.textContent = sample;
+        return option;
+      }));
+      if (!signatureNames.includes(nmfState.selectedSignature)) {
+        nmfState.selectedSignature = signatureNames[0];
+      }
+      if (!sampleNames.includes(nmfState.selectedSample)) {
+        nmfState.selectedSample = sampleNames[0];
+      }
+      componentSelect.value = nmfState.selectedSignature;
+      sampleSelect.value = nmfState.selectedSample;
+      exposureScale.value = nmfState.exposureScale;
+
+      nmfStatus(
+        nmfReviewStatus,
+        "Profiles and exposures ready",
+        "Use component shape and sample distribution together before interpreting a learned pattern.",
+        "success"
+      );
+
+      const selectedProfile = nmfApp.result.signatures[nmfState.selectedSignature];
+      nmfProfilePlot.replaceChildren();
+      await mSigSDK.signatureExtractionPlots.plotNMFSignatureProfiles(
+        nmfProfilePlot,
+        {
+          ...nmfApp.result,
+          signatures: { [nmfState.selectedSignature]: selectedProfile },
+        },
+        { maxSignatures: 1 }
+      );
+      nmfProfileOutput.replaceChildren(
+        table(
+          nmfTopContextRows(selectedProfile),
+          [
+            { key: "context", label: "Highest-weight context" },
+            { key: "weight", label: "Profile weight" },
+          ],
+          {
+            maxRows: 8,
+            caption: "Highest-weight contexts provide a quick profile coherence check.",
+          }
+        )
+      );
+
+      nmfExposurePlot.replaceChildren();
+      await mSigSDK.signatureExtractionPlots.plotNMFExposureHeatmap(
+        nmfExposurePlot,
+        nmfApp.result,
+        { relative: nmfState.exposureScale === "relative" }
+      );
+      nmfExposureOutput.replaceChildren(
+        table(
+          nmfSampleExposureRows(nmfState.selectedSample),
+          [
+            { key: "component", label: "Component" },
+            { key: "rawExposure", label: "Raw exposure" },
+            { key: "withinSampleFraction", label: "Within-sample fraction" },
+          ],
+          {
+            maxRows: 6,
+            caption: `Component contributions for ${nmfState.selectedSample}.`,
+          }
+        )
+      );
+    };
+
+    display(nmfReviewRoot);
+    await nmfApp.renderers.review();
+  </script>
+
+  <script type="text/markdown">
+    ## Step 4. Compare ranks and export
+
+    A browser rank grid is a triage check. Use it to decide whether discovery is worth a heavier production run, then export the spectra and settings for SigProfilerExtractor.
+  </script>
+
+  <script type="module" pinned id="5">
+    const nmfRankExportRoot = nmfNode("section", "nmf-workflow");
+    const nmfRankControls = nmfNode("div", "workflow-control-grid compact");
+    const nmfExportControls = nmfNode("div", "workflow-control-grid compact");
+    const nmfRankActions = nmfNode("div", "workflow-button-row");
+    const nmfRankExportStatus = nmfNode("div", "nmf-status");
+    const nmfRankPlot = nmfNode("div", "nmf-plot");
+    const nmfRankOutput = nmfNode("div", "nmf-workflow-output");
+    const nmfExportOutput = nmfNode("div", "nmf-workflow-output");
+
+    const rankMin = nmfNumberInput(nmfState.rankMin, { min: 2, max: 8 });
+    const rankMax = nmfNumberInput(nmfState.rankMax, { min: 2, max: 8 });
+    const rankRuns = nmfNumberInput(nmfState.rankRuns, { min: 1, max: 5 });
+    const rankIterations = nmfNumberInput(nmfState.rankIterations, { min: 80, max: 300, step: 20 });
+    const rankCriterion = nmfSelect(
+      [
+        ["reconstruction_error", "Lowest reconstruction error"],
+        ["cophenetic", "Highest cophenetic correlation"],
+        ["silhouette", "Highest silhouette score"],
+      ],
+      nmfState.rankCriterion
+    );
+    const exportMin = nmfNumberInput(nmfState.exportMinimumSignatures, { min: 1, max: 8 });
+    const exportMax = nmfNumberInput(nmfState.exportMaximumSignatures, { min: 2, max: 10 });
+    const exportReplicates = nmfSelect([["50", "50"], ["100", "100"], ["200", "200"]], nmfState.exportReplicates);
+    const runRankGrid = nmfButton("Run rank grid", "primary");
+
+    function applyRankControlChanges() {
+      nmfState.rankMin = Math.max(2, Math.round(Number(rankMin.value || 2)));
+      nmfState.rankMax = Math.max(nmfState.rankMin, Math.round(Number(rankMax.value || nmfState.rankMin)));
+      nmfState.rankRuns = Math.max(1, Math.round(Number(rankRuns.value || 1)));
+      nmfState.rankIterations = Math.max(80, Math.round(Number(rankIterations.value || 140)));
+      nmfState.rankCriterion = rankCriterion.value;
+      rankMin.value = String(nmfState.rankMin);
+      rankMax.value = String(nmfState.rankMax);
+      rankRuns.value = String(nmfState.rankRuns);
+      rankIterations.value = String(nmfState.rankIterations);
+      nmfApp.rankSelection = null;
+    }
+
+    function applyExportControlChanges() {
+      nmfState.exportMinimumSignatures = Math.max(1, Math.round(Number(exportMin.value || 1)));
+      nmfState.exportMaximumSignatures = Math.max(
+        nmfState.exportMinimumSignatures,
+        Math.round(Number(exportMax.value || nmfState.exportMinimumSignatures))
+      );
+      nmfState.exportReplicates = Math.max(1, Math.round(Number(exportReplicates.value || 100)));
+      exportMin.value = String(nmfState.exportMinimumSignatures);
+      exportMax.value = String(nmfState.exportMaximumSignatures);
+      exportReplicates.value = String(nmfState.exportReplicates);
+    }
+
+    [rankMin, rankMax, rankRuns, rankIterations, rankCriterion].forEach((control) => {
+      control.addEventListener("change", async () => {
+        applyRankControlChanges();
+        await nmfApp.renderers.rankExport();
+      });
+    });
+    [exportMin, exportMax, exportReplicates].forEach((control) => {
+      control.addEventListener("change", async () => {
+        applyExportControlChanges();
+        await nmfApp.renderers.rankExport();
+      });
+    });
+    runRankGrid.addEventListener("click", async () => {
+      applyRankControlChanges();
+      await nmfRunRankGrid();
+    });
+
+    nmfRankControls.append(
+      nmfField("Minimum rank", rankMin, "Smallest candidate rank in the browser grid."),
+      nmfField("Maximum rank", rankMax, "Largest candidate rank in the browser grid."),
+      nmfField("Grid starts", rankRuns, "Random starts per candidate rank."),
+      nmfField("Grid iterations", rankIterations, "Iteration limit per candidate rank."),
+      nmfField("Rank criterion", rankCriterion, "Criterion used to mark the recommended rank.")
+    );
+    nmfExportControls.append(
+      nmfField("Minimum signatures", exportMin, "Lower bound for the production extraction run."),
+      nmfField("Maximum signatures", exportMax, "Upper bound for the production extraction run."),
+      nmfField("Production replicates", exportReplicates, "Replicate count saved in the handoff metadata.")
+    );
+    nmfRankActions.append(runRankGrid);
+    nmfRankExportRoot.append(
+      nmfRankControls,
+      nmfRankActions,
+      nmfRankExportStatus,
+      nmfRankPlot,
+      nmfRankOutput,
+      nmfExportControls,
+      nmfExportOutput
+    );
+    nmfApp.statuses.rankExport = nmfRankExportStatus;
+
+    nmfApp.renderers.rankExport = async () => {
+      applyExportControlChanges();
+      if (!nmfApp.result) {
+        nmfStatus(nmfRankExportStatus, "Extraction required", "Run the discovery screen before comparing ranks or exporting review bundles.", "warning");
+        nmfRankPlot.replaceChildren(nmfEmpty("No rank diagnostics are available yet."));
+        nmfRankOutput.replaceChildren();
+        nmfExportOutput.replaceChildren();
+        return;
+      }
+
+      if (nmfApp.rankSelection) {
+        nmfStatus(
+          nmfRankExportStatus,
+          `Recommended rank ${nmfApp.rankSelection.recommendedRank}`,
+          `Criterion: ${nmfApp.rankSelection.rankSelectionCriterion}. Production extraction should use a broader grid and more starts.`,
+          "success"
+        );
+        nmfRankPlot.replaceChildren();
+        await mSigSDK.signatureExtractionPlots.plotNMFRankSelection(nmfRankPlot, nmfApp.rankSelection);
+        nmfRankOutput.replaceChildren(
+          table(
+            nmfApp.rankSelection.runs.map((run) => ({
+              rank: run.rank,
+              reconstructionError: nmfFormat(run.reconstructionError),
+              meanSampleCosine: nmfFormat(run.averageSampleCosineSimilarity),
+              cophenetic: nmfFormat(run.copheneticCorrelation),
+              silhouette: nmfFormat(run.averageSilhouette),
+              converged: run.converged ? "yes" : "no",
+            })),
+            [
+              { key: "rank", label: "Rank" },
+              { key: "reconstructionError", label: "Reconstruction error" },
+              { key: "meanSampleCosine", label: "Mean sample cosine" },
+              { key: "cophenetic", label: "Cophenetic" },
+              { key: "silhouette", label: "Silhouette" },
+              { key: "converged", label: "Converged" },
+            ],
+            { maxRows: 8 }
+          )
+        );
+      } else {
+        nmfStatus(nmfRankExportStatus, "Rank grid not current", "Run the rank grid for the current extraction settings.", "warning");
+        nmfRankPlot.replaceChildren(nmfEmpty("Rank diagnostics will appear here after the grid run."));
+        nmfRankOutput.replaceChildren();
+      }
+
+      const handoff = mSigSDK.adapters.sigProfilerExtractor.prepareInput(
+        { spectra: nmfGroupedSpectra() },
+        {
+          contexts: nmfApp.contexts,
+          minimumSignatures: nmfState.exportMinimumSignatures,
+          maximumSignatures: nmfState.exportMaximumSignatures,
+          nmfReplicates: nmfState.exportReplicates,
+        }
+      );
+      const handoffRows = handoff.files.map((file) => ({
+        file: file.path,
+        characters: file.text.length,
+        role: "SigProfilerExtractor table-mode input",
+      }));
+      nmfExportOutput.replaceChildren(
+        table(
+          handoffRows,
+          [
+            { key: "file", label: "File" },
+            { key: "characters", label: "Characters" },
+            { key: "role", label: "Role" },
+          ],
+          {
+            maxRows: 4,
+            caption: "The export preserves the screened spectra and production extraction settings.",
+          }
+        ),
+        details("Review bundle contents", {
+          selectedSamples: nmfSelectedSampleNames(),
+          extractionSettings: {
+            rank: nmfState.rank,
+            randomStarts: nmfState.nRuns,
+            maxIterations: nmfState.maxIterations,
+            seed: nmfState.seed,
+          },
+          productionHandoff: {
+            minimumSignatures: nmfState.exportMinimumSignatures,
+            maximumSignatures: nmfState.exportMaximumSignatures,
+            nmfReplicates: nmfState.exportReplicates,
+          },
+        }),
+        downloadMany([
+          ...handoff.files.map((file) => ({
+            filename: file.path.split("/").pop(),
+            text: file.text,
+            label: `Download ${file.path.split("/").pop()}`,
+          })),
+          {
+            filename: "nmf_extraction_bundle.json",
+            type: "json",
+            value: {
+              dataSourceStatus: nmfApp.dataSourceStatus,
+              selectedSamples: nmfSelectedSampleNames(),
+              browserScreen: {
+                settings: {
+                  rank: nmfState.rank,
+                  randomStarts: nmfState.nRuns,
+                  maxIterations: nmfState.maxIterations,
+                  seed: nmfState.seed,
+                },
+                extraction: nmfApp.result,
+                referenceMatches: nmfApp.matches,
+                rankSelection: nmfApp.rankSelection,
+              },
+              productionHandoff: {
+                settings: {
+                  minimumSignatures: nmfState.exportMinimumSignatures,
+                  maximumSignatures: nmfState.exportMaximumSignatures,
+                  nmfReplicates: nmfState.exportReplicates,
+                },
+                manifest: handoff.manifest,
+                pythonSnippet: handoff.pythonSnippet,
+              },
+            },
+            label: "Download NMF review bundle JSON",
+          },
+        ])
+      );
+    };
+
+    display(nmfRankExportRoot);
+    await nmfRunRankGrid();
   </script>
 </notebook>
