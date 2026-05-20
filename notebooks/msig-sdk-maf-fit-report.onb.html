@@ -541,6 +541,152 @@
           flex-wrap: wrap;
           gap: 8px;
         }
+        .maf-bin-overview {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 8px;
+        }
+        .maf-bin-stat {
+          display: grid;
+          gap: 2px;
+          border: 1px solid var(--maf-line);
+          border-radius: 7px;
+          background: #fbfdfc;
+          padding: 10px 12px;
+        }
+        .maf-bin-stat span {
+          color: var(--muted);
+          font-size: 11px;
+          font-weight: 850;
+          letter-spacing: 0;
+          text-transform: uppercase;
+        }
+        .maf-bin-stat strong {
+          color: var(--ink);
+          font-size: 18px;
+          font-weight: 900;
+        }
+        .maf-bin-layout {
+          display: grid;
+          grid-template-columns: minmax(260px, 0.9fr) minmax(360px, 1.1fr);
+          gap: 14px;
+          align-items: start;
+        }
+        @media (max-width: 900px) {
+          .maf-bin-layout {
+            grid-template-columns: 1fr;
+          }
+        }
+        .maf-bin-card {
+          display: grid;
+          gap: 12px;
+          border: 1px solid var(--maf-line);
+          border-radius: 8px;
+          background: #fbfdfc;
+          padding: 16px;
+        }
+        .maf-bin-card h4 {
+          margin: 0;
+          color: var(--ink);
+          font-size: 15px;
+        }
+        .maf-bin-value {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          border: 1px solid var(--teal);
+          border-radius: 8px;
+          background: #edf7f7;
+          color: var(--teal);
+          font-size: 18px;
+          font-weight: 900;
+          padding: 8px 10px;
+          overflow-wrap: anywhere;
+        }
+        .maf-bin-value.warning {
+          border-color: var(--coral);
+          background: #fff3ec;
+          color: #9a3412;
+        }
+        .maf-bin-meta {
+          display: grid;
+          gap: 8px;
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+        .maf-bin-meta div {
+          display: grid;
+          gap: 2px;
+        }
+        .maf-bin-meta span {
+          color: var(--muted);
+          font-size: 11px;
+          font-weight: 850;
+          letter-spacing: 0;
+          text-transform: uppercase;
+        }
+        .maf-bin-meta strong {
+          color: var(--ink);
+          font-size: 13px;
+          font-weight: 850;
+          overflow-wrap: anywhere;
+        }
+        .maf-bin-list {
+          display: grid;
+          gap: 8px;
+        }
+        .maf-bin-list-row {
+          display: grid;
+          grid-template-columns: minmax(140px, 1fr) minmax(130px, 0.7fr) auto;
+          gap: 10px;
+          align-items: center;
+        }
+        .maf-bin-bar {
+          height: 8px;
+          border-radius: 999px;
+          background: #d8ece9;
+          overflow: hidden;
+        }
+        .maf-bin-bar span {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: var(--teal);
+        }
+        .maf-bin-label {
+          color: var(--ink);
+          font-size: 13px;
+          font-weight: 850;
+          overflow-wrap: anywhere;
+        }
+        .maf-bin-count {
+          color: var(--muted);
+          font-size: 12px;
+          font-weight: 850;
+          text-align: right;
+          white-space: nowrap;
+        }
+        .maf-trace-details {
+          border: 1px solid var(--maf-line);
+          border-radius: 8px;
+          background: #fbfdfc;
+          overflow: hidden;
+        }
+        .maf-trace-details summary {
+          cursor: pointer;
+          color: var(--ink);
+          font-size: 14px;
+          font-weight: 850;
+          list-style-position: inside;
+          padding: 12px 14px;
+        }
+        .maf-trace-details[open] summary {
+          border-bottom: 1px solid var(--maf-line);
+        }
+        .maf-trace-details .msigsdk-output-table-wrap {
+          border: 0;
+          border-radius: 0;
+          margin: 0;
+        }
       `;
       document.head.append(style);
     }
@@ -1922,6 +2068,116 @@
       return [...counts.values()].sort((a, b) => b.count - a.count || a.sample.localeCompare(b.sample)).slice(0, 20);
     }
 
+    function binningStats() {
+      const countedRows = state.trace.filter((row) => row.counted).length;
+      const skippedRows = Math.max(0, state.trace.length - countedRows);
+      const uniqueBins = new Set(state.trace.filter((row) => row.counted).map((row) => row.finalBin)).size;
+      return [
+        { label: "Rows counted", value: countedRows },
+        { label: "Rows skipped", value: skippedRows },
+        { label: "Non-zero bins", value: uniqueBins },
+        { label: "Profile bins", value: activeContexts().length },
+      ];
+    }
+
+    function renderBinningOverview() {
+      const overview = document.createElement("div");
+      overview.className = "maf-bin-overview";
+      binningStats().forEach(({ label, value }) => {
+        const item = document.createElement("div");
+        item.className = "maf-bin-stat";
+        item.append(
+          Object.assign(document.createElement("span"), { textContent: label }),
+          Object.assign(document.createElement("strong"), { textContent: String(value) })
+        );
+        overview.append(item);
+      });
+      return overview;
+    }
+
+    function metaItem(label, value) {
+      const item = document.createElement("div");
+      item.append(
+        Object.assign(document.createElement("span"), { textContent: label }),
+        Object.assign(document.createElement("strong"), { textContent: String(value || "-") })
+      );
+      return item;
+    }
+
+    function renderSelectedBinCard(traceRow) {
+      const card = document.createElement("div");
+      card.className = "maf-bin-card";
+      const value = document.createElement("div");
+      value.className = `maf-bin-value ${traceRow.counted ? "" : "warning"}`.trim();
+      value.textContent = traceRow.counted ? traceRow.finalBin : "Skipped";
+      const meta = document.createElement("div");
+      meta.className = "maf-bin-meta";
+      meta.append(
+        metaItem("Sample", traceRow.sample),
+        metaItem("Row", traceRow.index + 1),
+        metaItem("Original", traceRow.originalSubstitution),
+        metaItem("Profile change", traceRow.normalizedSubstitution || traceRow.originalChange || "-"),
+        metaItem("Context", traceRow.referenceContext || "-"),
+        metaItem("Status", traceRow.counted ? "counted" : traceRow.skippedReason)
+      );
+      card.append(
+        Object.assign(document.createElement("h4"), { textContent: "Selected row" }),
+        value,
+        meta
+      );
+      return card;
+    }
+
+    function renderTopBinList(rows) {
+      const card = document.createElement("div");
+      card.className = "maf-bin-card";
+      card.append(Object.assign(document.createElement("h4"), { textContent: `Top ${state.selectedProfile} bins` }));
+      const list = document.createElement("div");
+      list.className = "maf-bin-list";
+      const maxCount = Math.max(1, ...rows.map((row) => row.count));
+      rows.slice(0, 8).forEach((row) => {
+        const item = document.createElement("div");
+        item.className = "maf-bin-list-row";
+        const label = document.createElement("div");
+        label.className = "maf-bin-label";
+        label.textContent = row.profileBin;
+        const bar = document.createElement("div");
+        bar.className = "maf-bin-bar";
+        const fill = document.createElement("span");
+        fill.style.width = `${Math.max(4, Math.round((row.count / maxCount) * 100))}%`;
+        bar.append(fill);
+        const count = document.createElement("div");
+        count.className = "maf-bin-count";
+        count.textContent = `${row.count} row${row.count === 1 ? "" : "s"}`;
+        item.append(label, bar, count);
+        list.append(item);
+      });
+      if (!rows.length) {
+        list.append(note("No counted bins are available for the selected profile."));
+      }
+      card.append(list);
+      return card;
+    }
+
+    function renderTraceDetails(traceRows) {
+      const detailsNode = document.createElement("details");
+      detailsNode.className = "maf-trace-details";
+      const summary = document.createElement("summary");
+      summary.textContent = `Row-level binning trace (${Math.min(50, state.trace.length)} shown)`;
+      detailsNode.append(
+        summary,
+        table(traceRows, [
+          { key: "row", label: "Row" },
+          { key: "sample", label: "Sample" },
+          { key: "originalChange", label: "Original ref>alt" },
+          { key: "normalizedChange", label: "Profile change" },
+          { key: "finalBin", label: `${state.selectedProfile} bin` },
+          { key: "status", label: "Status" },
+        ], { maxRows: 50 })
+      );
+      return detailsNode;
+    }
+
     function renderBinningStep() {
       const panel = document.createElement("section");
       panel.className = "maf-step-panel";
@@ -1932,25 +2188,12 @@
         return panel;
       }
       const traceRow = selectedTrace();
-      const binCard = document.createElement("div");
-      binCard.className = "maf-flow-card";
-      binCard.append(
-        Object.assign(document.createElement("h4"), { textContent: "Selected row bin" }),
-        pillRow([
-          ["Sample", traceRow.sample],
-          ["Final bin", traceRow.counted ? traceRow.finalBin : "skipped"],
-          ["Status", traceRow.counted ? "counted" : traceRow.skippedReason],
-        ], traceRow.counted)
-      );
+      const topBins = countedBinRows();
       const grid = document.createElement("div");
-      grid.className = "maf-two-column";
+      grid.className = "maf-bin-layout";
       grid.append(
-        binCard,
-        table(countedBinRows(), [
-          { key: "sample", label: "Sample" },
-          { key: "profileBin", label: `${state.selectedProfile} bin` },
-          { key: "count", label: "Running count" },
-        ], { title: `Current non-zero ${state.selectedProfile} bins`, maxRows: 20 })
+        renderSelectedBinCard(traceRow),
+        renderTopBinList(topBins)
       );
       const traceRows = state.trace.slice(0, 50).map((row) => ({
         row: row.index + 1,
@@ -1962,16 +2205,9 @@
       }));
       panel.append(
         heading,
-        note("The profile-specific event evidence selects one COSMIC bin. Counted rows increment that bin for their sample."),
+        renderBinningOverview(),
         grid,
-        table(traceRows, [
-          { key: "row", label: "Row" },
-          { key: "sample", label: "Sample" },
-          { key: "originalChange", label: "Original ref>alt" },
-          { key: "normalizedChange", label: "Pyrimidine change" },
-          { key: "finalBin", label: `${state.selectedProfile} bin` },
-          { key: "status", label: "Status" },
-        ], { title: "Per-row binning trace", maxRows: 50 }),
+        renderTraceDetails(traceRows),
         renderStepFooter()
       );
       return panel;
