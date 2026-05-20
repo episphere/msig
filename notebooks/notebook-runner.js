@@ -36,8 +36,8 @@ const DEFAULT_NOTEBOOKS = [
   },
   {
     file: "msig-sdk-qc-walkthrough.onb.html",
-    title: "Known-signature quality check",
-    summary: "Unpack mutation burden, reconstruction, residuals, warnings, and review steps behind a known-signature fit.",
+    title: "Cohort QC triage",
+    summary: "Rank known-signature fits by cohort-level QC concern, then drill into sample burden, reconstruction, residuals, warnings, and next steps.",
     workflowGroup: "core",
     workflowGroupLabel: "Analyze Data",
   },
@@ -51,7 +51,7 @@ const DEFAULT_NOTEBOOKS = [
   {
     file: "msig-sdk-panel-evidence-tiers.onb.html",
     title: "Panel/WES evidence review",
-    summary: "Define restricted-assay support tiers and explain why a signature is supported, limited, or not assessable.",
+    summary: "Review panel/WES signature calls with assay coverage, mutation-count, and support-tier evidence.",
     workflowGroup: "core",
     workflowGroupLabel: "Analyze Data",
   },
@@ -72,7 +72,7 @@ const DEFAULT_NOTEBOOKS = [
   {
     file: "msig-sdk-multi-engine-comparison.onb.html",
     title: "Multi-tool comparison",
-    summary: "Compare fitting engines on identical spectra and inspect package-level and sample-level disagreements.",
+    summary: "Triage fitting-engine disagreements on identical spectra with a compact concordance and selected-sample review surface.",
     workflowGroup: "reliability",
     workflowGroupLabel: "Review And Report",
   },
@@ -82,13 +82,6 @@ const DEFAULT_NOTEBOOKS = [
     summary: "Turn a completed signature fit into a reviewable archive with selected report sections, provenance, audit checks, and downloads.",
     workflowGroup: "reliability",
     workflowGroupLabel: "Review And Report",
-  },
-  {
-    file: "msig-sdk-experimental-sandbox.onb.html",
-    title: "Experimental sandbox",
-    summary: "Expose experimental workflow status, warnings, limits, and validation requirements before any output is trusted.",
-    workflowGroup: "advanced",
-    workflowGroupLabel: "Experimental",
   },
 ];
 
@@ -121,8 +114,8 @@ function normalizeNotebookEntry(entry) {
     title: entry.title || entry.file,
     summary: entry.summary || "Runnable mSigSDK workflow.",
     image: entry.image || null,
-    workflowGroup: entry.workflowGroup || "advanced",
-    workflowGroupLabel: entry.workflowGroupLabel || "Advanced or experimental",
+    workflowGroup: entry.workflowGroup || "reliability",
+    workflowGroupLabel: entry.workflowGroupLabel || "Review And Report",
   };
 }
 
@@ -683,7 +676,10 @@ function inferTableDescription(data, columns) {
 }
 
 function table(rows, columns = null, options = {}) {
-  const maxRows = Number.isFinite(options.maxRows) ? options.maxRows : 12;
+  const pageSize = Math.max(
+    1,
+    Math.floor(Number.isFinite(options.pageSize) ? options.pageSize : Number.isFinite(options.maxRows) ? options.maxRows : 12)
+  );
   const data = Array.isArray(rows) ? rows : [];
   const wrapper = document.createElement("div");
   wrapper.className = "output-table-wrap";
@@ -717,6 +713,8 @@ function table(rows, columns = null, options = {}) {
     }));
   const tableElement = document.createElement("table");
   tableElement.className = "output-table";
+  tableElement.dataset.runnerManagedTable = "true";
+  tableElement.dataset.pageSize = String(pageSize);
   if (tableCaption) {
     const caption = tableElement.createCaption();
     caption.textContent = tableCaption;
@@ -733,32 +731,155 @@ function table(rows, columns = null, options = {}) {
   tableElement.append(thead);
 
   const tbody = document.createElement("tbody");
-  data.slice(0, maxRows).forEach((row) => {
-    const tr = document.createElement("tr");
-    normalizedColumns.forEach((column) => {
-      const key = typeof column === "string" ? column : column.key;
-      const formatter = typeof column === "object" ? column.format : null;
-      const td = document.createElement("td");
-      const value = row?.[key];
-      td.textContent = formatter ? formatter(value, row) : formatCell(value);
-      tr.append(td);
+  let pageIndex = 0;
+  const pageCount = Math.max(1, Math.ceil(data.length / pageSize));
+  let pageStatus = null;
+  let previousButton = null;
+  let nextButton = null;
+
+  function renderPage() {
+    const start = pageIndex * pageSize;
+    const end = Math.min(start + pageSize, data.length);
+    tbody.replaceChildren();
+    data.slice(start, end).forEach((row) => {
+      const tr = document.createElement("tr");
+      normalizedColumns.forEach((column) => {
+        const key = typeof column === "string" ? column : column.key;
+        const formatter = typeof column === "object" ? column.format : null;
+        const td = document.createElement("td");
+        const value = row?.[key];
+        td.textContent = formatter ? formatter(value, row) : formatCell(value);
+        tr.append(td);
+      });
+      tbody.append(tr);
     });
-    tbody.append(tr);
-  });
+    if (pageStatus) pageStatus.textContent = `Rows ${start + 1}-${end} of ${data.length}`;
+    if (previousButton) previousButton.disabled = pageIndex === 0;
+    if (nextButton) nextButton.disabled = pageIndex >= pageCount - 1;
+  }
+
   tableElement.append(tbody);
   const scroll = document.createElement("div");
   scroll.className = "output-table-scroll";
   scroll.append(tableElement);
   wrapper.append(scroll);
 
-  if (data.length > maxRows) {
-    const rowCountCaption = document.createElement("p");
-    rowCountCaption.className = "output-caption";
-    rowCountCaption.textContent = `Showing ${maxRows} of ${data.length} rows.`;
-    wrapper.append(rowCountCaption);
+  if (pageCount > 1) {
+    const pagination = document.createElement("div");
+    pagination.className = "output-table-pagination";
+    pageStatus = document.createElement("span");
+    const controls = document.createElement("span");
+    controls.className = "output-table-pagination-controls";
+    previousButton = document.createElement("button");
+    previousButton.type = "button";
+    previousButton.textContent = "Previous";
+    nextButton = document.createElement("button");
+    nextButton.type = "button";
+    nextButton.textContent = "Next";
+    previousButton.addEventListener("click", () => {
+      if (pageIndex > 0) {
+        pageIndex -= 1;
+        renderPage();
+      }
+    });
+    nextButton.addEventListener("click", () => {
+      if (pageIndex < pageCount - 1) {
+        pageIndex += 1;
+        renderPage();
+      }
+    });
+    controls.append(previousButton, nextButton);
+    pagination.append(pageStatus, controls);
+    wrapper.append(pagination);
   }
 
+  renderPage();
+
   return wrapper;
+}
+
+function enhanceStaticTablePagination(scope = root) {
+  const tables = Array.from(scope.querySelectorAll("table"));
+  tables.forEach((tableElement) => {
+    if (
+      tableElement.dataset.runnerManagedTable === "true" ||
+      tableElement.dataset.msigsdkManagedTable === "true" ||
+      tableElement.dataset.notebookTableEnhanced === "true"
+    ) {
+      return;
+    }
+    const tbody = tableElement.tBodies?.[0];
+    const rows = Array.from(tbody?.rows || []);
+    const pageSize = Math.max(1, Math.floor(Number(tableElement.dataset.pageSize) || 12));
+    if (rows.length <= pageSize) return;
+
+    tableElement.dataset.notebookTableEnhanced = "true";
+    const container =
+      tableElement.closest(
+        ".output-table-scroll, .msigsdk-output-table-scroll, .markdown-table-wrap, .packet-table-wrap, .maf-row-table-wrap, .cohort-panel-table-wrap"
+      ) || tableElement.parentElement;
+    if (container) {
+      container.classList.add("notebook-table-scroll");
+    }
+
+    let pageIndex = 0;
+    const pageCount = Math.ceil(rows.length / pageSize);
+    const pagination = document.createElement("div");
+    pagination.className = "notebook-table-pagination";
+    const status = document.createElement("span");
+    const controls = document.createElement("span");
+    controls.className = "notebook-table-pagination-controls";
+    const previousButton = document.createElement("button");
+    previousButton.type = "button";
+    previousButton.textContent = "Previous";
+    const nextButton = document.createElement("button");
+    nextButton.type = "button";
+    nextButton.textContent = "Next";
+
+    function renderPage() {
+      const start = pageIndex * pageSize;
+      const end = Math.min(start + pageSize, rows.length);
+      rows.forEach((row, index) => {
+        row.hidden = index < start || index >= end;
+      });
+      status.textContent = `Rows ${start + 1}-${end} of ${rows.length}`;
+      previousButton.disabled = pageIndex === 0;
+      nextButton.disabled = pageIndex >= pageCount - 1;
+    }
+
+    previousButton.addEventListener("click", () => {
+      if (pageIndex > 0) {
+        pageIndex -= 1;
+        renderPage();
+      }
+    });
+    nextButton.addEventListener("click", () => {
+      if (pageIndex < pageCount - 1) {
+        pageIndex += 1;
+        renderPage();
+      }
+    });
+
+    controls.append(previousButton, nextButton);
+    pagination.append(status, controls);
+    (container || tableElement).after(pagination);
+    renderPage();
+  });
+}
+
+function startTablePaginationObserver() {
+  let scheduled = false;
+  const schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(() => {
+      scheduled = false;
+      enhanceStaticTablePagination(root);
+    });
+  };
+  const observer = new MutationObserver(schedule);
+  observer.observe(root, { childList: true, subtree: true });
+  schedule();
 }
 
 function details(label, value, options = {}) {
@@ -1124,6 +1245,7 @@ resetButton.addEventListener("click", async () => {
 });
 
 async function initNotebookRunner() {
+  startTablePaginationObserver();
   state.notebooks = await loadNotebookManifest();
   await loadNotebook(getRequestedNotebook());
 }

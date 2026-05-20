@@ -9,7 +9,7 @@ With **mSigSDK**, researchers can:
 - Import local spectra or MAF-like rows for client-side validation, fitting, QC, and reporting.
 - Run burden-aware fitting and exploratory discovery workflows with QC evidence, caveats, and next recommended actions.
 - Exchange spectra, signatures, and exposures with SigProfiler-style, COSMIC-style, and MuSiCal-compatible tabular formats.
-- Launch optional browser-Pyodide adapters for matrix-mode SigProfilerAssignment and MuSiCal-compatible refit review when the required Python packages are available.
+- Launch optional browser Pyodide and WebR runners for compatible package execution, including matrix-mode SigProfilerAssignment, WebR-backed deconstructSigs and sigminer checks, and MuSiCal-compatible refit review when required package assets are available.
 - Prepare matched handoff bundles for SigProfilerAssignment, SigProfilerExtractor, sigProfilerPlotting, deconstructSigs, sigminer, and MuSiCal from the same spectra and signature catalog, plus standalone handoff inputs for SigProfilerMatrixGenerator, SigProfilerSimulator, and SigProfilerClusters.
 - Generate portable reports with provenance metadata and JSON Schema validation.
 
@@ -19,12 +19,12 @@ With **mSigSDK**, researchers can:
 
 - **Client-Side Computation**: User-supplied spectra can be validated, fitted, assessed, and visualized client-side after import.
 - **Modular Design**: Adheres to ECMAScript ES6 standards, enabling easy integration and extension.
-- **Visualizations**: Supports mSigPortal-style profile plots, D3 QC/workflow panels, and selected Plotly/AMCharts visualizations.
+- **Visualizations**: Supports mSigPortal-style profile plots, D3 QC/workflow panels, and selected Plotly/AMCharts visualizations with standalone figure captions, context fields, and figure metadata downloads.
 - **Research Guidance**: Provides validated burden-aware strategy advice, fit-quality evidence, signature ambiguity checks, and catalog-sufficiency warnings.
 - **APIs**: Seamlessly integrates with mSigPortal's REST APIs to fetch mutational signature data and metadata.
 - **Data Boundary**: Public reference data are retrieved through APIs; user-supplied spectra can remain local for supported client-side workflows.
 - **Interoperability**: Supports SigProfiler-style spectra, COSMIC-style signatures, MuSiCal input/output helpers, and report JSON Schema validation.
-- **External Tool Adapters**: Provides an optional Pyodide worker runner, SigProfilerAssignment and SigProfilerExtractor matrix-mode adapters, handoff adapters for SigProfilerMatrixGenerator, SigProfilerSimulator, SigProfilerClusters, sigProfilerPlotting, deconstructSigs, and sigminer, MuSiCal refit adapters, and a multi-tool interoperability bundle with explicit runtime provenance.
+- **External Tool Adapters**: Provides optional Pyodide and WebR runners, SigProfilerAssignment and SigProfilerExtractor matrix-mode adapters, handoff adapters for SigProfilerMatrixGenerator, SigProfilerSimulator, SigProfilerClusters, sigProfilerPlotting, deconstructSigs, and sigminer, MuSiCal-compatible refit adapters, and a multi-tool interoperability bundle with explicit runtime provenance.
 - **Offline Context Path**: MAF conversion can use row-supplied contexts, caller-supplied lookup tables, or bundled smoke-test lookup assets for hg19, hg38, and T2T-CHM13.
 
 ---
@@ -91,7 +91,7 @@ The primary entry points are:
 - `mSigSDK.workflows.runCohortFit(...)` for a spectra matrix and optional metadata.
 - `mSigSDK.workflows.runPanelWorkflow(...)` for panel/WES review with opportunity metadata.
 
-Use `mSigSDK.pipelines` for the full computational API, `mSigSDK.workflows.*Lite` for reduced-option convenience wrappers, and `mSigSDK.experimental` for exploratory workflows that are not validated for manuscript-grade use.
+Use `mSigSDK.pipelines` for the full computational API and `mSigSDK.workflows.*Lite` for reduced-option convenience wrappers.
 
 ---
 
@@ -140,18 +140,17 @@ The focused notebooks in `notebooks/` exercise the current public SDK surface:
 
 - `mSigSDK.validation`: context helpers, matrix normalization, spectra/signature/exposure validation, and MAF-row validation.
 - `mSigSDK.qc`: mutation burden, missing-context summaries, NNLS fitting helpers, residuals, reconstruction error, bootstrap uncertainty, and threshold sensitivity.
-- `mSigSDK.qcPlots`: mutation-burden, reconstruction-error, residual-spectrum, fit-quality evidence dashboard, cohort group-comparison, panel evidence-matrix, bootstrap-interval, and threshold-sensitivity plots.
+- `mSigSDK.qcPlots`: mutation-burden, SBS96 profile, reconstruction-error, residual-spectrum, fit-quality evidence dashboard, cohort group-comparison, panel evidence-matrix, bootstrap-interval, bootstrap-summary, and threshold-sensitivity plots.
 - `mSigSDK.signatureExtraction`: browser NMF extraction, rank selection by reconstruction error, cophenetic correlation, or silhouette, Web Worker extraction, matrix conversion, and reference matching.
 - `mSigSDK.signatureExtractionPlots`: extracted profile, exposure heatmap, and rank-diagnostic plots.
 - `mSigSDK.io`: generic TSV export/import plus SigProfiler, COSMIC, and MuSiCal matrix round trips.
-- `mSigSDK.runners`: optional Pyodide Web Worker execution for browser-side Python packages, including `runners.pyodide.runPython(code, { inputs })`.
+- `mSigSDK.runners`: optional Pyodide Web Worker execution for browser-side Python packages and WebR execution for compatible R package builds.
 - `mSigSDK.adapters`: SigProfilerAssignment, SigProfilerExtractor, SigProfilerMatrixGenerator, SigProfilerSimulator, SigProfilerClusters, sigProfilerPlotting, deconstructSigs, sigminer, and MuSiCal adapters that prepare canonical files, execute optional runtimes where supported, parse compatible output tables, and return provenance-rich outputs.
-- `mSigSDK.reports`, `mSigSDK.provenance`, and `mSigSDK.workflows`: structured reports, reproducibility metadata, and high-level signature-fitting or NMF workflows.
+- `mSigSDK.reports`, `mSigSDK.provenance`, and `mSigSDK.workflows`: structured reports, reproducibility metadata, MAF-to-spectra conversion, high-level signature-fitting workflows, and browser-sized NMF workflows.
 - `mSigSDK.presentation`: reusable browser output helpers for metric cards, tables, notes, expandable object details, and compact rows derived from common SDK result objects.
-- `mSigSDK.advisor`: validated burden-aware strategy recommendations, signature ambiguity screening, catalog-sufficiency checks, and fit-quality evidence reports, plus experimental group-comparison and restricted-assay evidence summaries that warn on use.
+- `mSigSDK.advisor`: validated burden-aware strategy recommendations, signature ambiguity screening, catalog-sufficiency checks, and fit-quality evidence reports.
 - `mSigSDK.quickstart`: compact aliases for the beginner-facing workflow wrappers.
 - `mSigSDK.pipelines`: full computational `runSingleSampleFit`, `runCohortFit`, `runDiscoveryWorkflow`, and `runPanelWorkflow` entry points.
-- `mSigSDK.experimental`: localized-mutagenesis and subgroup-discovery pipelines reserved for future validation.
 
 ### Optional External Tool Adapters
 
@@ -294,7 +293,7 @@ console.log(result.fitQualityEvidence.samples[0].reportingMode);
 console.log(result.recommendedActions);
 ```
 
-Every stable pipeline returns a versioned result object with a shared top-level frame: `schemaVersion`, `workflow`, `workflowRole`, `scopeStatement`, `methodBasis`, `primaryInterpretationFields`, `parameters`, `validation`, `qc`, `fit` or `extraction` or `panel`, `warnings`, `recommendedActions`, `publicationFigures`, and `provenance`. Core pipeline-specific details live in nested objects such as `panel` or `discovery`; experimental localized-mutagenesis output uses a `localized` block.
+Every stable pipeline returns a versioned result object with a shared top-level frame: `schemaVersion`, `workflow`, `workflowRole`, `scopeStatement`, `methodBasis`, `primaryInterpretationFields`, `parameters`, `validation`, `qc`, `fit` or `extraction` or `panel`, `warnings`, `recommendedActions`, `publicationFigures`, and `provenance`. Core pipeline-specific details live in nested objects such as `panel` or `discovery`.
 
 v0.3 expands the cohort and panel paths:
 
@@ -323,7 +322,7 @@ const panel = await mSigSDK.pipelines.runPanelWorkflow(
 );
 ```
 
-The cohort workflow returns sample-level refits, fit-quality evidence, and metadata-stratified exposure comparisons. The panel/WES workflow returns opportunity normalization status, signature-specific restricted-assay evidence, evidence tiers, and an evidence summary. Subgroup extraction and localized-mutagenesis pipelines live under `mSigSDK.experimental` and emit console warnings because they are not part of the manuscript-validated advisor surface.
+The cohort workflow returns sample-level refits, fit-quality evidence, cohort similarity structure, and metadata-stratified exposure comparisons. The panel/WES workflow returns opportunity normalization status, signature-specific restricted-assay evidence, evidence tiers, and an evidence summary.
 
 ### QC and Uncertainty
 
@@ -356,7 +355,7 @@ const thresholdSensitivity = await mSigSDK.qc.runThresholdSensitivity(
 );
 ```
 
-Plot wrappers are available under `mSigSDK.qcPlots`, including D3 mutation burden summaries, reconstruction error, bootstrap confidence intervals, and threshold sensitivity. SBS96 observed-vs-reconstructed residual comparisons reuse the established mSigPortal mutational spectrum renderer.
+Plot wrappers are available under `mSigSDK.qcPlots`, including D3 mutation burden summaries, reconstruction error, bootstrap confidence intervals, and threshold sensitivity. SBS96 observed-vs-reconstructed residual comparisons reuse the established mSigPortal mutational spectrum renderer. Public plot helpers accept optional `figureContext` or `publication` metadata so exported figures identify the dataset, sample or cohort scope, profile/matrix, signature catalog, and method settings without surrounding notebook text.
 
 ### NMF Signature Extraction
 
@@ -391,11 +390,17 @@ The SDK includes focused Observable Kit notebooks for browser testing without lo
 
 - Hosted notebook gallery: <https://episphere.github.io/msig/notebooks/viewer.html>
 - `notebooks/msig-sdk-notebooks.onb.html`: index of focused notebooks.
-- `notebooks/msig-sdk-qc-walkthrough.onb.html`: known-signature fitting QC.
-- `notebooks/msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals and threshold sensitivity.
-- `notebooks/msig-sdk-nmf-extraction.onb.html`: browser-sized NMF extraction and rank diagnostics.
-- `notebooks/msig-sdk-export-report.onb.html`: import/export, reports, provenance, and workflow helpers.
+- `notebooks/msig-sdk-end-to-end-workflow.onb.html`: complete fit-review-export arc.
+- `notebooks/msig-sdk-public-cohort-exploration.onb.html`: mSigPortal and TCGA/GDC public dataset discovery.
 - `notebooks/msig-sdk-resource-portability.onb.html`: mSigPortal, TCGA/GDC, matrix portability, and provenance.
+- `notebooks/msig-sdk-maf-fit-report.onb.html`: raw variant rows to checked SBS96 spectra.
+- `notebooks/msig-sdk-qc-walkthrough.onb.html`: known-signature fitting QC and cohort triage.
+- `notebooks/msig-sdk-cohort-panel-workflow.onb.html`: cohort metadata, group interpretation, and restricted-assay review.
+- `notebooks/msig-sdk-panel-evidence-tiers.onb.html`: panel/WES support tiers and assay-coverage evidence.
+- `notebooks/msig-sdk-nmf-extraction.onb.html`: browser-sized NMF extraction and rank diagnostics.
+- `notebooks/msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals and threshold sensitivity.
+- `notebooks/msig-sdk-export-report.onb.html`: report packet builder with provenance and audit checks.
+- `notebooks/msig-sdk-multi-engine-comparison.onb.html`: shared-input comparison across supported fitting engines and handoff paths.
 
 The notebooks use `mSigSDK.presentation` rather than notebook-local display code, so the same compact metric cards, tables, notes, and expandable object summaries can be reused in other browser applications:
 
@@ -414,7 +419,8 @@ document.body.append(
 
 ### Project and Manuscript Notes
 
-- `docs/MSIGSDK_FEATURE_REFERENCE.md`: source-grounded public API feature reference.
+- `docs/MSIGSDK_FEATURE_REFERENCE.html`: rendered source-grounded public API feature reference.
+- `docs/MSIGSDK_FEATURE_REFERENCE.md`: Markdown source for the rendered feature reference.
 - `docs/project/MEMORY.md`: durable project context, priorities, and development notes.
 - `docs/manuscript/manuscript/`: current manuscript drafts.
 - `docs/manuscript/google-doc-tables/`: manuscript-ready HTML tables.

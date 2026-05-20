@@ -111,8 +111,15 @@ const mockedWebRPackages = await checkWebRPackageAvailability(["sigminer", "nnls
   packageIndexUrls: [`data:text/plain,${encodeURIComponent(mockedWebRPackageIndex)}`],
   repositoryUrl: "https://example.invalid/webr",
 });
-if (!mockedWebRPackages.available) {
+if (typeof fetch === "function" && !mockedWebRPackages.available) {
   throw new Error("Mocked WebR package availability check failed.");
+}
+if (
+  typeof fetch !== "function" &&
+  (!mockedWebRPackages.errors?.some((message) => /fetch is not available/.test(message)) ||
+    mockedWebRPackages.status === "available")
+) {
+  throw new Error("Mocked WebR package availability did not report missing fetch support.");
 }
 
 const deconstructWebRAvailability = await checkDeconstructSigsWebRAvailability();

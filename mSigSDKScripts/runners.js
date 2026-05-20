@@ -737,9 +737,12 @@ async function listWebRFiles(webR, directory) {
 function convertWebRResult(value) {
   if (value && typeof value.toJs === "function") {
     try {
-      const converted = value.toJs({ dict_converter: Object.fromEntries });
+      const converted = value.toJs();
       if (typeof value.destroy === "function") {
         value.destroy();
+      }
+      if (converted instanceof Map) {
+        return Object.fromEntries(converted);
       }
       return converted;
     } catch (_error) {

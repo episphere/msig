@@ -218,6 +218,7 @@ async function loadPublicSbs96Dataset(mSigSDK, options = {}) {
 
   async function loadSelection(selection, alternateReason = "") {
     const sampleLimit = Math.max(1, Math.round(Number(selection.sampleLimit || 8)));
+    const explicitSampleNames = Array.isArray(selection.sampleNames);
     let sampleNames = Array.isArray(selection.sampleNames)
       ? selection.sampleNames.slice(0, sampleLimit)
       : [];
@@ -252,10 +253,11 @@ async function loadPublicSbs96Dataset(mSigSDK, options = {}) {
       );
     }
 
+    const useCohortSpectrumFetch = !explicitSampleNames || sampleNames.length > 50;
     const [rawSpectrumRows, rawSignatureRows] = await Promise.all([
       mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
         selection.study,
-        sampleNames,
+        useCohortSpectrumFetch ? null : sampleNames,
         selection.genomeDataType,
         selection.cancerType,
         selection.mutationType,
@@ -364,10 +366,29 @@ async function loadPublicSbs96Dataset(mSigSDK, options = {}) {
   }
 }
 
+function selectVariantRowsAcrossSamples(rows = [], maxVariants = 120) {
+  const grouped = new Map();
+  for (const row of rows) {
+    const sample = row?.sample || row?.file_id || "tcga_sample";
+    if (!grouped.has(sample)) grouped.set(sample, []);
+    grouped.get(sample).push(row);
+  }
+  const selected = [];
+  const groups = [...grouped.values()];
+  let offset = 0;
+  while (selected.length < maxVariants && groups.some((group) => offset < group.length)) {
+    for (const group of groups) {
+      if (selected.length >= maxVariants) break;
+      if (offset < group.length) selected.push(group[offset]);
+    }
+    offset += 1;
+  }
+  return selected;
+}
+
 function standardizeTcgaVariantRows(rows = [], maxVariants = 120) {
-  return rows
+  return selectVariantRowsAcrossSamples(rows, maxVariants)
     .filter((row) => row?.chromosome && row?.chromosome_start)
-    .slice(0, maxVariants)
     .map((row, index) => ({
       id:
         row.id ||
@@ -381,6 +402,7 @@ function standardizeTcgaVariantRows(rows = [], maxVariants = 120) {
       variant_type: row.mutation_type || "SNP",
       mutation_classification: row.mutation_classification || "",
       build: row.build || "hg19",
+      context: row.context || row.trinucleotide_context || row.sequence_context || row.context_sequence || "",
       position: Number(row.chromosome_start) || index + 1,
       source: "TCGA/GDC MAF",
     }));

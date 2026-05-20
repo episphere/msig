@@ -32,10 +32,6 @@ Each notebook should read as a stepwise researcher workflow. Narrative cells sho
 - `msig-sdk-export-report.onb.html`: focused report-packet builder for selected report sections, provenance, audit checks, and reproducibility downloads.
 - `msig-sdk-multi-engine-comparison.onb.html`: shared-input disagreement triage for mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls outputs.
 
-### Advanced or experimental
-
-- `msig-sdk-experimental-sandbox.onb.html`: experimental localized-mutagenesis workflow with explicit status, warnings, and validation roadmap.
-
 ## Local Use
 
 Start the local SDK server:

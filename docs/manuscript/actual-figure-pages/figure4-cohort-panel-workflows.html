@@ -22,14 +22,14 @@
 </head>
 <body>
   <h1>Figure 4. Cohort and panel workflows</h1>
-  <p class="subtitle">mSigSDK v0.3 outputs from PCAWG Lung-AdenoCA spectra: group exposure comparison, subgroup extraction/refit summary, PCAWG-derived panel downsampling evidence matrix, and cohort fit-quality summary.</p>
+  <p class="subtitle">mSigSDK v0.3 outputs from PCAWG Lung-AdenoCA spectra: group exposure comparison, subgroup-structure review, PCAWG-derived panel downsampling evidence matrix, and cohort fit-quality summary.</p>
   <div id="status" class="status">Loading mSigSDK and figure data...</div>
   <div class="grid">
 
     <section class="panel wide"><p class="panel-title">A. Metadata-stratified exposure comparison</p><div id="fig4Group"></div></section>
     <section class="panel wide"><p class="panel-title">B. Panel/WES evidence matrix</p><div id="fig4Panel"></div></section>
     <section class="panel"><p class="panel-title">C. Cohort fit-quality summary</p><div id="fig4FitQuality"></div></section>
-    <section class="panel"><p class="panel-title">D. Subgroup extraction and matched refitting summary</p><div id="fig4Subgroups"></div></section>
+    <section class="panel"><p class="panel-title">D. Cohort subgroup-structure review</p><div id="fig4Subgroups"></div></section>
   </div>
   <script type="module">
 
@@ -297,28 +297,13 @@ try {
     runSubgroupDiscovery: false,
   });
   await mSigSDK.qcPlots.plotPanelEvidenceMatrix(document.getElementById("fig4Panel"), panel);
-  const subgroupSamples = selected.slice(0, 8);
-  const subgroup = await mSigSDK.experimental.runSubgroupDiscoveryWorkflow({
-    spectra: subsetObject(spectra, subgroupSamples),
-    signatures,
-    subgroups: [{ clusterId: "high_burden_subset", samples: subgroupSamples }],
-  }, {
-    contexts: data.contexts,
-    rank: 2,
-    nRuns: 2,
-    maxIterations: 80,
-    minSubgroupSamples: 5,
-    minMedianBurden: 100,
-  });
   rowsToTable("fig4Subgroups",
-    ["Subgroup", "Samples", "Median burden", "Status", "Rank", "Shortlisted references"],
-    subgroup.subgroups.map((row) => [
-      row.subgroupId || "subgroup",
+    ["Similarity group", "Samples", "Status", "Minimum review size"],
+    cohort.subgroupReview.subgroups.map((row, index) => [
+      row.clusterId || `group_${index + 1}`,
       row.sampleCount,
-      Math.round(row.medianMutationBurden || 0),
-      row.status,
-      row.rank || "NA",
-      (row.shortlistedSignatureNames || []).slice(0, 5).join(", ") || "NA",
+      cohort.subgroupReview.status,
+      cohort.subgroupReview.summary.minSubgroupSamples,
     ])
   );
   setStatus("Rendered Figure 4 v0.3 cohort and panel workflows for " + selected.length + " PCAWG Lung-AdenoCA samples.");

@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>mSigSDK feature reference</title>
+    <style>
+      :root {
+        --bg: #f7f8f4;
+        --surface: #ffffff;
+        --ink: #16211d;
+        --muted: #61706a;
+        --rule: #d9e2dc;
+        --teal: #168a8c;
+        --green: #2f7d55;
+        --code-bg: #111915;
+        --code-ink: #ecf5ef;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        line-height: 1.55;
+      }
+
+      a {
+        color: var(--teal);
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      code,
+      pre {
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        border-bottom: 1px solid var(--rule);
+        background: rgba(247, 248, 244, 0.94);
+        backdrop-filter: blur(14px);
+      }
+
+      .nav,
+      .page {
+        width: min(1180px, calc(100% - 36px));
+        margin: 0 auto;
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 14px 0;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink);
+        font-weight: 760;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        justify-content: flex-end;
+        font-size: 14px;
+      }
+
+      .page {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+        gap: 34px;
+        padding: 42px 0 64px;
+      }
+
+      .toc {
+        position: sticky;
+        top: 82px;
+        max-height: calc(100vh - 110px);
+        overflow: auto;
+        align-self: start;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--surface);
+        padding: 16px;
+      }
+
+      .toc strong {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 13px;
+        text-transform: uppercase;
+      }
+
+      .toc a {
+        display: block;
+        padding: 5px 0;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .toc .toc-level-3 {
+        padding-left: 12px;
+        font-size: 12px;
+      }
+
+      .content {
+        min-width: 0;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--surface);
+        padding: 34px;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        margin: 0;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        font-size: 46px;
+      }
+
+      h2 {
+        margin-top: 42px;
+        border-top: 1px solid var(--rule);
+        padding-top: 28px;
+        font-size: 30px;
+      }
+
+      h3 {
+        margin-top: 28px;
+        font-size: 22px;
+      }
+
+      h4 {
+        margin-top: 22px;
+        font-size: 18px;
+      }
+
+      h1 + h2,
+      h2:first-child {
+        margin-top: 0;
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      p,
+      ul,
+      ol {
+        color: var(--muted);
+      }
+
+      p {
+        margin: 12px 0;
+      }
+
+      ul,
+      ol {
+        padding-left: 24px;
+      }
+
+      li {
+        margin: 6px 0;
+      }
+
+      code {
+        border-radius: 5px;
+        background: #edf4ef;
+        color: var(--green);
+        padding: 1px 4px;
+        font-size: 0.92em;
+      }
+
+      .code-block {
+        overflow-x: auto;
+        border-radius: 8px;
+        background: var(--code-bg);
+        color: var(--code-ink);
+        padding: 16px;
+      }
+
+      .code-block code {
+        background: transparent;
+        color: inherit;
+        padding: 0;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        margin: 18px 0 26px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 720px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--rule);
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #eef5f1;
+        color: var(--ink);
+        font-size: 13px;
+      }
+
+      td {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      @media (max-width: 900px) {
+        .page {
+          grid-template-columns: 1fr;
+        }
+
+        .toc {
+          position: static;
+          max-height: none;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .nav {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .content {
+          padding: 22px;
+        }
+
+        h1 {
+          font-size: 36px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav" aria-label="Feature reference navigation">
+        <a class="brand" href="../">
+          <span class="brand-mark">mS</span>
+          <span>mSigSDK</span>
+        </a>
+        <div class="nav-links">
+          <a href="./">Docs</a>
+          <a href="../notebooks/viewer.html">Notebooks</a>
+          <a href="https://github.com/episphere/msig">GitHub</a>
+        </div>
+      </nav>
+    </header>
+    <main class="page">
+      <aside class="toc" aria-label="Feature reference table of contents">
+        <strong>Contents</strong>
+        <a class="toc-level-2" href="#scope">Scope</a><a class="toc-level-2" href="#public-namespaces">Public namespaces</a><a class="toc-level-2" href="#beginner-entry-surface-workflows">Beginner entry surface: <code>workflows</code></a><a class="toc-level-2" href="#shared-data-structures">Shared data structures</a><a class="toc-level-3" href="#spectra">Spectra</a><a class="toc-level-3" href="#signatures">Signatures</a><a class="toc-level-3" href="#exposures">Exposures</a><a class="toc-level-3" href="#method-basis-fields">Method-basis fields</a><a class="toc-level-3" href="#shared-workflow-result-frame">Shared workflow result frame</a><a class="toc-level-3" href="#configurable-defaults">Configurable defaults</a><a class="toc-level-2" href="#warning-code-taxonomy">Warning code taxonomy</a><a class="toc-level-3" href="#qc-warning-codes">QC warning codes</a><a class="toc-level-3" href="#advisory-warning-codes">Advisory warning codes</a><a class="toc-level-2" href="#advisor-validation-scope">Advisor validation scope</a><a class="toc-level-2" href="#public-data-access-msigportal-msigportaldata">Public data access: <code>mSigPortal.mSigPortalData</code></a><a class="toc-level-2" href="#public-visualizations-msigportal-msigportalplots">Public visualizations: <code>mSigPortal.mSigPortalPlots</code></a><a class="toc-level-2" href="#local-data-conversion-userdata">Local data conversion: <code>userData</code></a><a class="toc-level-2" href="#tcga-gdc-retrieval-tcga">TCGA/GDC retrieval: <code>TCGA</code></a><a class="toc-level-2" href="#utility-and-machine-learning-helpers">Utility and machine-learning helpers</a><a class="toc-level-2" href="#validation-validation">Validation: <code>validation</code></a><a class="toc-level-2" href="#known-signature-fitting-signaturefitting">Known-signature fitting: <code>signatureFitting</code></a><a class="toc-level-2" href="#qc-and-uncertainty-qc">QC and uncertainty: <code>qc</code></a><a class="toc-level-3" href="#summarizemutationburden-spectra-options"><code>summarizeMutationBurden(spectra, options)</code></a><a class="toc-level-3" href="#selectsamplesbymutationburden-burdensummary-options"><code>selectSamplesByMutationBurden(burdenSummary, options)</code></a><a class="toc-level-3" href="#summarizemissingcontexts-spectra-expectedcontexts-null"><code>summarizeMissingContexts(spectra, { expectedContexts = null })</code></a><a class="toc-level-3" href="#normalizeexposures-exposures-options"><code>normalizeExposures(exposures, options)</code></a><a class="toc-level-3" href="#calculatefitresiduals-signatures-spectra-exposures-options"><code>calculateFitResiduals(signatures, spectra, exposures, options)</code></a><a class="toc-level-3" href="#calculatereconstructionerror-signatures-spectra-exposures-options"><code>calculateReconstructionError(signatures, spectra, exposures, options)</code></a><a class="toc-level-3" href="#fitspectrawithnnls-signatures-spectra-options"><code>fitSpectraWithNNLS(signatures, spectra, options)</code></a><a class="toc-level-3" href="#runthresholdsensitivity-signatures-spectra-options"><code>runThresholdSensitivity(signatures, spectra, options)</code></a><a class="toc-level-3" href="#bootstrapsignaturefit-signatures-spectrum-options"><code>bootstrapSignatureFit(signatures, spectrum, options)</code></a><a class="toc-level-2" href="#qc-plots-qcplots">QC plots: <code>qcPlots</code></a><a class="toc-level-2" href="#advisory-and-interpretation-support-advisor">Advisory and interpretation support: <code>advisor</code></a><a class="toc-level-3" href="#recommendanalysisstrategy-spectra-options"><code>recommendAnalysisStrategy(spectra, options)</code></a><a class="toc-level-3" href="#computesignatureambiguity-signatures-options-computesignatureidentifiability-signatures-options"><code>computeSignatureAmbiguity(signatures, options)</code> / <code>computeSignatureIdentifiability(signatures, options)</code></a><a class="toc-level-3" href="#detectoutofreferencesignal-input-options"><code>detectOutOfReferenceSignal(input, options)</code></a><a class="toc-level-3" href="#computefitqualityevidence-input-options"><code>computeFitQualityEvidence(input, options)</code></a><a class="toc-level-2" href="#high-level-pipelines-pipelines">High-level pipelines: <code>pipelines</code></a><a class="toc-level-3" href="#runsinglesamplefit-input-options"><code>runSingleSampleFit(input, options)</code></a><a class="toc-level-3" href="#runcohortfit-input-options"><code>runCohortFit(input, options)</code></a><a class="toc-level-3" href="#rundiscoveryworkflow-input-options"><code>runDiscoveryWorkflow(input, options)</code></a><a class="toc-level-3" href="#runpanelworkflow-input-options"><code>runPanelWorkflow(input, options)</code></a><a class="toc-level-2" href="#report-assembly-workflows-workflows">Report-assembly workflows: <code>workflows</code></a><a class="toc-level-3" href="#analyzemaffiles-context-metadata"><code>analyzeMafFiles</code> context metadata</a><a class="toc-level-2" href="#signature-extraction-signatureextraction">Signature extraction: <code>signatureExtraction</code></a><a class="toc-level-2" href="#signature-extraction-plots-signatureextractionplots">Signature extraction plots: <code>signatureExtractionPlots</code></a><a class="toc-level-2" href="#interoperability-io">Interoperability: <code>io</code></a><a class="toc-level-2" href="#optional-external-runtimes-runners">Optional external runtimes: <code>runners</code></a><a class="toc-level-2" href="#external-tool-adapters-adapters">External tool adapters: <code>adapters</code></a><a class="toc-level-2" href="#reports-reports">Reports: <code>reports</code></a><a class="toc-level-3" href="#createanalysisreport-reportinput-format-object"><code>createAnalysisReport(reportInput, { format = &quot;object&quot; })</code></a><a class="toc-level-3" href="#other-report-functions">Other report functions</a><a class="toc-level-2" href="#provenance-provenance">Provenance: <code>provenance</code></a><a class="toc-level-2" href="#presentation-helpers-presentation">Presentation helpers: <code>presentation</code></a><a class="toc-level-2" href="#literature-support">Literature support</a><a class="toc-level-2" href="#interpretation-boundaries">Interpretation boundaries</a>
+      </aside>
+      <article class="content">
+        <h1 id="msigsdk-feature-reference">mSigSDK feature reference</h1>
+<h2 id="scope">Scope</h2>
+<p>This document describes the public mSigSDK 0.3.0 browser API exposed by <code>main.js</code>. It covers every public namespace, every public feature, accepted inputs, configurable parameters, returned outputs, interpretation boundaries, warning semantics, and literature support.</p>
+<p>mSigSDK is a browser-native workflow and software-integration SDK for mutational-signature analysis. It does not replace production extraction or assignment engines. Its analytical outputs are research-use review artifacts that are conditional on the supplied spectra, reference catalog, context basis, assay territory, and configured thresholds.</p>
+<h2 id="public-namespaces">Public namespaces</h2>
+<p>The top-level object returned by the SDK contains:</p>
+<div class="table-wrap"><table><thead><tr><th>Namespace</th><th>Purpose</th></tr></thead><tbody><tr><td><code>name</code></td><td>SDK name string.</td></tr>
+<tr><td><code>version</code></td><td>SDK version string. Current code reports <code>0.3.0</code>.</td></tr>
+<tr><td><code>quickstart</code></td><td>Compact aliases for first-use workflow wrappers. The primary documented happy path is <code>workflows</code>.</td></tr>
+<tr><td><code>mSigPortal</code></td><td>Public mSigPortal data access and mSigPortal-style plots.</td></tr>
+<tr><td><code>userData</code></td><td>Local MAF conversion, WGS-to-panel filtering, and mSigPortal JSON formatting.</td></tr>
+<tr><td><code>tools</code></td><td>Small generic utilities.</td></tr>
+<tr><td><code>machineLearning</code></td><td>Regression preprocessing and k-fold regression validation helpers.</td></tr>
+<tr><td><code>signatureFitting</code></td><td>Known-signature fitting and exposure plotting.</td></tr>
+<tr><td><code>TCGA</code></td><td>GDC/TCGA retrieval and TCGA MAF conversion helpers.</td></tr>
+<tr><td><code>validation</code></td><td>Matrix, context, exposure, and MAF validators.</td></tr>
+<tr><td><code>qc</code></td><td>Mutation burden, context coverage, residuals, reconstruction error, NNLS, threshold sensitivity, and bootstrap uncertainty.</td></tr>
+<tr><td><code>qcPlots</code></td><td>D3/Plotly renderers for QC and evidence outputs.</td></tr>
+<tr><td><code>signatureExtraction</code></td><td>Browser-native NMF extraction, rank selection by reconstruction error, cophenetic correlation, or silhouette, reference matching, and worker execution.</td></tr>
+<tr><td><code>signatureExtractionPlots</code></td><td>D3/Plotly renderers for NMF signatures, exposures, and rank diagnostics.</td></tr>
+<tr><td><code>io</code></td><td>TSV, SigProfiler-style, COSMIC-style, MuSiCal-compatible, and long-form row import/export helpers.</td></tr>
+<tr><td><code>runners</code></td><td>Optional browser execution runtimes, including Pyodide for Python packages and WebR for compatible R package builds.</td></tr>
+<tr><td><code>adapters</code></td><td>External-tool adapters for SigProfilerAssignment, SigProfilerExtractor, SigProfilerMatrixGenerator, SigProfilerSimulator, SigProfilerClusters, sigProfilerPlotting, deconstructSigs, sigminer, and MuSiCal-compatible refit workflows.</td></tr>
+<tr><td><code>reports</code></td><td>Structured, JSON, and standalone HTML report generation.</td></tr>
+<tr><td><code>advisor</code></td><td>Validated manuscript advisor functions for analysis strategy, signature ambiguity, catalog sufficiency, and fit-quality evidence.</td></tr>
+<tr><td><code>pipelines</code></td><td>Higher-level single-sample, cohort, discovery, and panel/WES workflows.</td></tr>
+<tr><td><code>workflows</code></td><td>High-level report-assembly workflows plus aliases to validated pipeline functions.</td></tr>
+<tr><td><code>provenance</code></td><td>SDK, runtime, catalog, genome, endpoint, parameter, and source metadata helpers.</td></tr>
+<tr><td><code>presentation</code></td><td>DOM table, metric, note, details, and row-normalization helpers for notebooks and reports.</td></tr></tbody></table></div>
+<h2 id="beginner-entry-surface-workflows">Beginner entry surface: <code>workflows</code></h2>
+<p>New users should start with the small stable surface under <code>mSigSDK.workflows</code>. These functions accept the few options needed for routine use, fill conservative defaults for validation and QC, and return the same structured result frame used by the full pipeline functions.</p>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Primary use</th><th>Minimal inputs</th><th>Output</th></tr></thead><tbody><tr><td><code>workflows.analyzeMafFiles(mafFiles, signatures = null, options = {})</code></td><td>Convert MAF-like rows into SBS96 spectra with optional known-signature fitting.</td><td>MAF rows or nested row arrays, optional signature catalog, <code>groupBy</code>, <code>genome</code>, <code>offline</code>, <code>contextLookupTable</code>, <code>expectedContexts</code>, and <code>reportFormat</code>.</td><td>MAF conversion metadata, spectra, provenance, validation/QC, and optional signature-fit analysis.</td></tr>
+<tr><td><code>workflows.runSingleSampleFit(input, options = {})</code></td><td>Fit one sample against a supplied signature catalog.</td><td><code>sampleName</code>, <code>spectrum</code>, <code>signatures</code>, optional <code>expectedContexts</code>, <code>exposureThreshold</code>, <code>bootstrapIterations</code>, and low-burden threshold.</td><td>Single-sample result with fit, fit-quality evidence, warnings, recommended actions, and report-ready figure descriptors.</td></tr>
+<tr><td><code>workflows.runCohortFit(input, options = {})</code></td><td>Fit a spectra matrix with optional metadata.</td><td><code>spectra</code>, <code>signatures</code>, optional <code>metadata</code>, <code>expectedContexts</code>, <code>groupKey</code>, and <code>comparisonKey</code>.</td><td>Cohort result with sample-level fit outputs, cohort guidance, fit-quality evidence, subgroup review, and QC summaries.</td></tr>
+<tr><td><code>workflows.runPanelWorkflow(input, options = {})</code></td><td>Review panel/WES spectra with optional callable-opportunity metadata.</td><td><code>spectra</code>, <code>signatures</code>, optional <code>callableOpportunities</code>, <code>referenceOpportunities</code>, <code>genomeBuild</code>, and evidence thresholds.</td><td>Panel result with normalized spectra metadata, evidence tiers, panel limitations, QC, warnings, and recommended actions.</td></tr></tbody></table></div>
+<p>Namespace boundaries:</p>
+<ul><li><code>workflows</code> is the documented first-use surface and report-oriented workflow namespace.</li><li><code>pipelines</code> exposes full computational controls and structured analysis objects.</li><li><code>quickstart</code> remains available as compact aliases for applications that prefer an explicit beginner namespace.</li></ul>
+<h2 id="shared-data-structures">Shared data structures</h2>
+<h3 id="spectra">Spectra</h3>
+<p>Sample spectra are nested objects keyed by sample and mutation context:</p>
+<pre class="code-block"><code data-language="js">{
+  sample_1: { &quot;A[C&gt;A]A&quot;: 12, &quot;A[C&gt;A]C&quot;: 4 },
+  sample_2: { &quot;A[C&gt;A]A&quot;: 8, &quot;A[C&gt;A]C&quot;: 0 }
+}</code></pre>
+<h3 id="signatures">Signatures</h3>
+<p>Reference or extracted signatures are nested objects keyed by signature name and mutation context:</p>
+<pre class="code-block"><code data-language="js">{
+  SBS1: { &quot;A[C&gt;A]A&quot;: 0.001, &quot;A[C&gt;A]C&quot;: 0.002 },
+  SBS5: { &quot;A[C&gt;A]A&quot;: 0.010, &quot;A[C&gt;A]C&quot;: 0.006 }
+}</code></pre>
+<h3 id="exposures">Exposures</h3>
+<p>Fitted or extracted exposures are nested objects keyed by sample and signature:</p>
+<pre class="code-block"><code data-language="js">{
+  sample_1: { SBS1: 0.35, SBS5: 0.65 },
+  sample_2: { SBS1: 0.00, SBS5: 1.00 }
+}</code></pre>
+<h3 id="method-basis-fields">Method-basis fields</h3>
+<p>Newer QC, advisory, pipeline, and report outputs use <code>methodBasis</code> objects. These usually contain a plain-language method description, configurable defaults, references with DOI or URL fields, validation anchors when applicable, and interpretation boundaries. Downstream reports automatically collect citations from nested <code>methodBasis.references</code> fields.</p>
+<h3 id="shared-workflow-result-frame">Shared workflow result frame</h3>
+<p>Stable workflow and pipeline functions return a predictable top-level frame so application code can inspect common fields before entering workflow-specific subtrees:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflow</code>.</li><li><code>workflowRole</code>.</li><li><code>scopeStatement</code>.</li><li><code>methodBasis</code>.</li><li><code>primaryInterpretationFields</code>.</li><li><code>parameters</code>.</li><li><code>validation</code>.</li><li><code>qc</code>.</li><li><code>fit</code>, <code>extraction</code>, or <code>panel</code> when the workflow performs fitting, discovery, or restricted-assay review.</li><li><code>fitQualityEvidence</code> when known-signature fitting is performed.</li><li><code>warnings</code>.</li><li><code>recommendedActions</code>.</li><li><code>publicationFigures</code>.</li><li><code>provenance</code>.</li></ul>
+<p>Workflow-specific details are nested by domain. Panel/WES review uses <code>panel</code>. Discovery workflows use <code>discovery</code> with <code>rankSelection</code>, <code>extraction</code>, <code>comparison</code>, and <code>productionHandoffRecommendation</code>.</p>
+<h3 id="configurable-defaults">Configurable defaults</h3>
+<p>The SDK exposes default parameter maps so callers can inspect, copy, and override operating points without modifying source code:</p>
+<ul><li><code>mSigSDK.qc.QC_DEFAULTS</code>: default settings for mutation-burden QC, sample selection, exposure normalization, residual review, NNLS fitting, threshold sensitivity, and bootstrap uncertainty.</li><li><code>mSigSDK.advisor.ADVISOR_DEFAULTS</code>: default settings for analysis strategy advice, ambiguity screening, catalog sufficiency, fit-quality evidence, group comparison, single-sample and cohort pipelines, discovery workflows, panel/WES evidence, and restricted-assay evidence.</li></ul>
+<p>Defaults are review settings, not immutable biological rules. Direct QC/advisor functions accept their documented options flatly. Pipeline functions accept both flat options for backward compatibility and nested option groups for subsystem-specific control. Advisory functions used in the manuscript validation set are <code>recommendAnalysisStrategy</code>, <code>computeSignatureAmbiguity</code>, <code>detectOutOfReferenceSignal</code>, and <code>computeFitQualityEvidence</code>.</p>
+<p>Common nested groups are:</p>
+<pre class="code-block"><code data-language="js">await mSigSDK.pipelines.runSingleSampleFit(input, {
+  mutationBurden: { lowBurdenThreshold: 75, moderateBurdenThreshold: 800 },
+  fit: { exposureThreshold: 0.02, maxIterations: 5000 },
+  residuals: { weakUnexplainedThreshold: 0.05 },
+  thresholdSensitivity: { thresholds: [0, 0.01, 0.02, 0.05] },
+  bootstrap: { iterations: 1000, seed: 42 },
+  ambiguity: { pairReportThreshold: 0.88 },
+  catalogCheck: { minBurdenForReliableDetection: 150 }
+});</code></pre>
+<p>The resolved values are reported in <code>parameters</code>, <code>thresholds</code>, or <code>methodBasis.configurableDefaults</code> fields where applicable.</p>
+<h2 id="warning-code-taxonomy">Warning code taxonomy</h2>
+<h3 id="qc-warning-codes">QC warning codes</h3>
+<p><code>mSigSDK.qc.QC_WARNING_CODES</code> contains:</p>
+<div class="table-wrap"><table><thead><tr><th>Code</th><th>Trigger</th><th>Resolution</th></tr></thead><tbody><tr><td><code>CONTEXT_MISMATCH</code></td><td>A spectrum is missing expected context keys or contains extra context keys.</td><td>Regenerate spectra with the expected context basis before fitting.</td></tr>
+<tr><td><code>CONTEXT_FETCH_FAILED</code></td><td>MAF conversion count checks indicate context lookup or input normalization may be incomplete.</td><td>Pin the genome build, inspect failed variants, and rerun conversion or supply precomputed contexts.</td></tr>
+<tr><td><code>EMPTY_SPECTRUM</code></td><td>A sample has zero observed mutations in the selected context basis.</td><td>Exclude from fitting or verify grouping and context generation.</td></tr>
+<tr><td><code>HIGH_RESIDUAL_STRUCTURE</code></td><td>Residual review finds configured residual structure.</td><td>Inspect residual spectra and consider catalog expansion or de novo extraction in an adequately powered cohort.</td></tr>
+<tr><td><code>LOW_BURDEN</code></td><td>A sample falls below the configured low-burden threshold.</td><td>Interpret exposures cautiously and consult strategy, threshold sensitivity, and bootstrap outputs.</td></tr>
+<tr><td><code>LOW_BOOTSTRAP_ITERATIONS</code></td><td>Bootstrap iterations are below the configured stable-interval threshold.</td><td>Increase iterations; use at least 500 for review and 1000 for publication-grade intervals.</td></tr>
+<tr><td><code>THRESHOLD_GRID_TOO_SMALL</code></td><td>Fewer than three exposure thresholds were supplied to threshold sensitivity.</td><td>Use at least three thresholds spanning the intended cutoff range.</td></tr>
+<tr><td><code>THRESHOLD_DEPENDENT_FIT</code></td><td>Exposure drift or active-set instability crosses configured review settings.</td><td>Run bootstrap if needed and report threshold-dependent calls with caveats.</td></tr></tbody></table></div>
+<h3 id="advisory-warning-codes">Advisory warning codes</h3>
+<p><code>mSigSDK.advisor.WARNING_CODES</code> contains:</p>
+<div class="table-wrap"><table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody><tr><td><code>CATALOG_INCOMPLETE_SUSPECTED</code></td><td>Residual/reconstruction criteria raised a catalog review cue; inspect before assuming the supplied catalog is adequate.</td></tr>
+<tr><td><code>EXTRACTION_NOT_RECOMMENDED</code></td><td>Configured burden, sample count, or heterogeneity gates do not provide enough review support for de novo extraction.</td></tr>
+<tr><td><code>FIT_UNSTABLE</code></td><td>Bootstrap or fit-evidence criteria indicate that exposure interpretation needs uncertainty context.</td></tr>
+<tr><td><code>FLAT_SIGNATURE_RISK</code></td><td>A fitted signature has broad/flat catalog evidence that can increase exchangeability with related signatures.</td></tr>
+<tr><td><code>HETEROGENEOUS_COHORT</code></td><td>Cohort structure raises a subgroup-review cue before pooled interpretation.</td></tr>
+<tr><td><code>HIGH_RESIDUAL_STRUCTURE</code></td><td>Residual structure warrants catalog-sufficiency review.</td></tr>
+<tr><td><code>INCOMPLETE_CONTEXTS</code></td><td>Input spectra are incomplete relative to the expected context basis.</td></tr>
+<tr><td><code>INSUFFICIENT_SIGNAL</code></td><td>Mutation burden or information content is too low for routine interpretation.</td></tr>
+<tr><td><code>LOW_BURDEN</code></td><td>Mutation burden is below the configured analysis threshold.</td></tr>
+<tr><td><code>GROUP_IMBALANCE</code></td><td>Metadata groups are too small for routine group comparison interpretation.</td></tr>
+<tr><td><code>METADATA_MISSING</code></td><td>Group-comparison metadata are missing or unusable.</td></tr>
+<tr><td><code>PANEL_LIMITED</code></td><td>Restricted assay information is insufficient for unrestricted interpretation.</td></tr>
+<tr><td><code>PANEL_SIGNATURE_NOT_ASSESSABLE</code></td><td>A signature/sample combination is not assessable under the supplied panel/WES evidence.</td></tr>
+<tr><td><code>SIGNATURE_AMBIGUITY</code></td><td>Active fitted signatures met catalog-relative identifiability review criteria, such as similar neighbors, broad/flat profiles, or crowded catalog regions.</td></tr>
+<tr><td><code>THRESHOLD_DEPENDENT</code></td><td>Fitted interpretation depends on exposure-threshold settings.</td></tr></tbody></table></div>
+<h2 id="advisor-validation-scope">Advisor validation scope</h2>
+<p>The validated manuscript advisor surface consists of:</p>
+<ul><li><code>recommendAnalysisStrategy</code>.</li><li><code>computeSignatureAmbiguity</code>.</li><li><code>computeSignatureIdentifiability</code> (terminology-forward alias of <code>computeSignatureAmbiguity</code>).</li><li><code>detectOutOfReferenceSignal</code>.</li><li><code>computeFitQualityEvidence</code>.</li></ul>
+<p>Group-comparison and restricted-assay evidence blocks are returned by the cohort and panel workflows as part of their structured outputs.</p>
+<h2 id="public-data-access-msigportal-msigportaldata">Public data access: <code>mSigPortal.mSigPortalData</code></h2>
+<p>These functions call the public NCI mSigPortal mutational-signatures API and return JSON responses. They use the SDK fetch/cache utility when browser caches are available.</p>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs and parameters</th><th>Output</th><th>Notes</th></tr></thead><tbody><tr><td><code>getMutationalSignaturesOptions(genomeDataType = &quot;WGS&quot;, mutationType = &quot;SBS&quot;)</code></td><td>Sequencing strategy and mutation profile family.</td><td>API JSON describing available reference signature options.</td><td>Used before selecting a catalog.</td></tr>
+<tr><td><code>getMutationalSignaturesData(genomeDataType = &quot;WGS&quot;, signatureSetName = &quot;COSMIC_v3_Signatures_GRCh37_SBS96&quot;, mutationType = &quot;SBS&quot;, matrix = 96, numberofResults = 10)</code></td><td>Strategy, catalog name, mutation type, matrix size, result limit.</td><td>Raw reference-signature rows from the API.</td><td>Usually converted with <code>validation.rowsToSignatureMatrix</code> or <code>mSigPortalData.extractMutationalSpectra</code>.</td></tr>
+<tr><td><code>getMutationalSignaturesSummary(numberofResults = 10, signatureSetName = &quot;COSMIC_v3.3_Signatures&quot;)</code></td><td>Result limit and signature set.</td><td>Summary JSON for the requested catalog.</td><td>Reports catalog-level metadata from the API.</td></tr>
+<tr><td><code>getMutationalSpectrumOptions(study = &quot;PCAWG&quot;, genomeDataType = &quot;WGS&quot;, cancerType = &quot;Lung-AdenoCA&quot;, numberOfResults = 10)</code></td><td>Study, strategy, cancer type, result limit.</td><td>Available spectrum options.</td><td>Used to discover public spectra.</td></tr>
+<tr><td><code>getMutationalSpectrumData(study = &quot;PCAWG&quot;, samples = null, genomeDataType = &quot;WGS&quot;, cancerType = &quot;Lung-AdenoCA&quot;, mutationType = &quot;SBS&quot;, matrixSize = 96)</code></td><td>Study, optional sample list, strategy, cancer type, mutation profile, matrix size.</td><td>Public mutational spectrum rows.</td><td>If <code>samples</code> is null, fetches cohort-level rows for the requested filters; otherwise fetches each sample.</td></tr>
+<tr><td><code>getMutationalSpectrumSummary(study = &quot;PCAWG&quot;, genomeDataType = &quot;WGS&quot;, cancerType = &quot;Lung-AdenoCA&quot;, numberOfResults = 10)</code></td><td>Study, strategy, cancer type, limit.</td><td>Spectrum summary JSON.</td><td>Cohort-level public data summary.</td></tr>
+<tr><td><code>getMutationalSignatureAssociationOptions(study = &quot;PCAWG&quot;, genomeDataType = &quot;WGS&quot;, numberOfResults = 10)</code></td><td>Study, strategy, limit.</td><td>Association-option JSON.</td><td>Used before association retrieval.</td></tr>
+<tr><td><code>getMutationalSignatureAssociationData(study = &quot;PCAWG&quot;, genomeDataType = &quot;WGS&quot;, cancerType = &quot;Biliary-AdenoCA&quot;, numberOfResults = 10)</code></td><td>Study, strategy, cancer type, limit.</td><td>Association data JSON.</td><td>Supplies rows used by association plotting.</td></tr>
+<tr><td><code>getMutationalSignatureActivityOptions(study = &quot;PCAWG&quot;, genomeDataType = &quot;WGS&quot;, numberOfResults = 10)</code></td><td>Study, strategy, limit.</td><td>Signature-activity option rows.</td><td>Used before activity retrieval.</td></tr>
+<tr><td><code>getMutationalSignatureActivityData(study = &quot;PCAWG&quot;, genomeDataType = &quot;WGS&quot;, signatureSetName = &quot;COSMIC_v3_Signatures_GRCh37_SBS96&quot;, cancerType = &quot;&quot;, numberOfResults = 10)</code></td><td>Study, strategy, signature set, optional cancer type, limit.</td><td>Signature activity rows.</td><td>Returns fitted public exposure/activity data from the API.</td></tr>
+<tr><td><code>getMutationalSignatureLandscapeData(study = &quot;PCAWG&quot;, genomeDataType = &quot;WGS&quot;, cancerType = &quot;&quot;, signatureSetName = &quot;COSMIC_v3_Signatures_GRCh37_SBS96&quot;, numberOfResults = 10)</code></td><td>Study, strategy, optional cancer type, signature set, limit.</td><td>Landscape-style signature activity rows.</td><td>Calls the activity endpoint and returns rows for broad landscape views.</td></tr>
+<tr><td><code>getMutationalSignatureEtiologyOptions(category = &quot;CancerSpecificSignatures_2022&quot;, etiology = &quot;&quot;, signatureName = &quot;&quot;, cancerType = &quot;&quot;, numberOfResults = 10)</code></td><td>Etiology category, etiology label, signature, cancer type, limit.</td><td>Etiology option JSON.</td><td>Filters are included only when non-empty.</td></tr>
+<tr><td><code>getMutationalSignatureEtiologyData(study = &quot;PCAWG&quot;, genomeDataType = &quot;WGS&quot;, signatureName = &quot;SBS3&quot;, cancerType = &quot;&quot;, numberOfResults = 10)</code></td><td>Study, strategy, signature name, optional cancer type, limit.</td><td>Etiology data JSON.</td><td>Public annotation data; not a causal assignment from local spectra.</td></tr>
+<tr><td><code>extractMutationalSpectra(data, groupKey)</code></td><td>API rows or nested rows; grouping key such as <code>sample</code> or <code>signatureName</code>.</td><td>Nested matrix object keyed by the selected group and mutation type.</td><td>Converts long-form public rows into the shared SDK matrix structure.</td></tr></tbody></table></div>
+<h2 id="public-visualizations-msigportal-msigportalplots">Public visualizations: <code>mSigPortal.mSigPortalPlots</code></h2>
+<p>All mSigPortal plot functions require a browser DOM. Plotly plots include compact PNG, SVG, and JSON controls. Public plot helpers render standalone figure context by default and accept optional <code>figureContext</code> or <code>publication</code> metadata when the caller needs to specify dataset, sample, profile, matrix, catalog, or method settings that cannot be inferred from the input object.</p>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs</th><th>What it renders or returns</th></tr></thead><tbody><tr><td><code>plotProfilerSummary</code></td><td>Public profiler summary data and a container.</td><td>Summary visualization for a public mutational spectrum dataset.</td></tr>
+<tr><td><code>plotPatientMutationalSpectrum</code></td><td>SBS/DBS/ID-style profile rows or spectra and a container.</td><td>Mutational profile bars by context, with support for several context families through the imported profile renderers.</td></tr>
+<tr><td><code>plotForceDirectedTree</code></td><td>Sample spectra, labels, and <code>divID</code>.</td><td>AMCharts force-directed tree from hierarchical clustering over cosine-distance spectra; returns formatted cluster hierarchy.</td></tr>
+<tr><td><code>plotCosineSimilarityHeatMap</code></td><td>Sample spectra, labels, clustering flag, color scale, optional table flag.</td><td>Plotly sample-by-sample cosine-similarity heatmap; optionally double-clustered and optionally accompanied by a numeric table.</td></tr>
+<tr><td><code>plotUMAPVisualization</code></td><td>Sample spectra, dataset label, container, <code>nComponents = 3</code>, <code>minDist = 0.1</code>, <code>nNeighbors = 15</code>.</td><td>2D or 3D UMAP embedding of spectra; returns Plotly trace objects.</td></tr>
+<tr><td><code>plotProjectMutationalBurdenByCancerType</code></td><td>Public project data and container.</td><td>Boxplot-style mutation burden by cancer type.</td></tr>
+<tr><td><code>plotSignatureActivityDataBy</code></td><td>Signature activity rows, container, grouping key default <code>&quot;signatureName&quot;</code>.</td><td>Boxplots of log10 exposure grouped by the selected metadata field, including non-zero exposure counts in hover text.</td></tr>
+<tr><td><code>plotSignatureAssociations</code></td><td>Association rows, container, two signature names.</td><td>Association scatter or summary for selected signatures.</td></tr>
+<tr><td><code>plotMSPrevalenceData</code></td><td>Prevalence rows and container.</td><td>Mutational-signature prevalence visualization.</td></tr></tbody></table></div>
+<h2 id="local-data-conversion-userdata">Local data conversion: <code>userData</code></h2>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs and parameters</th><th>Output</th><th>Method and caveats</th></tr></thead><tbody><tr><td><code>convertMatrix(MAFfiles, groupBy = &quot;project_code&quot;, batch_size = 100, genome = &quot;hg19&quot;, tcga = false, options = {})</code></td><td>MAF-like rows or nested row arrays, grouping field, batch size, genome build, TCGA field mapping flag, and context options. <code>options.offline = true</code> uses row-supplied contexts, a supplied <code>contextLookupTable</code>, or bundled sparse smoke-test lookup assets for hg19, hg38, or T2T-CHM13.</td><td>Sample-by-SBS96 spectra.</td><td>Live mode retrieves trinucleotide context through the UCSC Genome Browser sequence endpoint. Offline mode requires a matching position-indexed lookup table for production-scale conversion. High-level workflows record genome build, lookup mode, endpoint when used, timestamp, offline-table status, and count-reconciliation checks.</td></tr>
+<tr><td><code>convertWGStoPanel(WgMAFs, panelDf)</code></td><td>WGS MAF arrays and panel interval table or CSV path.</td><td>Downsampled MAF arrays containing mutations inside panel intervals.</td><td>Filters by chromosome and genomic start/end inclusion.</td></tr>
+<tr><td><code>createWGStoPanelValidationPairs(wgsSpectra, callableOpportunityMasks, options)</code></td><td>WGS spectra, callable SBS96 opportunity masks, and optional burden/scaling settings.</td><td>Matched WGS and panel spectra pairs with mask and burden metadata.</td><td>Designed for controlled panel-tier validation against WGS-derived truth.</td></tr>
+<tr><td><code>plotCosmicSbs96Profile(divID, spectra, options = {})</code></td><td>One SBS96 record or a sample-keyed spectra object plus optional sample, context order, normalization, highlighted contexts, title, subtitle, and figure-context metadata.</td><td>COSMIC-style SBS96 bar profile grouped by base-substitution class, with mutation-count or relative-fraction scaling.</td><td>Also exposed under <code>qcPlots</code> for report and notebook use.</td></tr>
+<tr><td><code>plotPatientMutationalSpectrumuserData(mutationalSpectra, divID, project, profile, matrix)</code></td><td>Local mutational spectra and plot settings.</td><td>Mutational profile plot for local user spectra.</td><td>Browser plotting helper around the profile renderers.</td></tr>
+<tr><td><code>convertMutationalSpectraIntoJSON(MAFfiles, mutSpec, sample_name, dataType = &quot;WGS&quot;)</code></td><td>MAF arrays, spectra object, sample-name field, strategy label.</td><td>mSigPortal-style nested JSON rows with <code>sample</code>, <code>strategy</code>, <code>profile</code>, <code>matrix</code>, <code>mutationType</code>, and <code>mutations</code>.</td><td>Throws if the MAF array count does not match the number of spectra.</td></tr></tbody></table></div>
+<h2 id="tcga-gdc-retrieval-tcga">TCGA/GDC retrieval: <code>TCGA</code></h2>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs</th><th>Output</th></tr></thead><tbody><tr><td><code>getProjectsByGene(genes)</code></td><td>Ensembl gene identifiers.</td><td><code>{ projects, projects_by_gene }</code> from GDC top-case count queries.</td></tr>
+<tr><td><code>getTpmCountsByGenesOnProjects(genes, projects)</code></td><td>Ensembl gene identifiers and TCGA project IDs.</td><td>File IDs and file metadata for RNA-seq gene-expression quantification files.</td></tr>
+<tr><td><code>getTpmCountsByGenesFromFiles(genes, files)</code></td><td>Ensembl gene identifiers and GDC file IDs.</td><td>Per-gene FPKM and TPM counts by file.</td></tr>
+<tr><td><code>getMafInformationFromProjects(projects)</code></td><td>TCGA project IDs.</td><td>MAF file IDs and demographic/sample metadata from GDC.</td></tr>
+<tr><td><code>getVariantInformationFromMafFiles(res)</code></td><td>Output from <code>getMafInformationFromProjects</code>.</td><td>Variant rows and per-project spectra generated through <code>convertMatrix</code>.</td></tr>
+<tr><td><code>convertTCGAProjectIntoJSON(MAFfiles, mutSpec, dataType = &quot;WGS&quot;)</code></td><td>TCGA MAF files and spectra.</td><td>mSigPortal-style spectrum JSON rows.</td></tr></tbody></table></div>
+<h2 id="utility-and-machine-learning-helpers">Utility and machine-learning helpers</h2>
+<div class="table-wrap"><table><thead><tr><th>Namespace</th><th>Feature</th><th>Inputs</th><th>Output</th></tr></thead><tbody><tr><td><code>tools</code></td><td><code>groupBy(array, key)</code></td><td>Array of objects and a key name.</td><td>Object keyed by each observed key value.</td></tr>
+<tr><td><code>machineLearning</code></td><td><code>preprocessData(mutationalData, exposureData, dataSource)</code></td><td>Mutational rows, exposure rows, and data source.</td><td>For <code>MSIGPORTAL</code>, returns <code>{ Xs, Ys }</code> arrays aligned by sample; <code>ICGC</code> currently returns null.</td></tr>
+<tr><td><code>machineLearning</code></td><td><code>kFoldCV(Xs, Ys, k = 10, modelType = &quot;MLR&quot;)</code></td><td>Feature matrix, response matrix, fold count, model type.</td><td><code>{ model, MSE, averageMSE }</code>. <code>MLR</code> uses multivariate linear regression. <code>MLP</code> is referenced in code but depends on an MLP implementation that is not imported in the current module.</td></tr></tbody></table></div>
+<h2 id="validation-validation">Validation: <code>validation</code></h2>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs and parameter choices</th><th>Output</th></tr></thead><tbody><tr><td><code>getSBS96Contexts()</code></td><td>None.</td><td>Ordered 96 pyrimidine-centered SBS context labels.</td></tr>
+<tr><td><code>getExpectedContexts({ profile = &quot;SBS&quot;, matrix = 96 })</code></td><td>Supported choice is <code>profile = &quot;SBS&quot;</code> and <code>matrix = 96</code>; unsupported combinations return null.</td><td>Ordered context labels or null.</td></tr>
+<tr><td><code>getMatrixContexts(...matrices)</code></td><td>One or more nested matrices.</td><td>First-seen column/context labels, excluding <code>rnorm</code>.</td></tr>
+<tr><td><code>normalizeMatrixObject(matrix, { ignoredKeys = [&quot;rnorm&quot;] })</code></td><td>Nested matrix and ignored column names.</td><td>Numeric nested matrix; non-numeric values become zero.</td></tr>
+<tr><td><code>rowsToMatrix(rows, { rowKey = &quot;sample&quot;, contextKey = &quot;mutationType&quot;, valueKey = &quot;mutations&quot; })</code></td><td>Long-form rows and field mapping.</td><td>Nested matrix keyed by <code>rowKey</code> and <code>contextKey</code>.</td></tr>
+<tr><td><code>rowsToSampleSpectra(rows, options)</code></td><td>Long-form rows; optional <code>sampleKey</code>, <code>contextKey</code>, <code>valueKey</code>.</td><td>Sample-by-context spectra.</td></tr>
+<tr><td><code>rowsToSignatureMatrix(rows, options)</code></td><td>Long-form rows; optional <code>signatureKey</code>, <code>contextKey</code>, <code>valueKey</code>.</td><td>Signature-by-context matrix.</td></tr>
+<tr><td><code>validateSpectra(spectra, { expectedContexts = null, minTotalMutations = 0, strict = false })</code></td><td>Sample spectra and optional context/burden gates.</td><td><code>{ valid, issues, warnings, samples, contexts }</code>. Sample metrics include total mutations, non-zero contexts, zero contexts, and warning labels such as <code>empty_spectrum</code> and <code>low_mutation_burden</code>.</td></tr>
+<tr><td><code>validateSignatureMatrix(signatures, { expectedContexts = null, strict = false })</code></td><td>Signature matrix and optional context gate.</td><td><code>{ valid, issues, warnings, signatures, contexts }</code>.</td></tr>
+<tr><td><code>validateExposureMatrix(exposures, { strict = false })</code></td><td>Sample-by-signature exposure matrix.</td><td><code>{ valid, issues, warnings, samples, signatures }</code>, including <code>zero_total_exposure</code> warnings.</td></tr>
+<tr><td><code>validateMafRows(rows, { requiredFields = [...] })</code></td><td>MAF-like rows and required field names.</td><td><code>{ valid, issues, rowCount, requiredFields }</code>. Default required fields are <code>chromosome</code>, <code>start_position</code>, <code>reference_allele</code>, <code>tumor_seq_allele2</code>, and <code>variant_type</code>.</td></tr>
+<tr><td><code>assertValid(validationResult, label = &quot;Validation&quot;)</code></td><td>Validator output and label.</td><td>Returns the input result when valid; throws an error with issue messages when invalid.</td></tr></tbody></table></div>
+<h2 id="known-signature-fitting-signaturefitting">Known-signature fitting: <code>signatureFitting</code></h2>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs and parameters</th><th>Output</th><th>Method and interpretation</th></tr></thead><tbody><tr><td><code>fitMutationalSpectraToSignatures(signatures, spectra, options)</code></td><td>Reference signatures, sample spectra, and options including <code>exposureThreshold = 0</code>, <code>exposureType = &quot;relative&quot;</code>, and <code>renormalize = true</code>.</td><td>Sample-by-signature exposures.</td><td>Plain NNLS-based refitting under the supplied catalog. Exposures are numerical fits, not confidence calls.</td></tr>
+<tr><td><code>plotPatientMutationalSignaturesExposure(exposureData, divID, ...)</code></td><td>Exposure data for one sample and plot settings.</td><td>Pie chart of signature exposure for one sample.</td><td>Visualization only.</td></tr>
+<tr><td><code>plotDatasetMutationalSignaturesExposure(exposureData, divID, ...)</code></td><td>Exposure data for a dataset and plot settings.</td><td>Dataset-level signature exposure visualization.</td><td>Visualization only.</td></tr></tbody></table></div>
+<h2 id="qc-and-uncertainty-qc">QC and uncertainty: <code>qc</code></h2>
+<h3 id="summarizemutationburden-spectra-options"><code>summarizeMutationBurden(spectra, options)</code></h3>
+<p>Inputs:</p>
+<ul><li><code>spectra</code>: sample-by-context matrix.</li><li><code>lowBurdenThreshold = 50</code>.</li><li><code>lowBurdenThresholdMode = &quot;fixed&quot;</code>.</li><li><code>thresholdMode</code>: alias for <code>lowBurdenThresholdMode</code>.</li><li><code>quantile = 0.25</code>: used when threshold mode is <code>quantile</code>.</li><li><code>expectedContexts = null</code>.</li><li><code>moderateBurdenThreshold = 1000</code>.</li></ul>
+<p>Parameter choices:</p>
+<ul><li>Threshold mode <code>fixed</code>: use <code>lowBurdenThreshold</code>.</li><li>Threshold mode <code>quantile</code>: compute the threshold from non-empty sample burdens.</li><li>Threshold mode <code>none</code>: disable low-burden flagging.</li></ul>
+<p>Outputs:</p>
+<ul><li><code>schemaVersion = &quot;msig.qc.v0.3&quot;</code>.</li><li><code>workflowRole = &quot;mutation_burden_qc&quot;</code>.</li><li><code>scopeStatement</code>: burden review cues are configurable QC prompts, not biological classifications.</li><li><code>methodBasis</code>: threshold basis, threshold rationale, validation anchors, configurable defaults, and references.</li><li><code>thresholdRationale</code>: default 50-mutation review cue anchored to the SDK synthetic validation table, where 50 mutations had mean exposure cosine 0.912 and mean reconstruction cosine 0.884, while 100 mutations improved to 0.952 and 0.930.</li><li><code>validationAnchor</code>: burden 50 and burden 100 synthetic validation rows.</li><li><code>contexts</code>.</li><li><code>samples[]</code>: <code>sample</code>, <code>totalMutations</code>, <code>contexts</code>, <code>nonZeroContexts</code>, <code>zeroContexts</code>, <code>maxContext</code>, <code>maxContextCount</code>, <code>meanContextCount</code>, <code>burdenClass</code>, <code>burdenInterpretation</code>, <code>flags.emptySpectrum</code>, <code>flags.lowBurden</code>, and <code>recommendedAction</code>.</li><li><code>overall</code>: sample count, total mutations, low-burden sample count, empty-sample count, threshold, threshold mode, and quantile.</li><li><code>warnings</code>: <code>EMPTY_SPECTRUM</code> or <code>LOW_BURDEN</code> warning objects when triggered.</li></ul>
+<p>Methodological support:</p>
+<ul><li>Mutation burden is treated as a sampling-noise proxy for fitting reliability.</li><li>Specific defaults are configurable review settings and should be validated against assay and cohort context.</li><li>Literature anchors: Koh 2021, Medo 2024, Lawrence 2021.</li></ul>
+<h3 id="selectsamplesbymutationburden-burdensummary-options"><code>selectSamplesByMutationBurden(burdenSummary, options)</code></h3>
+<p>Inputs:</p>
+<ul><li><code>burdenSummary</code>: output from <code>summarizeMutationBurden</code>.</li><li><code>limit = 10</code>.</li><li><code>minTotalMutations = 0</code>.</li><li><code>maxTotalMutations = Infinity</code>.</li><li><code>sampleNames = null</code>.</li><li><code>order = &quot;desc&quot;</code> or <code>&quot;asc&quot;</code>.</li><li><code>includeEmpty = false</code>.</li></ul>
+<p>Output:</p>
+<ul><li>Array of selected sample-level burden records, sorted by burden and then sample name.</li></ul>
+<h3 id="summarizemissingcontexts-spectra-expectedcontexts-null"><code>summarizeMissingContexts(spectra, { expectedContexts = null })</code></h3>
+<p>Outputs:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflowRole = &quot;context_coverage_qc&quot;</code>.</li><li><code>scopeStatement</code>: structural context completeness check for matrix compatibility.</li><li><code>methodBasis</code>: expected context basis, zero-count boundary, configurable defaults, and Alexandrov 2020 reference.</li><li><code>contexts</code>.</li><li><code>samples[]</code>: <code>sample</code>, <code>expectedContextCount</code>, <code>observedContextCount</code>, <code>structurallyMissingContexts</code>, <code>structurallyMissingCount</code>, <code>unobservedContexts</code>, <code>unobservedCount</code>, <code>missingContexts</code>, <code>missingCount</code>, <code>extraContexts</code>, <code>extraCount</code>, and <code>percentComplete</code>.</li><li><code>complete</code>: true only when all samples have no structural missing or extra contexts.</li><li><code>warnings</code>: <code>CONTEXT_MISMATCH</code> warning objects.</li></ul>
+<p>Interpretation boundary:</p>
+<ul><li>Structurally missing contexts are absent keys and indicate matrix-format problems.</li><li>Unobserved contexts are present keys with zero counts and are expected in low-burden SBS96 spectra.</li></ul>
+<h3 id="normalizeexposures-exposures-options"><code>normalizeExposures(exposures, options)</code></h3>
+<p>Inputs:</p>
+<ul><li><code>zeroPolicy = &quot;keep&quot;</code>, <code>&quot;pseudocount&quot;</code>, or <code>&quot;drop&quot;</code>.</li><li><code>pseudocount = 1e-6</code>.</li><li><code>relative = true</code>.</li><li><code>dropBelow = 0</code>.</li></ul>
+<p>Output:</p>
+<ul><li>Normalized sample-by-signature exposure matrix.</li></ul>
+<h3 id="calculatefitresiduals-signatures-spectra-exposures-options"><code>calculateFitResiduals(signatures, spectra, exposures, options)</code></h3>
+<p>Inputs:</p>
+<ul><li>Reference signatures, spectra, and exposures.</li><li><code>contexts = null</code>.</li><li><code>normalizeMode = &quot;auto&quot;</code>, <code>&quot;relative&quot;</code>, or <code>&quot;absolute&quot;</code>.</li><li><code>lowBurdenThreshold = 100</code>.</li><li><code>moderateBurdenThreshold = 1000</code>.</li><li><code>weakUnexplainedThreshold = 0.07</code>.</li><li><code>highResidualStructureCosineThreshold = 0.85</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflowRole = &quot;fit_residual_qc&quot;</code>.</li><li><code>scopeStatement</code>: residuals are diagnostic differences and do not identify missing or causal signatures by themselves.</li><li><code>methodBasis</code>: reconstruction/residual basis, normalization mode, residual-structure trigger description, configurable defaults, and references.</li><li><code>contexts</code>.</li><li><code>samples[]</code>: observed spectrum, reconstructed spectrum, residual spectrum, <code>metrics</code>, <code>burdenClass</code>, normalization mode, unexplained fraction fields, and sample warnings.</li><li><code>warnings</code>: sample warnings such as <code>HIGH_RESIDUAL_STRUCTURE</code>.</li></ul>
+<p>Metric suite:</p>
+<ul><li>Cosine similarity, L1 error, L2 error, RMSE, mean absolute error, residual sum, total observed, total reconstructed, max absolute residual, positive residual fraction, negative residual fraction, and relative unexplained fraction.</li></ul>
+<p>Interpretation boundary:</p>
+<ul><li>High unexplained fraction can reflect missing catalog signal, sampling noise, normalization artifacts, or restricted-assay artifacts. The function reports burden class so residuals can be read in context.</li></ul>
+<h3 id="calculatereconstructionerror-signatures-spectra-exposures-options"><code>calculateReconstructionError(signatures, spectra, exposures, options)</code></h3>
+<p>Inputs:</p>
+<ul><li>Signatures, spectra, exposures.</li><li><code>contexts = null</code>.</li><li><code>normalizeMode = &quot;auto&quot;</code>, <code>&quot;relative&quot;</code>, or <code>&quot;absolute&quot;</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflowRole = &quot;reconstruction_error_qc&quot;</code>.</li><li><code>scopeStatement</code>: high cosine does not guarantee correct exposure attribution.</li><li><code>methodBasis</code>.</li><li><code>contexts</code>.</li><li><code>samples[]</code>: <code>sample</code>, <code>cosineSimilarity</code>, <code>cosineDistance</code>, <code>rmse</code>, <code>meanAbsoluteError</code>, <code>l1Error</code>, <code>l2Error</code>, <code>totalObserved</code>, <code>totalReconstructed</code>, and normalization mode.</li><li><code>summary</code>.</li></ul>
+<h3 id="fitspectrawithnnls-signatures-spectra-options"><code>fitSpectraWithNNLS(signatures, spectra, options)</code></h3>
+<p>Inputs:</p>
+<ul><li>Signatures and spectra.</li><li><code>contexts = null</code>.</li><li><code>exposureThreshold = 0</code>.</li><li><code>exposureType = &quot;relative&quot;</code> or an absolute scale.</li><li><code>renormalize = true</code>.</li><li><code>maxIterations = null</code>: null uses the adaptive default <code>max(100, signatureCount * 100)</code>.</li><li><code>convergenceTolerance = 1e-10</code>.</li><li><code>returnDetails = false</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li>Default output: sample-by-signature exposure matrix.</li><li>With <code>returnDetails = true</code>: object containing <code>schemaVersion</code>, <code>workflowRole</code>, <code>scopeStatement</code>, <code>methodBasis</code>, <code>solverVariant = &quot;coordinate_descent_nnls&quot;</code>, solver caveats, contexts, signatures, and exposures.</li></ul>
+<p>Methodological support:</p>
+<ul><li>Coordinate-descent NNLS implementation.</li><li>Uses Lawson-Hanson NNLS as the classical reference point, and Medo 2024/Jin 2024 for assignment and confusability cautions.</li><li>Plain NNLS can over-assign confusable signatures compared with likelihood-based sparse methods.</li></ul>
+<h3 id="runthresholdsensitivity-signatures-spectra-options"><code>runThresholdSensitivity(signatures, spectra, options)</code></h3>
+<p>Inputs:</p>
+<ul><li><code>thresholds = [0, 0.01, 0.03, 0.05, 0.1]</code>.</li><li><code>baselineThreshold = null</code>; defaults to the first threshold run when null.</li><li><code>instabilityL1Threshold = null</code>.</li><li><code>activeSetJaccardThreshold = null</code>.</li><li><code>exposureType = &quot;relative&quot;</code>.</li><li><code>renormalize = true</code>.</li><li><code>contexts = null</code>.</li><li><code>maxIterations = null</code>: null uses the adaptive NNLS iteration default.</li><li><code>convergenceTolerance = 1e-10</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflowRole = &quot;threshold_sensitivity&quot;</code>.</li><li><code>scopeStatement</code>.</li><li><code>methodBasis</code>: drift metrics, drift units, threshold rationale, instability-threshold rationale, configurable defaults, and references.</li><li><code>parameters</code>.</li><li><code>thresholds</code>.</li><li><code>baselineThreshold</code>.</li><li><code>driftUnits</code>: <code>relative_exposure_l1_units</code> or <code>absolute_exposure_l1_units</code>.</li><li><code>thresholdRationale</code>.</li><li><code>runs[]</code>: threshold, exposures, reconstruction error, average active signatures, average cosine similarity, average RMSE, and <code>driftFromBaseline</code> with mean L1 exposure drift, median L1 exposure drift, and mean active-set Jaccard.</li><li><code>summary</code>: threshold count, max mean L1 drift, min mean active-set Jaccard, active-signature range, and average metric ranges.</li><li><code>warnings</code>: <code>THRESHOLD_GRID_TOO_SMALL</code> and/or <code>THRESHOLD_DEPENDENT_FIT</code>.</li><li><code>recommendedActions</code>.</li></ul>
+<p>Interpretation boundary:</p>
+<ul><li>Threshold sensitivity reports drift across user-specified thresholds. It does not select a universal exposure cutoff.</li></ul>
+<h3 id="bootstrapsignaturefit-signatures-spectrum-options"><code>bootstrapSignatureFit(signatures, spectrum, options)</code></h3>
+<p>Inputs:</p>
+<ul><li>Reference signatures and one sample spectrum.</li><li><code>iterations = 200</code>.</li><li><code>confidenceLevel = 0.95</code>.</li><li><code>exposureThreshold = 0</code>.</li><li><code>exposureType = &quot;relative&quot;</code>.</li><li><code>renormalize = true</code>.</li><li><code>seed = 123</code>.</li><li><code>contexts = null</code>.</li><li><code>minIterationsForStableIntervals = 500</code>.</li><li><code>publicationRecommendedIterations = 1000</code>.</li><li><code>minMutationsForBootstrapSummary = 50</code>.</li><li><code>maxIterations = null</code>: null uses the adaptive NNLS iteration default.</li><li><code>convergenceTolerance = 1e-10</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflowRole = &quot;bootstrap_exposure_uncertainty&quot;</code>.</li><li><code>scopeStatement</code>: parametric multinomial bootstrap uncertainty conditional on observed spectrum, catalog, and fitting settings.</li><li><code>methodBasis</code>: <code>bootstrapMethod = &quot;parametric_multinomial&quot;</code>, interval definition, uncertainty boundary, selection-frequency definition, method rationale, configurable defaults, and references.</li><li><code>bootstrapMethod = &quot;parametric_multinomial&quot;</code>.</li><li><code>parameters</code>.</li><li><code>inputSummary</code>: total mutations and context count.</li><li><code>iterations</code>, <code>confidenceLevel</code>, <code>seed</code>, <code>contexts</code>.</li><li><code>signatures[]</code>: <code>signatureName</code>, mean, median, lower, upper, <code>ciLower</code>, <code>ciUpper</code>, <code>ciWidth</code>, <code>interval</code>, <code>selectionFrequency</code>, and <code>selectionFrequencyDefinition</code>.</li><li><code>exposureSamples[]</code>: bootstrap exposure draws after thresholding and renormalization.</li><li><code>reconstructionError[]</code>: reconstruction metrics for each bootstrap refit.</li><li><code>warnings</code>: <code>LOW_BOOTSTRAP_ITERATIONS</code> and/or <code>LOW_BURDEN</code>.</li><li><code>reportingMode</code>: <code>report_with_caveats</code> when warnings are present, otherwise <code>standard_qc_passed</code>.</li></ul>
+<p>Methodological support:</p>
+<ul><li>Multinomial resampling follows the MSA-style parametric bootstrap framing.</li><li>Intervals estimate statistical uncertainty of the attribution procedure conditional on the observed spectrum, supplied catalog, and settings. They do not estimate total attribution uncertainty, catalog uncertainty, or assay uncertainty.</li><li>Literature anchors: Senkin/Baez-Ortega MSA 2021, Huang 2018, Koh 2021, Medo 2024.</li></ul>
+<h2 id="qc-plots-qcplots">QC plots: <code>qcPlots</code></h2>
+<p>QC plot helpers render a publication footer with the figure caption and context fields. Each helper accepts optional <code>figureContext</code> or <code>publication</code> metadata; notebook and report integrations should pass the active data source, selected sample or cohort scope, profile/matrix, signature catalog, and method settings.</p>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Input</th><th>Output semantics</th></tr></thead><tbody><tr><td><code>plotMutationBurdenSummary(divID, burdenSummary)</code></td><td>Output from <code>summarizeMutationBurden</code>.</td><td>Horizontal bar chart of total mutations by sample, low-burden threshold marker, low/empty status colors, and badges for threshold, low-burden review cues, and empty spectra. Returns <code>{ data, threshold }</code>.</td></tr>
+<tr><td><code>plotReconstructionError(divID, reconstructionError, { cosineReferenceLines = [] })</code></td><td>Output from <code>calculateReconstructionError</code>.</td><td>Paired sample-level view of cosine similarity and RMSE, sorted by cosine. Returns rendered rows and reference-line metadata.</td></tr>
+<tr><td><code>plotFitQualityEvidenceDashboard(divID, fitQualityEvidenceResult)</code></td><td>Output from <code>advisor.computeFitQualityEvidence</code>.</td><td>Sample-level dashboard with reporting mode, review-cue count, and evidence components for burden, reconstruction, residual, bootstrap, threshold, ambiguity, and catalog. Returns <code>{ data, components }</code>.</td></tr>
+<tr><td><code>plotCohortGroupComparison(divID, comparisonResult)</code></td><td><code>groupComparison</code> block returned by <code>runCohortFit</code>.</td><td>Bar chart of comparison-group minus reference-group mean exposure differences for top signals, with effect size, p value, and q value in tooltips.</td></tr>
+<tr><td><code>plotPanelEvidenceMatrix(divID, panelResultOrEvidenceCalls)</code></td><td>Output from <code>pipelines.runPanelWorkflow</code> or an <code>evidenceCalls</code> object.</td><td>Sample-by-signature matrix colored by panel/WES tier: higher review tier, limited review tier, below review threshold, or not assessable.</td></tr>
+<tr><td><code>plotCosmicSbs96Profile(divID, spectra, options)</code></td><td>One SBS96 record or sample-keyed spectra object.</td><td>COSMIC-style SBS96 profile with substitution-class grouping, optional normalization, highlighted contexts, and standalone figure context.</td></tr>
+<tr><td><code>plotFitResiduals(divID, residualResult, sampleName = null)</code></td><td>Output from <code>calculateFitResiduals</code>.</td><td>SBS96 observed-versus-reconstructed profile comparison for a selected sample.</td></tr>
+<tr><td><code>plotBootstrapExposureSummary(divID, bootstrapResult, options)</code></td><td>Output from <code>bootstrapSignatureFit</code>.</td><td>Compact reporting view of mean exposure, confidence interval, and selection frequency for the top fitted signatures.</td></tr>
+<tr><td><code>plotBootstrapConfidenceIntervals(divID, bootstrapResult)</code></td><td>Output from <code>bootstrapSignatureFit</code>.</td><td>Per-signature bootstrap exposure distributions, confidence intervals, means, and selection frequencies.</td></tr>
+<tr><td><code>plotThresholdSensitivity(divID, thresholdResult)</code> / <code>plotThresholdSensitivitySummary(divID, thresholdResult)</code></td><td>Output from <code>runThresholdSensitivity</code>.</td><td>Cutoff-sensitivity summary with one row per contribution cutoff, reporting mean active-signature count, reconstruction cosine, RMSE, cutoff grid, and standalone figure context.</td></tr></tbody></table></div>
+<h2 id="advisory-and-interpretation-support-advisor">Advisory and interpretation support: <code>advisor</code></h2>
+<h3 id="recommendanalysisstrategy-spectra-options"><code>recommendAnalysisStrategy(spectra, options)</code></h3>
+<p>Validation status: validated core advisor function for the manuscript.</p>
+<p>Inputs:</p>
+<ul><li>Sample spectra.</li><li><code>assay = &quot;WGS&quot;</code> or restricted assay labels such as <code>&quot;panel&quot;</code>.</li><li><code>expectedContexts = null</code>.</li><li><code>lowBurdenThreshold</code>: defaults to 100 for WGS-like analyses and 30 for <code>assay = &quot;panel&quot;</code>.</li><li><code>moderateBurdenThreshold</code>: defaults to 1000 for WGS-like analyses and 150 for <code>assay = &quot;panel&quot;</code>.</li><li><code>highBurdenThreshold = 3000</code>.</li><li><code>minSamplesForExtraction = 8</code>.</li><li><code>minSamplesForCohortRecommendation</code> guards cohort-level advice.</li><li><code>minHighInformationFraction = 0.5</code>.</li><li><code>heterogeneityCosineThreshold = 0.85</code>.</li><li>Options may be supplied flatly or under <code>analysisStrategy</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflowRole = &quot;analysis_strategy_advisor&quot;</code>.</li><li><code>scopeStatement</code>: research-use advisory summary, not a clinical classification.</li><li><code>methodBasis</code>: burden, heterogeneity, context completeness, threshold defaults, references, and configurability notes.</li><li><code>thresholds</code>.</li><li><code>mutationBurden</code>: output from <code>summarizeMutationBurden</code>.</li><li><code>contextCoverage</code>: output from <code>summarizeMissingContexts</code>.</li><li><code>cohort</code>: sample count, median burden, burden class distribution, median pairwise cosine, heterogeneity status, extraction readiness, primary recommendation, and caveats.</li><li><code>warnings</code>.</li><li><code>caveats</code>.</li><li><code>recommendedActions</code>.</li></ul>
+<p>Primary recommendations:</p>
+<ul><li>Known-signature refitting is favored for small, low-burden, or insufficiently heterogeneous cohorts.</li><li>De novo extraction is suggested only when sample count, mutation burden, and cohort structure support exploratory extraction.</li><li>Panel and WES settings are treated as restricted review contexts rather than full WGS-equivalent signature decompositions.</li></ul>
+<p>Methodological support:</p>
+<ul><li>Burden and fitting instability: Koh 2021, Medo 2024.</li><li>Cohort heterogeneity and extraction readiness: Alexandrov 2020, Degasperi 2020, Koh 2021.</li><li>Thresholds are configurable defaults; exact cutoffs are operational review settings and should be anchored to assay-specific validation.</li></ul>
+<h3 id="computesignatureambiguity-signatures-options-computesignatureidentifiability-signatures-options"><code>computeSignatureAmbiguity(signatures, options)</code> / <code>computeSignatureIdentifiability(signatures, options)</code></h3>
+<p>Validation status: validated core advisor function for the manuscript.</p>
+<p>Inputs:</p>
+<ul><li>Signature matrix.</li><li><code>contexts = null</code>.</li><li><code>pairReportThreshold = 0.9</code>: pairwise cosine threshold for reporting confounding pairs. This is a reporting aid, not the primary class boundary.</li><li><code>topNeighborCount = 5</code>.</li><li><code>reviewPercentile = 0.75</code>.</li><li><code>strongReviewPercentile = 0.9</code>.</li><li><code>nearBoundaryWidth = 0.03</code>.</li><li>Neighbor/flatness evidence settings: <code>moderateNearestCosine</code>, <code>highNearestCosine</code>, <code>moderateEntropy</code>, <code>highEntropy</code>, and <code>flatSignatureWarningEntropy</code>.</li><li><code>catalogVersion</code> or <code>signatureSetName</code> for provenance.</li><li>Options may be supplied flatly or under <code>ambiguity</code> or <code>signatureAmbiguity</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflowRole = &quot;signature_ambiguity&quot;</code>.</li><li><code>scopeStatement</code>.</li><li><code>methodBasis</code>: selected-catalog identifiability scoring, pairwise cosine reporting, entropy/flatness, confounding-neighbor logic, references, catalog provenance fields where supplied.</li><li><code>contexts</code>.</li><li><code>catalogVersion</code> when supplied.</li><li><code>signatures[]</code>: signature name, nearest neighbor, nearest cosine similarity, top neighbors, flatness score, entropy, continuous <code>confusabilityScore</code>, empirical <code>confusabilityPercentile</code>, component scores/percentiles, <code>evidenceTags</code>, <code>reviewRecommended</code>, <code>strongReviewRecommended</code>, and neighbors above configured thresholds.</li><li><code>pairs[]</code>: pairwise cosine similarity records.</li><li><code>catalogSummary</code>: signature count, review-recommended count, strong-review count, mean confusability score, and reported pair count.</li></ul>
+<p>Interpretation boundary: use <code>confusabilityScore</code>, <code>confusabilityPercentile</code>, and <code>evidenceTags</code>; do not convert small changes around a review percentile into hard biological classes.</p>
+<ul><li><code>warnings</code>: signature ambiguity or flat-signature warnings.</li><li><code>recommendedActions</code>.</li></ul>
+<p>Interpretation boundary:</p>
+<ul><li>Pairwise similarity and entropy identify signatures that may be confusable during fitting. They do not prove that any specific fitted exposure is wrong.</li></ul>
+<p>Literature support:</p>
+<ul><li>Pairwise catalog confusability: Koh 2021, Jin 2024, Wu 2023.</li><li>Signature catalog context and SBS profiles: Alexandrov 2020.</li></ul>
+<h3 id="detectoutofreferencesignal-input-options"><code>detectOutOfReferenceSignal(input, options)</code></h3>
+<p>Validation status: validated core advisor function for the manuscript.</p>
+<p>Inputs:</p>
+<ul><li><code>signatures</code>, <code>spectra</code>, <code>exposures</code>.</li><li>Optional precomputed <code>residuals</code> and <code>reconstructionError</code>.</li><li><code>contexts = null</code>.</li><li><code>normalizeMode = &quot;relative&quot;</code>.</li><li><code>weakUnexplainedThreshold = 0.07</code>.</li><li><code>unexplainedThreshold = 0.12</code>.</li><li><code>cosineThreshold = 0.9</code>.</li><li><code>structuredResidualCosineThreshold = 0.85</code>.</li><li><code>minBurdenForReliableDetection = 100</code>.</li><li><code>moderateBurdenThreshold = 1000</code>.</li><li><code>topN = 8</code> residual contexts.</li><li>Options may be supplied flatly or under <code>catalogSufficiency</code> or <code>catalogCheck</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflowRole = &quot;catalog_sufficiency&quot;</code>.</li><li><code>scopeStatement</code>: residual matches are candidate patterns and do not identify causal signatures.</li><li><code>methodBasis</code>: unexplained fraction, residual structure definition, burden-conditioned status rules, references, and caveats.</li><li><code>contexts</code>.</li><li><code>thresholds</code>: unexplained, weak unexplained, reconstruction cosine, structured residual cosine, and minimum burden settings.</li><li><code>samples[]</code>: sample name, burden class, unexplained fraction, residual-structure summary, candidate residual matches, status, warnings, caveats, and recommended action.</li><li><code>overallStatus</code>.</li><li><code>summary</code>: sample count, catalog-review-cue count, and possible-cue count.</li><li><code>warnings</code>.</li><li><code>recommendedActions</code>.</li></ul>
+<p>Status labels:</p>
+<ul><li><code>catalog_sufficient_for_fit</code>.</li><li><code>possible_out_of_reference</code>.</li><li><code>suspected_out_of_reference</code>.</li><li>Low-burden samples are downgraded because residual structure can be dominated by sampling noise.</li></ul>
+<p>Interpretation boundary:</p>
+<ul><li>Residual matching is hypothesis-generating. The recommended action is to inspect residual spectra and consider whether a broader catalog or additional exploratory analysis is warranted in an adequately powered cohort.</li></ul>
+<h3 id="computefitqualityevidence-input-options"><code>computeFitQualityEvidence(input, options)</code></h3>
+<p>Validation status: validated core advisor function for the manuscript.</p>
+<p>Inputs:</p>
+<ul><li><code>signatures</code>, <code>spectra</code>, and <code>exposures</code>.</li><li>Optional precomputed <code>burdenSummary</code>, <code>residuals</code>, <code>reconstructionError</code>, <code>bootstrap</code>, <code>thresholdSensitivity</code>, <code>ambiguity</code>, and <code>catalogCheck</code>.</li><li><code>lowBurdenThreshold = 100</code>.</li><li><code>moderateBurdenThreshold = 1000</code>.</li><li><code>normalizeMode = &quot;relative&quot;</code> by default for internally computed residuals and reconstruction.</li><li><code>bootstrapReviewExposureThreshold = 0.05</code>: fitted signatures at or above this fraction are summarized as reportable bootstrap entries.</li><li><code>bootstrapReviewConfidenceWidthThreshold = null</code>, <code>bootstrapStrongConfidenceWidthThreshold = null</code>, <code>bootstrapReviewSelectionFrequencyThreshold = null</code>, and <code>bootstrapStrongSelectionFrequencyThreshold = null</code>: bootstrap warning thresholds are disabled by default; finite caller-provided values opt in to bootstrap review cues.</li><li><code>thresholdReviewCosineDrop = 0.02</code> and <code>thresholdStrongCosineDrop = 0.05</code>: fit-quality cutoff review cues based on reconstruction cosine loss from the baseline cutoff.</li><li>Interactive notebooks expose the review flag thresholds as run settings so users can choose burden, residual, bootstrap CI, cutoff cosine-drop, and nearest-neighbor cosine criteria for the cohort and analysis question.</li><li>Options may be supplied flatly or under <code>fitQualityEvidence</code> or <code>qcEvidence</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflowRole = &quot;fit_quality_evidence&quot;</code>.</li><li><code>scopeStatement</code>: rule-based QC evidence for known-signature refitting; no composite fit-quality score is returned.</li><li><code>methodBasis</code>: mutation burden, reconstruction/residual, ambiguity, catalog sufficiency, bootstrap/threshold evidence, explicit reporting-mode rules, references, and note that arbitrary weighted fit-quality scores are not returned.</li><li><code>contexts</code>.</li><li><code>primaryInterpretationField = &quot;samples[].reportingMode&quot;</code>.</li><li><code>samples[]</code>:</li><li><code>sample</code>.</li><li><code>reportingMode</code>.</li><li><code>recommendedReportingMode</code>.</li><li><code>primaryInterpretationField = &quot;reportingMode&quot;</code>.</li><li><code>reviewFlagCount</code>.</li><li><code>reviewFlagCodes</code>.</li><li><code>componentEvidence</code>: burden, reconstruction, residual, bootstrap, threshold, ambiguity, and catalog evidence. Each component includes <code>derivedScoreDeprecated = true</code> where applicable.</li><li><code>metrics</code>: burden class, total mutations, cosine similarity, RMSE, unexplained fraction, and active signatures.</li><li><code>bootstrap</code>: summarized bootstrap stability.</li><li><code>thresholdSensitivity</code>: summarized threshold instability.</li><li><code>catalogStatus</code>.</li><li><code>flags</code>, <code>evidenceFlags</code>, <code>warnings</code>.</li><li><code>caveats</code>.</li><li><code>recommendedActions</code>.</li><li><code>summary</code>: sample count, mean active-caveat count, and counts for each reporting mode.</li><li><code>warnings</code>.</li><li><code>recommendedActions</code>.</li></ul>
+<p>Bootstrap interpretation:</p>
+<ul><li><code>componentEvidence.bootstrap.maxConfidenceWidth</code> is the largest bootstrap confidence interval among fitted signatures at or above the reportable exposure threshold, displayed as 0 to 100 percentage points.</li><li>Bootstrap uncertainty is reported as measured context by default. Fit-quality review cues for bootstrap uncertainty are emitted only when finite bootstrap warning thresholds are configured and crossed.</li></ul>
+<p>Cutoff interpretation:</p>
+<ul><li><code>componentEvidence.threshold.l1Change</code> is total exposure redistribution from the baseline cutoff, reported on a 0 to 2 relative scale before display as 0 to 200 percentage points.</li><li>Fit-quality review cues for cutoff sensitivity are emitted when reconstruction cosine falls from the baseline cutoff by the configured review or priority threshold. Exposure redistribution alone is reported as context.</li></ul>
+<p>Reporting modes:</p>
+<div class="table-wrap"><table><thead><tr><th>Mode</th><th>Rule</th></tr></thead><tbody><tr><td><code>standard_qc_passed</code></td><td>No configured fit-quality review cues are active.</td></tr>
+<tr><td><code>report_with_caveats</code></td><td>Bootstrap warnings, threshold-sensitivity warnings, identifiability review cues, or flat-profile review cues are active.</td></tr>
+<tr><td><code>restricted_interpretation</code></td><td>Low burden, catalog review cues, or structured-residual review cues are active.</td></tr>
+<tr><td><code>not_assessable</code></td><td>Insufficient signal or not-assessable panel evidence is active.</td></tr></tbody></table></div>
+<p>Interpretation boundary:</p>
+<ul><li>The function intentionally avoids a weighted composite score. It reports explicit review cues and a rule-based tier, because burden, reconstruction, residuals, bootstrap behavior, identifiability, and catalog sufficiency are not independent calibrated confidence components.</li></ul>
+<h2 id="high-level-pipelines-pipelines">High-level pipelines: <code>pipelines</code></h2>
+<p>The <code>pipelines</code> namespace contains stable computational workflows. Each full workflow accepts nested option groups for advanced callers. Matching lite wrappers expose the same workflows with a smaller option set:</p>
+<div class="table-wrap"><table><thead><tr><th>Lite wrapper</th><th>Full workflow</th><th>Use</th></tr></thead><tbody><tr><td><code>runSingleSampleFitLite(input, options)</code></td><td><code>runSingleSampleFit(input, options)</code></td><td>Known-signature fit for one sample with default QC, threshold sensitivity, and bootstrap settings.</td></tr>
+<tr><td><code>runCohortFitLite(input, options)</code></td><td><code>runCohortFit(input, options)</code></td><td>Cohort refitting with stable cohort-review defaults.</td></tr>
+<tr><td><code>runPanelWorkflowLite(input, options)</code></td><td><code>runPanelWorkflow(input, options)</code></td><td>Panel/WES evidence review with default tier thresholds and report-ready outputs.</td></tr>
+<tr><td><code>runDiscoveryWorkflowLite(input, options)</code></td><td><code>runDiscoveryWorkflow(input, options)</code></td><td>Fixed-rank browser NMF screening with production handoff guidance.</td></tr></tbody></table></div>
+<p>The same lite wrappers are also exposed through <code>mSigSDK.workflows</code>. <code>mSigSDK.quickstart</code> points to the lite wrappers and adds a compact alias for <code>analyzeMafFilesLite</code>.</p>
+<h3 id="runsinglesamplefit-input-options"><code>runSingleSampleFit(input, options)</code></h3>
+<p>Inputs:</p>
+<ul><li><code>input.spectrum</code>, <code>input.spectra</code>, or a spectrum-like object.</li><li><code>input.signatures</code> or <code>input.referenceSignatures</code>.</li><li><code>sampleName</code>.</li><li><code>mutationBurden</code>: burden and threshold-mode options passed to burden QC and advisor logic. Defaults are <code>lowBurdenThreshold = 100</code> and <code>moderateBurdenThreshold = 1000</code>.</li><li><code>fit</code>: NNLS settings passed to fitting. Defaults are <code>exposureThreshold = 0</code>, <code>exposureType = &quot;relative&quot;</code>, <code>renormalize = true</code>, <code>maxIterations = null</code>, and <code>convergenceTolerance = 1e-10</code>.</li><li><code>residuals</code>: residual settings such as <code>weakUnexplainedThreshold</code> and <code>highResidualStructureCosineThreshold</code>.</li><li><code>thresholdSensitivity</code>: threshold-grid and instability-trigger settings. <code>runThresholdSensitivity = true</code> by default, with <code>thresholds = [0, 0.01, 0.03, 0.05, 0.1]</code>.</li><li><code>bootstrap</code>: bootstrap settings. <code>runBootstrap = true</code> by default, with <code>iterations = 100</code>, <code>confidenceLevel = 0.95</code>, and <code>seed = 123</code> in this pipeline wrapper.</li><li><code>ambiguity</code>: signature ambiguity screening settings.</li><li><code>catalogCheck</code>: catalog-sufficiency settings.</li><li><code>fitQualityEvidence</code>: reporting-mode evidence settings.</li><li>Flat aliases such as <code>lowBurdenThreshold</code>, <code>exposureThreshold</code>, <code>thresholds</code>, <code>bootstrapIterations</code>, <code>confidenceLevel</code>, and <code>seed</code> remain supported.</li><li>Report options including <code>reportFormat = &quot;object&quot;</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflow = &quot;single_sample_fit&quot;</code>.</li><li><code>workflowRole = &quot;single_sample_fit_pipeline&quot;</code>.</li><li><code>scopeStatement</code>.</li><li><code>methodBasis</code>, including validation anchors for 50 and 100 mutation burdens.</li><li><code>primaryInterpretationFields</code>: fit-quality reporting mode, catalog-check status, bootstrap intervals, and threshold sensitivity summary.</li><li><code>parameters</code>: resolved workflow, fitting, burden, threshold, bootstrap, catalog, and fit-quality settings.</li><li><code>validationAnchor</code>.</li><li><code>sample</code>, <code>spectrum</code>, <code>validation</code>.</li><li><code>qc</code>: mutation burden, context coverage, reconstruction error, residuals, threshold sensitivity, bootstrap, fit-quality summary, and catalog-check summary.</li><li><code>primaryWarnings</code>: deduplicated warnings across subsystems.</li><li><code>warnings</code>: alias for the primary deduplicated warning list.</li><li><code>interpretationSuspended</code>: true when any fit-quality sample is <code>not_assessable</code>.</li><li><code>subsystemSummary</code>: highest-severity scan of advisor, fit quality, ambiguity, catalog check, threshold sensitivity, and bootstrap.</li><li><code>advisor</code>.</li><li><code>fit</code>: method <code>NNLS</code>, <code>solverVariant = &quot;coordinate_descent_nnls&quot;</code>, solver caveats, exposures, parameters, reconstruction error.</li><li><code>fitQualityEvidence</code>.</li><li><code>ambiguity</code>.</li><li><code>residuals</code>.</li><li><code>catalogCheck</code>.</li><li><code>thresholdSensitivity</code>.</li><li><code>bootstrap</code>.</li><li><code>recommendedActions</code>.</li><li><code>publicationFigures</code>.</li><li><code>provenance</code>.</li><li><code>report</code>.</li></ul>
+<p>Interpretation boundary:</p>
+<ul><li>Exposures alone are not primary interpretation fields. The reporting mode, catalog status, bootstrap intervals, and threshold sensitivity define the review layer.</li></ul>
+<h3 id="runcohortfit-input-options"><code>runCohortFit(input, options)</code></h3>
+<p>Inputs:</p>
+<ul><li><code>input.spectra</code>.</li><li><code>input.signatures</code> or <code>input.referenceSignatures</code>.</li><li>Optional metadata and <code>groupKey</code>.</li><li>Fitting options as in <code>runSingleSampleFit</code>.</li><li><code>runBootstrap = false</code> by default; when true, <code>bootstrapSampleLimit = 5</code>.</li><li>Cohort options: <code>clusterCosineThreshold = 0.85</code> and <code>minSubgroupSamples = 5</code> for cohort-similarity review.</li><li>Group-comparison options can be supplied under <code>comparison</code> or <code>groupComparison</code>; key settings are <code>groupKey</code>, <code>referenceGroup</code>, <code>minGroupSizeForReliableStats = 5</code>, <code>permutationIterations = 0</code>, <code>topN = 10</code>, and <code>seed = 123</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflow = &quot;cohort_fit&quot;</code>.</li><li><code>workflowRole = &quot;cohort_fit_pipeline&quot;</code>.</li><li><code>scopeStatement</code>.</li><li><code>methodBasis</code>.</li><li><code>primaryInterpretationFields</code>: fit-quality modes, cohort advisor recommendation, subgroup review summary, group comparison reporting mode.</li><li><code>parameters</code>: resolved group, fitting, burden, threshold, bootstrap, cohort, catalog, comparison, and fit-quality settings.</li><li><code>validationAnchor</code>.</li><li><code>validation</code>.</li><li><code>qc</code>: mutation burden, context coverage, reconstruction error, residuals, threshold sensitivity, bootstrap, fit-quality summary, catalog-check summary, subgroups, subgroup-review summary, and group-comparison summary.</li><li><code>primaryWarnings</code>.</li><li><code>warnings</code>: alias for the primary deduplicated warning list.</li><li><code>subsystemSummary</code>.</li><li><code>advisor</code>.</li><li><code>cohort</code>.</li><li><code>subgroupReviewStatus</code>: <code>stratification_review</code> or <code>single_similarity_group</code>.</li><li><code>bootstrapScope</code>: <code>none</code>, <code>per_sample</code>, or <code>representative_samples</code>.</li><li><code>bootstrapAnalyzedSamples</code>.</li><li><code>cohortSizeCaveat</code> when sample count is below 20.</li><li><code>subgroups</code>.</li><li><code>subgroupReview</code>.</li><li><code>groupComparison</code>.</li><li><code>fit</code>.</li><li><code>fitQualityEvidence</code>.</li><li><code>ambiguity</code>.</li><li><code>residuals</code>.</li><li><code>catalogCheck</code>.</li><li><code>thresholdSensitivity</code>.</li><li><code>bootstrap</code>.</li><li><code>recommendedActions</code>.</li><li><code>publicationFigures</code>.</li><li><code>provenance</code>.</li><li><code>report</code>.</li></ul>
+<p>Interpretation boundary:</p>
+<ul><li>Cohort fitting packages sample-level refits with cohort-level structure. The subgroup review summarizes similarity structure for stratification review.</li></ul>
+<h3 id="rundiscoveryworkflow-input-options"><code>runDiscoveryWorkflow(input, options)</code></h3>
+<p>Inputs:</p>
+<ul><li><code>input.spectra</code>.</li><li>Optional <code>input.referenceSignatures</code> or <code>input.signatures</code>.</li><li><code>forceExtraction = false</code>.</li><li>Rank options: <code>rank</code>, <code>runRankSelection</code>, <code>ranks = [2, 3, 4, 5]</code>.</li><li><code>rankSelectionCriterion = &quot;reconstruction_error&quot;</code>, with supported values <code>&quot;reconstruction_error&quot;</code>, <code>&quot;cophenetic&quot;</code>, and <code>&quot;silhouette&quot;</code>.</li><li>Rank-selection NMF options: <code>rankSelectionMaxIterations = 500</code>, <code>rankSelectionRuns = 5</code>, <code>tolerance = 1e-5</code>, and <code>seed = 123</code>.</li><li>Extraction NMF options: <code>extractionMaxIterations = 1000</code>, <code>extractionRuns = 20</code>, <code>tolerance = 1e-5</code>, <code>seed = 123</code>, and <code>signaturePrefix = &quot;NMF&quot;</code>.</li><li><code>defaultRank = 3</code> is used when rank selection is disabled and no explicit <code>rank</code> is supplied.</li><li>Reference matching <code>topN = 5</code>.</li><li>Options may be supplied flatly or under <code>discovery</code> or <code>discoveryOptions</code>.</li></ul>
+<p>Outputs when extraction gates fail:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflow = &quot;discovery_workflow&quot;</code>.</li><li><code>workflowRole = &quot;discovery_pipeline&quot;</code>.</li><li><code>scopeStatement</code>.</li><li><code>methodBasis</code>.</li><li><code>primaryInterpretationFields</code>.</li><li><code>parameters</code>.</li><li><code>validation</code>.</li><li><code>qc</code>.</li><li><code>fit = null</code>.</li><li><code>rankSelectionCriterion = &quot;not_run&quot;</code>.</li><li><code>rankSelectionRationale</code>.</li><li><code>productionHandoffRecommendation</code>.</li><li><code>advisor</code>.</li><li><code>extraction = null</code>.</li><li><code>comparison = null</code>.</li><li><code>warnings</code> containing <code>EXTRACTION_NOT_RECOMMENDED</code>.</li><li><code>recommendedActions</code>.</li><li><code>publicationFigures</code>.</li><li><code>provenance</code>.</li></ul>
+<p>Outputs when extraction runs:</p>
+<ul><li><code>schemaVersion</code>.</li><li><code>workflow = &quot;discovery_workflow&quot;</code>.</li><li><code>workflowRole = &quot;discovery_pipeline&quot;</code>.</li><li><code>scopeStatement</code>.</li><li><code>methodBasis</code>.</li><li><code>parameters</code>.</li><li><code>rankSelectionCriterion</code>: the criterion requested by the caller.</li><li><code>rankSelectionRationale</code>.</li><li><code>productionHandoffRecommendation</code>.</li><li><code>primaryInterpretationFields</code>.</li><li><code>validation</code>.</li><li><code>advisor</code>.</li><li><code>rankSelection</code>.</li><li><code>extraction</code>.</li><li><code>comparison</code>.</li><li><code>qc.mutationBurden</code>.</li><li><code>qc.reconstructionError</code>.</li><li><code>warnings</code>.</li><li><code>recommendedActions</code>.</li><li><code>publicationFigures</code>.</li><li><code>provenance</code>.</li></ul>
+<p>Interpretation boundary:</p>
+<ul><li>Browser NMF rank selection can use lowest reconstruction error, maximum cophenetic correlation from consensus clustering, or maximum average silhouette across repeated decompositions. These are lightweight screening criteria and should not replace production stability frameworks for manuscript-grade discovery.</li></ul>
+<h3 id="runpanelworkflow-input-options"><code>runPanelWorkflow(input, options)</code></h3>
+<p>Inputs:</p>
+<ul><li>Panel or WES spectra.</li><li>Reference signatures.</li><li>Optional <code>callableOpportunities</code>.</li><li>Optional <code>referenceOpportunities</code>.</li><li><code>referenceOpportunitySource</code>.</li><li><code>opportunityEpsilon = 1e-12</code>.</li><li><code>opportunityCoverage</code>.</li><li><code>genomeVersion</code> or <code>genomeBuild</code>.</li><li><code>opportunitySource = &quot;user_supplied&quot;</code>, <code>&quot;canonical_panel&quot;</code>, or <code>&quot;not_supplied&quot;</code>.</li><li>Restricted-assay grids: <code>restrictedAssayBurdens</code>, <code>restrictedAssayExposureLevels</code>.</li><li>Panel fitting defaults: <code>lowBurdenThreshold = 30</code>, <code>moderateBurdenThreshold = 150</code>.</li><li>Tier defaults: <code>minAssessableMutations = 30</code>, <code>higherSupportExposureThreshold = 0.2</code>, <code>limitedSupportExposureThreshold = 0.05</code>.</li><li>Panel settings may be supplied flatly or under <code>panel</code> or <code>panelOptions</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li>Full <code>runCohortFit</code> output fields plus panel-specific fields.</li><li><code>schemaVersion</code>.</li><li><code>workflow = &quot;panel_workflow&quot;</code>.</li><li><code>workflowRole = &quot;panel_wes_review_pipeline&quot;</code>.</li><li><code>scopeStatement</code>: not-assessable and below-threshold tiers must not be interpreted as absence of a mutational process.</li><li><code>methodBasis</code>:</li><li>panel evidence.</li><li>opportunity normalization description.</li><li>opportunity-normalization formula.</li><li>tier assignment.</li><li><code>tierRuleDefinitions</code>.</li><li>configurable defaults.</li><li>references.</li><li><code>primaryInterpretationFields</code>.</li><li><code>parameters</code>: resolved panel, opportunity, evidence-tier, and cohort-fitting settings.</li><li><code>qc</code>: cohort QC plus restricted-assay evidence summary, evidence summary, and panel workflow warnings.</li><li><code>panel</code>: nested panel-specific details containing opportunity normalization, opportunity metadata, evidence calls, evidence summary, tier rules, and limitations.</li><li><code>opportunityNormalization</code>.</li><li><code>opportunityMetadata</code>: genome version, opportunity source, source details, reference source, whether reference opportunities were applied, opportunity coverage, and opportunity coverage definition.</li><li><code>restrictedAssayEvidenceSummary</code>: internal restricted-assay evidence summary.</li><li><code>tierRules</code> and <code>tierRuleDefinitions</code>.</li><li><code>evidenceCalls</code>: object keyed by sample, each containing one row per fitted signature.</li><li><code>evidenceSummary</code>.</li><li><code>warnings</code>: deduplicated cohort, panel, and restricted-assay evidence warnings.</li><li><code>limitations</code>.</li><li><code>report</code>.</li><li><code>recommendedActions</code>.</li><li><code>publicationFigures</code>.</li><li><code>provenance</code>.</li></ul>
+<p>Evidence-call fields:</p>
+<ul><li><code>signatureName</code>.</li><li><code>exposure</code>.</li><li><code>tier</code>.</li><li><code>tierLabel</code>.</li><li><code>totalMutations</code>.</li><li><code>fitQualityReportingMode</code>.</li><li><code>reportingMode</code>.</li><li><code>restrictedAssayEvidence</code>.</li><li><code>assessabilityClass</code>.</li><li><code>assessabilityReasons</code>.</li><li><code>assessable</code>.</li><li><code>warnings</code>.</li></ul>
+<p>Tier rules:</p>
+<div class="table-wrap"><table><thead><tr><th>Tier</th><th>Rule</th></tr></thead><tbody><tr><td><code>not_assessable</code></td><td>Total mutations are below <code>minAssessableMutations</code>, upstream fit quality is not assessable, or supplied callable opportunities contain no positive-opportunity contexts for the signature.</td></tr>
+<tr><td><code>higher_review_support</code></td><td>Exposure is at least <code>higherSupportExposureThreshold</code>, the call is assessable, and fit reporting mode is <code>standard_qc_passed</code> or <code>report_with_caveats</code>.</td></tr>
+<tr><td><code>limited_review_support</code></td><td>Call is assessable and exposure is at least <code>limitedSupportExposureThreshold</code>, but higher-review criteria are not met.</td></tr>
+<tr><td><code>not_detected_within_review_settings</code></td><td>Call is assessable and exposure is below <code>limitedSupportExposureThreshold</code>.</td></tr></tbody></table></div>
+<p>Opportunity-normalization formula:</p>
+<pre class="code-block"><code data-language="text">normalized_context_count =
+  observed_context_count / max(callable_context_opportunity / reference_context_opportunity, epsilon)</code></pre>
+<p>When reference opportunities are not supplied, the denominator is <code>max(callable_context_opportunity, epsilon)</code>. The normalized vector is rescaled to the observed mutation total.</p>
+<p>Interpretation boundary:</p>
+<ul><li>Panel/WES outputs are transparent review evidence, not calibrated detection probabilities or full WGS-equivalent decompositions.</li></ul>
+<h2 id="report-assembly-workflows-workflows">Report-assembly workflows: <code>workflows</code></h2>
+<p>The <code>workflows</code> namespace includes report-assembly wrappers and aliases to the validated pipeline functions.</p>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs and parameters</th><th>Output</th></tr></thead><tbody><tr><td><code>createSignatureFitAnalysis({ spectra, signatures, exposures, parameters = {}, expectedContexts = null, mutationBurdenOptions = {}, residualOptions = {}, reconstructionOptions = {}, validationOptions = {}, provenance = null, reportFormat = &quot;object&quot; })</code></td><td>Precomputed spectra, signatures, exposures, and subsystem options.</td><td>Validation, QC burden/context/reconstruction/residual outputs, method basis, output descriptions, and report.</td></tr>
+<tr><td><code>createNMFAnalysis({ spectra, referenceSignatures = null, nmfOptions = {}, parameters = {}, expectedContexts = null, mutationBurdenOptions = {}, reconstructionOptions = {}, validationOptions = {}, provenance = null, reportFormat = &quot;object&quot; })</code></td><td>Spectra, optional reference signatures, NMF options, QC options, provenance, and report format.</td><td>Validation, extraction, optional reference comparison, QC, method basis, output descriptions, and report.</td></tr>
+<tr><td><code>analyzeSpectraWithSignatures(spectra, signatures, options)</code></td><td>Spectra, signatures, flat fitting options or <code>fitOptions</code>, expected contexts, mutation burden options, residual options, reconstruction options, report format, catalog version/source, genome build, endpoint snapshot.</td><td>Exposures, provenance, validation, QC, and report generated through <code>createSignatureFitAnalysis</code>.</td></tr>
+<tr><td><code>extractSignaturesFromSpectra(spectra, options)</code></td><td>Spectra, optional reference signatures, NMF options, expected contexts, mutation burden options, parameters, report format.</td><td>Provenance plus <code>createNMFAnalysis</code> output.</td></tr>
+<tr><td><code>analyzeMafFiles(mafFiles, signatures = null, options)</code></td><td>MAF rows, optional signatures, <code>groupBy = &quot;project_code&quot;</code>, <code>batchSize = 100</code>, <code>genome = &quot;hg19&quot;</code>, <code>tcga = false</code>, <code>offline = false</code>, optional <code>contextLookupTable</code>, expected contexts, report format, <code>mutationBurdenOptions</code>, fitting options, context source/API metadata, catalog version/source.</td><td>If signatures are supplied, returns MAF conversion metadata plus <code>analyzeSpectraWithSignatures</code> output. If signatures are absent, returns spectra, context metadata, validation, QC, warnings, provenance, and report.</td></tr>
+<tr><td><code>analyzeMafFilesLite(mafFiles, signatures = null, options)</code></td><td>MAF rows, optional signatures, and the minimal MAF options exposed through <code>workflows</code> and <code>quickstart</code>.</td><td>Same workflow family as <code>analyzeMafFiles</code>, with fitting defaults supplied for first-use analysis.</td></tr>
+<tr><td><code>runSingleSampleFit</code></td><td>Alias to <code>pipelines.runSingleSampleFit</code>.</td><td>Same output as pipeline function.</td></tr>
+<tr><td><code>runSingleSampleFitLite</code></td><td>Alias to <code>pipelines.runSingleSampleFitLite</code>.</td><td>Same output frame as the full pipeline with reduced option surface.</td></tr>
+<tr><td><code>runCohortFit</code></td><td>Alias to <code>pipelines.runCohortFit</code>.</td><td>Same output as pipeline function.</td></tr>
+<tr><td><code>runCohortFitLite</code></td><td>Alias to <code>pipelines.runCohortFitLite</code>.</td><td>Same output frame as the full pipeline with stable cohort-review defaults.</td></tr>
+<tr><td><code>runDiscoveryWorkflow</code></td><td>Alias to <code>pipelines.runDiscoveryWorkflow</code>.</td><td>Same output as pipeline function.</td></tr>
+<tr><td><code>runDiscoveryWorkflowLite</code></td><td>Alias to <code>pipelines.runDiscoveryWorkflowLite</code>.</td><td>Same output frame as the full pipeline with fixed-rank NMF screening defaults.</td></tr>
+<tr><td><code>runPanelWorkflow</code></td><td>Alias to <code>pipelines.runPanelWorkflow</code>.</td><td>Same output as pipeline function.</td></tr>
+<tr><td><code>runPanelWorkflowLite</code></td><td>Alias to <code>pipelines.runPanelWorkflowLite</code>.</td><td>Same output frame as the full pipeline with panel/WES review defaults.</td></tr></tbody></table></div>
+<h3 id="analyzemaffiles-context-metadata"><code>analyzeMafFiles</code> context metadata</h3>
+<p>The MAF workflow records:</p>
+<ul><li><code>genomeBuild</code>.</li><li><code>contextSource</code>.</li><li><code>contextLookupMode</code>: <code>live_ucsc_api</code> or <code>offline_table</code>.</li><li><code>contextApiVersion</code>.</li><li><code>contextApiEndpoint</code>.</li><li><code>contextFetchTimestamp</code>.</li><li><code>contextResultsCached</code>.</li><li><code>offlineContextTableSupplied</code>.</li><li><code>cacheBoundary</code>.</li><li><code>expectedConvertibleSnvCount</code>.</li><li><code>observedSbs96Count</code>.</li><li><code>sbs96CountMatchesConvertibleSnvCount</code>.</li><li><code>validationRule</code>.</li></ul>
+<p>The spectra-only result includes <code>CONTEXT_FETCH_FAILED</code> warnings when the SBS96 total does not match the count of convertible single-base substitution rows.</p>
+<p>The spectra-only <code>validation</code> object contains <code>maf</code>, <code>spectra</code>, and <code>mafToSbs96CountCheck</code>. <code>mafToSbs96CountCheck</code> reports <code>valid</code>, <code>expectedConvertibleSnvCount</code>, <code>observedSbs96Count</code>, and any count-mismatch warning objects.</p>
+<h2 id="signature-extraction-signatureextraction">Signature extraction: <code>signatureExtraction</code></h2>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs and parameters</th><th>Output</th><th>Method and interpretation</th></tr></thead><tbody><tr><td><code>spectraToMatrix(spectra, { contexts = null, sampleNames = null })</code></td><td>Spectra object or numeric matrix.</td><td><code>{ matrix, contexts, sampleNames }</code>, with contexts as rows and samples as columns.</td><td>Shared conversion helper for NMF.</td></tr>
+<tr><td><code>extractSignaturesNMF(spectra, options)</code></td><td><code>rank = 5</code>, <code>maxIterations = 1000</code>, <code>tolerance = 1e-5</code>, <code>nRuns = 20</code>, <code>seed = 123</code>, <code>contexts = null</code>, <code>sampleNames = null</code>, <code>signaturePrefix = &quot;NMF&quot;</code>.</td><td>Best-run NMF output with extracted signatures, exposures, reconstruction, reconstruction error, average sample cosine similarity, sample cosine similarities, rank, contexts, sample names, convergence, best run, and run metrics.</td><td>Multiplicative-update NMF with multiple random starts. Browser-native and exploratory.</td></tr>
+<tr><td><code>selectNMFRank(spectra, options)</code></td><td><code>ranks = [2, 3, 4, 5]</code>, <code>rankSelectionCriterion = &quot;reconstruction_error&quot;</code>, NMF run options, contexts, sample names. Supported criteria are <code>&quot;reconstruction_error&quot;</code>, <code>&quot;cophenetic&quot;</code>, and <code>&quot;silhouette&quot;</code>.</td><td>Rank-grid runs, <code>recommendedRank</code>, <code>rankSelectionCriterion</code>, <code>criterionUsed</code>, <code>criterionValue</code>, and per-rank reconstruction error, average sample cosine, cophenetic correlation, average silhouette, consensus matrix, and run metrics where available.</td><td>Lightweight screening criteria, not a full production stability framework.</td></tr>
+<tr><td><code>compareExtractedToReference(extraction, referenceSignatures, { contexts = null, topN = 5 })</code></td><td>NMF extraction result and reference signatures.</td><td>Per-extracted-signature cosine matches, best match, and top matches.</td><td>Similarity screening only; not etiology assignment.</td></tr>
+<tr><td><code>extractSignaturesNMFInWorker(spectra, options = {})</code></td><td>Spectra and NMF options.</td><td>Promise resolving to worker-computed NMF output when browser Worker is available.</td><td>Runs extraction off the UI thread where supported.</td></tr></tbody></table></div>
+<h2 id="signature-extraction-plots-signatureextractionplots">Signature extraction plots: <code>signatureExtractionPlots</code></h2>
+<p>Signature-extraction plot helpers use the same standalone figure context contract as <code>qcPlots</code>. Pass <code>figureContext</code> or <code>publication</code> to identify the dataset, extracted-rank settings, and whether exposures are relative or raw.</p>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Input</th><th>Output semantics</th></tr></thead><tbody><tr><td><code>plotNMFSignatureProfiles(divID, nmfResult, { maxSignatures = Infinity })</code></td><td>NMF output.</td><td>Renders each extracted signature profile using the SBS profile renderer. Returns rendered profile results.</td></tr>
+<tr><td><code>plotNMFExposureHeatmap(divID, nmfResult, { relative = true })</code></td><td>NMF output.</td><td>Sample-by-extracted-signature exposure heatmap using a viridis scale; returns plotted rows.</td></tr>
+<tr><td><code>plotNMFRankSelection(divID, rankSelection)</code></td><td>Rank-selection output.</td><td>Rank diagnostics for reconstruction error, average sample cosine similarity, cophenetic correlation, and silhouette where available, with recommended-rank marker; returns rank-run rows.</td></tr></tbody></table></div>
+<h2 id="interoperability-io">Interoperability: <code>io</code></h2>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs and parameters</th><th>Output</th></tr></thead><tbody><tr><td><code>exportMatrixTSV(matrix, { rowHeader = &quot;id&quot;, columns = null })</code></td><td>Nested matrix and optional column order.</td><td>Delimited text with row names in the first column.</td></tr>
+<tr><td><code>importMatrixTSV(text, { idColumn = 0, delimiter = &quot;\t&quot; })</code></td><td>Delimited matrix text.</td><td>Nested row-oriented matrix.</td></tr>
+<tr><td><code>spectraToRows(spectra)</code></td><td>Sample spectra.</td><td>Long-form rows with <code>sample</code>, <code>mutationType</code>, and <code>mutations</code>.</td></tr>
+<tr><td><code>signatureMatrixToRows(signatures)</code></td><td>Signature matrix.</td><td>Long-form rows with <code>signatureName</code>, <code>mutationType</code>, and <code>contribution</code>.</td></tr>
+<tr><td><code>exposureMatrixToRows(exposures)</code></td><td>Exposure matrix.</td><td>Long-form rows with <code>sample</code>, <code>signatureName</code>, and <code>exposure</code>.</td></tr>
+<tr><td><code>rowsToExposureMatrix(rows, { sampleKey = &quot;sample&quot;, signatureKey = &quot;signatureName&quot;, exposureKey = &quot;exposure&quot; })</code></td><td>Long-form exposure rows and field mapping.</td><td>Sample-by-signature exposure matrix.</td></tr>
+<tr><td><code>exportSigProfilerMatrix(spectra, { contexts = null })</code></td><td>Sample spectra.</td><td>SigProfiler-style <code>MutationType</code>-by-sample TSV text.</td></tr>
+<tr><td><code>importSigProfilerMatrix(text, { delimiter = &quot;\t&quot; })</code></td><td>SigProfiler-style text.</td><td>Sample-by-context spectra.</td></tr>
+<tr><td><code>exportCOSMICSignatureMatrix(signatures, { contexts = null })</code></td><td>Signature matrix.</td><td>COSMIC-style <code>MutationType</code>-by-signature TSV text.</td></tr>
+<tr><td><code>importCOSMICSignatureMatrix(text, { delimiter = &quot;\t&quot; })</code></td><td>COSMIC-style text.</td><td>Signature-by-context matrix.</td></tr>
+<tr><td><code>exportMuSiCalInput({ spectra, signatures = null }, { contexts = null, delimiter = &quot;\t&quot; })</code></td><td>Sample spectra and optional signature matrix.</td><td>MuSiCal-compatible mutation-type-by-sample spectra text, optional mutation-type-by-signature catalog text, and manifest metadata.</td></tr>
+<tr><td><code>importMuSiCalOutput(text, { delimiter = &quot;\t&quot;, orientation = &quot;auto&quot;, normalize = false })</code></td><td>MuSiCal exposure output in sample-by-signature or signature-by-sample orientation.</td><td>Sample-by-signature exposure matrix, optionally normalized within each sample.</td></tr>
+<tr><td><code>rowsToSampleSpectra</code></td><td>Re-export from validation.</td><td>Sample spectra matrix.</td></tr>
+<tr><td><code>rowsToSignatureMatrix</code></td><td>Re-export from validation.</td><td>Signature matrix.</td></tr></tbody></table></div>
+<h2 id="optional-external-runtimes-runners">Optional external runtimes: <code>runners</code></h2>
+<p>The <code>runners</code> namespace contains optional execution helpers for browser deployments that need to run compatible Python or R packages without a backend server. These helpers are not required for the validated JavaScript QC, fitting, reporting, or visualization workflows.</p>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs and parameters</th><th>Output</th><th>Runtime boundary</th></tr></thead><tbody><tr><td><code>runners.pyodide.detect()</code> / <code>detectPyodideRuntime()</code></td><td>No arguments.</td><td>Availability object with missing browser capabilities and the default Pyodide index URL.</td><td>Reports whether <code>Worker</code>, <code>Blob</code>, and <code>URL.createObjectURL</code> are available.</td></tr>
+<tr><td><code>runners.pyodide.createRunner({ workerUrl = null, pyodideIndexURL, pyodideScriptURL, timeoutMs = 120000 })</code> / <code>createPyodideWorkerRunner(...)</code></td><td>Optional worker and Pyodide URLs.</td><td>Reusable runner with <code>run(payload)</code> and <code>terminate()</code> methods.</td><td>Runs Python in a Web Worker so long jobs do not block the UI thread.</td></tr>
+<tr><td><code>runners.pyodide.runPython(code, { inputs, ...options })</code> / <code>runPython(code, options)</code></td><td>Python code, optional JSON-serializable <code>inputs</code>, packages, virtual input files, and output collection settings.</td><td>One-shot run result with parsed Python return value, collected files, loaded package names, installed package names, and elapsed time.</td><td>Small browser-notebook API; <code>inputs</code> is exposed as <code>MSIG_INPUT_JSON</code> in Python.</td></tr>
+<tr><td><code>runners.pyodide.run(payload, options)</code> / <code>runPyodide(...)</code></td><td>Python code, Pyodide packages, micropip packages, virtual input files, JSON input, and output collection settings.</td><td>One-shot run result with parsed Python return value, collected files, loaded package names, installed package names, and elapsed time.</td><td>Requires browser worker support. Node smoke tests verify preparation paths but do not execute Pyodide.</td></tr>
+<tr><td><code>runners.webr.detect()</code> / <code>detectWebRRuntime()</code></td><td>No arguments.</td><td>Availability object with missing browser capabilities, default WebR module URL, default package repository, and default R binary repository version.</td><td>Reports whether WebAssembly, workers, fetch, and text encoders are available.</td></tr>
+<tr><td><code>runners.webr.checkPackages(packages, options)</code> / <code>checkWebRPackageAvailability(...)</code></td><td>R package names plus optional <code>repositoryUrl</code>, <code>binaryRVersion</code>, and <code>packageIndexUrls</code>.</td><td>Package availability object with found versions, missing packages, checked repository indexes, and fetch errors.</td><td>Checks repository indexes before exact WebR package execution. Package availability is runtime- and repository-dependent.</td></tr>
+<tr><td><code>runners.webr.createRunner({ webRModuleURL, repositoryUrl, timeoutMs = 120000, webROptions })</code> / <code>createWebRRunner(...)</code></td><td>Optional WebR module URL, package repository, timeout, and WebR constructor options.</td><td>Reusable runner with <code>run(payload)</code> and <code>terminate()</code> methods.</td><td>Runs R through WebR. Uses PostMessage mode when cross-origin isolation is not available and the loaded WebR module supports it.</td></tr>
+<tr><td><code>runners.webr.run(payload, options)</code> / <code>runWebR(...)</code></td><td>R code, R packages, virtual input files, optional JSON input, and output collection settings.</td><td>One-shot run result with parsed return value, collected files, installed R package names, WebR version metadata, and elapsed time.</td><td>Requires WebR-compatible package builds. Exact R-package adapters fail with <code>WEBR_RUNTIME_UNAVAILABLE</code> or <code>WEBR_PACKAGE_UNAVAILABLE</code> instead of silently using JavaScript fallbacks.</td></tr></tbody></table></div>
+<p>Pyodide payloads accept <code>pyodidePackages</code>, <code>micropipPackages</code>, <code>files</code>, <code>inputJson</code>, <code>globals</code>, <code>outputFiles</code>, and <code>outputDirectories</code>. The runner sets <code>MSIG_INPUT_JSON</code> inside Python when <code>inputJson</code> or <code>runPython(..., { inputs })</code> is supplied.</p>
+<p>WebR payloads accept <code>rPackages</code>, <code>files</code>, <code>inputJson</code>, <code>outputFiles</code>, and <code>outputDirectories</code>. R packages must be precompiled for WebAssembly in the active WebR package repository or supplied through a compatible configured repository/library image.</p>
+<h2 id="external-tool-adapters-adapters">External tool adapters: <code>adapters</code></h2>
+<p>Adapters prepare stable file formats for established tools and return provenance-rich results. They separate package execution from the validated JavaScript core so browser apps can choose between pure SDK review, Pyodide/WebR execution, or local/server execution.</p>
+<p>The namespace also exposes <code>ADAPTER_SCHEMA_VERSION</code> and default package spec constants for SigProfilerAssignment (<code>DEFAULT_SPA_PACKAGE</code>), SigProfilerExtractor (<code>DEFAULT_SPE_PACKAGE</code>), SigProfilerMatrixGenerator (<code>DEFAULT_SPMG_PACKAGE</code>), SigProfilerSimulator (<code>DEFAULT_SPS_PACKAGE</code>), SigProfilerClusters (<code>DEFAULT_SPC_PACKAGE</code>), and sigProfilerPlotting (<code>DEFAULT_SPP_PACKAGE</code>) so callers can record the intended adapter version and package targets in provenance.</p>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs and parameters</th><th>Output</th><th>Method and interpretation</th></tr></thead><tbody><tr><td><code>adapters.parseExposureTables(files, options)</code> / <code>parseExposureTables(...)</code></td><td>Collected text files, optional delimiter, and <code>normalize = true</code>.</td><td>Best candidate sample-by-signature exposure matrix plus scored candidate-table metadata.</td><td>Shared parser used by assignment/extraction adapters to reimport compatible exposure tables without assuming a single external filename.</td></tr>
+<tr><td><code>adapters.createInteroperabilityBundle({ spectra, signatures }, options)</code> / <code>createInteroperabilityBundle(...)</code></td><td>Sample spectra, optional signature catalog, context order, and included tool names.</td><td>Matched handoff bundles for SigProfilerAssignment, SigProfilerExtractor, sigProfilerPlotting, deconstructSigs, sigminer, and MuSiCal when inputs are available.</td><td>Uses the same context order across tools so outputs can be compared after external execution. Variant-level SigProfiler tools are exposed as standalone adapters because they start from VCF/MAF-like files.</td></tr>
+<tr><td><code>adapters.sigProfilerAssignment.prepareInput({ spectra, signatures }, { contexts = null })</code> / <code>prepareSigProfilerAssignmentInput(...)</code></td><td>Sample spectra and optional custom signature catalog.</td><td>Virtual TSV files and manifest metadata in SigProfiler matrix orientation.</td><td>Produces <code>MutationType</code>-by-sample spectra and optional <code>MutationType</code>-by-signature catalog files.</td></tr>
+<tr><td><code>adapters.sigProfilerAssignment.run({ spectra, signatures }, options)</code> / <code>runSigProfilerAssignment(...)</code></td><td>Spectra, optional signatures, context order, Pyodide packages, <code>SigProfilerAssignment</code> package spec, genome build, COSMIC version, and runtime options.</td><td>Pyodide run result, collected output files, parsed exposure matrix when an exposure table is detected, candidate table list, and provenance.</td><td>Runs SigProfilerAssignment in matrix mode with plotting disabled, mutation-level probability export disabled, and <code>cpu = 1</code> by default for browser compatibility.</td></tr>
+<tr><td><code>adapters.sigProfilerExtractor.prepareInput({ spectra }, options)</code> / <code>prepareSigProfilerExtractorInput(...)</code></td><td>Sample spectra, context order, reference genome, rank range, NMF replicates, and CPU count.</td><td>Matrix-mode input file, manifest metadata, and Python snippet for <code>SigProfilerExtractor.sigpro.sigProfilerExtractor</code>.</td><td>Handoff adapter for production de novo extraction. Browser execution is not the default path.</td></tr>
+<tr><td><code>adapters.sigProfilerExtractor.run({ spectra }, options)</code> / <code>runSigProfilerExtractor(...)</code></td><td>Sample spectra, context order, runtime, output directory, reference genome, signature-rank range, NMF replicates, and CPU count.</td><td>Browser NMF signatures and exposures by default, plus the prepared SigProfilerExtractor handoff manifest. With <code>runtime: &quot;pyodide&quot;</code>, returns collected package files and parsed signatures/exposures when a compatible environment is provided.</td><td>Default browser path avoids installing SigProfilerExtractor in Pyodide because the current package depends on <code>torch</code>. Use <code>prepareInput(...)</code> or the export bundle for local/server package execution.</td></tr>
+<tr><td><code>adapters.sigProfilerExtractor.parseOutput(files, options)</code> / <code>parseSigProfilerExtractorOutput(...)</code></td><td>Collected output files from SigProfilerExtractor.</td><td>Parsed signature matrix, exposure matrix when detected, and candidate table metadata.</td><td>Reimports common signature and activity tables into SDK matrix objects.</td></tr>
+<tr><td><code>adapters.sigProfilerMatrixGenerator.prepareInput({ files }, options)</code> / <code>prepareSigProfilerMatrixGeneratorInput(...)</code></td><td>VCF/MAF/CNV/SV-like virtual files, project name, reference genome, input directory, and MatrixGenerator options.</td><td>Virtual files, manifest metadata, and Python snippet using <code>SigProfilerMatrixGeneratorFunc</code>.</td><td>Standalone variant-to-matrix handoff adapter. Reference-genome installation remains an external package/runtime concern.</td></tr>
+<tr><td><code>adapters.sigProfilerMatrixGenerator.parseOutput(files, options)</code> / <code>parseSigProfilerMatrixGeneratorOutput(...)</code></td><td>Collected MatrixGenerator text files.</td><td>Candidate SigProfiler matrices imported into sample-by-context SDK matrix objects.</td><td>Scans text outputs whose first column looks like mutation context/channel labels.</td></tr>
+<tr><td><code>adapters.sigProfilerSimulator.prepareInput({ files }, options)</code> / <code>prepareSigProfilerSimulatorInput(...)</code></td><td>VCF-like virtual files, project path, genome, contexts, number of simulations, and simulator options.</td><td>Virtual files under the expected project input directory, manifest metadata, and Python snippet using <code>SigProfilerSimulator</code>.</td><td>Standalone simulation handoff adapter for benchmark/null-model generation.</td></tr>
+<tr><td><code>adapters.sigProfilerClusters.prepareInput({ files }, options)</code> / <code>prepareSigProfilerClustersInput(...)</code></td><td>VCF-like virtual files, project, genome, contexts, simulation context, input path, and cluster-analysis options.</td><td>Virtual files, manifest metadata, and Python snippet using <code>SigProfilerClusters.analysis</code>.</td><td>Standalone regional mutation-clustering handoff adapter.</td></tr>
+<tr><td><code>adapters.sigProfilerPlotting.prepareInput({ spectra, matrixText, files }, options)</code> / <code>prepareSigProfilerPlottingInput(...)</code></td><td>SDK spectra or a pre-rendered SigProfiler matrix, project, output directory, matrix type, plot type, and plotting options.</td><td>Matrix input file, manifest metadata, and Python snippet calling the matching <code>sigProfilerPlotting</code> plot function.</td><td>Handoff adapter for exact SigProfiler-style plot generation when the Python plotting package is available.</td></tr>
+<tr><td><code>adapters.deconstructSigs.prepareInput({ spectra, signatures }, options)</code> / <code>prepareDeconstructSigsInput(...)</code></td><td>Sample spectra, signature catalog, context order, output path, and signature cutoff.</td><td>Spectra TSV, signature TSV, manifest metadata, and R snippet using <code>deconstructSigs::whichSignatures</code>.</td><td>Handoff adapter for R execution with a shared context basis.</td></tr>
+<tr><td><code>adapters.deconstructSigs.checkWebRAvailability(options)</code> / <code>checkDeconstructSigsWebRAvailability(...)</code></td><td>Optional WebR package repository settings and package list.</td><td>Availability object with <code>available</code>, <code>status</code>, runtime status, package availability, and missing package names.</td><td>Reports <code>available</code>, <code>missing package</code>, or <code>runtime unavailable</code> before exact WebR execution.</td></tr>
+<tr><td><code>adapters.deconstructSigs.run({ spectra, signatures }, options)</code> / <code>runDeconstructSigsWebR(...)</code></td><td>Sample spectra, signature catalog, context order, signature cutoff, WebR module URL, WebR repository settings, timeout, and optional package-check override.</td><td>Exact WebR package result with parsed exposure matrix, prepared input manifest, collected files, package availability, raw run metadata, and provenance.</td><td>Executes the deconstructSigs R package through WebR only when compatible package builds are available. It does not fall back to the SDK NNLS comparator under the same label.</td></tr>
+<tr><td><code>adapters.deconstructSigs.parseOutput(text, options)</code> / <code>parseDeconstructSigsOutput(...)</code></td><td>Sample-by-signature deconstructSigs exposure table.</td><td>Sample-by-signature exposure matrix, optionally normalized.</td><td>Uses the same exposure parser semantics as other sample-by-signature outputs.</td></tr>
+<tr><td><code>adapters.sigminer.prepareInput({ spectra, signatures }, options)</code> / <code>prepareSigminerInput(...)</code></td><td>Sample spectra, signature catalog, context order, output path, sigminer method, exposure type, relative threshold, and mutation mode.</td><td>Spectra TSV, signature TSV, manifest metadata, and R snippet using <code>sigminer::sig_fit</code>.</td><td>Handoff adapter for supervised sigminer fitting. Solver packages such as <code>quadprog</code>, <code>nnls</code>, or <code>GenSA</code> are checked by the generated R snippet according to the selected method.</td></tr>
+<tr><td><code>adapters.sigminer.checkWebRAvailability(options)</code> / <code>checkSigminerWebRAvailability(...)</code></td><td>Optional WebR package repository settings, package list, and sigminer method.</td><td>Availability object with <code>available</code>, <code>status</code>, runtime status, package availability, and missing package names.</td><td>Checks <code>sigminer</code> plus the solver package required by the selected method (<code>quadprog</code>, <code>nnls</code>, or <code>GenSA</code>).</td></tr>
+<tr><td><code>adapters.sigminer.run({ spectra, signatures }, options)</code> / <code>runSigminerWebR(...)</code></td><td>Sample spectra, signature catalog, context order, sigminer method, exposure type, thresholds, WebR module URL, WebR repository settings, timeout, and optional package-check override.</td><td>Exact WebR package result with parsed exposure matrix, prepared input manifest, collected files, package availability, raw run metadata, and provenance.</td><td>Executes the sigminer R package through WebR only when compatible package builds are available. The run default is <code>method = &quot;NNLS&quot;</code> because current public WebR repositories commonly provide <code>sigminer</code> with <code>nnls</code>; callers can choose <code>QP</code> or <code>SA</code> when the corresponding solver package is available.</td></tr>
+<tr><td><code>adapters.sigminer.parseOutput(text, options)</code> / <code>parseSigminerOutput(...)</code></td><td>Sample-by-signature sigminer exposure table.</td><td>Sample-by-signature exposure matrix, optionally normalized.</td><td>Reuses the common SDK exposure-table parser so results can be compared with JavaScript, Python, and other R adapters.</td></tr>
+<tr><td><code>adapters.musical.prepareRefitInput({ spectra, signatures }, { contexts = null })</code> / <code>prepareMuSiCalRefitInput(...)</code></td><td>Sample spectra and signature catalog.</td><td>MuSiCal-compatible spectra and signature TSV files plus manifest metadata.</td><td>Uses mutation-type rows with sample or signature columns.</td></tr>
+<tr><td><code>adapters.musical.runSparseNnlsRefit({ spectra, signatures }, options)</code> / <code>runSparseNnlsRefit(...)</code></td><td>Spectra, signatures, context order, sparsity threshold, and NNLS controls.</td><td>Browser-native sparse NNLS comparator with exposures, active sets, reconstruction metrics, and provenance.</td><td>Uses MuSiCal-compatible matrices but does not execute the MuSiCal Python package.</td></tr>
+<tr><td><code>adapters.musical.runRefit({ spectra, signatures }, options)</code> / <code>runMuSiCalRefit(...)</code></td><td><code>runtime = &quot;js_sparse_nnls&quot;</code> by default, or <code>runtime = &quot;pyodide&quot;</code> with supplied Pyodide-compatible MuSiCal package assets.</td><td>Sparse comparator result or Pyodide MuSiCal refit result.</td><td>True MuSiCal package execution requires a compatible wheel or preloaded worker environment; the default path is explicitly labeled <code>js_sparse_nnls</code>.</td></tr></tbody></table></div>
+<p>Adapter provenance records the tool name, runtime, package metadata when available, parameters, notes, and generation timestamp. SigProfilerAssignment, MuSiCal, deconstructSigs, and sigminer package execution should be validated in the target browser before being used in a production browser application because package dependencies, wheel/package availability, and browser memory limits are runtime-specific.</p>
+<h2 id="reports-reports">Reports: <code>reports</code></h2>
+<h3 id="createanalysisreport-reportinput-format-object"><code>createAnalysisReport(reportInput, { format = &quot;object&quot; })</code></h3>
+<p>Inputs:</p>
+<ul><li><code>title = &quot;mSigSDK Analysis Report&quot;</code>.</li><li><code>summary = &quot;&quot;</code>.</li><li><code>parameters = {}</code>.</li><li><code>validation = null</code>.</li><li><code>qc = null</code>.</li><li><code>signatures = null</code>.</li><li><code>exposures = null</code>.</li><li><code>extraction = null</code>.</li><li><code>provenance = null</code>.</li><li><code>citations = []</code>.</li><li><code>notes = []</code>.</li><li><code>workflowRole = null</code>.</li><li><code>scopeStatement = null</code>.</li><li><code>methodBasis = null</code>.</li><li><code>primaryInterpretationFields = []</code>.</li><li><code>reproducibilityStatement = null</code>.</li><li><code>format = &quot;object&quot;</code>, <code>&quot;json&quot;</code>, or <code>&quot;html&quot;</code>.</li></ul>
+<p>Outputs:</p>
+<ul><li>Object, JSON string, or standalone HTML string.</li><li>Structured object fields: <code>schemaVersion = &quot;msig.report.v0.3&quot;</code>, title, summary, generated timestamp, workflow role, scope statement, method basis, primary interpretation fields, reproducibility statement, parameters, validation, QC, summarized signatures, summarized exposures, extraction, provenance, citations, and notes.</li></ul>
+<p>Citation behavior:</p>
+<ul><li>Citations are deduplicated from explicitly supplied <code>citations</code>, nested <code>methodBasis.references</code>, validation/QC/extraction/provenance objects, and the built-in Wilkinson 2016 FAIR reference.</li></ul>
+<p>Schema support:</p>
+<ul><li>The versioned JSON Schema for report objects is committed at <code>schemas/msig.report.v0.3/report.schema.json</code>.</li><li><code>npm run test:report-schema</code> validates a representative report object against the schema.</li></ul>
+<h3 id="other-report-functions">Other report functions</h3>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Input</th><th>Output</th></tr></thead><tbody><tr><td><code>createAnalysisReportHTML(report)</code></td><td>Report object.</td><td>Standalone HTML document string with sections for summary, parameters, validation, QC, extraction, method basis, primary fields, reproducibility, provenance, citations, and notes.</td></tr>
+<tr><td><code>downloadAnalysisReport(report, filename = &quot;msig-analysis-report.html&quot;)</code></td><td>Report object or pre-rendered HTML string.</td><td>Browser download side effect. Throws outside a browser DOM.</td></tr></tbody></table></div>
+<h2 id="provenance-provenance">Provenance: <code>provenance</code></h2>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs</th><th>Output</th></tr></thead><tbody><tr><td><code>createProvenance(options)</code></td><td><code>analysis</code>, <code>parameters</code>, <code>sourceUrls</code>, <code>dataSources</code>, <code>catalogVersion</code>, <code>catalogSource</code>, <code>genomeBuild</code>, <code>contextSource</code>, <code>contextApiVersion</code>, <code>contextLookupMode</code>, <code>contextFetchTimestamp</code>, <code>apiEndpointSnapshot</code>, and <code>notes</code>.</td><td>Metadata object with <code>analysis</code>, <code>generatedAt</code>, SDK name/version/import URL/fallback/repository, parameters, catalog, genome/context metadata, API endpoint snapshot, source URLs, data sources, runtime context, and notes.</td></tr>
+<tr><td><code>withProvenance(data, options = {})</code></td><td>Any output and provenance options.</td><td><code>{ data, provenance }</code>.</td></tr></tbody></table></div>
+<h2 id="presentation-helpers-presentation">Presentation helpers: <code>presentation</code></h2>
+<p>These helpers are intended for browser notebooks, reports, and teaching pages. DOM-rendering helpers throw outside a browser DOM.</p>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Inputs</th><th>Output</th></tr></thead><tbody><tr><td><code>DEFAULT_TOOLTIP_TERMS</code></td><td>No inputs.</td><td>Frozen glossary map for reporting modes, review flags, identifiability evidence, catalog statuses, and panel evidence tiers.</td></tr>
+<tr><td><code>formatNumber(value, digits = 3)</code></td><td>Numeric value and significant-digit setting.</td><td>Human-readable number or <code>n/a</code>.</td></tr>
+<tr><td><code>formatCell(value)</code></td><td>Primitive, array, or object.</td><td>Compact display string.</td></tr>
+<tr><td><code>compactSummary(value)</code></td><td>Object or array.</td><td>Short text summary.</td></tr>
+<tr><td><code>metrics(items)</code></td><td>Items with <code>label</code>, <code>value</code>, and optional <code>note</code>.</td><td>DOM metric-card grid.</td></tr>
+<tr><td><code>table(rows, columns = null, options = {})</code></td><td>Row objects, optional column descriptors, <code>maxRows</code>; optionally <code>tooltipTerms</code>.</td><td>DOM table wrapper.</td></tr>
+<tr><td><code>tooltipTable(rows, columns = null, options = {})</code></td><td>Row objects, optional column descriptors, <code>maxRows</code>, and optional custom <code>tooltipTerms</code>.</td><td>DOM table wrapper with hover/focus definitions for SDK reporting modes, warning/review cues, panel tiers, and catalog statuses.</td></tr>
+<tr><td><code>fitQualityEvidenceRows(fitQualityEvidence)</code></td><td>Output from <code>advisor.computeFitQualityEvidence</code>.</td><td>Compact reporting rows with reporting mode, review cues, burden, reconstruction cosine, active identifiability evidence tags, max active confusability score, and catalog status.</td></tr>
+<tr><td><code>fitQualityEvidenceTable(fitQualityEvidence, options = {})</code></td><td>Output from <code>advisor.computeFitQualityEvidence</code>; optional <code>maxRows</code>, <code>includeActiveSignatures</code>, <code>columns</code>, and <code>tooltipTerms</code>.</td><td>Reproducible tooltip reporting table for fit-quality evidence.</td></tr>
+<tr><td><code>panelEvidenceRows(panelWorkflowResultOrCalls)</code></td><td>Output from <code>pipelines.runPanelWorkflow</code> or an <code>evidenceCalls</code> object.</td><td>Compact panel/WES evidence-call rows.</td></tr>
+<tr><td><code>panelEvidenceTable(panelWorkflowResultOrCalls, options = {})</code></td><td>Output from <code>pipelines.runPanelWorkflow</code> or an <code>evidenceCalls</code> object; optional <code>maxRows</code>, <code>columns</code>, and <code>tooltipTerms</code>.</td><td>Reproducible tooltip reporting table for panel/WES evidence tiers.</td></tr>
+<tr><td><code>note(text, tone = &quot;info&quot;)</code></td><td>Text and tone.</td><td>DOM note paragraph.</td></tr>
+<tr><td><code>details(label, value, { open = false } = {})</code></td><td>Label, value, and open flag.</td><td>DOM details/summary inspector.</td></tr>
+<tr><td><code>burdenSampleRows(burden, sampleNames = null)</code></td><td>Burden summary and optional sample allow-list.</td><td>Rows with sample, mutations, non-zero contexts, and low-burden review-cue display value.</td></tr>
+<tr><td><code>reconstructionRows(reconstruction)</code></td><td>Reconstruction-error output.</td><td>Rows with sample, normalization mode, cosine similarity, RMSE, and total observed.</td></tr>
+<tr><td><code>exposureRows(exposures, { minExposure = 0, topN = 10 })</code></td><td>Exposure matrix.</td><td>Top exposure rows sorted descending.</td></tr>
+<tr><td><code>bootstrapRows(bootstrap, { topN = 8 })</code></td><td>Bootstrap output.</td><td>Rows with signature, mean, lower/upper interval bounds, and selection frequency.</td></tr>
+<tr><td><code>thresholdRows(thresholdSensitivity)</code></td><td>Threshold-sensitivity output.</td><td>Rows with threshold, average cosine, average RMSE, and average active signatures.</td></tr>
+<tr><td><code>uncertaintyDecisionRows(bootstrap, thresholdSensitivity, options = {})</code></td><td>Bootstrap output, threshold-sensitivity output, selected sample name, selection-frequency cutoff, maximum interval width, and row limit.</td><td>Per-signature rows with mean exposure, CI width, selection frequency, cutoff range, and reportability decision text for uncertainty notebooks and report packets.</td></tr>
+<tr><td><code>nmfMatchRows(matches, { maxRows = 12 })</code></td><td>Reference match output.</td><td>Rows with extracted signature, reference signature, and cosine similarity.</td></tr>
+<tr><td><code>reportFieldRows(report)</code></td><td>Report object.</td><td>Rows summarizing top-level report fields.</td></tr></tbody></table></div>
+<h2 id="literature-support">Literature support</h2>
+<div class="table-wrap"><table><thead><tr><th>Topic</th><th>Reference</th></tr></thead><tbody><tr><td>Classical NNLS</td><td>Lawson CL, Hanson RJ. Solving least squares problems. SIAM. doi:10.1137/1.9781611971217.</td></tr>
+<tr><td>Original NMF extraction framing</td><td>Alexandrov LB et al. Signatures of mutational processes in human cancer. Nature. 2013. doi:10.1038/nature12477.</td></tr>
+<tr><td>COSMIC signature context and catalog interpretation</td><td>Alexandrov LB et al. The repertoire of mutational signatures in human cancer. Nature. 2020. doi:10.1038/s41586-020-1943-3.</td></tr>
+<tr><td>Practical signature analysis caveats</td><td>Koh G et al. Mutational signatures: emerging concepts, caveats and clinical applications. Nat Rev Cancer. 2021. doi:10.1038/s41568-021-00377-7.</td></tr>
+<tr><td>Cohort heterogeneity and practical framework</td><td>Degasperi A et al. A practical framework and online tool for mutational signature analyses. Nat Cancer. 2020. doi:10.1038/s43018-020-0027-5.</td></tr>
+<tr><td>Burden-dependent fitting behavior and tool comparison</td><td>Medo M et al. A comprehensive comparison of tools for fitting mutational signatures. Nat Commun. 2024. doi:10.1038/s41467-024-53711-6.</td></tr>
+<tr><td>Likelihood-based sparse assignment and confusability</td><td>Jin H et al. Accurate and sensitive mutational signature analysis with MuSiCal. Nat Genet. 2024. doi:10.1038/s41588-024-01659-0.</td></tr>
+<tr><td>Known-signature assignment comparator</td><td>Diaz-Gay M et al. Assigning mutational signatures to individual samples and individual somatic mutations with SigProfilerAssignment. Bioinformatics. 2023. doi:10.1093/bioinformatics/btad756.</td></tr>
+<tr><td>R-based mutational-pattern workflow</td><td>Manders F et al. MutationalPatterns: the one stop shop for the analysis of mutational processes. BMC Genomics. 2022. doi:10.1186/s12864-022-08357-3.</td></tr>
+<tr><td>Assignment heterogeneity</td><td>Wu AJ et al. Mutational signature assignment heterogeneity is widespread and can be addressed by ensemble approaches. Brief Bioinform. 2023. doi:10.1093/bib/bbad331.</td></tr>
+<tr><td>Statistical confidence in signature detection</td><td>Huang X et al. Detecting presence of mutational signatures in cancer with confidence. Bioinformatics. 2018. doi:10.1093/bioinformatics/btx604.</td></tr>
+<tr><td>Panel sequencing considerations</td><td>Lawrence L et al. Performance characteristics of mutational signature analysis in targeted panel sequencing. Arch Pathol Lab Med. 2021. doi:10.5858/arpa.2020-0536-OA.</td></tr>
+<tr><td>Parametric bootstrap attribution uncertainty</td><td>Senkin S, Baez-Ortega A. MSA: reproducible mutational signature attribution with confidence based on simulations. BMC Bioinformatics. 2021. doi:10.1186/s12859-021-04450-8.</td></tr>
+<tr><td>SigProfilerExtractor and production extraction</td><td>Islam SMA et al. Uncovering novel mutational signatures by de novo extraction with SigProfilerExtractor. Cell Genomics. 2022. doi:10.1016/j.xgen.2022.100179.</td></tr>
+<tr><td>Reproducibility and provenance</td><td>Wilkinson MD et al. The FAIR Guiding Principles for scientific data management and stewardship. Sci Data. 2016. doi:10.1038/sdata.2016.18.</td></tr></tbody></table></div>
+<h2 id="interpretation-boundaries">Interpretation boundaries</h2>
+<ul><li>mSigSDK outputs are research-use analytical summaries, not clinical decision rules.</li><li>NNLS and NMF outputs are conditional on the supplied catalog, spectra, context basis, thresholds, and assay territory.</li><li>Residual matches are candidate signals for review and do not identify causal mutational processes.</li><li>Fit-quality evidence uses rule-based reporting modes and explicit review cues; no calibrated composite confidence score is returned.</li><li>Restricted-assay outputs expose burden, fitted exposure, callable territory, and ambiguity descriptors; they do not estimate calibrated panel/WES detection probability.</li><li>Regional mutation-clustering support is limited to external-tool handoff files through the SigProfilerClusters adapter.</li><li>Browser-native NMF extraction and rank selection are exploratory and should be validated with production extraction workflows for manuscript-grade discovery.</li></ul>
+      </article>
+    </main>
+  </body>
+</html>

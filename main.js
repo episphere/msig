@@ -257,7 +257,6 @@ const {
 const {
   ADVISOR_DEFAULTS = {},
   WARNING_CODES = {},
-  compareSignatureExposures = missingDependency("compareSignatureExposures"),
   computeFitQualityEvidence = missingDependency("computeFitQualityEvidence"),
   computeSignatureAmbiguity = missingDependency("computeSignatureAmbiguity"),
   computeSignatureIdentifiability = missingDependency("computeSignatureIdentifiability"),
@@ -267,13 +266,10 @@ const {
   runCohortFitLite = missingDependency("runCohortFitLite"),
   runDiscoveryWorkflow = missingDependency("runDiscoveryWorkflow"),
   runDiscoveryWorkflowLite = missingDependency("runDiscoveryWorkflowLite"),
-  runLocalizedMutagenesisAnalysis = missingDependency("runLocalizedMutagenesisAnalysis"),
   runPanelWorkflow = missingDependency("runPanelWorkflow"),
   runPanelWorkflowLite = missingDependency("runPanelWorkflowLite"),
   runSingleSampleFit = missingDependency("runSingleSampleFit"),
   runSingleSampleFitLite = missingDependency("runSingleSampleFitLite"),
-  runSubgroupDiscoveryWorkflow = missingDependency("runSubgroupDiscoveryWorkflow"),
-  summarizeRestrictedAssayEvidence = missingDependency("summarizeRestrictedAssayEvidence"),
 } = guidanceModule;
 
 const {
@@ -297,6 +293,7 @@ const {
   table: presentationTable = missingDependency("presentation.table"),
   thresholdRows = missingDependency("thresholdRows"),
   tooltipTable = missingDependency("presentation.tooltipTable"),
+  uncertaintyDecisionRows = missingDependency("uncertaintyDecisionRows"),
 } = presentationModule;
 
 const {
@@ -432,11 +429,6 @@ const mSigSDK = (function () {
   /**
    * @namespace pipelines
    */
-
-  /**
-   * @namespace experimental
-   */
-
 
   //#region Plot the summary of a dataset
 
@@ -842,17 +834,259 @@ const mSigSDK = (function () {
     );
   }
 
-  function plotGraphWithPlotlyAndMakeDataDownloadable(divID, data, layout) {
+  function isFigureContextValue(value) {
+    return (
+      value !== undefined &&
+      value !== null &&
+      String(value).trim() !== "" &&
+      String(value).trim().toLowerCase() !== "nan"
+    );
+  }
+
+  function humanizeFigureContextLabel(label) {
+    const raw = String(label || "").trim();
+    const canonicalLabels = {
+      dataSource: "Dataset",
+      dataset: "Dataset",
+      sampleCount: "Sample Count",
+      samplesLoaded: "Sample Count",
+      signatureCount: "Signature Count",
+      signaturesLoaded: "Signature Count",
+      fittingThreshold: "Fitting Threshold",
+      exposureThreshold: "Fitting Threshold",
+      bootstrapIterations: "Bootstrap Iterations",
+      cutoffGrid: "Cutoff Grid",
+      signatureCatalog: "Signature Catalog",
+    };
+    if (canonicalLabels[raw]) return canonicalLabels[raw];
+    return raw
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/^./, (char) => char.toUpperCase());
+  }
+
+  function normalizeFigureContext(context) {
+    if (!context) return [];
+    const entries = Array.isArray(context)
+      ? context
+      : Object.entries(context).map(([label, value]) => ({ label, value }));
+    return entries
+      .map((entry) => {
+        if (Array.isArray(entry)) {
+          return { label: entry[0], value: entry[1] };
+        }
+        return entry && typeof entry === "object"
+          ? {
+              label: entry.label ?? entry.key ?? entry.name,
+              value: entry.value,
+            }
+          : null;
+      })
+      .filter((entry) => entry && isFigureContextValue(entry.label) && isFigureContextValue(entry.value))
+      .map((entry) => ({
+        label: humanizeFigureContextLabel(entry.label),
+        value: String(entry.value),
+      }));
+  }
+
+  function mergeFigureContext(...contexts) {
+    const seen = new Set();
+    const merged = [];
+    contexts.flatMap(normalizeFigureContext).forEach((entry) => {
+      const key = `${entry.label.toLowerCase()}::${entry.value}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(entry);
+      }
+    });
+    return merged;
+  }
+
+  function contextSentence(context = []) {
+    return context.map(({ label, value }) => `${label}: ${value}`).join("; ");
+  }
+
+  function defaultFigureCaption({ title, subtitle, context }) {
+    return String(subtitle || title || "mSigSDK figure").trim();
+  }
+
+  function normalizeFigurePublication({
+    title,
+    subtitle,
+    caption,
+    badges = [],
+    figureContext = null,
+    publication = null,
+  } = {}) {
+    const publicationObject =
+      publication && typeof publication === "object" && !Array.isArray(publication)
+        ? publication
+        : {};
+    const normalizedTitle = String(
+      publicationObject.title || title || "mSigSDK figure"
+    ).trim();
+    const normalizedSubtitle =
+      publicationObject.subtitle ?? subtitle ?? "";
+    const context = mergeFigureContext(
+      publicationObject.context,
+      publicationObject.contextFields,
+      figureContext,
+      publicationObject.includeBadges === false ? [] : badges
+    );
+    const normalizedCaption = String(
+      publicationObject.caption ||
+        caption ||
+        defaultFigureCaption({
+          title: normalizedTitle,
+          subtitle: normalizedSubtitle,
+          context,
+        })
+    ).trim();
+    return {
+      title: normalizedTitle,
+      subtitle: String(normalizedSubtitle || ""),
+      caption: normalizedCaption,
+      context,
+      generatedBy: "mSigSDK",
+      schemaVersion: "msigsdk.figurePublication.v1",
+    };
+  }
+
+  function renderFigureFooter(container, publication) {
+    if (!container || !publication) return null;
+    container.querySelectorAll(":scope > .msig-figure-footer").forEach((node) => node.remove());
+    const footer = document.createElement("footer");
+    footer.className = "msig-figure-footer";
+
+    const caption = document.createElement("p");
+    caption.className = "msig-figure-caption";
+    caption.textContent = publication.caption;
+    footer.appendChild(caption);
+
+    if (publication.context?.length) {
+      const contextList = document.createElement("dl");
+      contextList.className = "msig-figure-context-list";
+      publication.context.forEach(({ label, value }) => {
+        const term = document.createElement("dt");
+        term.textContent = label;
+        const description = document.createElement("dd");
+        description.textContent = value;
+        contextList.append(term, description);
+      });
+      footer.appendChild(contextList);
+    }
+
+    container.appendChild(footer);
+    container.mSigSDKFigure = publication;
+    container.dataset.msigFigureContext = "true";
+    return footer;
+  }
+
+  function figurePublicationPayload(publication, extra = {}) {
+    return {
+      publication,
+      ...extra,
+    };
+  }
+
+  function wrapPlotlyCaptionText(text, maxLineLength = 116) {
+    const words = String(text || "").split(/\s+/).filter(Boolean);
+    const lines = [];
+    let line = "";
+    words.forEach((word) => {
+      const candidate = line ? `${line} ${word}` : word;
+      if (candidate.length > maxLineLength && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = candidate;
+      }
+    });
+    if (line) lines.push(line);
+    return lines.map(escapeHTML).join("<br>");
+  }
+
+  function plotlyLayoutWithPublication(layout = {}, publication) {
+    if (!publication?.caption) return layout;
+    const margin = {
+      ...(layout.margin || {}),
+      b: Math.max(Number(layout.margin?.b) || 0, 118),
+    };
+    const annotations = [
+      ...(Array.isArray(layout.annotations) ? layout.annotations : []),
+      {
+        text: wrapPlotlyCaptionText(publication.caption),
+        xref: "paper",
+        yref: "paper",
+        x: 0,
+        y: -0.2,
+        xanchor: "left",
+        yanchor: "top",
+        showarrow: false,
+        align: "left",
+        font: { size: 11, color: "#475569" },
+      },
+    ];
+    return {
+      ...layout,
+      margin,
+      annotations,
+      meta: {
+        ...(layout.meta || {}),
+        mSigSDKPublication: publication,
+      },
+    };
+  }
+
+  function addStandaloneJsonDownloadControls(chart, payload, label) {
+    if (!chart || chart.querySelector(".msig-d3-downloads")) return;
+    const controls = document.createElement("div");
+    controls.className = "msig-d3-downloads";
+    const labelNode = document.createElement("span");
+    labelNode.className = "msig-d3-download-label";
+    labelNode.textContent = "Download";
+    const jsonButton = document.createElement("button");
+    jsonButton.type = "button";
+    jsonButton.className = "msig-d3-download-button";
+    jsonButton.textContent = "JSON";
+    jsonButton.title = "Download this figure metadata as JSON";
+    jsonButton.addEventListener("click", () => {
+      downloadBlob(
+        new Blob([JSON.stringify(payload, null, 2)], {
+          type: "application/json;charset=utf-8",
+        }),
+        `msigsdk-${downloadSafeName(label || "figure")}.json`
+      );
+    });
+    controls.append(labelNode, jsonButton);
+    chart.insertBefore(controls, chart.firstChild);
+  }
+
+  function plotGraphWithPlotlyAndMakeDataDownloadable(
+    divID,
+    data,
+    layout,
+    publication = {}
+  ) {
     const { element: container } = resolvePlotContainer(divID);
     const plotly = Plotly.default || Plotly;
     ensureD3PlotStyles();
+    const publicationInfo = normalizeFigurePublication({
+      title: plotlyFigureTitle(layout),
+      subtitle: layout?.meta?.subtitle,
+      figureContext: layout?.meta?.figureContext,
+      publication,
+    });
+    const plotLayout = plotlyLayoutWithPublication(layout, publicationInfo);
 
     // Plot the graph using Plotly
-    plotly.newPlot(container, data, layout, {
+    plotly.newPlot(container, data, plotLayout, {
       displaylogo: false,
       responsive: true,
       toImageButtonOptions: {
-        filename: downloadSafeName(plotlyFigureTitle(layout), "msigsdk-figure"),
+        filename: downloadSafeName(publicationInfo.title, "msigsdk-figure"),
         format: "png",
         scale: 2,
       },
@@ -861,8 +1095,10 @@ const mSigSDK = (function () {
     // Get the container of the Plotly graph
     // Ensure the container has a relative position
     container.style.position = "relative";
+    container.classList.add("msig-publication-figure");
 
-    addPlotlyDownloadControls(container, plotly, data, layout);
+    addPlotlyDownloadControls(container, plotly, data, plotLayout, publicationInfo);
+    renderFigureFooter(container, publicationInfo);
 
     return container;
   }
@@ -892,6 +1128,11 @@ const mSigSDK = (function () {
         box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
         padding: 16px 18px 18px;
         color: #111827;
+        font-family: Inter, Arial, sans-serif;
+      }
+      .msig-publication-figure {
+        position: relative;
+        box-sizing: border-box;
         font-family: Inter, Arial, sans-serif;
       }
       .msig-d3-header {
@@ -1054,6 +1295,37 @@ const mSigSDK = (function () {
         background: rgba(255, 255, 255, 0.94);
         box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
         padding: 4px;
+      }
+      .msig-figure-footer {
+        margin-top: 12px;
+        border-top: 1px solid #e2e8f0;
+        padding-top: 10px;
+        color: #475569;
+        font: 12px/1.45 Inter, Arial, sans-serif;
+      }
+      .msig-figure-caption {
+        margin: 0;
+        color: #334155;
+      }
+      .msig-figure-context-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        margin: 8px 0 0;
+      }
+      .msig-figure-context-list dt,
+      .msig-figure-context-list dd {
+        margin: 0;
+      }
+      .msig-figure-context-list dt {
+        color: #64748b;
+        font-weight: 750;
+      }
+      .msig-figure-context-list dd {
+        color: #0f172a;
+      }
+      .msig-figure-context-list dd::after {
+        content: "";
       }
       .msig-d3-review-guide {
         display: grid;
@@ -1246,7 +1518,13 @@ const mSigSDK = (function () {
     };
   }
 
-  function addPlotlyDownloadControls(container, plotly, data, layout = {}) {
+  function addPlotlyDownloadControls(
+    container,
+    plotly,
+    data,
+    layout = {},
+    publication = null
+  ) {
     if (!container || !plotly || container.querySelector(".msig-plotly-downloads")) {
       return;
     }
@@ -1301,7 +1579,7 @@ const mSigSDK = (function () {
     );
     const jsonButton = makeButton("JSON", "Download this figure data as JSON", async () => {
       downloadBlob(
-        new Blob([JSON.stringify({ data, layout }, null, 2)], {
+        new Blob([JSON.stringify({ data, layout, publication }, null, 2)], {
           type: "application/json;charset=utf-8",
         }),
         `${baseName}.json`
@@ -1312,10 +1590,13 @@ const mSigSDK = (function () {
     container.appendChild(controls);
   }
 
-  function svgDownloadMarkup(svgNode) {
+  function svgDownloadMarkup(svgNode, publication = null) {
     const clone = svgNode.cloneNode(true);
     clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    if (publication) {
+      clone.setAttribute("data-msigsdk-publication", JSON.stringify(publication));
+    }
     const viewBox = (clone.getAttribute("viewBox") || "")
       .split(/\s+/)
       .map(Number);
@@ -1328,6 +1609,14 @@ const mSigSDK = (function () {
       const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
       style.textContent = plotStyles;
       clone.insertBefore(style, clone.firstChild);
+    }
+    if (publication?.caption || publication?.title) {
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      title.textContent = publication.title || "mSigSDK figure";
+      clone.insertBefore(title, clone.firstChild);
+      const desc = document.createElementNS("http://www.w3.org/2000/svg", "desc");
+      desc.textContent = publication.caption || "";
+      clone.insertBefore(desc, title.nextSibling);
     }
     return `<?xml version="1.0" encoding="UTF-8"?>\n${new XMLSerializer().serializeToString(clone)}`;
   }
@@ -1379,10 +1668,11 @@ const mSigSDK = (function () {
     }
   }
 
-  function addFigureDownloadControls(chart, svgNode, label) {
+  function addFigureDownloadControls(chart, svgNode, label, publication = null) {
     if (!chart || !svgNode || chart.querySelector(".msig-d3-downloads")) {
       return;
     }
+    const publicationInfo = publication || chart.__msigFigurePublication || null;
     const baseName = `msigsdk-${downloadSafeName(label || "figure")}`;
     const controls = document.createElement("div");
     controls.className = "msig-d3-downloads";
@@ -1402,6 +1692,12 @@ const mSigSDK = (function () {
     pngButton.textContent = "PNG";
     pngButton.title = "Download this figure as PNG";
 
+    const jsonButton = document.createElement("button");
+    jsonButton.type = "button";
+    jsonButton.className = "msig-d3-download-button";
+    jsonButton.textContent = "JSON";
+    jsonButton.title = "Download this figure metadata as JSON";
+
     const withBusyButton = async (button, task) => {
       const original = button.textContent;
       button.disabled = true;
@@ -1416,7 +1712,7 @@ const mSigSDK = (function () {
 
     svgButton.addEventListener("click", () =>
       withBusyButton(svgButton, async () => {
-        const svgText = svgDownloadMarkup(svgNode);
+        const svgText = svgDownloadMarkup(svgNode, publicationInfo);
         downloadBlob(
           new Blob([svgText], { type: "image/svg+xml;charset=utf-8" }),
           `${baseName}.svg`
@@ -1425,26 +1721,63 @@ const mSigSDK = (function () {
     );
     pngButton.addEventListener("click", () =>
       withBusyButton(pngButton, async () => {
-        const svgText = svgDownloadMarkup(svgNode);
+        const svgText = svgDownloadMarkup(svgNode, publicationInfo);
         const { width, height } = svgSizeForDownload(svgNode);
         const pngBlob = await svgMarkupToPngBlob(svgText, width, height);
         downloadBlob(pngBlob, `${baseName}.png`);
       })
     );
+    jsonButton.addEventListener("click", () =>
+      withBusyButton(jsonButton, async () => {
+        downloadBlob(
+          new Blob(
+            [
+              JSON.stringify(
+                figurePublicationPayload(publicationInfo, {
+                  figureType: "svg",
+                  ariaLabel: svgNode.getAttribute("aria-label"),
+                  viewBox: svgNode.getAttribute("viewBox"),
+                }),
+                null,
+                2
+              ),
+            ],
+            { type: "application/json;charset=utf-8" }
+          ),
+          `${baseName}.json`
+        );
+      })
+    );
 
-    controls.append(labelNode, svgButton, pngButton);
+    controls.append(labelNode, svgButton, pngButton, jsonButton);
     chart.insertBefore(controls, svgNode);
   }
 
   function createD3PlotFrame(
     target,
-    { title, subtitle, badges = [], maxWidth = "980px" } = {}
+    {
+      title,
+      subtitle,
+      badges = [],
+      maxWidth = "980px",
+      figureContext = null,
+      publication = null,
+      caption = null,
+    } = {}
   ) {
     ensureD3PlotStyles();
     const { element: container } = resolvePlotContainer(target);
     container.innerHTML = "";
     container.classList.add("msig-d3-plot");
     container.style.maxWidth = maxWidth;
+    const publicationInfo = normalizeFigurePublication({
+      title,
+      subtitle,
+      badges,
+      figureContext,
+      publication,
+      caption,
+    });
 
     const header = document.createElement("div");
     header.className = "msig-d3-header";
@@ -1494,11 +1827,13 @@ const mSigSDK = (function () {
 
     const chart = document.createElement("div");
     chart.style.width = "100%";
+    chart.__msigFigurePublication = publicationInfo;
 
     const tooltip = document.createElement("div");
     tooltip.className = "msig-d3-tooltip";
 
     container.append(header, chart, tooltip);
+    renderFigureFooter(container, publicationInfo);
 
     const showTooltip = (event, html) => {
       const margin = 10;
@@ -1537,10 +1872,11 @@ const mSigSDK = (function () {
       tooltip.style.visibility = "hidden";
     };
 
-    return { container, chart, tooltip, showTooltip, hideTooltip };
+    return { container, chart, tooltip, showTooltip, hideTooltip, publication: publicationInfo };
   }
 
-  function appendResponsiveSvg(chart, width, height, label) {
+  function appendResponsiveSvg(chart, width, height, label, publication = null) {
+    const publicationInfo = publication || chart.__msigFigurePublication || null;
     const svg = d3
       .select(chart)
       .append("svg")
@@ -1550,7 +1886,7 @@ const mSigSDK = (function () {
       .style("height", "auto")
       .attr("role", "img")
       .attr("aria-label", label || "mSigSDK plot");
-    addFigureDownloadControls(chart, svg.node(), label || "mSigSDK plot");
+    addFigureDownloadControls(chart, svg.node(), label || "mSigSDK plot", publicationInfo);
     return svg;
   }
 
@@ -1596,7 +1932,8 @@ Generates a mutational spectrum summary plot and displays it in a given HTML div
     genomeDataType = "WGS",
     cancerTypeOrGroup = "Lung-AdenoCA",
     numberOfResults = 50,
-    divID = "mutationalSpectrumSummary"
+    divID = "mutationalSpectrumSummary",
+    options = {}
   ) {
     try {
       const summary = await getMutationalSpectrumSummary(
@@ -1622,7 +1959,16 @@ Generates a mutational spectrum summary plot and displays it in a given HTML div
           },
           barmode: "stack",
         };
-        plotGraphWithPlotlyAndMakeDataDownloadable(divID, data, layout);
+        plotGraphWithPlotlyAndMakeDataDownloadable(divID, data, layout, {
+          ...(options.publication || {}),
+          context: mergeFigureContext(options.figureContext, {
+            dataset: studyName,
+            cancerType: cancerTypeOrGroup,
+            strategy: genomeDataType,
+            samplesShown: summary.length,
+            resultLimit: numberOfResults,
+          }),
+        });
       }
     } catch (err) {
       console.error(err);
@@ -1675,7 +2021,7 @@ Plots the mutational burden by cancer type for a given project.
 // Example usage:
 plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
 */
-  async function plotProjectMutationalBurdenByCancerType(project, divID) {
+  async function plotProjectMutationalBurdenByCancerType(project, divID, options = {}) {
     project = groupBy(project, "cancer");
     Object.keys(project).forEach(function (key, index) {
       project[key] = groupBy(project[key], "sample");
@@ -1732,7 +2078,14 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
       height: 600,
     };
 
-    plotGraphWithPlotlyAndMakeDataDownloadable(divID, data, layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, data, layout, {
+      ...(options.publication || {}),
+      context: mergeFigureContext(options.figureContext, {
+        dataset: options.dataset || options.study || "Public project data",
+        cancerTypes: cancerTypes.length,
+        plottedMetric: "log10 total mutations",
+      }),
+    });
   }
 
   //#endregion
@@ -1746,7 +2099,8 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
   function plotGroupedMutationalProfilesWithPlotly(
     divID,
     mutationalSpectra,
-    titlePrefix = "Mutational profiles"
+    titlePrefix = "Mutational profiles",
+    options = {}
   ) {
     const profileNames = profileDisplayNames(mutationalSpectra);
     const layout = {
@@ -1763,7 +2117,14 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
       type: "bar",
     }));
 
-    plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces, layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, traces, layout, {
+      ...(options.publication || {}),
+      context: mergeFigureContext(options.figureContext, {
+        dataset: options.dataset || "Input spectra",
+        profiles: profileNames.length,
+        plottedMetric: "mutation count",
+      }),
+    });
     return { traces, layout };
   }
 
@@ -1775,6 +2136,8 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
       subtitle =
         "COSMIC-style SBS96 profile. Plotly grouped bars are reserved for three or more profiles.",
       normalize = "auto",
+      figureContext = null,
+      publication = null,
     } = {}
   ) {
     const collection = normalizeSbs96SpectrumCollection(
@@ -1807,6 +2170,8 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
             ? title
             : `${title}: ${profileName}`,
         subtitle,
+        figureContext,
+        publication,
       });
     });
 
@@ -1817,7 +2182,13 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
     divID,
     mutationalSpectra,
     profileCount,
-    { matrixSize = null, mutationType = null } = {}
+    {
+      matrixSize = null,
+      mutationType = null,
+      figureContext = null,
+      publication = null,
+      dataset = null,
+    } = {}
   ) {
     if (profileCount >= 3) return null;
 
@@ -1829,7 +2200,14 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
       );
 
     if (isSbs96) {
-      return plotCosmicSbs96ProfileSet(divID, mutationalSpectra);
+      return plotCosmicSbs96ProfileSet(divID, mutationalSpectra, {
+        figureContext: mergeFigureContext(figureContext, {
+          dataset,
+          profile: "SBS",
+          matrix: matrixSize || 96,
+        }),
+        publication,
+      });
     }
 
     return renderPlotError(
@@ -1850,7 +2228,8 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
   async function plotPatientMutationalSpectrumuserData(
     mutationalSpectra,
     matrixSize = 96,
-    divID = "mutationalSpectrumMatrix"
+    divID = "mutationalSpectrumMatrix",
+    options = {}
   ) {
     if (!mutationalSpectra || typeof mutationalSpectra !== "object") {
       return renderPlotError(
@@ -1860,7 +2239,13 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
     }
 
     if (looksLikeSbs96Record(mutationalSpectra)) {
-      return plotCosmicSbs96ProfileSet(divID, mutationalSpectra);
+      return plotCosmicSbs96ProfileSet(divID, mutationalSpectra, {
+        figureContext: mergeFigureContext(options.figureContext, {
+          dataset: options.dataset || "User data",
+          matrix: `SBS${matrixSize || 96}`,
+        }),
+        publication: options.publication,
+      });
     }
 
     const numberOfProfiles = Object.keys(mutationalSpectra).length;
@@ -1875,14 +2260,26 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
       divID,
       mutationalSpectra,
       numberOfProfiles,
-      { matrixSize }
+      {
+        matrixSize,
+        figureContext: options.figureContext,
+        publication: options.publication,
+        dataset: options.dataset || "User data",
+      }
     );
     if (ruleResult) return ruleResult;
 
     return plotGroupedMutationalProfilesWithPlotly(
       divID,
       mutationalSpectra,
-      "Mutational profiles"
+      "Mutational profiles",
+      {
+        ...options,
+        figureContext: mergeFigureContext(options.figureContext, {
+          dataset: options.dataset || "User data",
+          matrix: `SBS${matrixSize || "unknown"}`,
+        }),
+      }
     );
   }
 
@@ -1902,7 +2299,8 @@ Renders a plot of mutational profiles in a given div element ID.
   // Plotly bars are reserved for three or more profiles.
   async function plotPatientMutationalSpectrum(
     mutationalSpectra,
-    divID = "mutationalSpectrumMatrix"
+    divID = "mutationalSpectrumMatrix",
+    options = {}
   ) {
     if (!mutationalSpectra) {
       return renderPlotError(
@@ -1919,7 +2317,13 @@ Renders a plot of mutational profiles in a given div element ID.
         return plotPatientMutationalSpectrumuserData(
           mutationalSpectra,
           undefined,
-          divID
+          divID,
+          {
+            ...options,
+            figureContext: mergeFigureContext(options.figureContext, {
+              dataset: options.dataset || "Input spectra",
+            }),
+          }
         );
       }
 
@@ -1960,14 +2364,28 @@ Renders a plot of mutational profiles in a given div element ID.
       divID,
       extractedSpectra,
       numberOfPatients,
-      { matrixSize, mutationType }
+      {
+        matrixSize,
+        mutationType,
+        figureContext: options.figureContext,
+        publication: options.publication,
+        dataset: options.dataset || "mSigPortal spectra",
+      }
     );
     if (ruleResult) return ruleResult;
 
     return plotGroupedMutationalProfilesWithPlotly(
       divID,
       extractedSpectra,
-      "Mutational profiles"
+      "Mutational profiles",
+      {
+        ...options,
+        figureContext: mergeFigureContext(options.figureContext, {
+          dataset: options.dataset || "mSigPortal spectra",
+          profile: mutationType,
+          matrix: matrixSize,
+        }),
+      }
     );
   }
 
@@ -2183,7 +2601,8 @@ Renders a plot of mutational profiles in a given div element ID.
     divID = "cosineSimilarityHeatMap",
     conductDoubleClustering = true,
     colorscale = "RdBu",
-    showTable = false
+    showTable = false,
+    options = {}
   ) {
     const {
       element: container,
@@ -2258,7 +2677,17 @@ Renders a plot of mutational profiles in a given div element ID.
       },
     };
 
-    plotGraphWithPlotlyAndMakeDataDownloadable(heatmapDiv, plotlyData, layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(heatmapDiv, plotlyData, layout, {
+      ...(options.publication || {}),
+      context: mergeFigureContext(options.figureContext, {
+        dataset: studyName,
+        cancerType,
+        strategy: genomeDataType,
+        samples: Object.keys(groupedData).length,
+        metric: "cosine similarity",
+        clustering: conductDoubleClustering ? "double hierarchical" : "input order",
+      }),
+    });
 
     if (showTable) {
       const tableDiv = document.createElement('div');
@@ -2333,7 +2762,7 @@ Renders a plot of mutational profiles in a given div element ID.
    *   The default value is `"signatureName"`.
    * @return {void} - This function does not return a value. It directly renders the plot in the specified `divID`.
    */
-  function plotSignatureActivityDataBy(divID, data, group = "signatureName") {
+  function plotSignatureActivityDataBy(divID, data, group = "signatureName", options = {}) {
     // Group the data by the specified group using the groupBy function
     const groupedData = groupBy(data, group);
 
@@ -2361,11 +2790,24 @@ Renders a plot of mutational profiles in a given div element ID.
     });
 
     // Plot the box traces using Plotly and display the plot in the specified divID
-    plotGraphWithPlotlyAndMakeDataDownloadable(divID, groupTraces, {
-      title: `Cumulative Exposure for ${group}`,
-      yaxis: { title: "Log(Exposure)" },
-      xaxis: { title: group },
-    });
+    plotGraphWithPlotlyAndMakeDataDownloadable(
+      divID,
+      groupTraces,
+      {
+        title: `Cumulative Exposure for ${group}`,
+        yaxis: { title: "Log(Exposure)" },
+        xaxis: { title: group },
+      },
+      {
+        ...(options.publication || {}),
+        context: mergeFigureContext(options.figureContext, {
+          dataset: options.dataset || "Signature activity rows",
+          groupedBy: group,
+          samples: new Set((data || []).map((row) => row.sample).filter(Boolean)).size,
+          metric: "log10 exposure",
+        }),
+      }
+    );
   }
 
   /**
@@ -2398,7 +2840,8 @@ Renders a plot of mutational profiles in a given div element ID.
     studyName = "PCAWG",
     genomeDataType = "WGS",
     cancerType = "Lung-AdenoCA",
-    divID = "forceDirectedTree"
+    divID = "forceDirectedTree",
+    options = {}
   ) {
     groupedData = extractMutationalSpectra(groupedData);
     let distanceMatrix = await createDistanceMatrix(
@@ -2421,12 +2864,39 @@ Renders a plot of mutational profiles in a given div element ID.
       groupedData
     );
 
-    const element = document.getElementById(divID);
-    element.style.width = "100%";
-    element.style.height = "600px";
-    element.style.maxWidth = "100%";
+    const { chart, publication } = createD3PlotFrame(divID, {
+      title: "Mutational spectrum similarity tree",
+      subtitle:
+        "Force-directed hierarchy from pairwise cosine distances between sample spectra.",
+      badges: [
+        { label: "Dataset", value: studyName },
+        { label: "Samples", value: Object.keys(groupedData).length },
+        { label: "Metric", value: "cosine distance" },
+      ],
+      figureContext: mergeFigureContext(options.figureContext, {
+        dataset: studyName,
+        cancerType,
+        strategy: genomeDataType,
+        samples: Object.keys(groupedData).length,
+      }),
+      publication: options.publication,
+      maxWidth: "1120px",
+    });
+    const treeDiv = document.createElement("div");
+    treeDiv.id = `${typeof divID === "string" ? divID : "forceDirectedTree"}-chart-${Math.random()
+      .toString(36)
+      .slice(2)}`;
+    treeDiv.style.width = "100%";
+    treeDiv.style.height = "600px";
+    treeDiv.style.maxWidth = "100%";
+    chart.appendChild(treeDiv);
+    addStandaloneJsonDownloadControls(
+      chart,
+      figurePublicationPayload(publication, { data: formattedClusters }),
+      publication.title
+    );
 
-    generateForceDirectedTree(formattedClusters, divID);
+    generateForceDirectedTree(formattedClusters, treeDiv.id);
 
     return formattedClusters;
   }
@@ -2509,7 +2979,8 @@ Renders a plot of mutational profiles in a given div element ID.
     divID,
     nComponents = 3,
     minDist = 0.1,
-    nNeighbors = 15
+    nNeighbors = 15,
+    options = {}
   ) {
     data = extractMutationalSpectra(data);
     let umap = new UMAP.default.UMAP({
@@ -2557,7 +3028,16 @@ Renders a plot of mutational profiles in a given div element ID.
       layout.scene = { zaxis: { title: axisLabels[2] } };
     }
 
-    plotGraphWithPlotlyAndMakeDataDownloadable(divID, trace, layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, trace, layout, {
+      ...(options.publication || {}),
+      context: mergeFigureContext(options.figureContext, {
+        dataset: datasetName,
+        samples: Object.keys(data).length,
+        dimensions: nComponents,
+        minDist,
+        nNeighbors,
+      }),
+    });
 
     return trace;
   }
@@ -2725,7 +3205,8 @@ Renders a plot of mutational profiles in a given div element ID.
   async function plotPatientMutationalSignaturesExposure(
     exposureData,
     divID,
-    sample
+    sample,
+    options = {}
   ) {
     if (!exposureData || typeof exposureData !== "object") {
       return renderPlotError(divID, "exposureData must be an object.");
@@ -2807,7 +3288,16 @@ Renders a plot of mutational profiles in a given div element ID.
       title: plotTitle,
     };
 
-    plotGraphWithPlotlyAndMakeDataDownloadable(divID, [data], layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, [data], layout, {
+      ...(options.publication || {}),
+      context: mergeFigureContext(options.figureContext, {
+        dataset: options.dataset || "Exposure matrix",
+        sample: sample || "single sample input",
+        signatureCatalog: options.signatureCatalog || options.catalog,
+        signatures: Object.keys(signatureExposures).length,
+        rnorm: rnormLabel,
+      }),
+    });
 
     return data;
   }
@@ -2844,7 +3334,8 @@ Renders a plot of mutational profiles in a given div element ID.
     relative = true,
     datasetName = "PCAWG",
     doubleCluster = true,
-    colorscale = "Custom"
+    colorscale = "Custom",
+    options = {}
   ) {
     let dataset = deepCopy(exposureData);
     // Remove the rnorm values from each sample of the exposure data
@@ -2915,7 +3406,17 @@ Renders a plot of mutational profiles in a given div element ID.
       height: 800,
     };
 
-    plotGraphWithPlotlyAndMakeDataDownloadable(divID, [data], layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, [data], layout, {
+      ...(options.publication || {}),
+      context: mergeFigureContext(options.figureContext, {
+        dataset: datasetName,
+        samples: Object.keys(dataset).length,
+        signatures: Object.keys(dataset[Object.keys(dataset)[0]] || {}).length,
+        scale: relative ? "relative exposure" : "raw exposure",
+        clustering: doubleCluster ? "double hierarchical" : "input order",
+        signatureCatalog: options.signatureCatalog || options.catalog,
+      }),
+    });
 
     return data;
   }
@@ -2953,9 +3454,17 @@ Renders a plot of mutational profiles in a given div element ID.
    *   - `layout`: An object containing the layout configuration for a Plotly plot, including title, axis labels, annotations, and other visual properties.
    */
 
-  function plotSignatureAssociations(divID, data, signature1, signature2) {
+  function plotSignatureAssociations(divID, data, signature1, signature2, options = {}) {
     let dat = plotSignatureAssociation(data, signature1, signature2);
-    plotGraphWithPlotlyAndMakeDataDownloadable(divID, dat.traces, dat.layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, dat.traces, dat.layout, {
+      ...(options.publication || {}),
+      context: mergeFigureContext(options.figureContext, {
+        dataset: options.dataset || "Signature exposure rows",
+        signatures: `${signature1} and ${signature2}`,
+        samples: new Set((data || []).map((row) => row.sample).filter(Boolean)).size,
+        metric: "signature exposure association",
+      }),
+    });
   }
 
   /**
@@ -2985,9 +3494,17 @@ Renders a plot of mutational profiles in a given div element ID.
    *   - `layout`: An object defining the layout of the plot, including title annotations, axis settings, and overall appearance. It includes conditional logic to handle cases where no signature has a frequency greater than 1%.
    */
 
-  function plotMSPrevalenceData(divID, data) {
+  function plotMSPrevalenceData(divID, data, options = {}) {
     let dat = plotMSPrevalence(data);
-    plotGraphWithPlotlyAndMakeDataDownloadable(divID, dat.traces, dat.layout);
+    plotGraphWithPlotlyAndMakeDataDownloadable(divID, dat.traces, dat.layout, {
+      ...(options.publication || {}),
+      context: mergeFigureContext(options.figureContext, {
+        dataset: options.dataset || "Signature prevalence rows",
+        samples: new Set((data || []).map((row) => row.sample).filter(Boolean)).size,
+        signatures: new Set((data || []).map((row) => row.signatureName).filter(Boolean)).size,
+        metric: "prevalence by exposure threshold",
+      }),
+    });
   }
 
   /**
@@ -2999,7 +3516,7 @@ Renders a plot of mutational profiles in a given div element ID.
    * @param {Object} burdenSummary - Result from mSigSDK.qc.summarizeMutationBurden.
    * @returns {Object|Element} Render metadata or an error element.
    */
-  function plotMutationBurdenSummary(divID, burdenSummary) {
+  function plotMutationBurdenSummary(divID, burdenSummary, options = {}) {
     const samples = [...(burdenSummary.samples || [])].sort(
       (a, b) => a.totalMutations - b.totalMutations
     );
@@ -3033,6 +3550,13 @@ Renders a plot of mutational profiles in a given div element ID.
         { label: "Review cues", value: `${lowBurdenCount}/${samples.length}` },
         { label: "Empty", value: String(emptyCount) },
       ],
+      figureContext: mergeFigureContext(options.figureContext, {
+        dataset: options.dataset || burdenSummary.dataset || burdenSummary.source,
+        samples: samples.length,
+        metric: "total mutations",
+        lowBurdenThreshold: hasThreshold ? threshold : "off",
+      }),
+      publication: options.publication,
     });
 
     const width = 920;
@@ -3189,7 +3713,7 @@ Renders a plot of mutational profiles in a given div element ID.
   async function plotReconstructionError(
     divID,
     reconstructionError,
-    { cosineReferenceLines = [] } = {}
+    { cosineReferenceLines = [], figureContext = null, publication = null, dataset = null } = {}
   ) {
     const samples = [...(reconstructionError.samples || [])].sort(
       (a, b) => a.cosineSimilarity - b.cosineSimilarity
@@ -3224,7 +3748,7 @@ Renders a plot of mutational profiles in a given div element ID.
 		      title: "Reconstruction quality",
 		      subtitle:
 		        "Cosine closer to 1 and RMSE closer to 0 indicate a closer reconstruction of the observed sample.",
-	      badges: [
+      badges: [
         {
           label: "Median cosine",
           value: formatPlotNumber(d3.median(cosineValues), 4),
@@ -3234,6 +3758,12 @@ Renders a plot of mutational profiles in a given div element ID.
           value: formatPlotNumber(maxRmse, 5),
         },
       ],
+      figureContext: mergeFigureContext(figureContext, {
+        dataset: dataset || reconstructionError.dataset || reconstructionError.source,
+        samples: samples.length,
+        metrics: "cosine similarity and RMSE",
+      }),
+      publication,
     });
 
 	    const width = 1080;
@@ -3436,7 +3966,7 @@ Renders a plot of mutational profiles in a given div element ID.
    * @param {Object} fitQualityEvidenceResult - Result from mSigSDK.advisor.computeFitQualityEvidence.
    * @returns {Promise<Object|Element>} Render metadata or an error element.
    */
-  async function plotFitQualityEvidenceDashboard(divID, fitQualityEvidenceResult) {
+  async function plotFitQualityEvidenceDashboard(divID, fitQualityEvidenceResult, options = {}) {
     const severityRank = {
       standard_qc_passed: 0,
       report_with_caveats: 1,
@@ -4238,10 +4768,20 @@ Renders a plot of mutational profiles in a given div element ID.
           label: "Mean active caveats",
           value: Number.isFinite(meanFlagCount)
             ? formatPlotNumber(meanFlagCount, 1)
-            : "NA",
-        },
-      ],
-    });
+              : "NA",
+          },
+        ],
+      figureContext: mergeFigureContext(options.figureContext, {
+        dataset:
+          options.dataset ||
+          fitQualityEvidenceResult.dataset ||
+          fitQualityEvidenceResult.source,
+        samples: samples.length,
+        metrics:
+          "burden, reconstruction, residual, bootstrap, cutoff, ambiguity, and catalog evidence",
+      }),
+      publication: options.publication,
+      });
     appendReviewGuide();
 	    const svg = appendResponsiveSvg(chart, width, height, "Review diagnostics summary");
     const y = d3
@@ -4493,10 +5033,10 @@ Renders a plot of mutational profiles in a given div element ID.
    * @function plotCohortGroupComparison
    * @memberof qcPlots
    * @param {string|Element} divID - Container element or element id.
-   * @param {Object} comparisonResult - Result from mSigSDK.advisor.compareSignatureExposures.
+   * @param {Object} comparisonResult - Group-comparison block returned by a cohort workflow.
    * @returns {Promise<Object|Element>} Render metadata or an error element.
    */
-  async function plotCohortGroupComparison(divID, comparisonResult) {
+  async function plotCohortGroupComparison(divID, comparisonResult, options = {}) {
     const rows = [
       ...(comparisonResult.topSignals?.length
         ? comparisonResult.topSignals
@@ -4522,6 +5062,13 @@ Renders a plot of mutational profiles in a given div element ID.
         { label: "Group key", value: comparisonResult.groupKey || "group" },
         { label: "Reference", value: comparisonResult.referenceGroup || "NA" },
       ],
+      figureContext: mergeFigureContext(options.figureContext, {
+        dataset: options.dataset || comparisonResult.dataset || comparisonResult.source,
+        groupKey: comparisonResult.groupKey || "group",
+        reference: comparisonResult.referenceGroup || "NA",
+        metric: "mean exposure difference",
+      }),
+      publication: options.publication,
     });
     const width = 980;
     const rowHeight = 32;
@@ -4637,7 +5184,7 @@ Renders a plot of mutational profiles in a given div element ID.
    * @param {Object} panelResultOrEvidenceCalls - runPanelWorkflow result or evidenceCalls object.
    * @returns {Promise<Object|Element>} Render metadata or an error element.
    */
-  async function plotPanelEvidenceMatrix(divID, panelResultOrEvidenceCalls) {
+  async function plotPanelEvidenceMatrix(divID, panelResultOrEvidenceCalls, options = {}) {
     const evidenceCalls =
       panelResultOrEvidenceCalls.evidenceCalls || panelResultOrEvidenceCalls;
     const rows = Object.entries(evidenceCalls || {}).flatMap(([sample, calls]) =>
@@ -4681,6 +5228,17 @@ Renders a plot of mutational profiles in a given div element ID.
         { label: "Samples", value: String(sampleNames.length) },
         { label: "Signatures", value: String(signatureNames.length) },
       ],
+      figureContext: mergeFigureContext(options.figureContext, {
+        dataset:
+          options.dataset ||
+          panelResultOrEvidenceCalls.dataset ||
+          panelResultOrEvidenceCalls.source,
+        assay: options.assay || panelResultOrEvidenceCalls.assay || "panel/WES",
+        samples: sampleNames.length,
+        signatures: signatureNames.length,
+        metric: "restricted-assay evidence tier",
+      }),
+      publication: options.publication,
     });
     const svg = appendResponsiveSvg(chart, width, height, "Panel evidence matrix");
     const x = d3
@@ -4915,6 +5473,10 @@ Renders a plot of mutational profiles in a given div element ID.
       title = "COSMIC-style SBS96 profile",
       subtitle =
         "Bars are grouped by the six SBS classes used in COSMIC-style signature plots. Hover over a bar to see the full trinucleotide context.",
+      figureContext = null,
+      publication = null,
+      dataset = null,
+      signatureCatalog = null,
     } = options;
     const fallbackSample = sampleName || sample || "Spectrum";
     const collection = normalizeSbs96SpectrumCollection(spectra, fallbackSample);
@@ -4953,6 +5515,15 @@ Renders a plot of mutational profiles in a given div element ID.
         },
         { label: "Contexts", value: orderedContexts.length },
       ],
+      figureContext: mergeFigureContext(figureContext, {
+        dataset,
+        sample: selectedSample,
+        profile: "SBS",
+        matrix: orderedContexts.length,
+        signatureCatalog,
+        scale: useRelativeScale ? "relative fraction" : "mutation count",
+      }),
+      publication,
     });
 
     const baseWidth = 1080;
@@ -5185,7 +5756,11 @@ Renders a plot of mutational profiles in a given div element ID.
    * @param {string} [sampleName=null] - Sample to render; defaults to the first sample.
    * @returns {Promise<*>} Plot renderer result or an error element.
    */
-  async function plotFitResiduals(divID, residualResult, sampleName = null) {
+  async function plotFitResiduals(divID, residualResult, sampleName = null, options = {}) {
+    if (sampleName && typeof sampleName === "object") {
+      options = sampleName;
+      sampleName = null;
+    }
     const samples = residualResult.samples || [];
     const selectedSample =
       samples.find((sample) => sample.sample === sampleName) || samples[0];
@@ -5246,13 +5821,427 @@ Renders a plot of mutational profiles in a given div element ID.
     plotGraphWithPlotlyAndMakeDataDownloadable(
       divID,
       comparison.traces,
-      layout
+      layout,
+      {
+        ...(options.publication || {}),
+        context: mergeFigureContext(options.figureContext, {
+          dataset: options.dataset || residualResult.dataset || residualResult.source,
+          sample: selectedSample.sample,
+          profile: "SBS",
+          matrix: contexts.length,
+          metrics: "observed, reconstructed, and residual counts",
+        }),
+      }
     );
     return {
       sample: selectedSample.sample,
       traces: comparison.traces,
       layout,
     };
+  }
+
+  function bootstrapSummaryPlotRows(bootstrapResult, { topN = 8, minMean = 0 } = {}) {
+    return [...(bootstrapResult?.signatures || [])]
+      .map((row) => ({
+        signatureName: row.signatureName || row.signature,
+        mean: Number(row.mean),
+        lower: Number(row.lower ?? row.ciLower),
+        upper: Number(row.upper ?? row.ciUpper),
+        selectionFrequency: Number(row.selectionFrequency),
+      }))
+      .filter((row) =>
+        row.signatureName &&
+        (
+          Number(row.mean || 0) > minMean ||
+          Number(row.upper || 0) > minMean ||
+          Number(row.selectionFrequency || 0) > 0
+        )
+      )
+      .sort((a, b) => (b.mean || 0) - (a.mean || 0))
+      .slice(0, Math.max(1, topN));
+  }
+
+  /**
+   * Renders a compact bootstrap uncertainty figure for reporting workflows.
+   *
+   * @async
+   * @function plotBootstrapExposureSummary
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} bootstrapResult - Result from mSigSDK.qc.bootstrapSignatureFit.
+   * @param {Object} [options] - Rendering options.
+   * @param {number} [options.topN=8] - Number of fitted signatures to show.
+   * @returns {Promise<Object|Element>} Render metadata or an error element.
+   */
+  async function plotBootstrapExposureSummary(
+    divID,
+    bootstrapResult,
+    {
+      topN = 8,
+      figureContext = null,
+      publication = null,
+      dataset = null,
+      signatureCatalog = null,
+    } = {}
+  ) {
+    const rows = bootstrapSummaryPlotRows(bootstrapResult, { topN });
+    if (!rows.length) {
+      return renderPlotError(divID, "No nonzero bootstrap exposure estimates were available.");
+    }
+    const selectedCount = rows.filter((row) => row.selectionFrequency >= 0.5).length;
+    const confidenceLabel = formatPlotNumber(
+      (bootstrapResult.confidenceLevel || 0.95) * 100,
+      1
+    );
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title: "Bootstrap exposure uncertainty",
+      subtitle: "Mean exposure with confidence intervals and selection frequency for the selected sample.",
+      badges: [
+        { label: "Bootstrap Iterations", value: String(bootstrapResult.iterations || 0) },
+        { label: "Confidence Interval", value: `${confidenceLabel}%` },
+        { label: "Shown", value: `${rows.length} signatures` },
+        { label: "Selected", value: `${selectedCount}/${rows.length}` },
+      ],
+      figureContext: mergeFigureContext(figureContext, {
+        dataset: dataset || bootstrapResult.dataset || bootstrapResult.source,
+        sample: bootstrapResult.sampleName || bootstrapResult.sample || bootstrapResult.inputSummary?.sample,
+        signatureCatalog,
+        bootstrapIterations: bootstrapResult.iterations || 0,
+        metric: "mean exposure, confidence interval, and selection frequency",
+      }),
+      publication,
+      maxWidth: "1120px",
+    });
+    const width = 1040;
+    const rowHeight = 54;
+    const margin = { top: 44, right: 154, bottom: 62, left: 150 };
+    const exposureWidth = 650;
+    const selectionGap = 54;
+    const selectionWidth = 116;
+    const innerHeight = rows.length * rowHeight;
+    const height = margin.top + innerHeight + margin.bottom;
+    const svg = appendResponsiveSvg(chart, width, height, "Bootstrap exposure uncertainty");
+    const plot = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+    const selectionPlot = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left + exposureWidth + selectionGap},${margin.top})`);
+    const maxExposure = Math.max(...rows.flatMap((row) => [row.upper, row.mean]).filter(Number.isFinite), 0.01);
+    const x = d3.scaleLinear().domain([0, maxExposure * 1.08]).nice().range([0, exposureWidth]);
+    const y = d3
+      .scaleBand()
+      .domain(rows.map((row) => row.signatureName))
+      .range([0, innerHeight])
+      .padding(0.35);
+    const selectionX = d3.scaleLinear().domain([0, 1]).range([0, selectionWidth]);
+    const ticks = x.ticks(tickCountForWidth(exposureWidth, 160, 3, 5));
+
+    plot
+      .append("g")
+      .attr("stroke", SCIENTIFIC_COLORS.lightGray)
+      .call(d3.axisBottom(x).tickValues(ticks).tickSize(innerHeight).tickFormat(""))
+      .call((axis) => axis.select(".domain").remove());
+    plot
+      .append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(d3.axisBottom(x).tickValues(ticks).tickFormat((value) => formatPlotNumber(value, 2)))
+      .call(styleD3Axis);
+    plot
+      .append("g")
+      .call(d3.axisLeft(y).tickSize(0))
+      .call(styleD3Axis)
+      .call((axis) => compactD3AxisText(axis, 22))
+      .call((axis) => axis.select(".domain").remove());
+
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + exposureWidth / 2)
+      .attr("y", height - 18)
+      .attr("text-anchor", "middle")
+      .text("Relative exposure");
+    svg
+      .append("text")
+      .attr("class", "msig-d3-axis-title")
+      .attr("x", margin.left + exposureWidth + selectionGap + selectionWidth / 2)
+      .attr("y", margin.top - 16)
+      .attr("text-anchor", "middle")
+      .text("Selected");
+
+    plot
+      .selectAll("line.msig-bootstrap-summary-interval")
+      .data(rows)
+      .join("line")
+      .attr("x1", (row) => x(Number.isFinite(row.lower) ? row.lower : row.mean || 0))
+      .attr("x2", (row) => x(Number.isFinite(row.upper) ? row.upper : row.mean || 0))
+      .attr("y1", (row) => y(row.signatureName) + y.bandwidth() / 2)
+      .attr("y2", (row) => y(row.signatureName) + y.bandwidth() / 2)
+      .attr("stroke", "#1D5F82")
+      .attr("stroke-width", 4)
+      .attr("stroke-linecap", "round");
+    plot
+      .selectAll("circle.msig-bootstrap-summary-mean")
+      .data(rows)
+      .join("circle")
+      .attr("cx", (row) => x(row.mean || 0))
+      .attr("cy", (row) => y(row.signatureName) + y.bandwidth() / 2)
+      .attr("r", 6)
+      .attr("fill", SCIENTIFIC_COLORS.blue)
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 2)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Signature", row.signatureName],
+            ["Mean", formatPlotNumber(row.mean, 4)],
+            [`${confidenceLabel}% lower`, formatPlotNumber(row.lower, 4)],
+            [`${confidenceLabel}% upper`, formatPlotNumber(row.upper, 4)],
+            ["Selected", d3.format(".0%")(row.selectionFrequency || 0)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+
+    selectionPlot
+      .selectAll("rect.msig-bootstrap-summary-bg")
+      .data(rows)
+      .join("rect")
+      .attr("x", 0)
+      .attr("y", (row) => y(row.signatureName))
+      .attr("width", selectionWidth)
+      .attr("height", y.bandwidth())
+      .attr("rx", 4)
+      .attr("fill", "#DCEFF0");
+    selectionPlot
+      .selectAll("rect.msig-bootstrap-summary-selection")
+      .data(rows)
+      .join("rect")
+      .attr("x", 0)
+      .attr("y", (row) => y(row.signatureName))
+      .attr("width", (row) => selectionX(Math.max(0, Math.min(1, row.selectionFrequency || 0))))
+      .attr("height", y.bandwidth())
+      .attr("rx", 4)
+      .attr("fill", SCIENTIFIC_COLORS.green)
+      .attr("opacity", 0.82);
+    selectionPlot
+      .selectAll("text.msig-bootstrap-summary-selection-label")
+      .data(rows)
+      .join("text")
+      .attr("x", selectionWidth + 10)
+      .attr("y", (row) => y(row.signatureName) + y.bandwidth() / 2)
+      .attr("dy", "0.35em")
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .attr("font", "700 12px Arial, sans-serif")
+      .text((row) => d3.format(".0%")(row.selectionFrequency || 0));
+
+    return { data: rows };
+  }
+
+  /**
+   * Renders a compact cutoff sensitivity figure.
+   *
+   * @async
+   * @function plotThresholdSensitivitySummary
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} thresholdResult - Result from mSigSDK.qc.runThresholdSensitivity.
+   * @returns {Promise<Object|Element>} Render metadata or an error element.
+   */
+  async function plotThresholdSensitivitySummary(
+    divID,
+    thresholdResult,
+    {
+      figureContext = null,
+      publication = null,
+      dataset = null,
+      sample = null,
+      signatureCatalog = null,
+    } = {}
+  ) {
+    const rows = [...(thresholdResult?.runs || [])]
+      .map((run) => ({
+        threshold: Number(run.threshold),
+        activeSignatures: Number(run.averageActiveSignatures),
+        cosine: Number(run.averageCosineSimilarity),
+        rmse: Number(run.averageRmse),
+      }))
+      .filter((row) =>
+        Number.isFinite(row.threshold) &&
+        Number.isFinite(row.activeSignatures) &&
+        Number.isFinite(row.cosine)
+      )
+      .sort((a, b) => a.threshold - b.threshold);
+    if (!rows.length) {
+      return renderPlotError(divID, "No threshold sensitivity results available.");
+    }
+    const maxActive = Math.max(...rows.map((row) => row.activeSignatures), 1);
+    const minCosine = Math.max(
+      0,
+      Math.min(...rows.map((row) => row.cosine)) - 0.02
+    );
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title: "Cutoff sensitivity",
+      subtitle: "Each row is one contribution cutoff, with active-signature count and reconstruction quality on separate scales.",
+      badges: [
+        { label: "Cutoffs", value: String(rows.length) },
+        {
+          label: "Max drift",
+          value: formatPlotNumber(thresholdResult?.summary?.maxMeanL1ExposureDrift, 3),
+        },
+      ],
+      figureContext: mergeFigureContext(figureContext, {
+        dataset: dataset || thresholdResult.dataset || thresholdResult.source,
+        sample:
+          sample ||
+          thresholdResult.sampleName ||
+          thresholdResult.sample ||
+          thresholdResult.inputSummary?.sample,
+        signatureCatalog,
+        cutoffGrid: rows.map((row) => formatPlotNumber(row.threshold, 3)).join(", "),
+        metrics: "active signatures, reconstruction cosine, and RMSE",
+      }),
+      publication,
+      maxWidth: "1120px",
+    });
+    const width = 1160;
+    const rowHeight = 54;
+    const margin = { top: 72, right: 42, bottom: 56, left: 116 };
+    const thresholdX = 28;
+    const activeX = 245;
+    const activeWidth = 330;
+    const cosineX = 730;
+    const cosineWidth = 320;
+    const innerHeight = rows.length * rowHeight;
+    const height = margin.top + innerHeight + margin.bottom;
+    const svg = appendResponsiveSvg(chart, width, height, "Cutoff sensitivity summary");
+    const activeScale = d3.scaleLinear().domain([0, maxActive]).nice().range([0, activeWidth]);
+    const cosineScale = d3.scaleLinear().domain([minCosine, 1]).range([0, cosineWidth]);
+    const plot = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+    [
+      [thresholdX, "Cutoff"],
+      [activeX, "Mean active signatures"],
+      [cosineX, "Mean reconstruction cosine"],
+    ].forEach(([x, label]) => {
+      svg
+        .append("text")
+        .attr("x", x)
+        .attr("y", 36)
+        .attr("fill", SCIENTIFIC_COLORS.darkGray)
+        .attr("font", "800 15px Arial, sans-serif")
+        .text(label);
+    });
+
+    const rowGroups = plot
+      .selectAll("g.msig-threshold-summary-row")
+      .data(rows)
+      .join("g")
+      .attr("class", "msig-threshold-summary-row")
+      .attr("transform", (_, index) => `translate(0,${index * rowHeight})`);
+
+    rowGroups
+      .append("rect")
+      .attr("x", -margin.left + 12)
+      .attr("y", 3)
+      .attr("width", width - 58)
+      .attr("height", rowHeight - 6)
+      .attr("rx", 6)
+      .attr("fill", (_, index) => (index % 2 === 0 ? "#F8FBFA" : "#FFFFFF"));
+    rowGroups
+      .append("text")
+      .attr("x", thresholdX - margin.left)
+      .attr("y", rowHeight / 2 + 5)
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .attr("font", "800 14px Arial, sans-serif")
+      .text((row) => formatPlotNumber(row.threshold, 3));
+
+    rowGroups
+      .append("rect")
+      .attr("x", activeX - margin.left)
+      .attr("y", rowHeight / 2 - 8)
+      .attr("width", activeWidth)
+      .attr("height", 16)
+      .attr("rx", 4)
+      .attr("fill", "#E3F2F0");
+    rowGroups
+      .append("rect")
+      .attr("x", activeX - margin.left)
+      .attr("y", rowHeight / 2 - 8)
+      .attr("width", (row) => activeScale(row.activeSignatures))
+      .attr("height", 16)
+      .attr("rx", 4)
+      .attr("fill", SCIENTIFIC_COLORS.green)
+      .attr("opacity", 0.86)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Cutoff", formatPlotNumber(row.threshold, 3)],
+            ["Active signatures", formatPlotNumber(row.activeSignatures, 2)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    rowGroups
+      .append("text")
+      .attr("x", activeX - margin.left + activeWidth + 12)
+      .attr("y", rowHeight / 2 + 5)
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .attr("font", "800 13px Arial, sans-serif")
+      .text((row) => formatPlotNumber(row.activeSignatures, 1));
+
+    rowGroups
+      .append("rect")
+      .attr("x", cosineX - margin.left)
+      .attr("y", rowHeight / 2 - 8)
+      .attr("width", cosineWidth)
+      .attr("height", 16)
+      .attr("rx", 4)
+      .attr("fill", "#F0EFE3");
+    rowGroups
+      .append("rect")
+      .attr("x", cosineX - margin.left)
+      .attr("y", rowHeight / 2 - 8)
+      .attr("width", (row) => cosineScale(row.cosine))
+      .attr("height", 16)
+      .attr("rx", 4)
+      .attr("fill", "#8A7A24")
+      .attr("opacity", 0.88)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Cutoff", formatPlotNumber(row.threshold, 3)],
+            ["Mean cosine", formatPlotNumber(row.cosine, 4)],
+            ["Mean RMSE", formatPlotNumber(row.rmse, 5)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    rowGroups
+      .append("text")
+      .attr("x", cosineX - margin.left + cosineWidth + 12)
+      .attr("y", rowHeight / 2 + 5)
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .attr("font", "800 13px Arial, sans-serif")
+      .text((row) => formatPlotNumber(row.cosine, 3));
+
+    svg
+      .append("text")
+      .attr("x", activeX)
+      .attr("y", height - 18)
+      .attr("fill", "#64748B")
+      .attr("font", "12px Arial, sans-serif")
+      .text(`Active count scale: 0 to ${formatPlotNumber(activeScale.domain()[1], 1)}`);
+    svg
+      .append("text")
+      .attr("x", cosineX)
+      .attr("y", height - 18)
+      .attr("fill", "#64748B")
+      .attr("font", "12px Arial, sans-serif")
+      .text(`Cosine scale: ${formatPlotNumber(minCosine, 3)} to 1`);
+
+    return { data: rows };
   }
 
   /**
@@ -5265,7 +6254,16 @@ Renders a plot of mutational profiles in a given div element ID.
    * @param {Object} bootstrapResult - Result from mSigSDK.qc.bootstrapSignatureFit.
    * @returns {Promise<Object|Element>} Render metadata or an error element.
    */
-  async function plotBootstrapConfidenceIntervals(divID, bootstrapResult) {
+  async function plotBootstrapConfidenceIntervals(
+    divID,
+    bootstrapResult,
+    {
+      figureContext = null,
+      publication = null,
+      dataset = null,
+      signatureCatalog = null,
+    } = {}
+  ) {
     const sampleName =
       bootstrapResult.sampleName ||
       bootstrapResult.sample ||
@@ -5335,14 +6333,22 @@ Renders a plot of mutational profiles in a given div element ID.
     ).length;
 
 	    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
-	      title: "Bootstrap exposure uncertainty",
-	      subtitle: "Bootstrap draws, intervals, medians, and means share one exposure scale.",
+      title: "Bootstrap exposure uncertainty",
+      subtitle: "Bootstrap draws, intervals, medians, and means share one exposure scale.",
       badges: [
         ...(sampleName ? [{ label: "Sample", value: sampleName }] : []),
-        { label: "Iterations", value: String(bootstrapResult.iterations || 0) },
-        { label: "Interval", value: `${confidenceLabel}%` },
+        { label: "Bootstrap Iterations", value: String(bootstrapResult.iterations || 0) },
+        { label: "Confidence Interval", value: `${confidenceLabel}%` },
         { label: "Selected", value: `${selectedCount}/${rows.length}` },
       ],
+      figureContext: mergeFigureContext(figureContext, {
+        dataset: dataset || bootstrapResult.dataset || bootstrapResult.source,
+        sample: sampleName,
+        signatureCatalog,
+        bootstrapIterations: bootstrapResult.iterations || 0,
+        metric: "bootstrap exposure draws, intervals, medians, means, and selection frequency",
+      }),
+      publication,
       maxWidth: "1120px",
     });
 
@@ -5602,7 +6608,7 @@ Renders a plot of mutational profiles in a given div element ID.
   }
 
   /**
-   * Renders a threshold-sensitivity atlas for fitted exposures.
+   * Renders a cutoff sensitivity summary for fitted exposures.
    *
    * @async
    * @function plotThresholdSensitivity
@@ -5611,445 +6617,8 @@ Renders a plot of mutational profiles in a given div element ID.
    * @param {Object} thresholdResult - Result from mSigSDK.qc.runThresholdSensitivity.
    * @returns {Promise<Object|Element>} Render metadata or an error element.
    */
-  async function plotThresholdSensitivity(divID, thresholdResult) {
-    const runs = [...(thresholdResult.runs || [])]
-      .filter((run) => Number.isFinite(run.threshold))
-      .sort((a, b) => a.threshold - b.threshold);
-
-    if (runs.length === 0) {
-      return renderPlotError(divID, "No threshold sensitivity results available.");
-    }
-
-    const baselineRun = runs[0];
-    const metricDefinitions = [
-      {
-        key: "averageCosineSimilarity",
-        metric: "Cosine",
-        valueFormat: 4,
-        color: SCIENTIFIC_COLORS.blue,
-      },
-      {
-        key: "averageRmse",
-        metric: "RMSE",
-        valueFormat: 5,
-        color: SCIENTIFIC_COLORS.orange,
-      },
-      {
-        key: "averageActiveSignatures",
-        metric: "Active signatures",
-        valueFormat: 2,
-        color: SCIENTIFIC_COLORS.green,
-      },
-    ];
-    const metricOrder = metricDefinitions.map(({ metric }) => metric);
-    const metricColorRange = metricDefinitions.map(({ color }) => color);
-	    const thresholdLabels = runs.map((run) =>
-	      String(formatPlotNumber(run.threshold, 3))
-	    );
-    const thresholdMin = runs[0].threshold;
-    const thresholdMax = runs[runs.length - 1].threshold;
-    const thresholdSpan = Math.max(thresholdMax - thresholdMin, 1e-6);
-    const xDomain = [thresholdMin, thresholdMax + thresholdSpan * 0.28];
-    const formatSignedPercent = (value) =>
-      `${value > 0 ? "+" : ""}${formatPlotNumber(value, 1)}%`;
-    const rows = runs.flatMap((run) =>
-      metricDefinitions.map(({ key, metric, valueFormat }) => {
-        const value = Number(run[key]);
-        const baseline = Number(baselineRun[key]);
-        const delta = value - baseline;
-        const percentChange =
-          Number.isFinite(baseline) && Math.abs(baseline) > 1e-12
-            ? (delta / Math.abs(baseline)) * 100
-            : 0;
-
-        return {
-          threshold: run.threshold,
-          thresholdLabel: String(formatPlotNumber(run.threshold, 3)),
-          metric,
-          value,
-          valueLabel: formatPlotNumber(value, valueFormat),
-          baseline,
-          baselineLabel: formatPlotNumber(baseline, valueFormat),
-          delta,
-          deltaLabel: formatPlotNumber(delta, valueFormat),
-          percentChange,
-          percentChangeLabel: formatSignedPercent(percentChange),
-          absPercentChange: Math.abs(percentChange),
-        };
-      })
-    );
-    const stabilityRows = runs.map((run) => {
-      const thresholdLabel = String(formatPlotNumber(run.threshold, 3));
-      const rowsForThreshold = rows.filter(
-        (row) => row.threshold === run.threshold
-      );
-      const meanAbsoluteDrift =
-        rowsForThreshold.reduce(
-          (total, row) => total + row.absPercentChange,
-          0
-        ) / rowsForThreshold.length;
-      const largestDriver = rowsForThreshold.reduce((largest, row) =>
-        row.absPercentChange > largest.absPercentChange ? row : largest
-      );
-
-      return {
-        threshold: run.threshold,
-        thresholdLabel,
-        meanAbsoluteDrift,
-        meanAbsoluteDriftLabel: `${formatPlotNumber(meanAbsoluteDrift, 1)}%`,
-        largestDriver: largestDriver.metric,
-        largestDriverChange: largestDriver.percentChange,
-        largestDriverChangeLabel: formatSignedPercent(
-          largestDriver.percentChange
-        ),
-      };
-    });
-    const maxAbsPercentChange = Math.max(
-      ...rows.map((row) => row.absPercentChange),
-      1
-    );
-    const maxMeanAbsoluteDrift = Math.max(
-      ...stabilityRows.map((row) => row.meanAbsoluteDrift),
-      1
-    );
-    const yDomainMax = maxAbsPercentChange * 1.14;
-    const colorDomain = [-maxAbsPercentChange, 0, maxAbsPercentChange];
-    const endpointRows = metricDefinitions
-      .map(({ metric, color }, index) => {
-        const endpoint = [...rows]
-          .reverse()
-          .find((row) => row.metric === metric);
-
-        return endpoint
-          ? {
-              ...endpoint,
-              label: `${metric}: ${endpoint.percentChangeLabel}`,
-              labelColor: color,
-              labelOffset: (index - 1) * 16,
-            }
-          : null;
-      })
-      .filter(Boolean);
-
-    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
-      title: "Threshold sensitivity summary",
-      subtitle:
-        "Tests whether fitted signature contributions change when small contributions are kept or removed.",
-      badges: [
-        { label: "Baseline", value: formatPlotNumber(baselineRun.threshold, 3) },
-        { label: "Max change", value: `${formatPlotNumber(maxAbsPercentChange, 1)}%` },
-      ],
-    });
-
-    const width = 1120;
-    const margin = { top: 28, right: 245, bottom: 52, left: 126 };
-    const topHeight = 285;
-    const heatTop = topHeight + 76;
-	    const heatHeight = Math.max(132, thresholdLabels.length * 20);
-	    const heatWidth = 560;
-	    const impactGap = 64;
-	    const instabilityWidth = 220;
-	    const height = heatTop + heatHeight + margin.bottom;
-    const thresholdTickValues = sampledTickValues(
-      runs.map((run) => run.threshold),
-      tickCountForWidth(heatWidth, 95, 3, 7)
-    );
-    const svg = appendResponsiveSvg(
-      chart,
-      width,
-      height,
-      "Threshold sensitivity of signature fitting"
-    );
-	    const x = d3.scaleLinear().domain(xDomain).range([0, width - margin.left - margin.right]);
-    const topTickValues = sampledTickValues(
-      runs.map((run) => run.threshold),
-      tickCountForWidth(x.range()[1], 100, 3, 7)
-    );
-    const y = d3
-      .scaleLinear()
-      .domain([-yDomainMax, yDomainMax])
-      .nice()
-      .range([topHeight, 0]);
-    const metricColor = d3.scaleOrdinal(metricOrder, metricColorRange);
-    const signedColor = d3
-      .scaleLinear()
-      .domain(colorDomain)
-      .range([SCIENTIFIC_COLORS.blue, "#f8fafc", SCIENTIFIC_COLORS.orange]);
-    const topPlot = svg
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    topPlot
-      .append("g")
-      .attr("stroke", SCIENTIFIC_COLORS.lightGray)
-      .attr("stroke-opacity", 0.9)
-      .call(d3.axisLeft(y).ticks(6).tickSize(-x.range()[1]).tickFormat(""))
-      .call((axis) => axis.select(".domain").remove());
-	    topPlot
-	      .append("g")
-	      .attr("transform", `translate(0,${topHeight})`)
-	      .call(d3.axisBottom(x).tickValues(topTickValues).tickFormat(d3.format(".2f")))
-	      .call(styleD3Axis);
-    topPlot
-      .append("g")
-      .call(
-        d3
-          .axisLeft(y)
-          .ticks(6)
-          .tickFormat((value) => `${value > 0 ? "+" : ""}${formatPlotNumber(value, 1)}%`)
-      )
-      .call(styleD3Axis);
-    topPlot
-      .append("line")
-      .attr("x1", 0)
-      .attr("x2", x.range()[1])
-      .attr("y1", y(0))
-      .attr("y2", y(0))
-      .attr("stroke", "#64748b")
-      .attr("stroke-width", 1.4);
-
-    const line = d3
-      .line()
-      .curve(d3.curveMonotoneX)
-      .x((row) => x(row.threshold))
-      .y((row) => y(row.percentChange));
-    const rowsByMetric = d3.group(rows, (row) => row.metric);
-    for (const [metric, metricRows] of rowsByMetric) {
-      topPlot
-        .append("path")
-        .datum(metricRows)
-        .attr("fill", "none")
-        .attr("stroke", metricColor(metric))
-        .attr("stroke-width", 3)
-        .attr("stroke-linecap", "round")
-        .attr("stroke-linejoin", "round")
-        .attr("d", line);
-    }
-    topPlot
-      .selectAll("circle.msig-threshold-point")
-      .data(rows)
-      .join("circle")
-      .attr("class", "msig-threshold-point")
-      .attr("cx", (row) => x(row.threshold))
-      .attr("cy", (row) => y(row.percentChange))
-      .attr("r", 5.5)
-      .attr("fill", (row) => metricColor(row.metric))
-      .attr("stroke", "#ffffff")
-      .attr("stroke-width", 1.3)
-      .on("mousemove", (event, row) =>
-        showTooltip(
-          event,
-	          tooltipRows([
-	            ["Metric", row.metric],
-	            ["Threshold", formatPlotNumber(row.threshold, 3)],
-	            ["Value", row.valueLabel],
-	            ["Baseline", row.baselineLabel],
-            ["Change", row.percentChangeLabel],
-          ])
-        )
-      )
-      .on("mouseleave", hideTooltip);
-    topPlot
-      .selectAll("text.msig-threshold-end-label")
-      .data(endpointRows)
-      .join("text")
-      .attr("class", "msig-threshold-end-label")
-      .attr("x", (row) => x(row.threshold) + 10)
-      .attr("y", (row) => y(row.percentChange) + row.labelOffset)
-      .attr("fill", (row) => row.labelColor)
-      .attr("font", "700 12px Arial, sans-serif")
-      .attr("dominant-baseline", "middle")
-      .text((row) => row.label);
-
-    svg
-      .append("text")
-      .attr("class", "msig-d3-axis-title")
-      .attr("x", margin.left + x.range()[1] / 2)
-      .attr("y", margin.top + topHeight + 42)
-      .attr("text-anchor", "middle")
-      .text("Exposure threshold");
-    svg
-      .append("text")
-      .attr("class", "msig-d3-axis-title")
-      .attr("transform", "rotate(-90)")
-      .attr("x", -(margin.top + topHeight / 2))
-      .attr("y", 18)
-      .attr("text-anchor", "middle")
-      .text("% change from baseline");
-
-    const heatX = d3
-      .scaleBand()
-      .domain(thresholdLabels)
-      .range([0, heatWidth])
-      .padding(0.08);
-    const heatY = d3
-      .scaleBand()
-      .domain(metricOrder)
-      .range([0, heatHeight])
-      .padding(0.12);
-    const heatPlot = svg
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top + heatTop})`);
-    heatPlot
-      .selectAll("rect.msig-threshold-heat")
-      .data(rows)
-      .join("rect")
-      .attr("class", "msig-threshold-heat")
-      .attr("x", (row) => heatX(row.thresholdLabel))
-      .attr("y", (row) => heatY(row.metric))
-      .attr("width", heatX.bandwidth())
-      .attr("height", heatY.bandwidth())
-      .attr("rx", 4)
-      .attr("fill", (row) => signedColor(row.percentChange))
-      .attr("stroke", "#ffffff")
-      .attr("stroke-width", 1)
-      .on("mousemove", (event, row) =>
-        showTooltip(
-          event,
-          tooltipRows([
-            ["Metric", row.metric],
-            ["Threshold", row.thresholdLabel],
-            ["Value", row.valueLabel],
-            ["Baseline", row.baselineLabel],
-            ["Change", row.percentChangeLabel],
-          ])
-        )
-      )
-      .on("mouseleave", hideTooltip);
-    heatPlot
-      .selectAll("text.msig-threshold-heat-label")
-      .data(rows)
-      .join("text")
-      .attr("class", "msig-threshold-heat-label")
-      .attr("x", (row) => heatX(row.thresholdLabel) + heatX.bandwidth() / 2)
-      .attr("y", (row) => heatY(row.metric) + heatY.bandwidth() / 2)
-      .attr("text-anchor", "middle")
-      .attr("dominant-baseline", "middle")
-      .attr("fill", (row) =>
-        row.absPercentChange > maxAbsPercentChange * 0.55 ? "#ffffff" : "#111827"
-      )
-      .attr("font", "700 11px Arial, sans-serif")
-      .text((row) => row.percentChangeLabel);
-	    heatPlot
-	      .append("g")
-	      .attr("transform", `translate(0,${heatHeight})`)
-	      .call(
-	        d3
-	          .axisBottom(heatX)
-	          .tickValues(thresholdTickValues.map((value) => String(formatPlotNumber(value, 3))))
-	          .tickSize(0)
-	      )
-	      .call(styleD3Axis)
-      .call((axis) => compactD3AxisText(axis, 8))
-	      .select(".domain")
-	      .remove();
-    heatPlot
-      .append("g")
-      .call(d3.axisLeft(heatY).tickSize(0))
-      .call(styleD3Axis)
-      .select(".domain")
-      .remove();
-
-    const instabilityPlot = svg
-      .append("g")
-      .attr(
-        "transform",
-        `translate(${margin.left + heatWidth + impactGap},${margin.top + heatTop})`
-      );
-    const instabilityX = d3
-      .scaleLinear()
-      .domain([0, maxMeanAbsoluteDrift * 1.32])
-      .range([0, instabilityWidth]);
-    const instabilityY = d3
-      .scaleBand()
-      .domain(thresholdLabels)
-      .range([0, heatHeight])
-      .padding(0.22);
-	    instabilityPlot
-	      .append("g")
-	      .attr("transform", `translate(0,${heatHeight})`)
-	      .call(
-	        d3
-	          .axisBottom(instabilityX)
-	          .ticks(tickCountForWidth(instabilityWidth, 80, 2, 4))
-	          .tickFormat((value) => `${formatPlotNumber(value, 1)}%`)
-	      )
-	      .call(styleD3Axis);
-    instabilityPlot
-      .append("g")
-      .call(d3.axisLeft(instabilityY).tickSize(0))
-      .call(styleD3Axis)
-      .select(".domain")
-      .remove();
-    instabilityPlot
-      .selectAll("rect.msig-threshold-instability")
-      .data(stabilityRows)
-      .join("rect")
-      .attr("class", "msig-threshold-instability")
-      .attr("x", 0)
-      .attr("y", (row) => instabilityY(row.thresholdLabel))
-      .attr("width", (row) => instabilityX(row.meanAbsoluteDrift))
-      .attr("height", instabilityY.bandwidth())
-      .attr("rx", 4)
-      .attr("fill", (row) => metricColor(row.largestDriver))
-      .attr("opacity", 0.76)
-      .on("mousemove", (event, row) =>
-        showTooltip(
-          event,
-          tooltipRows([
-            ["Threshold", row.thresholdLabel],
-            ["Mean absolute change", row.meanAbsoluteDriftLabel],
-            [
-              "Change meaning",
-              "Average absolute percent change from the baseline across the plotted metrics.",
-            ],
-            ["Largest driver", row.largestDriver],
-            ["Driver change", row.largestDriverChangeLabel],
-          ])
-        )
-      )
-      .on("mouseleave", hideTooltip);
-    instabilityPlot
-      .selectAll("text.msig-threshold-instability-label")
-      .data(stabilityRows)
-      .join("text")
-      .attr("class", "msig-threshold-instability-label")
-      .attr("x", (row) => instabilityX(row.meanAbsoluteDrift) + 5)
-      .attr("y", (row) => instabilityY(row.thresholdLabel) + instabilityY.bandwidth() / 2)
-      .attr("dominant-baseline", "middle")
-      .attr("fill", SCIENTIFIC_COLORS.darkGray)
-      .attr("font", "700 10px Arial, sans-serif")
-      .text((row) => row.meanAbsoluteDriftLabel);
-
-    svg
-      .append("text")
-      .attr("class", "msig-d3-axis-title")
-      .attr("x", margin.left + heatWidth / 2)
-      .attr("y", margin.top + heatTop - 14)
-      .attr("text-anchor", "middle")
-      .text("Signed metric change");
-    svg
-      .append("text")
-      .attr("class", "msig-d3-axis-title")
-      .attr("x", margin.left + heatWidth + impactGap + instabilityWidth / 2)
-      .attr("y", margin.top + heatTop - 14)
-      .attr("text-anchor", "middle")
-      .text("Mean absolute change");
-
-    const interpretation = document.createElement("div");
-    interpretation.className = "msig-d3-interpretation";
-    interpretation.innerHTML = `
-      <strong>How to read this:</strong>
-      the first cutoff is the baseline. The top lines show percent change from that baseline for cosine, RMSE, and the number of active signatures as the exposure cutoff increases. Lines that stay near 0 mean the result is stable; sharp movement means the fitted signature contributions depend on the cutoff. The heatmap repeats those signed changes by metric and cutoff. The right bars summarize the average absolute percent change across the plotted metrics at each cutoff.
-    `;
-    chart.appendChild(interpretation);
-
-    return {
-      data: rows,
-      stability: stabilityRows,
-      baselineThreshold: baselineRun.threshold,
-      maxAbsolutePercentChange: maxAbsPercentChange,
-    };
+  async function plotThresholdSensitivity(divID, thresholdResult, options = {}) {
+    return plotThresholdSensitivitySummary(divID, thresholdResult, options);
   }
 
   /**
@@ -6067,7 +6636,12 @@ Renders a plot of mutational profiles in a given div element ID.
   async function plotNMFSignatureProfiles(
     divID,
     nmfResult,
-    { maxSignatures = Infinity } = {}
+    {
+      maxSignatures = Infinity,
+      figureContext = null,
+      publication = null,
+      dataset = null,
+    } = {}
   ) {
     const { element: container } = resolvePlotContainer(divID);
     const signatures = Object.entries(nmfResult?.signatures || {}).slice(
@@ -6093,12 +6667,20 @@ Renders a plot of mutational profiles in a given div element ID.
 	        plotCosmicSbs96Profile(signatureDiv, signatureRecord, {
 	          sample: signatureName,
 	          contexts,
-	          normalize: "auto",
-	          title: `Extracted profile: ${signatureName}`,
-	          subtitle:
-	            "COSMIC-style SBS96 plot for the extracted pattern. Use this as an exploratory profile, not as a named etiology without additional validation.",
-	        })
-	      );
+          normalize: "auto",
+          title: `Extracted profile: ${signatureName}`,
+          subtitle:
+            "COSMIC-style SBS96 plot for the extracted pattern. Use this as an exploratory profile, not as a named etiology without additional validation.",
+          figureContext: mergeFigureContext(figureContext, {
+            dataset: dataset || nmfResult.dataset || nmfResult.source,
+            extractedSignature: signatureName,
+            extractedSignatures: signatures.length,
+            profile: "SBS",
+            matrix: contexts?.length || Object.keys(signatureRecord || {}).length,
+          }),
+          publication,
+        })
+      );
 	    }
 
     return rendered;
@@ -6119,7 +6701,12 @@ Renders a plot of mutational profiles in a given div element ID.
   async function plotNMFExposureHeatmap(
     divID,
     nmfResult,
-    { relative = true } = {}
+    {
+      relative = true,
+      figureContext = null,
+      publication = null,
+      dataset = null,
+    } = {}
   ) {
     if (!nmfResult?.exposures) {
       return renderPlotError(divID, "No NMF exposure matrix available.");
@@ -6162,6 +6749,13 @@ Renders a plot of mutational profiles in a given div element ID.
         { label: "Signatures", value: String(signatureNames.length) },
         { label: "Scale", value: relative ? "Relative" : "Raw" },
       ],
+      figureContext: mergeFigureContext(figureContext, {
+        dataset: dataset || nmfResult.dataset || nmfResult.source,
+        samples: sampleNames.length,
+        extractedSignatures: signatureNames.length,
+        scale: relative ? "relative exposure" : "raw exposure",
+      }),
+      publication,
     });
 
     const width = 900;
@@ -6287,7 +6881,7 @@ Renders a plot of mutational profiles in a given div element ID.
    * @param {Object} rankSelection - Result from mSigSDK.signatureExtraction.selectNMFRank.
    * @returns {Promise<Object|Element>} Render metadata or an error element.
    */
-  async function plotNMFRankSelection(divID, rankSelection) {
+  async function plotNMFRankSelection(divID, rankSelection, options = {}) {
     const runs = [...(rankSelection?.runs || [])].sort((a, b) => a.rank - b.rank);
     if (runs.length === 0) {
       return renderPlotError(divID, "No NMF rank-selection results available.");
@@ -6316,6 +6910,13 @@ Renders a plot of mutational profiles in a given div element ID.
         { label: "Ranks tested", value: String(runs.length) },
         { label: "Recommended", value: String(recommendedRank) },
       ],
+      figureContext: mergeFigureContext(options.figureContext, {
+        dataset: options.dataset || rankSelection.dataset || rankSelection.source,
+        ranksTested: runs.map((run) => run.rank).join(", "),
+        recommendedRank,
+        metrics: "reconstruction error and average sample cosine",
+      }),
+      publication: options.publication,
     });
 
     const width = 920;
@@ -7008,6 +7609,7 @@ Renders a plot of mutational profiles in a given div element ID.
 
 	  const qcPlots = {
 	    plotBootstrapConfidenceIntervals,
+	    plotBootstrapExposureSummary,
 	    plotCohortGroupComparison,
 	    plotCosmicSbs96Profile,
 	    plotFitQualityEvidenceDashboard,
@@ -7016,6 +7618,7 @@ Renders a plot of mutational profiles in a given div element ID.
     plotPanelEvidenceMatrix,
     plotReconstructionError,
     plotThresholdSensitivity,
+    plotThresholdSensitivitySummary,
   };
 
   const signatureExtraction = {
@@ -7058,13 +7661,11 @@ Renders a plot of mutational profiles in a given div element ID.
   const advisor = {
     ADVISOR_DEFAULTS,
     WARNING_CODES,
-    compareSignatureExposures,
     computeFitQualityEvidence,
     computeSignatureAmbiguity,
     computeSignatureIdentifiability,
     detectOutOfReferenceSignal,
     recommendAnalysisStrategy,
-    summarizeRestrictedAssayEvidence,
   };
 
   const pipelines = {
@@ -7103,11 +7704,6 @@ Renders a plot of mutational profiles in a given div element ID.
     runDiscoveryWorkflow: runDiscoveryWorkflowLite,
   };
 
-  const experimental = {
-    runLocalizedMutagenesisAnalysis,
-    runSubgroupDiscoveryWorkflow,
-  };
-
   const provenance = {
     createProvenance,
     withProvenance,
@@ -7134,6 +7730,7 @@ Renders a plot of mutational profiles in a given div element ID.
     table: presentationTable,
     thresholdRows,
     tooltipTable,
+    uncertaintyDecisionRows,
   };
 
   const runners = {
@@ -7262,7 +7859,6 @@ Renders a plot of mutational profiles in a given div element ID.
     pipelines,
     workflows,
     quickstart,
-    experimental,
     provenance,
     presentation,
     runners,

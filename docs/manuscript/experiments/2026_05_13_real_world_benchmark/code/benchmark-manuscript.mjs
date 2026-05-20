@@ -15,8 +15,6 @@ import {
   recommendAnalysisStrategy,
   runCohortFit,
   runPanelWorkflow,
-  runSubgroupDiscoveryWorkflow,
-  summarizeRestrictedAssayEvidence,
 } from "../mSigSDKScripts/guidance.js";
 import { extractSignaturesNMF, selectNMFRank } from "../mSigSDKScripts/signatureExtraction.js";
 import { getExpectedContexts } from "../mSigSDKScripts/validation.js";
@@ -236,7 +234,7 @@ const WORKFLOW_SCENARIOS = [
     signatureCount: 18,
     burden: 300,
     seed: 4102,
-    workflows: ["advisor", "fitQualityEvidence", "cohort", "subgroup"],
+    workflows: ["advisor", "fitQualityEvidence", "cohort"],
   },
   {
     id: "medium_research_cohort",
@@ -555,13 +553,6 @@ async function runGuidanceScenario({ scenario, quick }) {
     rows.push(fitQualityEvidence.row);
   }
 
-  if (scenario.workflows.includes("panel")) {
-    const restrictedAssayEvidence = await measure("v03_restricted_assay_evidence", baseScenario, () =>
-      summarizeRestrictedAssayEvidence(signatures, { contexts })
-    );
-    rows.push(restrictedAssayEvidence.row);
-  }
-
   if (scenario.workflows.includes("cohort")) {
     const cohort = await measure("v03_cohort_fit_pipeline", baseScenario, () =>
       runCohortFit(
@@ -596,38 +587,6 @@ async function runGuidanceScenario({ scenario, quick }) {
       )
     );
     rows.push(panel.row);
-  }
-
-  if (scenario.workflows.includes("subgroup")) {
-    const subgroupSamples = Object.keys(spectra).slice(0, Math.min(sampleCount, 12));
-    const subgroup = await measure(
-      "v03_subgroup_discovery",
-      { ...baseScenario, samples: subgroupSamples.length, iterations: quick ? 50 : 75, ranks: [2] },
-      () =>
-        runSubgroupDiscoveryWorkflow(
-          {
-            spectra: Object.fromEntries(
-              subgroupSamples.map((sampleName) => [sampleName, spectra[sampleName]])
-            ),
-            signatures,
-            subgroups: [
-              {
-                clusterId: "benchmark_subgroup",
-                samples: subgroupSamples,
-              },
-            ],
-          },
-          {
-            contexts,
-            rank: 2,
-            nRuns: quick ? 2 : 3,
-            maxIterations: quick ? 50 : 75,
-            minSubgroupSamples: 5,
-            minMedianBurden: 100,
-          }
-        )
-    );
-    rows.push(subgroup.row);
   }
 
   return rows;

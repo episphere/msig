@@ -4,7 +4,7 @@
       "file": "msig-sdk-notebooks.onb.html",
       "title": "Workflow guide",
       "summary": "Choose the workflow that matches the next analysis question.",
-      "image": "images/mSigPortal.png",
+      "image": "images/notebook-previews/sdk-workflow-guide.svg",
       "workflowGroup": "orientation",
       "workflowGroupLabel": "Orientation"
     },
@@ -12,7 +12,7 @@
       "file": "msig-sdk-end-to-end-workflow.onb.html",
       "title": "End-to-end workflow",
       "summary": "Run the complete fit-review-export arc and preserve the evidence that makes a result reportable.",
-      "image": "images/datasetSummary.png",
+      "image": "images/notebook-previews/sdk-end-to-end-workflow.svg",
       "workflowGroup": "orientation",
       "workflowGroupLabel": "Orientation"
     },
@@ -20,7 +20,7 @@
       "file": "msig-sdk-public-cohort-exploration.onb.html",
       "title": "Public cohort explorer",
       "summary": "Explore mSigPortal public spectra and TCGA/GDC MAF-derived datasets, load them into one SDK shape, visualize cohorts, and export inputs.",
-      "image": "images/CosineSimilarityHeatmap.png",
+      "image": "images/notebook-previews/sdk-public-cohort-explorer.svg",
       "workflowGroup": "orientation",
       "workflowGroupLabel": "Orientation"
     },
@@ -28,7 +28,7 @@
       "file": "msig-sdk-resource-portability.onb.html",
       "title": "Resource portability",
       "summary": "Show the SBS96 format bridge around shared matrix conventions: exports, parser normalization, and round-trip checks.",
-      "image": "images/mSigPortal.png",
+      "image": "images/notebook-previews/sdk-resource-portability.svg",
       "workflowGroup": "input",
       "workflowGroupLabel": "Load Data"
     },
@@ -36,7 +36,7 @@
       "file": "msig-sdk-maf-fit-report.onb.html",
       "title": "MAF to SBS96 explainer",
       "summary": "Step through position/ref/alt rows, reference context lookup, pyrimidine normalization, and labeled SBS96 spectra.",
-      "image": "images/Mutational%20Burden.png",
+      "image": "images/notebook-previews/sdk-maf-fit-report.svg",
       "workflowGroup": "input",
       "workflowGroupLabel": "Load Data"
     },
@@ -44,7 +44,7 @@
       "file": "msig-sdk-qc-walkthrough.onb.html",
       "title": "Cohort QC triage",
       "summary": "Rank known-signature fits by cohort-level QC concern, then drill into sample burden, reconstruction, residuals, warnings, and next steps.",
-      "image": "images/Mutational%20Burden.png",
+      "image": "images/notebook-previews/sdk-qc-triage.svg",
       "workflowGroup": "core",
       "workflowGroupLabel": "Analyze Data"
     },
@@ -52,7 +52,7 @@
       "file": "msig-sdk-cohort-panel-workflow.onb.html",
       "title": "Cohort and panel workflow",
       "summary": "Connect cohort metadata, group interpretation, and restricted-assay limits in one applied workflow.",
-      "image": "images/datasetSummary.png",
+      "image": "images/notebook-previews/sdk-cohort-panel-workflow.svg",
       "workflowGroup": "core",
       "workflowGroupLabel": "Analyze Data"
     },
@@ -60,7 +60,7 @@
       "file": "msig-sdk-panel-evidence-tiers.onb.html",
       "title": "Panel/WES evidence review",
       "summary": "Review panel/WES signature calls with assay coverage, mutation-count, and support-tier evidence.",
-      "image": "images/datasetSummary.png",
+      "image": "images/notebook-previews/sdk-panel-evidence.svg",
       "workflowGroup": "core",
       "workflowGroupLabel": "Analyze Data"
     },
@@ -68,7 +68,7 @@
       "file": "msig-sdk-nmf-extraction.onb.html",
       "title": "Discovery extraction (NMF)",
       "summary": "Extract candidate signatures from spectra, inspect rank checks, and prepare production extraction files.",
-      "image": "images/signatureComparison.png",
+      "image": "images/notebook-previews/sdk-nmf-extraction.svg",
       "workflowGroup": "core",
       "workflowGroupLabel": "Analyze Data"
     },
@@ -76,7 +76,7 @@
       "file": "msig-sdk-uncertainty-thresholds.onb.html",
       "title": "Uncertainty and cutoffs",
       "summary": "Stress-test fitted signature calls with bootstrap intervals and reporting cutoff sweeps.",
-      "image": "images/CosineSimilarityHeatmap.png",
+      "image": "images/notebook-previews/sdk-uncertainty-cutoffs.svg",
       "workflowGroup": "reliability",
       "workflowGroupLabel": "Review And Report"
     },
@@ -84,7 +84,7 @@
       "file": "msig-sdk-export-report.onb.html",
       "title": "Report packet builder",
       "summary": "Turn a completed signature fit into a reviewable archive with selected report sections, provenance, audit checks, and downloads.",
-      "image": "images/datasetSummary.png",
+      "image": "images/notebook-previews/sdk-report-packet.svg",
       "workflowGroup": "reliability",
       "workflowGroupLabel": "Review And Report"
     },
@@ -92,17 +92,9 @@
       "file": "msig-sdk-multi-engine-comparison.onb.html",
       "title": "Multi-tool comparison",
       "summary": "Triage fitting-engine disagreements on identical spectra with a compact concordance and selected-sample review surface.",
-      "image": "images/signatureComparison.png",
+      "image": "images/notebook-previews/sdk-multi-tool-comparison.svg",
       "workflowGroup": "reliability",
       "workflowGroupLabel": "Review And Report"
-    },
-    {
-      "file": "msig-sdk-experimental-sandbox.onb.html",
-      "title": "Experimental sandbox",
-      "summary": "Expose experimental workflow status, warnings, limits, and validation requirements before any output is trusted.",
-      "image": "images/mSigPortal.png",
-      "workflowGroup": "advanced",
-      "workflowGroupLabel": "Experimental"
     }
   ]
 }

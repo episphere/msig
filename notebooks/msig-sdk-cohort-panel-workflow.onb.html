@@ -5,237 +5,1534 @@
   <script type="text/markdown">
     # Cohort and panel workflow
 
-    Signature analysis rarely ends with one sample. A researcher needs to fit a cohort, preserve sample details, compare groups, and decide whether restricted assays such as panels or WES provide enough coverage to support a signature claim. This workflow follows that path from a local SBS96 table to cohort-level evidence and panel/WES review fields.
+    Use this page when a WGS-derived signature claim needs a panel or WES check. A signature can appear in the WGS fit, but the same claim may not remain supported after the variant rows are restricted to the assay target territory.
 
-    The workflow has two linked analyses. The cohort section asks what the spectra and sample details show under a standard known-signature fit. The panel/WES section asks whether the same interpretation remains reportable when only part of the mutation context space is observed.
+    The core inputs are WGS-like variant rows, a BED target file, a signature catalog, and optional sample details. The notebook filters the variant rows through panel or WES BED intervals, converts the retained variants into restricted-assay SBS96 spectra, and compares that restricted result with the original fit.
+
+    If the starting data already came from WES or a panel, use this page as an assay-support review with the matching BED file. It should not be used to pretend that restricted-assay data were originally WGS.
   </script>
 
-  <script type="module" pinned id="1">
-    const cohortPanelSdkUrl = new URL("../main.js?v=2026-05-14-cohort-panel", location.href).href;
-    const { mSigSDK } = await import(cohortPanelSdkUrl);
+  <script type="module" pinned id="cohort-panel-interactive">
+    const sdkUrl = new URL("../main.js?v=2026-05-20-cohort-panel-streamlined", location.href).href;
+    const { mSigSDK } = await import(sdkUrl);
     const {
+      loadPublicMafRows,
       loadPublicSbs96Dataset,
       sbs96Contexts,
-      sharedCallableOpportunities,
     } = await import("./msig-notebook-fixtures.js");
-    const {
-      exposureRows,
-      fitQualityEvidenceTable,
-      metrics,
-      panelEvidenceTable,
-      reconstructionRows,
-      table,
-    } = mSigSDK.presentation;
 
-    const cpDataset = await loadPublicSbs96Dataset(mSigSDK, { sampleLimit: 8 });
-    const cpContexts = cpDataset.contexts || sbs96Contexts();
-    const cpSpectra = cpDataset.spectra;
-    const cpSignatures = cpDataset.signatures;
-    const cpMetadata = cpDataset.metadata;
-    const cpCallableOpportunities = sharedCallableOpportunities();
-    const cpOptions = {
-      exposureThreshold: 0.01,
-      lowBurdenThreshold: 100,
-      groupKey: "burdenGroup",
-      minAssessableMutations: 30,
-      limitedSupportExposureThreshold: 0.05,
-      higherSupportExposureThreshold: 0.20,
-      thresholdGrid: [0, 0.01, 0.03, 0.05],
+    const presentation = mSigSDK.presentation;
+    const contexts = sbs96Contexts();
+    const targetPresets = {
+      panel: {
+        label: "TruSight Cancer panel BED",
+        source: "Illumina TruSight Cancer TargetedRegions v1.0 hg38",
+        url: new URL("../examples/maf/illumina_trusight_cancer_targeted_regions_v1_0_hg38.bed", location.href).href,
+        sourceUrl: "https://support.illumina.com/content/dam/illumina-support/documents/downloads/productfiles/trusight/hg38/TruSight_Cancer_TargetedRegions_v1.0.hg38.bed",
+        genomeBuild: "GRCh38",
+        fallback: [
+          "chr1\t10325411\t10325414\trs17401966.chr1.10385470.10385472",
+          "chr1\t10986796\t10986799\trs9430161.chr1.11046854.11046856",
+          "chr1\t17018879\t17018959\tSDHB.chr1.17345375.17345454",
+          "chr1\t43672180\t43672278\tMPL.chr1.43871049.43871146",
+          "chr2\t47630204\t47630380\tMSH2.chr2.47799426.47799601",
+        ].join("\n"),
+      },
+      wes: {
+        label: "Illumina Exome BED",
+        source: "Illumina Exome TargetedRegions v1.2 hg38",
+        url: new URL("../examples/maf/illumina_exome_targeted_regions_v1_2_hg38.bed", location.href).href,
+        sourceUrl: "https://support.illumina.com/content/dam/illumina-support/documents/downloads/productfiles/trusight/hg38/Illumina_Exome_TargetedRegions_v1.2.hg38.bed",
+        genomeBuild: "GRCh38",
+        fallback: [
+          "chr1\t12098\t12258\tCEX-chr1-12099-12258",
+          "chr1\t12553\t12721\tCEX-chr1-12554-12721",
+          "chr1\t13331\t13701\tCEX-chr1-13332-13701",
+          "chr1\t30334\t30503\tCEX-chr1-30335-30503",
+          "chr1\t35045\t35544\tCEX-chr1-35046-35544",
+        ].join("\n"),
+      },
     };
+    const state = {
+      variantRows: [],
+      bedRows: [],
+      bedText: "",
+      bedSource: "No BED loaded",
+      targetMode: "wes",
+      spectra: null,
+      restrictedSpectra: null,
+      signatures: null,
+      metadata: [],
+      source: "No data loaded",
+      callableOpportunities: null,
+      referenceOpportunities: null,
+      opportunityMode: "not_supplied",
+      opportunitySourceLabel: "No callable-opportunity table loaded",
+      downsamplingSummary: null,
+      publicSelection: null,
+      targetPreset: targetPresets.wes,
+      cohort: null,
+      panel: null,
+      lastOpportunityInputs: null,
+    };
+    const publicCohortOptions = [
+      { label: "TCGA LUAD: lung adenocarcinoma", value: "TCGA-LUAD" },
+      { label: "TCGA LUSC: lung squamous cell carcinoma", value: "TCGA-LUSC" },
+      { label: "TCGA BRCA: breast invasive carcinoma", value: "TCGA-BRCA" },
+      { label: "TCGA COAD: colon adenocarcinoma", value: "TCGA-COAD" },
+      { label: "TCGA SKCM: skin cutaneous melanoma", value: "TCGA-SKCM" },
+      { label: "TCGA HNSC: head and neck squamous carcinoma", value: "TCGA-HNSC" },
+    ];
 
-    display(metrics([
-      { label: "Data source", value: cpDataset.status },
-      { label: "Samples", value: Object.keys(cpSpectra).length },
-      { label: "Sample detail rows", value: cpMetadata.length },
-      { label: "Signatures", value: Object.keys(cpSignatures).length },
-      { label: "Context basis", value: "SBS96" },
-    ]));
-    display(table(
-      [
-        { objectName: "cpSpectra", replaceWith: "Project count table keyed by sample and SBS96 context" },
-        { objectName: "cpMetadata", replaceWith: "Sample-level cohort, assay, batch, tissue, treatment, or phenotype table" },
-        { objectName: "cpSignatures", replaceWith: "Reference signature catalog used for known-signature fitting" },
-        { objectName: "cpCallableOpportunities", replaceWith: "Assay-specific coverage counts or fractions" },
-        { objectName: "cpOptions", replaceWith: "Study cutoffs for mutation count, signature contribution, reportability, and group comparison" },
-      ],
-      [
-        { key: "objectName", label: "Object to edit" },
-        { key: "replaceWith", label: "Project-specific replacement" },
-      ]
-    ));
-  </script>
-<script type="text/markdown">
-    ## Step 1. Fit the cohort with sample details
+    const root = document.createElement("section");
+    root.className = "workflow-panel cohort-panel-lab";
+    root.innerHTML = `
+      <style>
+        .cohort-panel-lab { display: grid; gap: 0.85rem; }
+        .cohort-panel-lab h2 { margin: 0; font-size: 1.15rem; }
+        .cohort-panel-lab p { margin: 0; }
+        .cohort-panel-step { border: 1px solid rgba(16, 82, 100, 0.22); border-radius: 8px; padding: 0.95rem; display: grid; gap: 0.8rem; }
+        .cohort-panel-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+        .cohort-panel-heading span { max-width: 44rem; color: #42687a; line-height: 1.45; }
+        .cohort-panel-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+        .cohort-panel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+        .cohort-panel-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .cohort-panel-guide { display: grid; gap: 0.65rem; }
+        .cohort-panel-guide-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.65rem; }
+        .cohort-panel-guide-card { border: 1px solid rgba(16, 82, 100, 0.18); border-radius: 8px; padding: 0.75rem; background: rgba(255,255,255,0.28); display: grid; gap: 0.35rem; }
+        .cohort-panel-guide-card strong { color: #123245; }
+        .cohort-panel-guide-card span { color: #345f72; line-height: 1.4; }
+        .cohort-panel-field { display: grid; gap: 0.35rem; font-weight: 700; }
+        .cohort-panel-field span { font-size: 0.85rem; }
+        .cohort-panel-field small { color: #547184; font-weight: 500; line-height: 1.35; }
+        .cohort-panel-field textarea { min-height: 5.5rem; resize: vertical; }
+        .cohort-panel-field input,
+        .cohort-panel-field select,
+        .cohort-panel-field textarea { width: 100%; box-sizing: border-box; border: 1px solid rgba(16, 82, 100, 0.22); border-radius: 7px; padding: 0.65rem; background: rgba(255,255,255,0.55); color: inherit; }
+        .cohort-panel-field input[type="file"] { padding: 0.45rem; }
+        .cohort-panel-source { border: 1px solid rgba(16, 82, 100, 0.18); border-radius: 8px; padding: 0.8rem; background: rgba(255,255,255,0.24); display: grid; gap: 0.65rem; }
+        .cohort-panel-source strong { color: #123245; }
+        .cohort-panel-lab details { border: 1px solid rgba(16, 82, 100, 0.18); border-radius: 8px; padding: 0.75rem; }
+        .cohort-panel-lab summary { cursor: pointer; font-weight: 800; }
+        .cohort-panel-focus { display: grid; gap: 0.45rem; border-left: 4px solid #087f8c; padding: 0.15rem 0 0.15rem 0.85rem; }
+        .cohort-panel-focus strong { color: #123245; font-size: 1rem; }
+        .cohort-panel-focus span { color: #345f72; line-height: 1.4; }
+        .cohort-panel-mini-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.55rem; }
+        .cohort-panel-pill { border: 1px solid rgba(16, 82, 100, 0.18); border-radius: 7px; padding: 0.6rem 0.7rem; background: rgba(255,255,255,0.35); min-width: 0; }
+        .cohort-panel-pill span { display: block; color: #547184; font-size: 0.76rem; }
+        .cohort-panel-pill strong { display: block; margin-top: 0.25rem; color: #123245; font-size: 1rem; overflow-wrap: anywhere; }
+        .cohort-panel-result-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(18rem, 0.95fr); gap: 0.75rem; align-items: start; }
+        .cohort-panel-data-preview { display: grid; gap: 0.7rem; }
+        .cohort-panel-data-preview details { background: rgba(255,255,255,0.24); }
+        .cohort-panel-data-preview details > div { margin-top: 0.7rem; display: grid; gap: 0.7rem; }
+        .cohort-panel-output { display: grid; gap: 0.75rem; }
+        .cohort-panel-output:empty { display: none; }
+        .cohort-panel-note { border-left: 4px solid #0f8ea3; background: rgba(15, 142, 163, 0.08); padding: 0.75rem 0.85rem; color: #345f72; }
+        .cohort-panel-plots { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+        .cohort-panel-plot { border: 1px solid rgba(16, 82, 100, 0.2); border-radius: 8px; padding: 0.75rem; min-width: 0; }
+        .cohort-panel-plot.primary { border-color: rgba(15, 142, 163, 0.5); background: rgba(15, 142, 163, 0.05); }
+        .cohort-panel-plot h3 { margin: 0 0 0.55rem; font-size: 1rem; }
+        .cohort-panel-plot-host { min-height: 24rem; overflow: auto; }
+        .cohort-panel-plot.primary .cohort-panel-plot-host { min-height: 31rem; }
+        .cohort-panel-status { font-weight: 700; color: #0d6f7f; }
+        .cohort-panel-table-wrap { overflow-x: auto; border: 1px solid rgba(16, 82, 100, 0.18); border-radius: 8px; }
+        .cohort-panel-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+        .cohort-panel-table th,
+        .cohort-panel-table td { padding: 0.55rem 0.65rem; border-bottom: 1px solid rgba(16, 82, 100, 0.16); text-align: left; vertical-align: top; }
+        .cohort-panel-table th { font-weight: 800; color: #123245; background: rgba(255,255,255,0.24); }
+        .cohort-panel-table tr:last-child td { border-bottom: 0; }
+        .cohort-panel-review-summary { display: grid; gap: 0.7rem; }
+        .cohort-panel-review-list { margin: 0; padding-left: 1.1rem; color: #345f72; }
+        .cohort-panel-review-list li { margin: 0.25rem 0; }
+        .cohort-panel-evidence-help { color: #345f72; margin: 0 0 0.75rem; max-width: 58rem; line-height: 1.4; }
+        .cohort-panel-evidence-legend { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0 0 0.75rem; }
+        .cohort-panel-evidence-legend span { border: 1px solid rgba(16, 82, 100, 0.2); border-radius: 999px; padding: 0.25rem 0.55rem; background: rgba(255,255,255,0.45); font-weight: 700; font-size: 0.82rem; }
+        .cohort-panel-evidence-wrap { overflow-x: auto; border: 1px solid rgba(16, 82, 100, 0.2); border-radius: 8px; background: rgba(255,255,255,0.32); }
+        .cohort-panel-evidence-matrix { width: 100%; min-width: 760px; border-collapse: separate; border-spacing: 0; }
+        .cohort-panel-evidence-matrix th,
+        .cohort-panel-evidence-matrix td { border-bottom: 1px solid rgba(16, 82, 100, 0.16); border-right: 1px solid rgba(16, 82, 100, 0.12); padding: 0.45rem; text-align: center; }
+        .cohort-panel-evidence-matrix th { font-size: 0.78rem; color: #244c60; background: rgba(255,255,255,0.48); }
+        .cohort-panel-evidence-matrix th:first-child,
+        .cohort-panel-evidence-matrix td:first-child { position: sticky; left: 0; z-index: 1; text-align: left; background: #d7ecf9; min-width: 8.5rem; }
+        .cohort-panel-evidence-cell { min-width: 4.6rem; border-radius: 6px; color: #123245; font-weight: 800; line-height: 1.05; }
+        .cohort-panel-evidence-cell strong { display: block; font-size: 0.95rem; }
+        .cohort-panel-evidence-cell span { display: block; margin-top: 0.2rem; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.02em; }
+        .cohort-panel-evidence-cell.high { background: #087f8c; color: #fff; }
+        .cohort-panel-evidence-cell.limited { background: #56b4a2; color: #082f36; }
+        .cohort-panel-evidence-cell.detected { background: #bfe5df; color: #123245; }
+        .cohort-panel-evidence-cell.not-detected { background: #edf6f9; color: #587584; }
+        .cohort-panel-evidence-cell.not-assessable { background: repeating-linear-gradient(135deg, #e8eef2, #e8eef2 6px, #d7e2e8 6px, #d7e2e8 12px); color: #587584; }
+        @media (max-width: 760px) {
+          .cohort-panel-grid,
+          .cohort-panel-grid.three,
+          .cohort-panel-guide-grid,
+          .cohort-panel-mini-metrics,
+          .cohort-panel-result-grid,
+          .cohort-panel-plots { grid-template-columns: 1fr; }
+        }
+      </style>
+    `;
 
-    `runCohortFit` keeps the cohort analysis together: input checks, mutation counts, signature contributions, reconstruction, residuals, subgroup summaries, group comparisons, warnings, and suggested review steps. The sample-details table supplies the biological or technical groups that make those outputs interpretable.
-
-    Start by asking whether the samples form meaningful groups and whether those groups should be compared. If the sample details are missing or inconsistent, the signature contribution table may still run, but cohort-level interpretation will be weaker.
-  </script>
-<script type="module" pinned id="2">
-    const cpCohortResult = await mSigSDK.workflows.runCohortFit(
-      {
-        spectra: cpSpectra,
-        signatures: cpSignatures,
-        metadata: cpMetadata,
-      },
-      {
-        contexts: cpContexts,
-        groupKey: cpOptions.groupKey,
-        exposureThreshold: cpOptions.exposureThreshold,
-        lowBurdenThreshold: cpOptions.lowBurdenThreshold,
-        thresholds: cpOptions.thresholdGrid,
-        runBootstrap: false,
-        runThresholdSensitivity: true,
-        runSubgroupDiscovery: false,
-        reportFormat: "object",
-      }
+    const stepData = section(
+      "1. Choose data",
+      "Load WGS-like variant rows, a panel or WES BED target file, signatures, and sample details."
+    );
+    const dataGuide = div(
+      "cohort-panel-guide",
+      focusMessage(
+        "Signature fitting and assay support answer different questions.",
+        "The fit asks which known signatures explain the observed mutations. The panel/WES review asks whether the assay could observe enough of the relevant sequence contexts to trust that fitted signature."
+      ),
+      infoCards([
+        {
+          title: "WGS-derived spectra",
+          text: "Load public TCGA/GDC MAF rows or project variant rows. The page creates the original spectra, filters variants to the target intervals, and reruns the fit on the retained variants.",
+        },
+        {
+          title: "Already WES or panel",
+          text: "Load those variant rows with the matching target BED. The page reviews support for that assay; it does not treat restricted data as if it started as WGS.",
+        },
+        {
+          title: "BED target files",
+          text: "Use the bundled real Illumina Exome hg38 BED, the real TruSight Cancer hg38 BED, or paste a project capture BED. WES downsampling is interval filtering through exonic or capture-kit targets.",
+        },
+      ])
+    );
+    const publicProjectSelect = select(publicCohortOptions);
+    const publicTargetSelect = select([
+      { label: "WES: Illumina Exome v1.2 hg38", value: "wes" },
+      { label: "Panel: TruSight Cancer v1.0 hg38", value: "panel" },
+    ]);
+    const publicMaxFilesInput = input("4", "number", "1");
+    publicMaxFilesInput.max = "12";
+    const publicMaxVariantsInput = input("360", "number", "20");
+    publicMaxVariantsInput.max = "2000";
+    const loadPublicButton = button("Load selected public cohort", "primary");
+    const applyDataButton = button("Apply pasted/uploaded data", "primary");
+    const publicSource = div(
+      "cohort-panel-source",
+      (() => {
+        const title = document.createElement("strong");
+        title.textContent = "Public TCGA/GDC variant rows";
+        return title;
+      })(),
+      p("cohort-panel-status", "Choose a public cohort and assay target. The loader fetches masked somatic mutation rows from GDC and uses the selected real BED target file."),
+      div(
+        "cohort-panel-grid",
+        field("Public cohort", publicProjectSelect),
+        field("Assay target", publicTargetSelect),
+        field("MAF files", publicMaxFilesInput, "Each GDC MAF file represents one tumor sample."),
+        field("Variant row cap", publicMaxVariantsInput, "Rows are sampled across loaded MAF files to keep browser execution responsive.")
+      ),
+      div("cohort-panel-actions", loadPublicButton)
     );
 
-    display(metrics([
-      { label: "Workflow", value: cpCohortResult.workflow },
-      { label: "Warnings", value: cpCohortResult.warnings.length },
-      { label: "Actions", value: cpCohortResult.recommendedActions.length },
-      {
-        label: "Group comparison",
-        value: cpCohortResult.groupComparison?.reportingMode || "not run",
-      },
-    ]));
-    display(table(
-      reconstructionRows(cpCohortResult.fit.reconstructionError),
-      [
-        { key: "sample", label: "Sample" },
-        { key: "cosineSimilarity", label: "Cosine similarity" },
-        { key: "rmse", label: "RMSE" },
-      ],
-      { maxRows: 8 }
-    ));
-    display(table(
-      exposureRows(cpCohortResult.fit.exposures, { minExposure: 0, topN: 12 }),
-      [
-        { key: "sample", label: "Sample" },
-        { key: "signature", label: "Signature" },
-        { key: "exposure", label: "Relative exposure" },
-      ],
-      { maxRows: 12 }
-    ));
-  </script>
-
-  <script type="text/markdown">
-    ## Step 2. Inspect cohort evidence before reporting group results
-
-    The next decision is whether the cohort fit is strong enough to summarize. Fit-quality modes, warning codes, and suggested review steps explain which outputs can be shown routinely and which need caveats. This section turns a table of signature contributions into a reviewable evidence object.
-
-    When adapting the workflow, review this section before creating figures. A group difference is not convincing if it is driven by low mutation-count samples or poor reconstruction.
-  </script>
-<script type="module" pinned id="3">
-    display(fitQualityEvidenceTable(cpCohortResult.fitQualityEvidence, { maxRows: 8 }));
-    display(table(
-      warningRows(cpCohortResult.warnings),
-      [
-        { key: "code", label: "Warning code" },
-        { key: "message", label: "Message" },
-        { key: "resolution", label: "Resolution" },
-      ],
-      { maxRows: 8 }
-    ));
-  </script>
-
-  <script type="text/markdown">
-    ## Step 3. Ask whether restricted-assay data can support a call
-
-    `runPanelWorkflow` adds coverage normalization, restricted-assay evidence summaries, support levels, review reasons, and panel-specific limitations. These fields separate a WGS-style decomposition from the narrower question of what a panel or WES assay can support.
-
-    Read the review reasons carefully. They are the explanation a collaborator, method reviewer, or clinical user needs when a signature is marked reportable, limited, or not supported.
-  </script>
-<script type="module" pinned id="4">
-    const cpPanelResult = await mSigSDK.workflows.runPanelWorkflow(
-      {
-        spectra: cpSpectra,
-        signatures: cpSignatures,
-        callableOpportunities: cpCallableOpportunities,
-      },
-      {
-        contexts: cpContexts,
-        expectedContexts: cpContexts,
-        runBootstrap: false,
-        runThresholdSensitivity: false,
-        minAssessableMutations: cpOptions.minAssessableMutations,
-        limitedSupportExposureThreshold: cpOptions.limitedSupportExposureThreshold,
-        higherSupportExposureThreshold: cpOptions.higherSupportExposureThreshold,
-        lowBurdenThreshold: cpOptions.lowBurdenThreshold,
-        opportunitySource: "user_supplied",
-        genomeBuild: "GRCh37",
-        reportFormat: "object",
-      }
+    const variantRowsText = textarea("Paste variant rows as JSON, CSV, or TSV", 7);
+    const bedText = textarea("Paste BED intervals: chrom, start, end", 5);
+    const signaturesText = textarea("Paste signature JSON or COSMIC-style TSV");
+    const metadataText = textarea("Optional sample details CSV, TSV, or JSON", 5);
+    const ownData = document.createElement("details");
+    ownData.open = true;
+    ownData.append(
+      summary("Paste or upload project data"),
+      div(
+        "cohort-panel-grid",
+        field("WGS-like variant rows", variantRowsText, "Rows need sample, chromosome, position, reference allele, alternate allele, and variant type. Row-supplied trinucleotide context is used when present."),
+        field("BED target file", bedText, "BED uses 0-based start and half-open end. A 1-based variant position is retained when position > start and position <= end. For WES, use exonic or exome capture intervals from the assay kit."),
+        field("Upload variant rows", fileInput(variantRowsText)),
+        field("Upload BED", fileInput(bedText, ".bed,.txt,.tsv,.csv")),
+        field("Signature catalog", signaturesText, "Object keyed by signature or COSMIC-style matrix."),
+        field("Upload signatures", fileInput(signaturesText)),
+        field("Sample details", metadataText, "Optional rows with sample plus group columns."),
+        field("Upload sample details", fileInput(metadataText))
+      )
     );
-    const cpPanelRows = Object.entries(cpPanelResult.panel.evidenceCalls).flatMap(
-      ([sample, calls]) =>
-        calls.map((call) => ({
+
+    const dataOutput = div("cohort-panel-output");
+    stepData.append(dataGuide, publicSource, ownData, dataOutput);
+
+    const stepRun = section(
+      "2. Set review rules and run",
+      "Set the fitted-signature threshold and the assay-support thresholds used to classify each sample-signature call."
+    );
+    const groupKeyInput = input("burdenGroup");
+    const exposureThresholdInput = input("0.01", "number", "0.005");
+    const lowBurdenInput = input("100", "number", "10");
+    const minAssessableInput = input("30", "number", "5");
+    const limitedSupportInput = input("0.05", "number", "0.01");
+    const higherSupportInput = input("0.20", "number", "0.01");
+    const coverageScaleInput = input("1", "number", "0.1");
+    const genomeBuildInput = input("GRCh38");
+    const runButton = button("Run cohort and assay review", "primary");
+    const runStatus = p("cohort-panel-status", "Load data, then run.");
+    const advancedRules = document.createElement("details");
+    advancedRules.open = true;
+    advancedRules.append(
+      summary("Assay support settings"),
+      div(
+        "cohort-panel-grid",
+        field("Low mutation-count cutoff", lowBurdenInput),
+        field("Minimum assessable mutations", minAssessableInput),
+        field("BED downsampling scale", coverageScaleInput, "1 uses the BED target as loaded. Lower values simulate stricter callable territory by scaling retained-context opportunities after BED filtering."),
+        field("Genome build label", genomeBuildInput)
+      )
+    );
+    stepRun.append(
+      div(
+        "cohort-panel-grid",
+        field("Sample group column", groupKeyInput, "Use a column from the sample details table."),
+        field("Minimum signature contribution", exposureThresholdInput),
+        field("Limited-support cutoff", limitedSupportInput),
+        field("Higher-support cutoff", higherSupportInput)
+      ),
+      advancedRules,
+      div("cohort-panel-actions", runButton, runStatus)
+    );
+
+    const stepReview = section(
+      "3. Review evidence",
+      "Read the cohort fit and restricted-assay evidence together before treating any signature contribution as reportable."
+    );
+    const reviewOutput = div("cohort-panel-output");
+    const plotOutput = div("cohort-panel-plots");
+    stepReview.append(reviewOutput, plotOutput);
+
+    const stepDownload = section(
+      "4. Download files",
+      "Save the inputs, fitted signature contributions, panel/WES evidence calls, and the full run bundle."
+    );
+    const downloadOutput = div("cohort-panel-output");
+    stepDownload.append(downloadOutput);
+
+    root.append(stepData, stepRun, stepReview, stepDownload);
+    display(root);
+
+    loadPublicButton.addEventListener("click", () => loadSelectedPublicCohort());
+
+    async function loadSelectedPublicCohort() {
+      await withBusy(loadPublicButton, "Loading...", async () => {
+        const targetMode = publicTargetSelect.value || "wes";
+        const project = publicProjectSelect.value || "TCGA-LUAD";
+        const preset = targetPresets[targetMode] || targetPresets.wes;
+        const maxFiles = Math.max(1, Math.min(12, Math.round(numberValue(publicMaxFilesInput.value, 4))));
+        const maxVariants = Math.max(20, Math.min(2000, Math.round(numberValue(publicMaxVariantsInput.value, 360))));
+        dataOutput.replaceChildren(note(`Loading ${project} public MAF rows and ${preset.label}...`));
+        genomeBuildInput.value = preset.genomeBuild || "GRCh38";
+        const [dataset, mafData] = await Promise.all([
+          loadPublicSbs96Dataset(mSigSDK, publicSbs96SelectionForProject(project, { sampleLimit: Math.min(maxFiles, 8) })),
+          loadPublicMafRows(mSigSDK, { projects: [project], maxFiles, maxVariants }),
+        ]);
+        const publicVariants = normalizeVariantRows(mafData.rows);
+        if (!publicVariants.length) {
+          throw new Error(`No usable SNV rows were loaded from ${project}.`);
+        }
+        const defaultBedText = await loadDefaultBedText(targetMode);
+        const bedRows = parseBed(defaultBedText);
+        const derived = await deriveBedRestrictedData(publicVariants, bedRows, { genomeBuild: genomeBuildInput.value || preset.genomeBuild || "GRCh38" });
+        state.variantRows = publicVariants;
+        state.bedRows = bedRows;
+        state.bedText = defaultBedText;
+        state.bedSource = preset.source;
+        state.targetMode = targetMode;
+        state.targetPreset = preset;
+        state.spectra = derived.spectra;
+        state.restrictedSpectra = derived.restrictedSpectra;
+        state.signatures = dataset.signatures;
+        state.metadata = publicMafMetadata(mafData, publicVariants);
+        state.source = `${mafData.source} variant rows with ${preset.label} downsampling`;
+        state.publicSelection = {
+          project,
+          maxFiles,
+          maxVariants,
+          selectedFiles: mafData.selectedFiles,
+          signatureCatalog: dataset.selection?.signatureSetName || "COSMIC_v3_Signatures_GRCh37_SBS96",
+          targetName: preset.source,
+          targetSourceUrl: preset.sourceUrl,
+        };
+        state.callableOpportunities = derived.callableOpportunities;
+        state.referenceOpportunities = derived.referenceOpportunities;
+        state.opportunityMode = "bed";
+        state.opportunitySourceLabel = "BED-derived retained-context opportunities";
+        state.downsamplingSummary = derived.summary;
+        variantRowsText.value = cpRowsToCsv(publicVariants);
+        bedText.value = defaultBedText;
+        signaturesText.value = JSON.stringify(state.signatures, null, 2);
+        metadataText.value = cpRowsToCsv(state.metadata);
+        renderDataPreview();
+        clearResults();
+        runStatus.textContent = `${project} public cohort loaded with ${preset.label}. Adjust settings or run.`;
+      });
+    }
+
+    applyDataButton.addEventListener("click", async () => {
+      await withBusy(applyDataButton, "Applying...", async () => {
+        try {
+        const variantRows = parseVariantRows(variantRowsText.value);
+        const bedRows = parseBed(bedText.value);
+        const derived = await deriveBedRestrictedData(variantRows, bedRows, { genomeBuild: genomeBuildInput.value || "GRCh38" });
+        state.variantRows = variantRows;
+        state.bedRows = bedRows;
+        state.bedText = bedText.value;
+        state.bedSource = "Project BED";
+        state.targetMode = "custom";
+        state.targetPreset = null;
+        state.spectra = derived.spectra;
+        state.restrictedSpectra = derived.restrictedSpectra;
+        state.signatures = parseMatrix(signaturesText.value, "signatures");
+        state.metadata = parseMetadata(metadataText.value);
+        state.callableOpportunities = derived.callableOpportunities;
+        state.referenceOpportunities = derived.referenceOpportunities;
+        state.opportunityMode = "bed";
+        state.opportunitySourceLabel = "BED-derived retained-context opportunities";
+        state.downsamplingSummary = derived.summary;
+        state.source = "Project variant rows with BED target downsampling";
+        state.publicSelection = null;
+        renderDataPreview();
+        clearResults();
+        runStatus.textContent = "Project data applied. Adjust settings or run.";
+        } catch (error) {
+          dataOutput.replaceChildren(errorBox(error));
+          runStatus.textContent = "Fix the input tables before running.";
+        }
+      });
+    });
+
+    runButton.addEventListener("click", async () => {
+      await withBusy(runButton, "Running...", async () => {
+        if (!state.spectra || !state.restrictedSpectra || !state.signatures) {
+          throw new Error("Load a public cohort or apply project variant rows, a BED target file, and signatures before running.");
+        }
+        runStatus.textContent = "Running WGS fit, BED-restricted fit, and assay-support review...";
+        reviewOutput.replaceChildren(note("Running current data and settings."));
+        plotOutput.replaceChildren();
+        downloadOutput.replaceChildren();
+        const params = readParams();
+        const opportunityInputs = activeOpportunityInputs(params);
+        const runParams = {
+          ...params,
+          callableOpportunitySource: opportunityInputs.sourceLabel,
+          callableOpportunityMode: opportunityInputs.mode,
+        };
+        const cohort = await mSigSDK.workflows.runCohortFit(
+          { spectra: state.spectra, signatures: state.signatures, metadata: state.metadata },
+          {
+            contexts,
+            expectedContexts: contexts,
+            groupKey: params.groupKey,
+            exposureThreshold: params.exposureThreshold,
+            lowBurdenThreshold: params.lowBurdenThreshold,
+            thresholds: [0, params.exposureThreshold, params.limitedSupportExposureThreshold, params.higherSupportExposureThreshold],
+            runThresholdSensitivity: true,
+            runBootstrap: false,
+            reportFormat: "object",
+          }
+        );
+        const panel = await mSigSDK.workflows.runPanelWorkflow(
+          {
+            spectra: state.restrictedSpectra,
+            signatures: state.signatures,
+            ...(opportunityInputs.callableOpportunities ? { callableOpportunities: opportunityInputs.callableOpportunities } : {}),
+            ...(opportunityInputs.referenceOpportunities ? { referenceOpportunities: opportunityInputs.referenceOpportunities } : {}),
+            opportunitySource: opportunityInputs.opportunitySource,
+            referenceOpportunitySource: opportunityInputs.referenceOpportunitySource,
+          },
+          {
+            contexts,
+            expectedContexts: contexts,
+            minAssessableMutations: params.minAssessableMutations,
+            limitedSupportExposureThreshold: params.limitedSupportExposureThreshold,
+            higherSupportExposureThreshold: params.higherSupportExposureThreshold,
+            lowBurdenThreshold: params.lowBurdenThreshold,
+            genomeBuild: params.genomeBuild,
+            runBootstrap: false,
+            runThresholdSensitivity: false,
+            reportFormat: "object",
+          }
+        );
+        state.cohort = cohort;
+        state.panel = panel;
+        state.lastOpportunityInputs = opportunityInputs;
+        renderResults(runParams, cohort, panel);
+        renderDownloads(runParams, cohort, panel, opportunityInputs);
+        runStatus.textContent = `Updated ${new Date().toLocaleTimeString()}.`;
+      }).catch((error) => {
+        reviewOutput.replaceChildren(errorBox(error));
+        runStatus.textContent = "Run failed.";
+      });
+    });
+
+    await loadSelectedPublicCohort();
+
+    function renderDataPreview() {
+      const samples = Object.keys(state.spectra || {});
+      const signatures = Object.keys(state.signatures || {});
+      const opportunitySummary = summarizeOpportunityInput(state.callableOpportunities, state.referenceOpportunities);
+      const downsampleSummary = state.downsamplingSummary || {};
+      const previewDetails = document.createElement("details");
+      previewDetails.append(
+        summary("Inspect loaded tables"),
+        div(
+          "cohort-panel-data-preview",
+          compactTable((state.variantRows || []).slice(0, 8), ["sample", "chromosome", "start_position", "reference_allele", "tumor_seq_allele2", "context"]),
+          compactTable((state.bedRows || []).slice(0, 8), ["chrom", "start", "end", "name"]),
+          compactTable(sampleRows(state.spectra).slice(0, 6), ["sample", "mutations", "nonZeroContexts"]),
+          compactTable(sampleRows(state.restrictedSpectra).slice(0, 6), ["sample", "mutations", "nonZeroContexts"]),
+          state.metadata.length
+            ? compactTable(state.metadata.slice(0, 6), previewColumns(state.metadata))
+            : note("Sample details are optional, but group comparison needs a matching sample column and group field."),
+          state.callableOpportunities
+            ? compactTable(opportunityPreviewRows(state.callableOpportunities, state.referenceOpportunities).slice(0, 8), ["context", "callableOpportunity", "referenceOpportunity"])
+            : note("Callable context opportunities are derived from the BED-retained variants in this notebook. Production territory review should use context opportunities enumerated from the target reference sequence.")
+        )
+      );
+      dataOutput.replaceChildren(
+        focusMessage(
+          "The BED file creates the restricted-assay input.",
+          "The original variant rows are converted into WGS-like spectra. Variants inside the BED intervals are converted again into panel/WES spectra, so the restricted fit is tied to a concrete target file."
+        ),
+        miniMetrics([
+          { label: "Data source", value: state.source },
+          { label: "Target mode", value: targetModeLabel(state.targetMode) },
+          { label: "Samples", value: samples.length },
+          { label: "Variants retained by BED", value: `${downsampleSummary.retainedVariants ?? 0}/${downsampleSummary.totalVariants ?? 0}` },
+          { label: "BED intervals", value: state.bedRows.length },
+          { label: "Signatures", value: signatures.length },
+          { label: "Callable contexts", value: opportunitySummary.callableContexts },
+          { label: "BED source", value: state.bedSource },
+        ]),
+        previewDetails
+      );
+    }
+
+    function renderResults(params, cohort, panel) {
+      const panelCallRows = panelRows(panel);
+      const comparisonRows = fullContextComparisonRows(cohort, panel, params).slice(0, 24);
+      reviewOutput.replaceChildren(
+        focusMessage(
+          "WGS fit first, BED-restricted fit second.",
+          "The table compares each original fitted contribution with the contribution after retaining only variants inside the BED target intervals. Support tiers summarize whether the restricted assay carries enough evidence for the same signature claim."
+        ),
+        miniMetrics([
+          { label: "Samples", value: Object.keys(state.spectra || {}).length },
+          { label: "Target mode", value: targetModeLabel(state.targetMode) },
+          { label: "Group field", value: params.groupKey },
+          { label: "BED-retained variants", value: `${state.downsamplingSummary?.retainedVariants ?? 0}/${state.downsamplingSummary?.totalVariants ?? 0}` },
+          { label: "Callable coverage", value: format(panel.opportunityMetadata?.opportunityCoverage) },
+          { label: "Opportunity source", value: params.callableOpportunitySource },
+          { label: "Review calls", value: panel.panel?.evidenceSummary?.callCount || 0 },
+        ]),
+        div(
+          "cohort-panel-result-grid",
+          div(
+            "cohort-panel-output",
+            blockTitle("Fitted exposure versus assay support"),
+            compactTable(comparisonRows, ["sample", "signature", "fittedExposure", "opportunityAdjustedExposure", "supportTier"])
+          ),
+          div(
+            "cohort-panel-output",
+            blockTitle("Warnings and review actions"),
+            renderReviewSummary(cohort, panel, panelCallRows)
+          )
+        )
+      );
+      plotOutput.replaceChildren();
+      addPlot("Panel/WES review evidence matrix", (host) => host.replaceChildren(renderEvidenceMatrix(panelCallRows)), null, { primary: true });
+      addPlot(
+        "Loaded spectra mutation burden",
+        (host) => mSigSDK.qcPlots.plotMutationBurdenSummary(host, cohort.qc.mutationBurden, {
+          figureContext: {
+            dataset: state.source,
+            assay: "Original WGS-like spectra before BED filtering",
+            sampleCount: Object.keys(state.spectra || {}).length,
+            profile: "SBS",
+            matrix: "96",
+          },
+        }),
+        null,
+        { secondary: true }
+      );
+      addPlot(
+        "BED-restricted mutation burden",
+        (host) => mSigSDK.qcPlots.plotMutationBurdenSummary(host, panel.qc.mutationBurden, {
+          figureContext: {
+            dataset: state.bedSource,
+            assay: "Variants retained inside BED intervals",
+            sampleCount: Object.keys(state.restrictedSpectra || {}).length,
+            profile: "SBS",
+            matrix: "96",
+          },
+        }),
+        null,
+        { secondary: true }
+      );
+    }
+
+    function renderDownloads(params, cohort, panel, opportunityInputs) {
+      const exposureCsv = cpRowsToCsv(presentation.exposureRows(cohort.fit.exposures, { minExposure: 0, topN: 1000 }));
+      const panelCsv = cpRowsToCsv(panelRows(panel));
+      const comparisonCsv = cpRowsToCsv(fullContextComparisonRows(cohort, panel, params));
+      const bundle = {
+        source: state.source,
+        parameters: params,
+        targetMode: state.targetMode,
+        targetSource: {
+          label: state.bedSource,
+          url: state.targetPreset?.sourceUrl || null,
+        },
+        publicSelection: state.publicSelection,
+        variantRows: state.variantRows,
+        bedTargets: state.bedRows,
+        downsamplingSummary: state.downsamplingSummary,
+        sampleDetails: state.metadata,
+        assayTerritory: {
+          source: opportunityInputs.sourceLabel,
+          mode: opportunityInputs.mode,
+          callableOpportunities: opportunityInputs.callableOpportunities,
+          referenceOpportunities: opportunityInputs.referenceOpportunities,
+        },
+        cohort: {
+          validation: cohort.validation,
+          warnings: cohort.warnings,
+          recommendedActions: cohort.recommendedActions,
+          fitQualityEvidence: cohort.fitQualityEvidence,
+          groupComparison: cohort.groupComparison,
+        },
+        panel: {
+          opportunityMetadata: panel.opportunityMetadata,
+          evidenceSummary: panel.panel?.evidenceSummary,
+          warnings: panel.warnings,
+          recommendedActions: panel.recommendedActions,
+        },
+      };
+      const downloads = [
+        { filename: "cohort_panel_variant_rows.csv", text: cpRowsToCsv(state.variantRows), label: "Download variant rows CSV" },
+        { filename: "cohort_panel_targets.bed", text: state.bedText, label: "Download BED targets" },
+        { filename: "cohort_panel_wgs_spectra.tsv", text: mSigSDK.io.exportSigProfilerMatrix(state.spectra, { contexts }), label: "Download WGS-like spectra TSV" },
+        { filename: "cohort_panel_bed_restricted_spectra.tsv", text: mSigSDK.io.exportSigProfilerMatrix(state.restrictedSpectra, { contexts }), label: "Download BED-restricted spectra TSV" },
+        { filename: "cohort_panel_signatures.tsv", text: mSigSDK.io.exportCOSMICSignatureMatrix(state.signatures, { contexts }), label: "Download signatures TSV" },
+        { filename: "cohort_panel_sample_details.csv", text: cpRowsToCsv(state.metadata), label: "Download sample details CSV" },
+        ...(opportunityInputs.callableOpportunities
+          ? [{ filename: "cohort_panel_callable_opportunities.csv", text: opportunityRowsToCsv(opportunityInputs.callableOpportunities, opportunityInputs.referenceOpportunities), label: "Download callable opportunities CSV" }]
+          : []),
+        { filename: "cohort_signature_contributions.csv", text: exposureCsv, label: "Download cohort signature contributions CSV" },
+        { filename: "fitted_exposure_vs_assay_support.csv", text: comparisonCsv, label: "Download fitted exposure versus assay support CSV" },
+        { filename: "panel_evidence_calls.csv", text: panelCsv, label: "Download panel/WES evidence CSV" },
+        { filename: "cohort_panel_bundle.json", value: bundle, type: "json", label: "Download review bundle JSON" },
+      ];
+      downloadOutput.replaceChildren(downloadList(downloads));
+    }
+
+    function clearResults() {
+      state.cohort = null;
+      state.panel = null;
+      state.lastOpportunityInputs = null;
+      reviewOutput.replaceChildren(note("Run the workflow to review cohort and panel/WES evidence."));
+      plotOutput.replaceChildren();
+      downloadOutput.replaceChildren(note("Downloads appear after a run."));
+    }
+
+    function readParams() {
+      return {
+        groupKey: groupKeyInput.value.trim() || "burdenGroup",
+        exposureThreshold: numberValue(exposureThresholdInput.value, 0.01),
+        lowBurdenThreshold: numberValue(lowBurdenInput.value, 100),
+        minAssessableMutations: Math.max(1, Math.round(numberValue(minAssessableInput.value, 30))),
+        limitedSupportExposureThreshold: numberValue(limitedSupportInput.value, 0.05),
+        higherSupportExposureThreshold: numberValue(higherSupportInput.value, 0.2),
+        coverageScale: numberValue(coverageScaleInput.value, 1),
+        genomeBuild: genomeBuildInput.value.trim() || "GRCh38",
+      };
+    }
+
+    function parseMatrix(text, kind) {
+      const trimmed = String(text || "").trim();
+      if (!trimmed) throw new Error(`${kind === "spectra" ? "Spectra" : "Signature"} table is empty.`);
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+      } catch (_error) {
+        // Try table formats below.
+      }
+      return kind === "spectra"
+        ? mSigSDK.io.importSigProfilerMatrix(trimmed)
+        : mSigSDK.io.importCOSMICSignatureMatrix(trimmed);
+    }
+
+    function parseMetadata(text) {
+      const trimmed = String(text || "").trim();
+      if (!trimmed) return [];
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return normalizeMetadata(parsed);
+        if (parsed && typeof parsed === "object") {
+          return normalizeMetadata(Object.entries(parsed).map(([sample, fields]) => ({ sample, ...(fields || {}) })));
+        }
+      } catch (_error) {
+        return normalizeMetadata(parseCsv(trimmed));
+      }
+      return [];
+    }
+
+    function publicSbs96SelectionForProject(project, overrides = {}) {
+      const cancerByProject = {
+        "TCGA-LUAD": "Lung-AdenoCa",
+        "TCGA-LUSC": "Lung-SCC",
+        "TCGA-BRCA": "Breast-AdenoCa",
+        "TCGA-COAD": "ColoRect-AdenoCa",
+        "TCGA-SKCM": "Skin-Melanoma",
+        "TCGA-HNSC": "Head-SCC",
+      };
+      return {
+        study: "TCGA",
+        cancerType: cancerByProject[project] || "Lung-AdenoCa",
+        genomeDataType: "WES",
+        mutationType: "SBS",
+        matrixSize: 96,
+        signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
+        sampleLimit: 4,
+        ...overrides,
+      };
+    }
+
+    function publicMafMetadata(mafData, variantRows = []) {
+      const rowsByFile = new Map((mafData?.mafIndex?.[mafData.projects?.[0]]?.samples_description || []).map((row) => [row.file_id, row]));
+      const samples = cpUnique(variantRows.map((row) => row.sample));
+      const mutationCounts = Object.fromEntries(samples.map((sample) => [
+        sample,
+        variantRows.filter((row) => row.sample === sample).length,
+      ]));
+      const ranked = [...samples].sort((a, b) => mutationCounts[b] - mutationCounts[a]);
+      const higherBurden = new Set(ranked.slice(0, Math.max(1, Math.ceil(ranked.length / 2))));
+      return samples.map((sample) => {
+        const match = rowsByFile.get(sample) || {};
+        return {
+          sample,
+          case: match.case_submitter_id || sample,
+          project: match.project_id || mafData.projects?.[0] || "",
+          sex: match.gender || "",
+          race: match.race || "",
+          tissueType: match.tissue_type || "",
+          tumorDescriptor: match.tumor_descriptor || "",
+          mutationRows: mutationCounts[sample] || 0,
+          burdenGroup: higherBurden.has(sample) ? "higher" : "lower",
+          source: "TCGA/GDC MAF",
+        };
+      });
+    }
+
+    async function loadDefaultBedText(targetMode = "wes") {
+      const preset = targetPresets[targetMode] || targetPresets.wes;
+      try {
+        const response = await fetch(preset.url);
+        if (response.ok) return await response.text();
+      } catch (_error) {
+        // Use the embedded fallback below when the local file is unavailable.
+      }
+      return preset.fallback;
+    }
+
+    function parseVariantRows(text) {
+      const trimmed = String(text || "").trim();
+      if (!trimmed) throw new Error("Variant rows are required for BED downsampling.");
+      let rows;
+      try {
+        const parsed = JSON.parse(trimmed);
+        rows = Array.isArray(parsed) ? parsed : Object.values(parsed || {}).flat();
+      } catch (_error) {
+        rows = parseCsv(trimmed);
+      }
+      const normalized = normalizeVariantRows(rows);
+      if (!normalized.length) {
+        throw new Error("No usable variant rows were found. Provide sample, chromosome, position, reference allele, alternate allele, and variant type.");
+      }
+      return normalized;
+    }
+
+    function normalizeVariantRows(rows) {
+      return (Array.isArray(rows) ? rows : [])
+        .map((row, index) => {
+          const chromosome = firstValue(row, ["chromosome", "Chromosome", "chrom", "Chrom", "chr", "Chr"]);
+          const position = firstValue(row, [
+            "start_position",
+            "Start_Position",
+            "chromosome_start",
+            "Chromosome_Start",
+            "position",
+            "Position",
+            "pos",
+          ]);
+          const sample = firstValue(row, ["sample", "Sample", "sample_id", "sampleId", "Tumor_Sample_Barcode", "project_code"]) || "sample_1";
+          const reference = firstValue(row, ["reference_allele", "Reference_Allele", "reference_genome_allele", "ref", "Ref"]);
+          const alternate = firstValue(row, ["tumor_seq_allele2", "Tumor_Seq_Allele2", "mutated_to_allele", "alt", "Alt"]);
+          const variantType = firstValue(row, ["variant_type", "Variant_Type", "mutation_type", "Mutation_Type"]) || "SNP";
+          return {
+            ...row,
+            sample: String(sample),
+            chromosome: normalizeChromosomeLabel(chromosome),
+            start_position: Number(position),
+            reference_allele: String(reference || "").toUpperCase(),
+            tumor_seq_allele2: String(alternate || "").toUpperCase(),
+            variant_type: String(variantType || "SNP"),
+            context: firstValue(row, ["context", "Context", "trinucleotide_context", "sequence_context", "context_sequence"]),
+            build: firstValue(row, ["build", "Build", "genome", "Genome"]) || "hg19",
+            variant_id: firstValue(row, ["variant_id", "id", "ID"]) || `variant_${index + 1}`,
+          };
+        })
+        .filter((row) =>
+          row.chromosome &&
+          Number.isFinite(row.start_position) &&
+          /^[ACGT]$/.test(row.reference_allele) &&
+          /^[ACGT]$/.test(row.tumor_seq_allele2)
+        );
+    }
+
+    function parseBed(text) {
+      const trimmed = String(text || "").trim();
+      if (!trimmed) throw new Error("A BED target file is required.");
+      const rows = [];
+      for (const line of trimmed.split(/\r?\n/)) {
+        const clean = line.trim();
+        if (!clean || clean.startsWith("#") || /^track\b/i.test(clean) || /^browser\b/i.test(clean)) continue;
+        const cells = clean.includes("\t") ? clean.split(/\t+/) : clean.split(/[,\s]+/);
+        if (/^(chrom|chromosome|chr)$/i.test(cells[0]) && /start/i.test(cells[1] || "")) continue;
+        const chrom = normalizeChromosomeLabel(cells[0]);
+        const start = Number(cells[1]);
+        const end = Number(cells[2]);
+        if (!chrom || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) continue;
+        rows.push({ chrom, start, end, name: cells[3] || `target_${rows.length + 1}` });
+      }
+      if (!rows.length) throw new Error("No valid BED intervals were found. Each row needs chrom, start, and end.");
+      return rows;
+    }
+
+    async function deriveBedRestrictedData(variantRows, bedRows, { genomeBuild = "GRCh38" } = {}) {
+      const normalizedVariants = normalizeVariantRows(variantRows);
+      const normalizedBed = bedRows.map((row) => ({
+        chrom: normalizeChromosomeLabel(row.chrom || row.chromosome),
+        start: Number(row.start),
+        end: Number(row.end),
+        name: row.name || "",
+      })).filter((row) => row.chrom && Number.isFinite(row.start) && Number.isFinite(row.end) && row.end > row.start);
+      const bedIndex = buildBedIndex(normalizedBed);
+      const retainedVariants = normalizedVariants.filter((variant) => variantInBed(variant, bedIndex));
+      if (!retainedVariants.length) {
+        throw new Error("The BED file did not retain any variants. Check chromosome labels, coordinate system, and genome build.");
+      }
+      const sampleNames = cpUnique(normalizedVariants.map((row) => row.sample));
+      const spectra = await variantsToSpectra(normalizedVariants, sampleNames, genomeBuild);
+      const restrictedSpectra = await variantsToSpectra(retainedVariants, sampleNames, genomeBuild);
+      const referenceOpportunities = contextTotals(spectra);
+      const callableOpportunities = contextTotals(restrictedSpectra);
+      const retainedFraction = retainedVariants.length / Math.max(normalizedVariants.length, 1);
+      return {
+        spectra,
+        restrictedSpectra,
+        callableOpportunities,
+        referenceOpportunities,
+        retainedVariants,
+        summary: {
+          totalVariants: normalizedVariants.length,
+          retainedVariants: retainedVariants.length,
+          retainedFraction,
+          bedIntervals: normalizedBed.length,
+          originalMutations: Math.round(sumRecord(contextTotals(spectra))),
+          restrictedMutations: Math.round(sumRecord(contextTotals(restrictedSpectra))),
+          method: "Variant rows were filtered by BED intervals before SBS96 conversion.",
+          coordinateSystem: "BED 0-based half-open intervals; variant positions 1-based.",
+        },
+      };
+    }
+
+    async function variantsToSpectra(rows, sampleNames, genomeBuild) {
+      const rowsWithProjectCode = rows.map((row) => ({
+        ...row,
+        project_code: row.sample,
+      }));
+      const hasContext = rowsWithProjectCode.every((row) => row.context || row.trinucleotide_context || row.sequence_context || row.context_sequence);
+      const spectra = await mSigSDK.userData.convertMatrix(
+        rowsWithProjectCode,
+        "sample",
+        50,
+        normalizeGenomeBuild(genomeBuild),
+        false,
+        { offline: hasContext }
+      );
+      return ensureSpectraSamples(spectra, sampleNames);
+    }
+
+    function ensureSpectraSamples(spectra, sampleNames) {
+      const output = { ...(spectra || {}) };
+      for (const sample of sampleNames) {
+        if (!output[sample]) {
+          output[sample] = Object.fromEntries(contexts.map((context) => [context, 0]));
+        }
+      }
+      return output;
+    }
+
+    function buildBedIndex(bedRows) {
+      const index = new Map();
+      for (const interval of bedRows || []) {
+        const chrom = normalizeChromosomeLabel(interval.chrom);
+        if (!index.has(chrom)) index.set(chrom, []);
+        index.get(chrom).push({
+          start: Number(interval.start),
+          end: Number(interval.end),
+        });
+      }
+      for (const intervals of index.values()) {
+        intervals.sort((a, b) => a.start - b.start || a.end - b.end);
+        let writeIndex = 0;
+        for (const interval of intervals) {
+          const previous = intervals[writeIndex - 1];
+          if (previous && interval.start <= previous.end) {
+            previous.end = Math.max(previous.end, interval.end);
+          } else {
+            intervals[writeIndex] = { ...interval };
+            writeIndex += 1;
+          }
+        }
+        intervals.length = writeIndex;
+      }
+      return index;
+    }
+
+    function variantInBed(variant, bedIndex) {
+      const position = Number(variant.start_position);
+      const intervals = bedIndex.get(normalizeChromosomeLabel(variant.chromosome)) || [];
+      let left = 0;
+      let right = intervals.length - 1;
+      while (left <= right) {
+        const middle = Math.floor((left + right) / 2);
+        const interval = intervals[middle];
+        if (position <= interval.start) {
+          right = middle - 1;
+        } else if (position > interval.end) {
+          left = middle + 1;
+        } else {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function contextTotals(spectra = {}) {
+      const totals = Object.fromEntries(contexts.map((context) => [context, 0]));
+      for (const spectrum of Object.values(spectra || {})) {
+        for (const context of contexts) {
+          totals[context] += Number(spectrum?.[context] || 0);
+        }
+      }
+      return totals;
+    }
+
+    function firstValue(row, keys) {
+      for (const key of keys) {
+        if (row && row[key] !== undefined && row[key] !== null && row[key] !== "") return row[key];
+      }
+      return null;
+    }
+
+    function normalizeChromosomeLabel(value) {
+      const text = String(value || "").trim();
+      if (!text) return "";
+      return text.replace(/^chr/i, "");
+    }
+
+    function normalizeGenomeBuild(value) {
+      const text = String(value || "hg19").trim().toLowerCase();
+      if (text === "grch37") return "hg19";
+      if (text === "grch38") return "hg38";
+      return text || "hg19";
+    }
+
+    function targetModeLabel(mode) {
+      if (mode === "wes") return "Illumina Exome hg38 BED";
+      if (mode === "panel") return "TruSight Cancer hg38 BED";
+      return "Project BED";
+    }
+
+    function activeOpportunityInputs(params) {
+      if (state.opportunityMode === "bed") {
+        return {
+          callableOpportunities: scaleOpportunityRecord(state.callableOpportunities, params.coverageScale),
+          referenceOpportunities: state.referenceOpportunities,
+          mode: "bed",
+          opportunitySource: "user_supplied",
+          referenceOpportunitySource: state.referenceOpportunities ? "user_supplied_reference_opportunities" : "not_supplied",
+          sourceLabel: `BED-derived retained-context opportunities, scale ${params.coverageScale}`,
+        };
+      }
+      if (state.callableOpportunities) {
+        return {
+          callableOpportunities: state.callableOpportunities,
+          referenceOpportunities: state.referenceOpportunities,
+          mode: "project",
+          opportunitySource: "user_supplied",
+          referenceOpportunitySource: state.referenceOpportunities ? "user_supplied_reference_opportunities" : "not_supplied",
+          sourceLabel: state.opportunitySourceLabel,
+        };
+      }
+      return {
+        callableOpportunities: null,
+        referenceOpportunities: null,
+        mode: "not_supplied",
+        opportunitySource: "not_supplied",
+        referenceOpportunitySource: "not_supplied",
+        sourceLabel: "Full-context coverage assumed for screening",
+      };
+    }
+
+    function parseCsv(text) {
+      const delimiter = String(text).includes("\t") ? "\t" : ",";
+      const rows = String(text).trim().split(/\r?\n/).filter(Boolean).map((line) => splitDelimited(line, delimiter));
+      const headers = rows.shift() || [];
+      return rows.map((values) => Object.fromEntries(headers.map((header, index) => [header.trim(), values[index] ?? ""])));
+    }
+
+    function splitDelimited(line, delimiter) {
+      const cells = [];
+      let cell = "";
+      let quoted = false;
+      for (let index = 0; index < line.length; index += 1) {
+        const character = line[index];
+        const next = line[index + 1];
+        if (character === "\"" && quoted && next === "\"") {
+          cell += "\"";
+          index += 1;
+        } else if (character === "\"") {
+          quoted = !quoted;
+        } else if (character === delimiter && !quoted) {
+          cells.push(cell);
+          cell = "";
+        } else {
+          cell += character;
+        }
+      }
+      cells.push(cell);
+      return cells;
+    }
+
+    function normalizeMetadata(rows) {
+      return (Array.isArray(rows) ? rows : [])
+        .map((row) => ({
+          ...row,
+          sample: row.sample || row.Sample || row.sample_id || row.sampleId || row.Tumor_Sample_Barcode || row.id,
+        }))
+        .filter((row) => row.sample);
+    }
+
+    function cpRowsToCsv(rows = []) {
+      const data = Array.isArray(rows) ? rows : [];
+      if (!data.length) return "";
+      const headers = [...new Set(data.flatMap((row) => Object.keys(row || {})))];
+      const escape = (value) => {
+        const text = value == null ? "" : String(value);
+        return /[",\n\r]/.test(text) ? `"${text.replaceAll("\"", "\"\"")}"` : text;
+      };
+      return [headers.join(","), ...data.map((row) => headers.map((header) => escape(row?.[header])).join(","))].join("\n");
+    }
+
+    function sampleRows(spectra = {}) {
+      return Object.entries(spectra || {}).map(([sample, record]) => ({
+        sample,
+        mutations: Math.round(sumRecord(record)),
+        nonZeroContexts: Object.values(record || {}).filter((value) => Number(value) > 0).length,
+      }));
+    }
+
+    function opportunityPreviewRows(callable = {}, reference = null) {
+      return Object.entries(callable || {}).map(([context, callableOpportunity]) => ({
+        context,
+        callableOpportunity,
+        referenceOpportunity: reference?.[context] ?? "",
+      }));
+    }
+
+    function opportunityRowsToCsv(callable = {}, reference = null) {
+      return cpRowsToCsv(opportunityPreviewRows(callable, reference));
+    }
+
+    function summarizeOpportunityInput(callable = null, reference = null) {
+      const callableContexts = callable ? Object.values(callable).filter((value) => Number(value) > 0).length : 0;
+      const referenceContexts = reference ? Object.values(reference).filter((value) => Number(value) > 0).length : 0;
+      return { callableContexts, referenceContexts };
+    }
+
+    function panelRows(result) {
+      return Object.entries(result?.panel?.evidenceCalls || {}).flatMap(([sample, calls]) =>
+        (calls || []).map((call) => ({
           sample,
           signature: call.signatureName,
           exposure: call.exposure,
           tier: call.tier,
           assessability: call.assessabilityClass,
-          reasons: (call.assessabilityReasons || [])
-            .map((reason) => reason.detail || reason.code)
-            .join("; "),
+          reasons: (call.assessabilityReasons || []).map((reason) => reason.detail || reason.code).join("; "),
         }))
-    );
+      );
+    }
 
-    display(metrics([
-      { label: "Panel workflow", value: cpPanelResult.workflow },
-      { label: "Coverage source", value: cpPanelResult.opportunityMetadata.opportunitySource },
-      { label: "Coverage score", value: cpPanelResult.opportunityMetadata.opportunityCoverage },
-      { label: "Evidence calls", value: cpPanelResult.panel.evidenceSummary.callCount },
-      { label: "Warnings", value: cpPanelResult.warnings.length },
-    ]));
-    display(panelEvidenceTable(cpPanelResult, { maxRows: 12 }));
-  </script>
+    function fullContextComparisonRows(cohort, panel, params) {
+      const fullExposures = cohort?.fit?.exposures || {};
+      const panelByKey = new Map(panelRows(panel).map((row) => [`${row.sample}\u0000${row.signature}`, row]));
+      return Object.entries(fullExposures)
+        .flatMap(([sample, exposures]) =>
+          Object.entries(exposures || {}).map(([signature, fullExposure]) => {
+            const panelCall = panelByKey.get(`${sample}\u0000${signature}`);
+            const restrictedAssayExposure = Number(panelCall?.exposure || 0);
+            return {
+              sample,
+              signature,
+              fullContextExposureValue: Number(fullExposure || 0),
+              restrictedAssayExposureValue: restrictedAssayExposure,
+              fittedExposure: formatPercentPrecise(fullExposure),
+              opportunityAdjustedExposure: panelCall ? formatPercentPrecise(restrictedAssayExposure) : "not run",
+              supportTier: panelCall ? tierLabel(panelCall) : "not assessed",
+              reviewBasis: panelCall?.reasons || "Fitted contribution compared with restricted-assay review tier.",
+            };
+          })
+        )
+        .filter((row) =>
+          row.fullContextExposureValue >= params.exposureThreshold ||
+          row.restrictedAssayExposureValue >= params.limitedSupportExposureThreshold ||
+          ["high", "limited"].includes(row.supportTier)
+        )
+        .sort((a, b) =>
+          Math.max(b.fullContextExposureValue, b.restrictedAssayExposureValue) -
+          Math.max(a.fullContextExposureValue, a.restrictedAssayExposureValue)
+        )
+        .map(({ fullContextExposureValue, restrictedAssayExposureValue, ...row }) => row);
+    }
 
-  <script type="text/markdown">
-    ## Step 4. Save the cohort and panel evidence bundle
+    function renderEvidenceMatrix(rows = []) {
+      const data = Array.isArray(rows) ? rows : [];
+      const samples = cpUnique(data.map((row) => row.sample));
+      const signatures = cpUnique(data.map((row) => row.signature));
+      const byKey = new Map(data.map((row) => [`${row.sample}\u0000${row.signature}`, row]));
+      const node = div("cohort-panel-evidence-panel");
+      const help = document.createElement("p");
+      help.className = "cohort-panel-evidence-help";
+      help.textContent = "Rows are samples and columns are signatures. Each cell combines fitted contribution, mutation burden, fit quality, and callable territory into a review tier.";
+      const legend = div("cohort-panel-evidence-legend");
+      [
+        ["High", "Reportable support under current settings"],
+        ["Limited", "Detected, but needs caveats"],
+        ["Not detected", "Below the review threshold"],
+        ["Not assessable", "Assay coverage or burden is insufficient"],
+      ].forEach(([label, title]) => {
+        const chip = document.createElement("span");
+        chip.textContent = label;
+        chip.title = title;
+        legend.append(chip);
+      });
+      const wrap = div("cohort-panel-evidence-wrap");
+      const matrix = document.createElement("table");
+      matrix.className = "cohort-panel-evidence-matrix";
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      headerRow.append(document.createElement("th"));
+      for (const signature of signatures) {
+        const th = document.createElement("th");
+        th.textContent = signature;
+        headerRow.append(th);
+      }
+      thead.append(headerRow);
+      const tbody = document.createElement("tbody");
+      for (const sample of samples) {
+        const row = document.createElement("tr");
+        const sampleCell = document.createElement("td");
+        sampleCell.textContent = shortSample(sample);
+        sampleCell.title = sample;
+        row.append(sampleCell);
+        for (const signature of signatures) {
+          const call = byKey.get(`${sample}\u0000${signature}`);
+          const cell = document.createElement("td");
+          const inner = div(`cohort-panel-evidence-cell ${tierClass(call)}`);
+          const exposure = document.createElement("strong");
+          exposure.textContent = call ? formatPercent(call.exposure) : "";
+          const tier = document.createElement("span");
+          tier.textContent = call ? tierLabel(call) : "missing";
+          inner.title = call?.reasons || tier.textContent;
+          inner.append(exposure, tier);
+          cell.append(inner);
+          row.append(cell);
+        }
+        tbody.append(row);
+      }
+      matrix.append(thead, tbody);
+      wrap.append(matrix);
+      node.append(help, legend, wrap);
+      return node;
+    }
 
-    The final bundle preserves the fitted signature contributions, sample details, panel evidence calls, warnings, and suggested review steps. Save these together so downstream applications do not detach a signature call from the assay limitations that qualify it.
-  </script>
-<script type="module" pinned id="5">
-    display(downloadMany([
-      {
-        filename: "cohort_panel_spectra.tsv",
-        text: spectraMatrixToTsv(cpSpectra, cpContexts),
-        label: "Download spectra TSV",
-      },
-      {
-        filename: "cohort_panel_exposures.csv",
-        text: rowsToCsv(exposureRows(cpCohortResult.fit.exposures, { minExposure: 0, topN: 100 })),
-        label: "Download cohort signature contributions CSV",
-      },
-      {
-        filename: "panel_evidence_calls.csv",
-        text: rowsToCsv(cpPanelRows),
-        label: "Download panel evidence CSV",
-      },
-      {
-        filename: "cohort_panel_evidence_bundle.json",
-        type: "json",
-        value: {
-          options: cpOptions,
-          metadata: cpMetadata,
-          cohort: {
-            validation: cpCohortResult.validation,
-            warnings: cpCohortResult.warnings,
-            recommendedActions: cpCohortResult.recommendedActions,
-            fitQualityEvidence: cpCohortResult.fitQualityEvidence,
-          },
-          panel: {
-            opportunityMetadata: cpPanelResult.opportunityMetadata,
-            restrictedAssayEvidenceSummary: cpPanelResult.restrictedAssayEvidenceSummary,
-            evidenceSummary: cpPanelResult.panel.evidenceSummary,
-            warnings: cpPanelResult.warnings,
-            recommendedActions: cpPanelResult.recommendedActions,
-          },
-        },
-        label: "Download evidence bundle JSON",
-      },
-    ]));
+    function focusMessage(title, text) {
+      const node = div("cohort-panel-focus");
+      const strong = document.createElement("strong");
+      strong.textContent = title;
+      const span = document.createElement("span");
+      span.textContent = text;
+      node.append(strong, span);
+      return node;
+    }
+
+    function infoCards(items = []) {
+      const node = div("cohort-panel-guide-grid");
+      for (const item of items) {
+        const card = div("cohort-panel-guide-card");
+        const title = document.createElement("strong");
+        title.textContent = item.title;
+        const text = document.createElement("span");
+        text.textContent = item.text;
+        card.append(title, text);
+        node.append(card);
+      }
+      return node;
+    }
+
+    function miniMetrics(items = []) {
+      const node = div("cohort-panel-mini-metrics");
+      for (const item of items) {
+        const pill = div("cohort-panel-pill");
+        const label = document.createElement("span");
+        label.textContent = item.label;
+        const value = document.createElement("strong");
+        value.textContent = item.value == null ? "not available" : String(item.value);
+        pill.append(label, value);
+        node.append(pill);
+      }
+      return node;
+    }
+
+    function renderReviewSummary(cohort, panel, panelCallRows = []) {
+      const node = div("cohort-panel-review-summary");
+      const tierCounts = Object.entries(summarizeTiers(panelCallRows)).map(([tier, count]) => ({
+        evidenceTier: tier,
+        calls: count,
+      }));
+      const messages = [
+        ...cpWarningRows(cohort.warnings, "cohort"),
+        ...cpWarningRows(panel.warnings, "panel"),
+        ...actionRows(cohort.recommendedActions, "cohort"),
+        ...actionRows(panel.recommendedActions, "panel"),
+      ];
+      node.append(compactTable(tierCounts, ["evidenceTier", "calls"]));
+      const list = document.createElement("ul");
+      list.className = "cohort-panel-review-list";
+      for (const item of messages.slice(0, 4)) {
+        const entry = document.createElement("li");
+        entry.textContent = `${item.source}: ${shortMessage(item.message)}`;
+        list.append(entry);
+      }
+      if (!list.children.length) {
+        const entry = document.createElement("li");
+        entry.textContent = "No warning or action messages were returned under the current settings.";
+        list.append(entry);
+      }
+      node.append(list);
+      return node;
+    }
+
+    function summarizeTiers(rows = []) {
+      return rows.reduce((counts, row) => {
+        const label = tierLabel(row);
+        counts[label] = (counts[label] || 0) + 1;
+        return counts;
+      }, {});
+    }
+
+    function tierClass(call) {
+      const value = `${call?.tier || ""} ${call?.assessability || ""}`.toLowerCase();
+      if (!call) return "not-assessable";
+      if (value.includes("higher")) return "high";
+      if (value.includes("limited")) return "limited";
+      if (value.includes("not_detected") || value.includes("not detected")) return "not-detected";
+      if (value.includes("not_assessable") || value.includes("insufficient")) return "not-assessable";
+      return "detected";
+    }
+
+    function tierLabel(call) {
+      const tier = String(call?.tier || call?.assessability || "review").toLowerCase();
+      if (tier.includes("higher")) return "high";
+      if (tier.includes("limited")) return "limited";
+      if (tier.includes("not_detected") || tier.includes("not detected")) return "not detected";
+      if (tier.includes("not_assessable") || tier.includes("not assessable")) return "not assessable";
+      return "review";
+    }
+
+    function formatPercent(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? `${Math.round(number * 100)}%` : "";
+    }
+
+    function formatPercentPrecise(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return "not available";
+      if (number === 0) return "0%";
+      return `${(number * 100).toFixed(number < 0.01 ? 2 : 1)}%`;
+    }
+
+    function cpUnique(values = []) {
+      return [...new Set(values.filter(Boolean))];
+    }
+
+    function shortSample(sample) {
+      const text = String(sample || "");
+      const parts = text.split("-");
+      return parts.length >= 3 ? parts.slice(0, 3).join("-") : text;
+    }
+
+    function shortMessage(message) {
+      const text = String(message || "");
+      return text.length > 140 ? `${text.slice(0, 137)}...` : text;
+    }
+
+    function previewColumns(rows = []) {
+      const keys = [...new Set((rows[0] ? Object.keys(rows[0]) : ["sample"]).filter(Boolean))];
+      const priority = ["sample", "study", "cancer", "strategy", "assay", "burdenGroup", "group", "projectGroup"];
+      return [...priority.filter((key) => keys.includes(key)), ...keys.filter((key) => !priority.includes(key))].slice(0, 6);
+    }
+
+    function compactTable(rows = [], columns = null) {
+      const data = Array.isArray(rows) ? rows : [];
+      const selected = columns?.length ? columns : [...new Set(data.flatMap((row) => Object.keys(row || {})))].slice(0, 6);
+      const wrap = div("cohort-panel-table-wrap");
+      const tableNode = document.createElement("table");
+      tableNode.className = "cohort-panel-table";
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      for (const column of selected) {
+        const th = document.createElement("th");
+        th.textContent = humanLabel(column);
+        headerRow.append(th);
+      }
+      thead.append(headerRow);
+      const tbody = document.createElement("tbody");
+      if (!data.length) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = Math.max(1, selected.length);
+        cell.textContent = "No rows to show.";
+        row.append(cell);
+        tbody.append(row);
+      } else {
+        for (const item of data) {
+          const row = document.createElement("tr");
+          for (const column of selected) {
+            const cell = document.createElement("td");
+            const value = item?.[column];
+            cell.textContent = typeof value === "number" ? format(value) : value == null ? "" : String(value);
+            row.append(cell);
+          }
+          tbody.append(row);
+        }
+      }
+      tableNode.append(thead, tbody);
+      wrap.append(tableNode);
+      return wrap;
+    }
+
+    function humanLabel(key) {
+      return String(key)
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/_/g, " ")
+        .replace(/^./, (character) => character.toUpperCase());
+    }
+
+    function cpWarningRows(warnings = [], source = "workflow") {
+      return (Array.isArray(warnings) ? warnings : []).map((warning) => ({
+        source,
+        type: warning.code || warning.warningCode || warning.status || "warning",
+        message: warning.message || warning.detail || String(warning),
+      }));
+    }
+
+    function actionRows(actions = [], source = "workflow") {
+      return (Array.isArray(actions) ? actions : []).map((action) => ({
+        source,
+        type: "review action",
+        message: typeof action === "string" ? action : action.message || action.detail || JSON.stringify(action),
+      }));
+    }
+
+    function scaleOpportunityRecord(record, scale) {
+      return Object.fromEntries(Object.entries(record || {}).map(([context, value]) => [
+        context,
+        Math.max(0, Number(value) * scale),
+      ]));
+    }
+
+    function sumRecord(record = {}) {
+      return Object.values(record || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+    }
+
+    function numberValue(value, fallback) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function format(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number.toFixed(3) : value ?? "not available";
+    }
+
+    function addPlot(title, renderer, fallback = null, options = {}) {
+      const card = div(`cohort-panel-plot${options.primary ? " primary" : ""}${options.secondary ? " secondary" : ""}`);
+      const heading = document.createElement("h3");
+      heading.textContent = title;
+      const host = div("cohort-panel-plot-host");
+      card.append(heading, host);
+      plotOutput.append(card);
+      try {
+        renderer(host);
+      } catch (error) {
+        host.replaceChildren(fallback ? fallback() : errorBox(error));
+      }
+    }
+
+    function downloadList(items) {
+      const list = div("download-list");
+      for (const item of items) {
+        const link = document.createElement("a");
+        link.className = "download-link";
+        link.download = item.filename;
+        link.textContent = item.label || item.filename;
+        const text = item.type === "json" ? JSON.stringify(item.value, null, 2) : item.text;
+        link.href = URL.createObjectURL(new Blob([text || ""], { type: item.type === "json" ? "application/json" : "text/plain" }));
+        list.append(link);
+      }
+      return list;
+    }
+
+    function fileInput(target, accept = ".json,.txt,.tsv,.csv") {
+      const inputNode = document.createElement("input");
+      inputNode.type = "file";
+      inputNode.accept = accept;
+      inputNode.addEventListener("change", async () => {
+        if (inputNode.files?.[0]) target.value = await readFileAsText(inputNode.files[0]);
+      });
+      return inputNode;
+    }
+
+    function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("Unable to read file."));
+        reader.readAsText(file);
+      });
+    }
+
+    async function withBusy(control, label, task) {
+      const original = control.textContent;
+      control.disabled = true;
+      control.textContent = label;
+      try {
+        return await task();
+      } finally {
+        control.disabled = false;
+        control.textContent = original;
+      }
+    }
+
+    function section(title, helper) {
+      const node = document.createElement("section");
+      node.className = "cohort-panel-step";
+      const header = div("cohort-panel-heading");
+      const heading = document.createElement("h2");
+      heading.textContent = title;
+      const text = document.createElement("span");
+      text.textContent = helper;
+      header.append(heading, text);
+      node.append(header);
+      return node;
+    }
+
+    function field(labelText, control, help = "") {
+      const label = document.createElement("label");
+      label.className = "cohort-panel-field";
+      const title = document.createElement("span");
+      title.textContent = labelText;
+      label.append(title, control);
+      if (help) {
+        const small = document.createElement("small");
+        small.textContent = help;
+        label.append(small);
+      }
+      return label;
+    }
+
+    function textarea(placeholder, rows = 8) {
+      const node = document.createElement("textarea");
+      node.placeholder = placeholder;
+      node.rows = rows;
+      return node;
+    }
+
+    function input(value, type = "text", step = null) {
+      const node = document.createElement("input");
+      node.type = type;
+      node.value = value;
+      if (step) node.step = step;
+      if (type === "number") node.min = "0";
+      return node;
+    }
+
+    function select(options = []) {
+      const node = document.createElement("select");
+      node.replaceChildren(...options.map((item) => {
+        const option = document.createElement("option");
+        option.value = item.value ?? item.label ?? String(item);
+        option.textContent = item.label ?? String(item);
+        return option;
+      }));
+      return node;
+    }
+
+    function button(label, kind = "") {
+      const node = document.createElement("button");
+      node.type = "button";
+      node.className = `workflow-button ${kind}`.trim();
+      node.textContent = label;
+      return node;
+    }
+
+    function blockTitle(text) {
+      const heading = document.createElement("h3");
+      heading.textContent = text;
+      return heading;
+    }
+
+    function note(text) {
+      const node = div("cohort-panel-note");
+      node.textContent = text;
+      return node;
+    }
+
+    function errorBox(error) {
+      const node = document.createElement("pre");
+      node.className = "output-error";
+      node.textContent = error.stack || error.message || String(error);
+      return node;
+    }
+
+    function summary(text) {
+      const node = document.createElement("summary");
+      node.textContent = text;
+      return node;
+    }
+
+    function p(className, text) {
+      const node = document.createElement("p");
+      node.className = className;
+      node.textContent = text;
+      return node;
+    }
+
+    function div(className, ...children) {
+      const node = document.createElement("div");
+      node.className = className;
+      node.append(...children.filter(Boolean));
+      return node;
+    }
   </script>
 </notebook>

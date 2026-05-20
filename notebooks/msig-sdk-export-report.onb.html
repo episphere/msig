@@ -5,23 +5,17 @@
   <script type="text/markdown">
     # Report packet builder
 
-    A report packet is the reviewable archive that sits beside a fitted mutational signature analysis. It keeps the selected samples, fitted exposures, report fields, provenance, and rerun files together so another researcher can inspect the result without reopening the original browser session.
-
-    Build the packet from a compact public SBS96 analysis, choose the report sections and files to preserve, audit the archive, then download only the selected files.
+    A report packet is the reviewable archive that sits beside a fitted mutational signature analysis. It preserves the selected samples, fitted exposures, report fields, provenance, and rerun files in one compact bundle.
   </script>
 
   <script type="module" pinned id="report-packet-builder">
-    const packetSdkUrl = new URL("../main.js?v=2026-05-20-report-packet-builder", location.href).href;
+    const packetSdkUrl = new URL("../main.js?v=2026-05-20-report-console", location.href).href;
     const { mSigSDK } = await import(packetSdkUrl);
-    const { loadPublicSbs96Dataset } = await import("./msig-notebook-fixtures.js");
+    const { loadPublicSbs96Dataset, sbs96Contexts } = await import("./msig-notebook-fixtures.js");
 
-    const {
-      exposureRows,
-      formatNumber,
-      reportFieldRows,
-    } = mSigSDK.presentation;
+    const { exposureRows, formatNumber } = mSigSDK.presentation;
 
-    const PACKET_REQUIRED_FIELDS = [
+    const REQUIRED_FIELDS = [
       "schemaVersion",
       "title",
       "summary",
@@ -35,11 +29,11 @@
       "notes",
     ];
 
-    const REPORT_SECTION_OPTIONS = [
+    const SECTION_OPTIONS = [
       { key: "parameters", label: "Run settings", checked: true },
       { key: "validation", label: "Input checks", checked: true },
       { key: "qc", label: "Quality checks", checked: true },
-      { key: "exposures", label: "Fitted exposures", checked: true },
+      { key: "exposures", label: "Exposure matrix", checked: true },
       { key: "provenance", label: "Run record", checked: true },
       { key: "notes", label: "Citations and notes", checked: true },
     ];
@@ -47,17 +41,17 @@
     const EXPORT_OPTIONS = [
       { key: "reportJson", filename: "analysis_report.json", label: "Report JSON", checked: true },
       { key: "reportHtml", filename: "analysis_report.html", label: "Report HTML", checked: true },
-      { key: "manifestCsv", filename: "packet_manifest.csv", label: "Packet manifest CSV", checked: true },
+      { key: "manifestCsv", filename: "packet_manifest.csv", label: "Packet manifest", checked: true },
       { key: "spectraTsv", filename: "spectra.tsv", label: "Spectra TSV", checked: true },
       { key: "exposuresCsv", filename: "exposures.csv", label: "Exposures CSV", checked: true },
-      { key: "runRecordJson", filename: "run_record.json", label: "Run record JSON", checked: true },
+      { key: "runRecordJson", filename: "run_record.json", label: "Run record", checked: true },
     ];
 
     const FIELD_LABELS = {
       schemaVersion: "Report schema",
       title: "Title",
       summary: "Summary",
-      generatedAt: "Created time",
+      generatedAt: "Generated",
       parameters: "Run settings",
       validation: "Input checks",
       qc: "Quality checks",
@@ -67,356 +61,804 @@
       notes: "Notes",
     };
 
+    const FILE_PURPOSES = {
+      reportJson: "Machine-readable structured report",
+      reportHtml: "Standalone browser-readable report",
+      manifestCsv: "Archive inventory and audit status",
+      spectraTsv: "Selected SBS96 input matrix",
+      exposuresCsv: "Fitted signature contributions",
+      runRecordJson: "SDK, source, runtime, and parameter provenance",
+    };
+
+    const STATUS_MESSAGES = {
+      "Data loading": "Loading the default public spectra and reference signatures.",
+      "Checking data": "Parsing pasted or uploaded spectra, signatures, and sample details in the browser.",
+      "Building": "Running analyzeSpectraWithSignatures with the selected samples and review cutoff.",
+      "Packet ready": "The current packet passed the audit and selected downloads are current.",
+      "Review needed": "The packet was built, and at least one audit row or warning needs review.",
+      "Updating": "A control changed; the packet is rebuilding with the current settings.",
+      "Build failed": "The packet could not be built from the current data and settings.",
+      "Data failed": "The default public dataset could not be loaded.",
+      "Input review": "The pasted or uploaded data needs a format fix before the packet can be built.",
+      "Select a sample": "At least one sample must be selected before a packet can be built.",
+    };
+
+    const state = {
+      dataset: null,
+      analysis: null,
+      packet: null,
+      activeView: "summary",
+      activePreview: "reportJson",
+      sectionInputs: {},
+      exportInputs: {},
+      sampleInputs: {},
+      sourceMessage: "Default public SBS96 data loads automatically. Pasted and uploaded files remain in this browser session.",
+      needsBuild: true,
+    };
+    let buildTimer = null;
+
     const root = document.createElement("section");
-    root.className = "report-packet-app";
+    root.className = "packet-console";
     root.innerHTML = `
       <style>
-        .report-packet-app {
+        .packet-console {
+          --packet-ink: #152335;
+          --packet-muted: #607080;
+          --packet-line: #d9e2e8;
+          --packet-fill: #f6f9fb;
+          --packet-blue: #0b5cad;
+          --packet-teal: #08766f;
+          --packet-orange: #b85c00;
+          color: var(--packet-ink);
           display: grid;
-          gap: 18px;
+          gap: 14px;
         }
 
-        .report-packet-step {
-          border: 1px solid #d8e1e8;
-          border-radius: 8px;
-          background: #ffffff;
-          padding: 16px;
+        .packet-console * {
+          box-sizing: border-box;
         }
 
-        .report-packet-step h2,
-        .report-packet-step h3 {
-          margin: 0 0 8px;
-          color: #102033;
-        }
-
-        .report-packet-step p {
-          max-width: 86ch;
-          margin: 0 0 12px;
-          color: #52616f;
-          line-height: 1.55;
-        }
-
-        .report-packet-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 12px;
-        }
-
-        .report-packet-field {
-          display: grid;
-          gap: 6px;
-          font-size: 14px;
-          color: #102033;
-        }
-
-        .report-packet-field input,
-        .report-packet-field select {
-          width: 100%;
-          border: 1px solid #c8d3dc;
-          border-radius: 6px;
-          padding: 8px 10px;
-          font: inherit;
-        }
-
-        .report-packet-checks {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-          gap: 8px 12px;
-        }
-
-        .report-packet-check {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          border: 1px solid #d8e1e8;
-          border-radius: 6px;
-          padding: 8px 10px;
-          background: #f8fbfd;
-          font-size: 14px;
-        }
-
-        .report-packet-actions {
+        .packet-header {
+          align-items: end;
+          border-bottom: 1px solid var(--packet-line);
           display: flex;
           flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 12px;
+          gap: 12px;
+          justify-content: space-between;
+          padding-bottom: 12px;
         }
 
-        .report-packet-button {
-          border: 1px solid #0f766e;
+        .packet-title-block {
+          display: grid;
+          gap: 4px;
+        }
+
+        .packet-title-block h2 {
+          font-size: 22px;
+          letter-spacing: 0;
+          line-height: 1.2;
+          margin: 0;
+        }
+
+        .packet-title-block p {
+          color: var(--packet-muted);
+          font-size: 14px;
+          line-height: 1.45;
+          margin: 0;
+          max-width: 72ch;
+        }
+
+        .packet-status {
+          align-items: center;
+          background: #edf6fb;
+          border: 1px solid #cce2ef;
+          border-radius: 999px;
+          color: #17324d;
+          display: inline-flex;
+          font-size: 13px;
+          font-weight: 700;
+          min-height: 34px;
+          padding: 6px 12px;
+        }
+
+        .packet-status.review {
+          background: #fff4e8;
+          border-color: #f2cfaa;
+          color: #663000;
+        }
+
+        .packet-status.ready {
+          background: #edf7f3;
+          border-color: #c8e5db;
+          color: #0f4d42;
+        }
+
+        .packet-status-wrap {
+          display: grid;
+          gap: 6px;
+          justify-items: end;
+          max-width: 360px;
+        }
+
+        .packet-status-help {
+          color: var(--packet-muted);
+          font-size: 12px;
+          line-height: 1.35;
+          margin: 0;
+          text-align: right;
+        }
+
+        .packet-flow {
+          color: var(--packet-muted);
+          display: flex;
+          flex-wrap: wrap;
+          font-size: 12px;
+          gap: 6px;
+          list-style: none;
+          margin: 4px 0 0;
+          padding: 0;
+        }
+
+        .packet-flow li {
+          background: var(--packet-fill);
+          border: 1px solid var(--packet-line);
+          border-radius: 999px;
+          padding: 4px 8px;
+        }
+
+        .packet-layout {
+          align-items: start;
+          display: grid;
+          gap: 14px;
+          grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+        }
+
+        .packet-sidebar,
+        .packet-main {
+          border: 1px solid var(--packet-line);
+          border-radius: 8px;
+          background: #ffffff;
+        }
+
+        .packet-sidebar {
+          display: grid;
+          gap: 8px;
+          padding: 14px;
+        }
+
+        .packet-main {
+          min-width: 0;
+          overflow: hidden;
+        }
+
+        .packet-section {
+          display: grid;
+          gap: 10px;
+        }
+
+        .packet-section h3 {
+          font-size: 14px;
+          letter-spacing: 0;
+          margin: 0;
+        }
+
+        .packet-panel {
+          border: 1px solid var(--packet-line);
+          border-radius: 7px;
+          overflow: hidden;
+        }
+
+        .packet-panel > summary {
+          align-items: center;
+          background: #f7fafc;
+          cursor: pointer;
+          display: flex;
+          font-size: 14px;
+          font-weight: 800;
+          justify-content: space-between;
+          list-style: none;
+          min-height: 40px;
+          padding: 9px 10px;
+        }
+
+        .packet-panel > summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .packet-panel > summary::before {
+          color: var(--packet-muted);
+          content: "+";
+          font-weight: 900;
+          margin-right: 8px;
+        }
+
+        .packet-panel[open] > summary::before {
+          content: "-";
+        }
+
+        .packet-panel-title {
+          align-items: center;
+          display: flex;
+          gap: 8px;
+        }
+
+        .packet-panel-count {
+          color: var(--packet-muted);
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .packet-panel-body {
+          border-top: 1px solid var(--packet-line);
+          display: grid;
+          gap: 10px;
+          padding: 10px;
+        }
+
+        .packet-subpanel {
+          display: grid;
+          gap: 8px;
+        }
+
+        .packet-subpanel summary {
+          color: var(--packet-blue);
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 800;
+          list-style: none;
+        }
+
+        .packet-subpanel summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .packet-subpanel summary::before {
+          content: "+";
+          display: inline-block;
+          font-weight: 900;
+          margin-right: 6px;
+          width: 10px;
+        }
+
+        .packet-subpanel[open] summary::before {
+          content: "-";
+        }
+
+        .packet-subpanel-body {
+          display: grid;
+          gap: 10px;
+          padding-top: 2px;
+        }
+
+        .packet-field {
+          color: var(--packet-muted);
+          display: grid;
+          font-size: 12px;
+          gap: 5px;
+        }
+
+        .packet-field input,
+        .packet-field textarea,
+        .packet-field select {
+          border: 1px solid #c9d5dd;
           border-radius: 6px;
-          background: #0f766e;
+          color: var(--packet-ink);
+          font: inherit;
+          font-size: 14px;
+          min-height: 36px;
+          padding: 8px 10px;
+          width: 100%;
+        }
+
+        .packet-field textarea {
+          line-height: 1.35;
+          min-height: 84px;
+          resize: vertical;
+        }
+
+        .packet-field input[type="file"] {
+          background: #ffffff;
+          padding: 7px;
+        }
+
+        .packet-field small,
+        .packet-help {
+          color: var(--packet-muted);
+          font-size: 12px;
+          line-height: 1.35;
+          margin: 0;
+        }
+
+        .packet-check-list {
+          display: grid;
+          gap: 6px;
+        }
+
+        .packet-check {
+          align-items: center;
+          border: 1px solid var(--packet-line);
+          border-radius: 6px;
+          display: flex;
+          gap: 8px;
+          min-height: 36px;
+          padding: 7px 9px;
+        }
+
+        .packet-check input {
+          flex: 0 0 auto;
+        }
+
+        .packet-check span {
+          color: var(--packet-ink);
+          font-size: 13px;
+          line-height: 1.25;
+        }
+
+        .packet-build {
+          background: var(--packet-teal);
+          border: 1px solid var(--packet-teal);
+          border-radius: 6px;
           color: #ffffff;
           cursor: pointer;
           font: inherit;
-          font-weight: 600;
-          padding: 8px 12px;
+          font-weight: 700;
+          min-height: 40px;
+          padding: 9px 12px;
+          width: 100%;
         }
 
-        .report-packet-button.secondary {
-          background: #ffffff;
-          color: #0f766e;
-        }
-
-        .report-packet-button:disabled {
+        .packet-build:disabled {
           cursor: wait;
-          opacity: 0.65;
+          opacity: 0.68;
         }
 
-        .report-packet-output {
+        .packet-button-row {
           display: grid;
-          gap: 12px;
-          margin-top: 12px;
-        }
-
-        .report-packet-metrics {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
           gap: 8px;
+          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
         }
 
-        .report-packet-metric {
-          border: 1px solid #d8e1e8;
+        .packet-action {
           border-radius: 6px;
-          padding: 10px;
-          background: #f8fbfd;
+          cursor: pointer;
+          font: inherit;
+          font-weight: 800;
+          min-height: 38px;
+          padding: 8px 10px;
         }
 
-        .report-packet-metric span {
-          display: block;
-          color: #52616f;
-          font-size: 12px;
+        .packet-action.primary {
+          background: var(--packet-teal);
+          border: 1px solid var(--packet-teal);
+          color: #ffffff;
+        }
+
+        .packet-action.secondary {
+          background: #ffffff;
+          border: 1px solid var(--packet-blue);
+          color: var(--packet-blue);
+        }
+
+        .packet-action:disabled {
+          cursor: wait;
+          opacity: 0.68;
+        }
+
+        .packet-tabs {
+          border-bottom: 1px solid var(--packet-line);
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0;
+          padding: 10px 10px 0;
+        }
+
+        .packet-tab {
+          background: transparent;
+          border: 0;
+          border-bottom: 3px solid transparent;
+          color: var(--packet-muted);
+          cursor: pointer;
+          font: inherit;
+          font-size: 14px;
+          font-weight: 700;
+          padding: 9px 12px;
+        }
+
+        .packet-tab.active {
+          border-bottom-color: var(--packet-blue);
+          color: var(--packet-ink);
+        }
+
+        .packet-view {
+          display: grid;
+          gap: 14px;
+          min-height: 520px;
+          padding: 14px;
+        }
+
+        .packet-metrics {
+          display: grid;
+          gap: 8px;
+          grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+        }
+
+        .packet-metric {
+          background: var(--packet-fill);
+          border: 1px solid var(--packet-line);
+          border-radius: 7px;
+          display: grid;
+          gap: 4px;
+          padding: 10px;
+        }
+
+        .packet-metric span {
+          color: var(--packet-muted);
+          font-size: 11px;
+          font-weight: 700;
           text-transform: uppercase;
         }
 
-        .report-packet-metric strong {
-          color: #102033;
+        .packet-metric strong {
           font-size: 20px;
+          line-height: 1.1;
         }
 
-        .report-packet-table-wrap {
-          overflow-x: auto;
+        .packet-table-wrap {
+          border: 1px solid var(--packet-line);
+          border-radius: 7px;
+          overflow: auto;
         }
 
-        .report-packet-table {
-          width: 100%;
+        .packet-table {
           border-collapse: collapse;
           font-size: 13px;
+          width: 100%;
         }
 
-        .report-packet-table th,
-        .report-packet-table td {
-          border-bottom: 1px solid #d8e1e8;
-          padding: 8px;
+        .packet-table th,
+        .packet-table td {
+          border-bottom: 1px solid var(--packet-line);
+          padding: 8px 10px;
           text-align: left;
           vertical-align: top;
         }
 
-        .report-packet-table th {
-          color: #102033;
-          background: #eef5f7;
-          font-weight: 700;
+        .packet-table th {
+          background: #edf3f6;
+          color: var(--packet-ink);
+          font-size: 12px;
+          font-weight: 800;
         }
 
-        .report-packet-preview {
-          min-height: 220px;
-          border: 1px solid #d8e1e8;
+        .packet-table tr:last-child td {
+          border-bottom: 0;
+        }
+
+        .packet-badge {
+          border-radius: 999px;
+          display: inline-block;
+          font-size: 12px;
+          font-weight: 800;
+          padding: 3px 8px;
+        }
+
+        .packet-badge.pass {
+          background: #e5f4ee;
+          color: #0a5b47;
+        }
+
+        .packet-badge.review {
+          background: #fff0dc;
+          color: #824500;
+        }
+
+        .packet-status-guide {
+          background: #f7fafc;
+          border: 1px solid var(--packet-line);
+          border-radius: 7px;
+          display: grid;
+          gap: 6px;
+          padding: 10px;
+        }
+
+        .packet-status-guide strong {
+          font-size: 13px;
+        }
+
+        .packet-status-guide p {
+          color: var(--packet-muted);
+          font-size: 12px;
+          line-height: 1.4;
+          margin: 0;
+        }
+
+        .packet-file-grid {
+          display: grid;
+          gap: 10px;
+          grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        }
+
+        .packet-file {
+          border: 1px solid var(--packet-line);
+          border-radius: 7px;
+          display: grid;
+          gap: 8px;
+          padding: 10px;
+        }
+
+        .packet-file strong {
+          font-size: 14px;
+        }
+
+        .packet-file span {
+          color: var(--packet-muted);
+          font-size: 12px;
+          line-height: 1.35;
+        }
+
+        .packet-file a,
+        .packet-download-link {
+          align-items: center;
+          background: #ffffff;
+          border: 1px solid var(--packet-blue);
           border-radius: 6px;
-          background: #fbfdfe;
+          color: var(--packet-blue);
+          display: inline-flex;
+          font-size: 13px;
+          font-weight: 800;
+          justify-content: center;
+          min-height: 32px;
+          padding: 6px 10px;
+          text-decoration: none;
+        }
+
+        .packet-empty {
+          background: var(--packet-fill);
+          border: 1px dashed #bac8d0;
+          border-radius: 7px;
+          color: var(--packet-muted);
+          margin: 0;
+          padding: 16px;
+        }
+
+        .packet-preview-tools {
+          align-items: center;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .packet-select {
+          border: 1px solid #c9d5dd;
+          border-radius: 6px;
+          color: var(--packet-ink);
+          font: inherit;
+          min-height: 36px;
+          padding: 7px 10px;
+        }
+
+        .packet-preview-box {
+          border: 1px solid var(--packet-line);
+          border-radius: 7px;
+          max-height: 420px;
+          min-height: 240px;
           overflow: auto;
         }
 
-        .report-packet-preview pre {
-          margin: 0;
-          padding: 12px;
-          white-space: pre-wrap;
-          word-break: break-word;
-        }
-
-        .report-packet-preview iframe {
-          width: 100%;
-          height: 420px;
+        .packet-preview-box iframe {
           border: 0;
-          background: #ffffff;
+          height: 390px;
+          width: 100%;
         }
 
-        .report-packet-status {
-          border-left: 4px solid #0072b2;
-          background: #eef6fb;
-          color: #17324d;
-          margin: 0;
-          padding: 10px 12px;
-        }
+        @media (max-width: 980px) {
+          .packet-layout {
+            grid-template-columns: 1fr;
+          }
 
-        .report-packet-status.review {
-          border-left-color: #d55e00;
-          background: #fff5ee;
-          color: #5f2d08;
+          .packet-status-wrap {
+            justify-items: start;
+          }
+
+          .packet-status-help {
+            text-align: left;
+          }
         }
       </style>
-      <section class="report-packet-step" aria-labelledby="packet-step-1">
-        <h2 id="packet-step-1">1. Choose archive contents</h2>
-        <p>Select the samples, report sections, and files that belong in the review packet.</p>
-        <div class="report-packet-grid">
-          <label class="report-packet-field">
-            <span>Report title</span>
-            <input id="packet-title" type="text" value="Lung SBS96 signature fitting report">
-          </label>
-          <label class="report-packet-field">
-            <span>Mutation-count review cutoff</span>
-            <input id="packet-burden-cutoff" type="number" min="1" step="50" value="500">
-          </label>
+      <header class="packet-header">
+        <div class="packet-title-block">
+          <h2>Report packet console</h2>
+          <p>Choose a dataset, fit the selected SBS96 samples, audit the report fields, and download only the files selected for the packet.</p>
+          <ol class="packet-flow" aria-label="Packet workflow">
+            <li>1. Data</li>
+            <li>2. Build</li>
+            <li>3. Audit</li>
+            <li>4. Download</li>
+          </ol>
         </div>
-        <h3>Samples</h3>
-        <div id="packet-sample-controls" class="report-packet-checks"></div>
-        <h3>Report sections</h3>
-        <div id="packet-section-controls" class="report-packet-checks"></div>
-        <h3>Export files</h3>
-        <div id="packet-export-controls" class="report-packet-checks"></div>
-      </section>
-
-      <section class="report-packet-step" aria-labelledby="packet-step-2">
-        <h2 id="packet-step-2">2. Build packet</h2>
-        <p>Run the compact fitting workflow with the selected samples and assemble a report packet from the workflow output.</p>
-        <div class="report-packet-actions">
-          <button id="packet-build" class="report-packet-button" type="button">Build packet</button>
+        <div class="packet-status-wrap">
+          <span id="packet-status" class="packet-status review">Data loading</span>
+          <p id="packet-status-help" class="packet-status-help">Loading the default public spectra and reference signatures.</p>
         </div>
-        <div id="packet-build-output" class="report-packet-output"></div>
-      </section>
-
-      <section class="report-packet-step" aria-labelledby="packet-step-3">
-        <h2 id="packet-step-3">3. Audit packet</h2>
-        <p>Review required fields, provenance, warnings, and the selected artifact before downloading the packet.</p>
-        <label class="report-packet-field">
-          <span>Artifact preview</span>
-          <select id="packet-preview-select"></select>
-        </label>
-        <div id="packet-audit-output" class="report-packet-output"></div>
-      </section>
-
-      <section class="report-packet-step" aria-labelledby="packet-step-4">
-        <h2 id="packet-step-4">4. Download packet</h2>
-        <p>The download list is created after the packet has been built and audited.</p>
-        <div class="report-packet-actions">
-          <button id="packet-refresh-downloads" class="report-packet-button secondary" type="button">Refresh download list</button>
-        </div>
-        <div id="packet-download-output" class="report-packet-output"></div>
-      </section>
+      </header>
+      <div class="packet-layout">
+        <aside class="packet-sidebar">
+          <details class="packet-panel" open>
+            <summary>
+              <span class="packet-panel-title">Data source</span>
+              <span id="packet-source-count" class="packet-panel-count">Loading</span>
+            </summary>
+            <div class="packet-panel-body">
+              <p class="packet-help">Use the default public dataset, or apply browser-local spectra and signatures. Pasted and uploaded files are read in this page session.</p>
+              <div class="packet-button-row">
+                <button id="packet-use-public" class="packet-action secondary" type="button">Load default public data</button>
+              </div>
+              <details class="packet-subpanel">
+                <summary>Paste or upload my data</summary>
+                <div class="packet-subpanel-body">
+                  <label class="packet-field">
+                    <span>Spectra table</span>
+                    <textarea id="packet-spectra-input" placeholder='{"sample_1":{"A[C>A]A":12}} or SigProfiler-style TSV'></textarea>
+                    <small>JSON object keyed by sample, or a SigProfiler-style SBS96 table.</small>
+                  </label>
+                  <label class="packet-field">
+                    <span>Upload spectra</span>
+                    <input id="packet-spectra-file" type="file" accept=".json,.txt,.tsv,.csv">
+                  </label>
+                  <label class="packet-field">
+                    <span>Signature catalog</span>
+                    <textarea id="packet-signatures-input" placeholder='{"SBS1":{"A[C>A]A":0.001}} or COSMIC-style TSV'></textarea>
+                    <small>JSON object keyed by signature, or a COSMIC-style SBS96 table.</small>
+                  </label>
+                  <label class="packet-field">
+                    <span>Upload signatures</span>
+                    <input id="packet-signatures-file" type="file" accept=".json,.txt,.tsv,.csv">
+                  </label>
+                  <label class="packet-field">
+                    <span>Sample details</span>
+                    <textarea id="packet-metadata-input" placeholder="Optional CSV, TSV, or JSON with a sample column"></textarea>
+                  </label>
+                  <label class="packet-field">
+                    <span>Upload sample details</span>
+                    <input id="packet-metadata-file" type="file" accept=".json,.txt,.tsv,.csv">
+                  </label>
+                  <button id="packet-apply-custom" class="packet-action primary" type="button">Apply my data</button>
+                </div>
+              </details>
+              <p id="packet-source-message" class="packet-help">Default public SBS96 data loads automatically. Pasted and uploaded files remain in this browser session.</p>
+            </div>
+          </details>
+          <details class="packet-panel" open>
+            <summary>
+              <span class="packet-panel-title">Packet setup</span>
+              <span id="packet-setup-count" class="packet-panel-count">Ready</span>
+            </summary>
+            <div class="packet-panel-body">
+              <label class="packet-field">
+                <span>Report title</span>
+                <input id="packet-title" type="text" value="Lung SBS96 signature fitting report">
+              </label>
+              <label class="packet-field">
+                <span>Mutation-count review cutoff</span>
+                <input id="packet-burden-cutoff" type="number" min="1" step="50" value="500">
+                <small>Samples below this mutation count are marked for review in the audit.</small>
+              </label>
+              <button id="packet-build" class="packet-build" type="button">Build packet</button>
+            </div>
+          </details>
+          <details class="packet-panel">
+            <summary>
+              <span class="packet-panel-title">Samples</span>
+              <span id="packet-sample-count" class="packet-panel-count">0/0</span>
+            </summary>
+            <div id="packet-samples" class="packet-panel-body packet-check-list"></div>
+          </details>
+          <details class="packet-panel">
+            <summary>
+              <span class="packet-panel-title">Report sections</span>
+              <span id="packet-section-count" class="packet-panel-count">0/0</span>
+            </summary>
+            <div id="packet-sections" class="packet-panel-body packet-check-list"></div>
+          </details>
+          <details class="packet-panel">
+            <summary>
+              <span class="packet-panel-title">Files</span>
+              <span id="packet-export-count" class="packet-panel-count">0/0</span>
+            </summary>
+            <div id="packet-exports" class="packet-panel-body packet-check-list"></div>
+          </details>
+        </aside>
+        <main class="packet-main">
+          <nav id="packet-tabs" class="packet-tabs" aria-label="Packet views"></nav>
+          <section id="packet-view" class="packet-view"></section>
+        </main>
+      </div>
     `;
     display(root);
 
+    const statusNode = root.querySelector("#packet-status");
+    const statusHelpNode = root.querySelector("#packet-status-help");
+    const sourceCountNode = root.querySelector("#packet-source-count");
+    const setupCountNode = root.querySelector("#packet-setup-count");
+    const sampleCountNode = root.querySelector("#packet-sample-count");
+    const sectionCountNode = root.querySelector("#packet-section-count");
+    const exportCountNode = root.querySelector("#packet-export-count");
+    const sourceMessageNode = root.querySelector("#packet-source-message");
+    const publicDataButton = root.querySelector("#packet-use-public");
+    const applyCustomButton = root.querySelector("#packet-apply-custom");
+    const spectraInput = root.querySelector("#packet-spectra-input");
+    const signaturesInput = root.querySelector("#packet-signatures-input");
+    const metadataInput = root.querySelector("#packet-metadata-input");
+    const spectraFileInput = root.querySelector("#packet-spectra-file");
+    const signaturesFileInput = root.querySelector("#packet-signatures-file");
+    const metadataFileInput = root.querySelector("#packet-metadata-file");
     const titleInput = root.querySelector("#packet-title");
     const burdenCutoffInput = root.querySelector("#packet-burden-cutoff");
-    const sampleControls = root.querySelector("#packet-sample-controls");
-    const sectionControls = root.querySelector("#packet-section-controls");
-    const exportControls = root.querySelector("#packet-export-controls");
+    const sampleHost = root.querySelector("#packet-samples");
+    const sectionHost = root.querySelector("#packet-sections");
+    const exportHost = root.querySelector("#packet-exports");
     const buildButton = root.querySelector("#packet-build");
-    const buildOutput = root.querySelector("#packet-build-output");
-    const previewSelect = root.querySelector("#packet-preview-select");
-    const auditOutput = root.querySelector("#packet-audit-output");
-    const refreshDownloadsButton = root.querySelector("#packet-refresh-downloads");
-    const downloadOutput = root.querySelector("#packet-download-output");
+    const tabsHost = root.querySelector("#packet-tabs");
+    const viewHost = root.querySelector("#packet-view");
 
-    const state = {
-      dataset: null,
-      selectedSamples: [],
-      sectionInputs: {},
-      exportInputs: {},
-      packet: null,
-    };
-
-    function escapeText(value) {
-      return String(value ?? "");
+    function setStatus(text, tone = "") {
+      statusNode.textContent = text;
+      statusNode.className = `packet-status ${tone}`.trim();
+      statusHelpNode.textContent = STATUS_MESSAGES[text] || "The packet console is waiting for the next input.";
     }
 
-    function makeStatus(message, review = false) {
-      const node = document.createElement("p");
-      node.className = `report-packet-status${review ? " review" : ""}`;
-      node.textContent = message;
-      return node;
-    }
-
-    function metricGrid(rows) {
-      const grid = document.createElement("div");
-      grid.className = "report-packet-metrics";
-      for (const row of rows) {
-        const item = document.createElement("div");
-        item.className = "report-packet-metric";
-        const label = document.createElement("span");
-        label.textContent = row.label;
-        const value = document.createElement("strong");
-        value.textContent = row.value;
-        item.append(label, value);
-        grid.append(item);
-      }
-      return grid;
-    }
-
-    function renderTable(rows, columns) {
-      const wrap = document.createElement("div");
-      wrap.className = "report-packet-table-wrap";
-      const table = document.createElement("table");
-      table.className = "report-packet-table";
-      const thead = document.createElement("thead");
-      const header = document.createElement("tr");
-      for (const column of columns) {
-        const th = document.createElement("th");
-        th.textContent = column.label;
-        header.append(th);
-      }
-      thead.append(header);
-      const tbody = document.createElement("tbody");
-      for (const row of rows) {
-        const tr = document.createElement("tr");
-        for (const column of columns) {
-          const td = document.createElement("td");
-          td.textContent = escapeText(row[column.key]);
-          tr.append(td);
-        }
-        tbody.append(tr);
-      }
-      table.append(thead, tbody);
-      wrap.append(table);
-      return wrap;
-    }
-
-    function makeCheckbox({ key, label, checked = true, name }) {
-      const id = `${name}-${key}`;
-      const labelNode = document.createElement("label");
-      labelNode.className = "report-packet-check";
-      const input = document.createElement("input");
-      input.id = id;
-      input.type = "checkbox";
-      input.checked = checked;
-      const span = document.createElement("span");
-      span.textContent = label;
-      labelNode.append(input, span);
-      return { labelNode, input };
-    }
-
-    function selectedSection(key) {
-      return Boolean(state.sectionInputs[key]?.checked);
-    }
-
-    function selectedExports() {
-      return EXPORT_OPTIONS.filter((option) => state.exportInputs[option.key]?.checked);
-    }
-
-    function selectedSamples() {
-      return Array.from(sampleControls.querySelectorAll("input[type='checkbox']"))
-        .filter((input) => input.checked)
-        .map((input) => input.value);
-    }
-
-    function subsetMatrix(matrix, samples) {
-      return Object.fromEntries(samples.map((sample) => [sample, matrix[sample]]).filter(([, value]) => value));
+    function formatBytes(text) {
+      const bytes = new TextEncoder().encode(String(text || "")).length;
+      if (bytes < 1024) return `${bytes} B`;
+      return `${(bytes / 1024).toFixed(1)} KB`;
     }
 
     function totalMutations(record = {}) {
       return Object.values(record || {}).reduce((sum, value) => sum + Number(value || 0), 0);
     }
 
-    function fieldHasContent(value) {
+    function makeCheck({ key, label, checked }, host, registry, onChange) {
+      const wrapper = document.createElement("label");
+      wrapper.className = "packet-check";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = checked;
+      input.value = key;
+      input.addEventListener("change", () => {
+        onChange();
+        updatePanelCounts();
+      });
+      const text = document.createElement("span");
+      text.textContent = label;
+      wrapper.append(input, text);
+      registry[key] = input;
+      host.append(wrapper);
+    }
+
+    function selectedKeys(registry) {
+      return Object.entries(registry)
+        .filter(([, input]) => input.checked)
+        .map(([key]) => key);
+    }
+
+    function selectedSamples() {
+      return selectedKeys(state.sampleInputs);
+    }
+
+    function selectedSections() {
+      return new Set(selectedKeys(state.sectionInputs));
+    }
+
+    function selectedExports() {
+      const keys = new Set(selectedKeys(state.exportInputs));
+      return EXPORT_OPTIONS.filter((option) => keys.has(option.key));
+    }
+
+    function subsetMatrix(matrix, samples) {
+      return Object.fromEntries(samples.map((sample) => [sample, matrix[sample]]).filter(([, value]) => value));
+    }
+
+    function hasContent(value) {
       if (value === null || value === undefined) return false;
       if (typeof value === "string") return value.trim().length > 0;
       if (Array.isArray(value)) return value.length > 0;
@@ -424,179 +866,467 @@
       return true;
     }
 
-    function buildManifestRows(packet) {
-      return selectedExports().map((option) => ({
-        file: option.filename,
-        purpose: {
-          reportJson: "Structured report object for machine-readable review",
-          reportHtml: "Standalone report preview for browser review",
-          manifestCsv: "Packet file inventory and audit status",
-          spectraTsv: "Selected SBS96 input spectra for rerun",
-          exposuresCsv: "Fitted signature contribution table",
-          runRecordJson: "SDK, runtime, source, and parameter provenance",
-        }[option.key],
-        samples: packet.selectedSamples.length,
-        auditStatus: packet.reviewItems.length ? "Review" : "Pass",
-      }));
-    }
-
-    function buildPacketFiles(packet) {
-      const files = {
-        reportJson: {
-          filename: "analysis_report.json",
-          type: "json",
-          value: packet.report,
-          label: "Download analysis_report.json",
-        },
-        reportHtml: {
-          filename: "analysis_report.html",
-          text: packet.reportHtml,
-          label: "Download analysis_report.html",
-        },
-        manifestCsv: {
-          filename: "packet_manifest.csv",
-          text: rowsToCsv(packet.manifestRows),
-          label: "Download packet_manifest.csv",
-        },
-        spectraTsv: {
-          filename: "spectra.tsv",
-          text: packet.spectraTsv,
-          label: "Download spectra.tsv",
-        },
-        exposuresCsv: {
-          filename: "exposures.csv",
-          text: packet.exposuresCsv,
-          label: "Download exposures.csv",
-        },
-        runRecordJson: {
-          filename: "run_record.json",
-          type: "json",
-          value: packet.runRecord,
-          label: "Download run_record.json",
-        },
-      };
-      return selectedExports().map((option) => files[option.key]).filter(Boolean);
-    }
-
-    function renderPreview(packet) {
-      const preview = document.createElement("div");
-      preview.className = "report-packet-preview";
-      const value = previewSelect.value;
-      if (value === "reportHtml") {
-        const frame = document.createElement("iframe");
-        frame.title = "Analysis report HTML preview";
-        frame.srcdoc = packet.reportHtml;
-        preview.append(frame);
-        return preview;
-      }
-      const pre = document.createElement("pre");
-      const previewText = {
-        reportJson: JSON.stringify(packet.report, null, 2),
-        manifestCsv: rowsToCsv(packet.manifestRows),
-        spectraTsv: packet.spectraTsv,
-        exposuresCsv: packet.exposuresCsv,
-        runRecordJson: JSON.stringify(packet.runRecord, null, 2),
-      }[value] || "Build the packet to preview an artifact.";
-      pre.textContent = previewText;
-      preview.append(pre);
-      return preview;
-    }
-
-    function renderAudit() {
-      auditOutput.replaceChildren();
-      if (!state.packet) {
-        auditOutput.append(makeStatus("Build the packet to populate the audit."));
-        return;
-      }
-
-      const packet = state.packet;
-      const auditRows = PACKET_REQUIRED_FIELDS.map((field) => {
-        const value = packet.report[field];
-        const pass = fieldHasContent(value);
-        return {
-          field: FIELD_LABELS[field] || field,
-          status: pass ? "Pass" : "Review",
-          contents: pass ? reportFieldRows({ [field]: value })[0]?.summary || "recorded" : "not included",
-        };
+    function parseCsvLike(text) {
+      const lines = String(text || "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      if (!lines.length) return [];
+      const delimiter = lines[0].includes("\t") ? "\t" : ",";
+      const headers = lines[0].split(delimiter).map((header) => header.trim());
+      return lines.slice(1).map((line) => {
+        const values = line.split(delimiter);
+        return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
       });
+    }
 
-      const statusRows = [
-        ...auditRows,
-        ...packet.integrityRows,
+    function parseMetadata(text) {
+      const trimmed = String(text || "").trim();
+      if (!trimmed) return [];
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && typeof parsed === "object") {
+          return Object.entries(parsed).map(([sample, fields]) => ({ sample, ...(fields || {}) }));
+        }
+      } catch (_error) {
+        return parseCsvLike(trimmed);
+      }
+      return [];
+    }
+
+    function normalizeMetadata(metadata) {
+      return (Array.isArray(metadata) ? metadata : [])
+        .map((row) => ({
+          ...row,
+          sample: row.sample || row.Sample || row.sample_id || row.sampleId || row.id,
+        }))
+        .filter((row) => row.sample);
+    }
+
+    function parseMatrix(text, kind) {
+      const trimmed = String(text || "").trim();
+      if (!trimmed) throw new Error(`${kind === "spectra" ? "Spectra" : "Signature"} table is empty.`);
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+      } catch (_error) {
+        // Fall through to the matrix importers.
+      }
+      return kind === "spectra"
+        ? mSigSDK.io.importSigProfilerMatrix(trimmed)
+        : mSigSDK.io.importCOSMICSignatureMatrix(trimmed);
+    }
+
+    function inferContexts(spectra, signatures) {
+      const firstSpectrum = Object.values(spectra || {}).find((record) => record && typeof record === "object");
+      if (firstSpectrum && Object.keys(firstSpectrum).length) return Object.keys(firstSpectrum);
+      const firstSignature = Object.values(signatures || {}).find((record) => record && typeof record === "object");
+      if (firstSignature && Object.keys(firstSignature).length) return Object.keys(firstSignature);
+      return sbs96Contexts();
+    }
+
+    function validateMatrixObject(matrix, label) {
+      if (!matrix || typeof matrix !== "object" || Array.isArray(matrix) || !Object.keys(matrix).length) {
+        throw new Error(`${label} must be a non-empty object or importable table.`);
+      }
+      const firstRecord = Object.values(matrix).find((record) => record && typeof record === "object");
+      if (!firstRecord || !Object.keys(firstRecord).length) {
+        throw new Error(`${label} must contain at least one context-count record.`);
+      }
+    }
+
+    function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("Unable to read file."));
+        reader.readAsText(file);
+      });
+    }
+
+    function setSourceMessage(text) {
+      state.sourceMessage = text;
+      sourceMessageNode.textContent = text;
+    }
+
+    function datasetShortLabel() {
+      if (!state.dataset) return "Loading";
+      if (state.dataset.selection?.study) return state.dataset.selection.study;
+      return state.dataset.status || "User data";
+    }
+
+    function updatePanelCounts() {
+      const sampleTotal = Object.keys(state.dataset?.spectra || {}).length;
+      sourceCountNode.textContent = datasetShortLabel();
+      setupCountNode.textContent = state.packet ? (state.packet.reviewCount ? "Review" : "Ready") : "Not built";
+      sampleCountNode.textContent = `${selectedSamples().length}/${sampleTotal}`;
+      sectionCountNode.textContent = `${selectedSections().size}/${SECTION_OPTIONS.length}`;
+      exportCountNode.textContent = `${selectedExports().length}/${EXPORT_OPTIONS.length}`;
+    }
+
+    function metricGrid(rows) {
+      const node = document.createElement("div");
+      node.className = "packet-metrics";
+      for (const row of rows) {
+        const item = document.createElement("div");
+        item.className = "packet-metric";
+        const label = document.createElement("span");
+        label.textContent = row.label;
+        const value = document.createElement("strong");
+        value.textContent = row.value;
+        item.append(label, value);
+        node.append(item);
+      }
+      return node;
+    }
+
+    function badge(value) {
+      const node = document.createElement("span");
+      node.className = `packet-badge ${String(value).toLowerCase() === "pass" ? "pass" : "review"}`;
+      node.textContent = value;
+      return node;
+    }
+
+    function statusGuide() {
+      const node = document.createElement("div");
+      node.className = "packet-status-guide";
+      const title = document.createElement("strong");
+      title.textContent = "Status guide";
+      const pass = document.createElement("p");
+      pass.textContent = "Pass means the selected packet was generated and the packet audit found the required fields, provenance, format round trip, and selected file inventory in order.";
+      const review = document.createElement("p");
+      review.textContent = "Review means the file is still generated, but the audit or warning table contains an item to inspect before using the packet as a final archive.";
+      node.append(title, pass, review);
+      return node;
+    }
+
+    function table(rows, columns) {
+      const wrap = document.createElement("div");
+      wrap.className = "packet-table-wrap";
+      const node = document.createElement("table");
+      node.className = "packet-table";
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+      columns.forEach((column) => {
+        const th = document.createElement("th");
+        th.textContent = column.label;
+        headRow.append(th);
+      });
+      thead.append(headRow);
+      const tbody = document.createElement("tbody");
+      rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        columns.forEach((column) => {
+          const td = document.createElement("td");
+          const value = row[column.key];
+          if (column.badge) {
+            td.append(badge(value));
+          } else {
+            td.textContent = String(value ?? "");
+          }
+          tr.append(td);
+        });
+        tbody.append(tr);
+      });
+      node.append(thead, tbody);
+      wrap.append(node);
+      return wrap;
+    }
+
+    function emptyState(text) {
+      const node = document.createElement("p");
+      node.className = "packet-empty";
+      node.textContent = text;
+      return node;
+    }
+
+    function markNeedsBuild() {
+      state.needsBuild = true;
+      if (!state.dataset) {
+        setStatus("Data loading", "review");
+        render();
+        return;
+      }
+      if (state.packet) {
+        setStatus("Updating", "review");
+      }
+      clearTimeout(buildTimer);
+      buildTimer = setTimeout(() => {
+        buildAnalysis().catch((error) => {
+          setStatus("Build failed", "review");
+          viewHost.replaceChildren(emptyState(error.message));
+        });
+      }, 350);
+      updatePanelCounts();
+      render();
+    }
+
+    function refreshPacketOnly() {
+      if (state.analysis) {
+        assemblePacket();
+        state.needsBuild = false;
+        setStatus(state.packet.reviewCount ? "Review needed" : "Packet ready", state.packet.reviewCount ? "review" : "ready");
+      }
+      updatePanelCounts();
+      render();
+    }
+
+    function reportInputFromAnalysis() {
+      const sections = selectedSections();
+      const analysis = state.analysis.analysis;
+      const lowBurdenRows = state.analysis.lowBurdenRows;
+      return {
+        title: titleInput.value.trim() || "mSigSDK signature fitting report",
+        summary: `Report packet for ${state.analysis.selectedSamples.length} SBS96 sample(s) fitted against ${Object.keys(state.analysis.signatures).length} reference signatures.`,
+        workflowRole: analysis.workflowRole,
+        scopeStatement: analysis.scopeStatement,
+        methodBasis: analysis.methodBasis,
+        primaryInterpretationFields: analysis.primaryInterpretationFields,
+        parameters: sections.has("parameters") ? analysis.parameters : null,
+        validation: sections.has("validation") ? analysis.validation : null,
+        qc: sections.has("qc") ? analysis.qc : null,
+        exposures: sections.has("exposures") ? analysis.fit?.exposures : null,
+        provenance: sections.has("provenance") ? analysis.provenance : null,
+        citations: sections.has("notes") ? analysis.report?.citations || [] : [],
+        notes: sections.has("notes")
+          ? [
+              ...(analysis.report?.notes || []),
+              ...lowBurdenRows.map((row) => `${row.sample} has ${row.mutations} mutations, below the selected review cutoff.`),
+            ]
+          : [],
+      };
+    }
+
+    function makeFile(key, filename, text, type = "text", value = null) {
+      return {
+        key,
+        filename,
+        text,
+        type,
+        value,
+        size: formatBytes(type === "json" ? JSON.stringify(value, null, 2) : text),
+        purpose: FILE_PURPOSES[key],
+      };
+    }
+
+    function assemblePacket() {
+      const { analysis, spectra, selectedSamples: samples } = state.analysis;
+      const report = mSigSDK.reports.createAnalysisReport(reportInputFromAnalysis());
+      const reportJsonText = JSON.stringify(report, null, 2);
+      const reportHtml = mSigSDK.reports.createAnalysisReportHTML(report);
+      const spectraTsv = mSigSDK.io.exportSigProfilerMatrix(spectra, { contexts: state.dataset.contexts });
+      const roundTrip = mSigSDK.io.importSigProfilerMatrix(spectraTsv);
+      const exposureTableRows = exposureRows(analysis.fit?.exposures, { minExposure: 0, topN: 1000 });
+      const exposuresCsv = rowsToCsv(exposureTableRows);
+
+      const auditRows = REQUIRED_FIELDS.map((field) => ({
+        item: FIELD_LABELS[field] || field,
+        status: hasContent(report[field]) ? "Pass" : "Review",
+        detail: hasContent(report[field]) ? summarizeField(report[field]) : "Not included",
+      }));
+      auditRows.push(
+        {
+          item: "Spectra TSV",
+          status: Object.keys(roundTrip).length === samples.length ? "Pass" : "Review",
+          detail: `${Object.keys(roundTrip).length} of ${samples.length} selected sample(s) parse back`,
+        },
+        {
+          item: "Exposures CSV",
+          status: exposureTableRows.length ? "Pass" : "Review",
+          detail: `${exposureTableRows.length} exposure row(s)`,
+        }
+      );
+
+      const warningRows = [
+        ...state.analysis.lowBurdenRows.map((row) => ({
+          level: "Review",
+          item: row.sample,
+          detail: `${row.mutations} mutations is below the selected cutoff`,
+        })),
+        ...(analysis.warnings || []).map((warning) => ({
+          level: "Review",
+          item: warning.code || "Workflow warning",
+          detail: warning.message || String(warning),
+        })),
       ];
-      const reviewRows = statusRows.filter((row) => row.status !== "Pass");
-      packet.reviewItems = reviewRows;
-      packet.manifestRows = buildManifestRows(packet);
 
-      auditOutput.append(
-        makeStatus(
-          reviewRows.length
-            ? `${reviewRows.length} packet item(s) need review. Downloads remain available with the review status recorded in the manifest.`
-            : "Packet audit passed. Required fields and archive integrity checks are present.",
-          reviewRows.length > 0
-        )
-      );
-      auditOutput.append(renderTable(statusRows, [
-        { key: "field", label: "Audit item" },
-        { key: "status", label: "Status" },
-        { key: "contents", label: "Contents" },
-      ]));
-      auditOutput.append(renderTable(packet.warningRows, [
-        { key: "level", label: "Level" },
-        { key: "message", label: "Message" },
-        { key: "action", label: "Review action" },
-      ]));
-      auditOutput.append(renderPreview(packet));
-      renderDownloads();
+      const reviewCount = auditRows.filter((row) => row.status !== "Pass").length + warningRows.length;
+      const manifestRows = selectedExports().map((option) => ({
+        file: option.filename,
+        purpose: FILE_PURPOSES[option.key],
+        samples: samples.length,
+        status: reviewCount ? "Review" : "Pass",
+      }));
+      const manifestCsv = rowsToCsv(manifestRows);
+
+      const fileMap = {
+        reportJson: makeFile("reportJson", "analysis_report.json", reportJsonText, "json", report),
+        reportHtml: makeFile("reportHtml", "analysis_report.html", reportHtml),
+        manifestCsv: makeFile("manifestCsv", "packet_manifest.csv", manifestCsv),
+        spectraTsv: makeFile("spectraTsv", "spectra.tsv", spectraTsv),
+        exposuresCsv: makeFile("exposuresCsv", "exposures.csv", exposuresCsv),
+        runRecordJson: makeFile("runRecordJson", "run_record.json", JSON.stringify(analysis.provenance, null, 2), "json", analysis.provenance),
+      };
+
+      state.packet = {
+        report,
+        reportHtml,
+        auditRows,
+        warningRows: warningRows.length ? warningRows : [{ level: "Info", item: "Warnings", detail: "No packet warnings generated" }],
+        reviewCount,
+        manifestRows,
+        exposureTableRows,
+        fileMap,
+        files: selectedExports().map((option) => fileMap[option.key]).filter(Boolean),
+      };
     }
 
-    function renderDownloads() {
-      downloadOutput.replaceChildren();
-      if (!state.packet) {
-        downloadOutput.append(makeStatus("Build and audit the packet before downloads are created."));
-        return;
-      }
-      const files = buildPacketFiles(state.packet);
-      if (!files.length) {
-        downloadOutput.append(makeStatus("No export files are selected.", true));
-        return;
-      }
-      downloadOutput.append(
-        makeStatus(
-          state.packet.reviewItems.length
-            ? "Selected downloads include the current review status in packet_manifest.csv."
-            : "Selected downloads are ready."
-        )
-      );
-      downloadOutput.append(downloadMany(files));
+    function summarizeField(value) {
+      if (Array.isArray(value)) return `${value.length} item(s)`;
+      if (value && typeof value === "object") return `${Object.keys(value).length} field(s)`;
+      if (typeof value === "string") return value.length > 48 ? `${value.slice(0, 45)}...` : value;
+      return "Recorded";
     }
 
-    function renderBuildSummary(packet) {
-      buildOutput.replaceChildren(
-        metricGrid([
-          { label: "Dataset", value: state.dataset.status },
-          { label: "Samples", value: packet.selectedSamples.length },
-          { label: "Signatures", value: Object.keys(packet.signatures).length },
-          { label: "Low-count review", value: packet.lowBurdenRows.length },
-          { label: "Exports", value: selectedExports().length },
-        ]),
-        renderTable(packet.lowBurdenRows, [
-          { key: "sample", label: "Sample" },
-          { key: "mutations", label: "Mutations" },
-          { key: "status", label: "Review status" },
-        ])
-      );
+    function renderSampleControls() {
+      sampleHost.replaceChildren();
+      state.sampleInputs = {};
+      Object.keys(state.dataset?.spectra || {}).forEach((sample) => {
+        makeCheck(
+          {
+            key: sample,
+            label: `${sample} (${formatNumber(totalMutations(state.dataset.spectra[sample]))})`,
+            checked: true,
+          },
+          sampleHost,
+          state.sampleInputs,
+          markNeedsBuild
+        );
+      });
+      updatePanelCounts();
     }
 
-    async function buildPacket({ silent = false } = {}) {
-      const selected = selectedSamples();
-      if (!selected.length) {
-        buildOutput.replaceChildren(makeStatus("Select at least one sample before building the packet.", true));
+    function setDataset(dataset, message) {
+      const spectra = JSON.parse(JSON.stringify(dataset.spectra || {}));
+      const signatures = JSON.parse(JSON.stringify(dataset.signatures || {}));
+      validateMatrixObject(spectra, "Spectra");
+      validateMatrixObject(signatures, "Signatures");
+      const contexts = dataset.contexts?.length ? [...dataset.contexts] : inferContexts(spectra, signatures);
+      state.dataset = {
+        ...dataset,
+        spectra,
+        signatures,
+        metadata: normalizeMetadata(dataset.metadata),
+        contexts,
+        selection: {
+          signatureSetName: "User supplied signatures",
+          ...(dataset.selection || {}),
+        },
+        status: dataset.status || "user supplied",
+        source: dataset.source || "browser-local user data",
+      };
+      state.analysis = null;
+      state.packet = null;
+      state.needsBuild = true;
+      renderSampleControls();
+      setSourceMessage(message || `${Object.keys(spectra).length} sample(s), ${Object.keys(signatures).length} signature(s), and ${contexts.length} context(s) are active.`);
+      updatePanelCounts();
+      render();
+    }
+
+    async function loadDefaultDataset() {
+      setStatus("Data loading", "review");
+      setSourceMessage("Loading the default public SBS96 dataset and reference signatures.");
+      publicDataButton.disabled = true;
+      try {
+        const dataset = await loadPublicSbs96Dataset(mSigSDK, {
+          study: "PCAWG",
+          genomeDataType: "WGS",
+          cancerType: "Lung-AdenoCA",
+          mutationType: "SBS",
+          matrixSize: 96,
+          signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
+          sampleNames: ["SP50611", "SP50592", "SP52284", "SP50406", "SP55004"],
+          sampleLimit: 5,
+          signatureNames: ["SBS1", "SBS2", "SBS4", "SBS5", "SBS13", "SBS17a", "SBS17b", "SBS18", "SBS40"],
+          allowAlternate: true,
+          allowDemoFallback: true,
+        });
+        setDataset(dataset, `${dataset.source}. ${Object.keys(dataset.spectra).length} sample(s) are selected for the packet.`);
+        setStatus("Building", "review");
+        await buildAnalysis();
+      } finally {
+        publicDataButton.disabled = false;
+      }
+    }
+
+    async function applyCustomDataset() {
+      setStatus("Checking data", "review");
+      applyCustomButton.disabled = true;
+      try {
+        const spectra = parseMatrix(spectraInput.value, "spectra");
+        const signatures = parseMatrix(signaturesInput.value, "signatures");
+        const metadata = parseMetadata(metadataInput.value);
+        const contexts = inferContexts(spectra, signatures);
+        setDataset(
+          {
+            spectra,
+            signatures,
+            metadata,
+            contexts,
+            source: "browser-local user data",
+            status: "user supplied",
+            selection: {
+              study: "User supplied",
+              cancerType: "not specified",
+              genomeDataType: "SBS96",
+              mutationType: "SBS",
+              matrixSize: contexts.length,
+              signatureSetName: "User supplied signatures",
+              sampleNames: Object.keys(spectra),
+              signatureNames: Object.keys(signatures),
+            },
+          },
+          `${Object.keys(spectra).length} user-supplied sample(s), ${Object.keys(signatures).length} signature(s), and ${metadata.length} sample-detail row(s) are active.`
+        );
+        setStatus("Building", "review");
+        await buildAnalysis();
+      } catch (error) {
+        setStatus("Input review", "review");
+        setSourceMessage(error.message);
+        viewHost.replaceChildren(emptyState(error.message));
+      } finally {
+        applyCustomButton.disabled = false;
+      }
+    }
+
+    function bindFileInput(input, target, label) {
+      input.addEventListener("change", async () => {
+        if (!input.files?.[0]) return;
+        try {
+          target.value = await readFileAsText(input.files[0]);
+          setSourceMessage(`${label} loaded from ${input.files[0].name}. Apply my data to rebuild the packet.`);
+        } catch (error) {
+          setStatus("Input review", "review");
+          setSourceMessage(error.message);
+        }
+      });
+    }
+
+    async function buildAnalysis() {
+      if (!state.dataset) {
+        setStatus("Data loading", "review");
         return;
       }
-
+      const samples = selectedSamples();
+      if (!samples.length) {
+        setStatus("Select a sample", "review");
+        updatePanelCounts();
+        return;
+      }
       const burdenCutoff = Math.max(1, Number(burdenCutoffInput.value || 1));
-      const spectra = subsetMatrix(state.dataset.spectra, selected);
+      const spectra = subsetMatrix(state.dataset.spectra, samples);
       const signatures = state.dataset.signatures;
       const analysis = await mSigSDK.workflows.analyzeSpectraWithSignatures(spectra, signatures, {
         exposureThreshold: 0.01,
@@ -608,17 +1338,17 @@
         parameters: {
           packetTitle: titleInput.value.trim() || "mSigSDK signature fitting report",
           dataset: state.dataset.source,
-          samples: selected,
+          samples,
           signatureSetName: state.dataset.selection?.signatureSetName,
-          matrix: "SBS96",
+          matrix: state.dataset.contexts?.length === 96 ? "SBS96" : `${state.dataset.contexts?.length || 0} contexts`,
           mutationCountReviewCutoff: burdenCutoff,
+          metadataRows: state.dataset.metadata?.length || 0,
         },
         catalogVersion: state.dataset.selection?.signatureSetName,
         catalogSource: state.dataset.source,
         reportFormat: "object",
       });
-
-      const lowBurdenRows = selected
+      const lowBurdenRows = samples
         .map((sample) => ({
           sample,
           mutations: totalMutations(spectra[sample]),
@@ -626,190 +1356,293 @@
         }))
         .filter((row) => row.status === "Review");
 
-      const report = mSigSDK.reports.createAnalysisReport({
-        title: titleInput.value.trim() || "mSigSDK signature fitting report",
-        summary: `Report packet for ${selected.length} SBS96 sample(s) fitted against ${Object.keys(signatures).length} reference signatures.`,
-        workflowRole: analysis.workflowRole,
-        scopeStatement: analysis.scopeStatement,
-        methodBasis: analysis.methodBasis,
-        primaryInterpretationFields: analysis.primaryInterpretationFields,
-        parameters: selectedSection("parameters") ? analysis.parameters : null,
-        validation: selectedSection("validation") ? analysis.validation : null,
-        qc: selectedSection("qc") ? analysis.qc : null,
-        exposures: selectedSection("exposures") ? analysis.fit?.exposures : null,
-        provenance: selectedSection("provenance") ? analysis.provenance : null,
-        citations: selectedSection("notes") ? analysis.report?.citations || [] : [],
-        notes: selectedSection("notes")
-          ? [
-              ...(analysis.report?.notes || []),
-              ...lowBurdenRows.map((row) => `${row.sample} has ${row.mutations} mutations, below the selected review cutoff.`),
-            ]
-          : [],
-      });
-
-      const spectraTsv = mSigSDK.io.exportSigProfilerMatrix(spectra, {
-        contexts: state.dataset.contexts,
-      });
-      const roundTrip = mSigSDK.io.importSigProfilerMatrix(spectraTsv);
-      const exposuresCsv = rowsToCsv(exposureRows(analysis.fit?.exposures, {
-        minExposure: 0,
-        topN: 1000,
-      }));
-      const reportHtml = mSigSDK.reports.createAnalysisReportHTML(report);
-      const integrityRows = [
-        {
-          field: "Spectra round trip",
-          status: Object.keys(roundTrip).length === selected.length ? "Pass" : "Review",
-          contents: `${Object.keys(roundTrip).length} of ${selected.length} sample(s) parsed from spectra.tsv`,
-        },
-        {
-          field: "Exposures file",
-          status: exposuresCsv.trim() ? "Pass" : "Review",
-          contents: exposuresCsv.trim() ? "exposures.csv has rows" : "no fitted exposure rows",
-        },
-      ];
-      const warningRows = [
-        ...lowBurdenRows.map((row) => ({
-          level: "review",
-          message: `${row.sample} is below the mutation-count review cutoff.`,
-          action: "Check burden, reconstruction error, and residuals before interpreting fitted exposures.",
-        })),
-        ...(analysis.warnings || []).map((warning) => ({
-          level: warning.level || "warning",
-          message: warning.message || String(warning),
-          action: warning.resolution || "Review the source analysis before reporting.",
-        })),
-      ];
-
-      state.packet = {
-        selectedSamples: selected,
-        spectra,
-        signatures,
-        analysis,
-        report,
-        reportHtml,
-        spectraTsv,
-        exposuresCsv,
-        runRecord: analysis.provenance,
-        lowBurdenRows,
-        integrityRows,
-        warningRows: warningRows.length
-          ? warningRows
-          : [{ level: "info", message: "No packet warnings generated.", action: "Proceed with archive review." }],
-        manifestRows: [],
-        reviewItems: [],
-      };
-      state.packet.manifestRows = buildManifestRows(state.packet);
-
-      if (!silent) {
-        renderBuildSummary(state.packet);
-      }
-      syncPreviewOptions();
-      renderAudit();
+      state.analysis = { analysis, spectra, signatures, selectedSamples: samples, lowBurdenRows, burdenCutoff };
+      assemblePacket();
+      state.needsBuild = false;
+      setStatus(state.packet.reviewCount ? "Review needed" : "Packet ready", state.packet.reviewCount ? "review" : "ready");
+      updatePanelCounts();
+      render();
     }
 
-    function syncPreviewOptions() {
-      const options = selectedExports();
-      previewSelect.replaceChildren(
-        ...options.map((option) => {
-          const node = document.createElement("option");
-          node.value = option.key;
-          node.textContent = `${option.label} (${option.filename})`;
-          return node;
-        })
-      );
-      if (!options.some((option) => option.key === previewSelect.value)) {
-        previewSelect.value = options[0]?.key || "";
-      }
-    }
-
-    function queuePacketRefresh(event) {
-      syncPreviewOptions();
-      if (state.packet) {
-        buildPacket({ silent: event?.type === "input" }).catch((error) => {
-          buildOutput.replaceChildren(makeStatus(error.message, true));
+    function renderTabs() {
+      const tabs = [
+        ["summary", "Summary"],
+        ["audit", "Audit"],
+        ["files", "Files"],
+        ["preview", "Preview"],
+      ];
+      tabsHost.replaceChildren();
+      tabs.forEach(([key, label]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `packet-tab${state.activeView === key ? " active" : ""}`;
+        button.textContent = label;
+        button.addEventListener("click", () => {
+          state.activeView = key;
+          render();
         });
+        tabsHost.append(button);
+      });
+    }
+
+    function renderSummary() {
+      viewHost.replaceChildren();
+      if (!state.dataset) {
+        viewHost.append(emptyState("Loading dataset."));
+        return;
       }
+      updatePanelCounts();
+      const selected = selectedSamples();
+      viewHost.append(metricGrid([
+        { label: "Source", value: state.dataset.status },
+        { label: "Selected samples", value: selected.length },
+        { label: "Reference signatures", value: Object.keys(state.dataset.signatures || {}).length },
+        { label: "Selected files", value: selectedExports().length },
+        { label: "Review items", value: state.packet ? state.packet.reviewCount : "-" },
+      ]));
+      viewHost.append(table([
+        {
+          step: "Data",
+          action: state.dataset.source,
+          output: `${Object.keys(state.dataset.spectra || {}).length} sample(s), ${Object.keys(state.dataset.signatures || {}).length} signature(s), ${state.dataset.contexts?.length || 0} context(s)`,
+        },
+        {
+          step: "Build",
+          action: "Run analyzeSpectraWithSignatures on the selected samples",
+          output: state.analysis ? `${state.analysis.selectedSamples.length} sample fit(s) complete` : "Waiting for packet build",
+        },
+        {
+          step: "Audit",
+          action: "Check required report fields, provenance, warnings, and format round trip",
+          output: state.packet ? `${state.packet.reviewCount} review item(s)` : "Audit not built",
+        },
+        {
+          step: "Download",
+          action: "Create only the selected archive files",
+          output: state.packet ? `${state.packet.files.length} file(s) ready` : "Downloads hidden until build",
+        },
+      ], [
+        { key: "step", label: "Step" },
+        { key: "action", label: "What happens" },
+        { key: "output", label: "Current state" },
+      ]));
+      const sampleRows = selected.map((sample) => ({
+        sample,
+        mutations: formatNumber(totalMutations(state.dataset.spectra[sample])),
+        status: state.analysis?.lowBurdenRows.some((row) => row.sample === sample) ? "Review" : "Pass",
+      }));
+      viewHost.append(table(sampleRows, [
+        { key: "sample", label: "Sample" },
+        { key: "mutations", label: "Mutations" },
+        { key: "status", label: "Status", badge: true },
+      ]));
+      if (state.needsBuild) {
+        viewHost.append(emptyState("Build the packet to create the audit and download inventory."));
+      }
+    }
+
+    function renderAudit() {
+      viewHost.replaceChildren();
+      if (!state.packet) {
+        viewHost.append(emptyState("Build the packet to populate the audit."));
+        return;
+      }
+      viewHost.append(metricGrid([
+        { label: "Required fields", value: REQUIRED_FIELDS.length },
+        { label: "Review items", value: state.packet.reviewCount },
+        { label: "Files selected", value: state.packet.files.length },
+      ]));
+      viewHost.append(statusGuide());
+      viewHost.append(table(state.packet.auditRows, [
+        { key: "item", label: "Audit item" },
+        { key: "status", label: "Status", badge: true },
+        { key: "detail", label: "Detail" },
+      ]));
+      viewHost.append(table(state.packet.warningRows, [
+        { key: "level", label: "Level" },
+        { key: "item", label: "Item" },
+        { key: "detail", label: "Detail" },
+      ]));
+    }
+
+    function makeDownloadLink(file) {
+      const link = file.type === "json"
+        ? downloadJson(file.filename, file.value, file.filename)
+        : downloadText(file.filename, file.text, file.filename);
+      link.className = "packet-download-link";
+      return link;
+    }
+
+    function renderFiles() {
+      viewHost.replaceChildren();
+      if (!state.packet) {
+        viewHost.append(emptyState("Build the packet to create downloads."));
+        return;
+      }
+      const grid = document.createElement("div");
+      grid.className = "packet-file-grid";
+      state.packet.files.forEach((file) => {
+        const item = document.createElement("article");
+        item.className = "packet-file";
+        const title = document.createElement("strong");
+        title.textContent = file.filename;
+        const purpose = document.createElement("span");
+        purpose.textContent = file.purpose;
+        const size = document.createElement("span");
+        size.textContent = file.size;
+        item.append(title, purpose, size, makeDownloadLink(file));
+        grid.append(item);
+      });
+      viewHost.append(grid);
+      viewHost.append(statusGuide());
+      viewHost.append(table(state.packet.manifestRows, [
+        { key: "file", label: "File" },
+        { key: "purpose", label: "Purpose" },
+        { key: "samples", label: "Samples" },
+        { key: "status", label: "Status", badge: true },
+      ]));
+    }
+
+    function renderPreview() {
+      viewHost.replaceChildren();
+      if (!state.packet) {
+        viewHost.append(emptyState("Build the packet to preview selected artifacts."));
+        return;
+      }
+      const tools = document.createElement("div");
+      tools.className = "packet-preview-tools";
+      const select = document.createElement("select");
+      select.className = "packet-select";
+      state.packet.files.forEach((file) => {
+        const option = document.createElement("option");
+        option.value = file.key;
+        option.textContent = file.filename;
+        select.append(option);
+      });
+      if (!state.packet.files.some((file) => file.key === state.activePreview)) {
+        state.activePreview = state.packet.files[0]?.key || "reportJson";
+      }
+      select.value = state.activePreview;
+      select.addEventListener("change", () => {
+        state.activePreview = select.value;
+        renderPreview();
+      });
+      tools.append(select);
+      viewHost.append(tools);
+
+      const file = state.packet.fileMap[state.activePreview] || state.packet.files[0];
+      const box = document.createElement("div");
+      box.className = "packet-preview-box";
+      if (file.key === "reportHtml") {
+        const frame = document.createElement("iframe");
+        frame.title = "Report HTML preview";
+        frame.srcdoc = state.packet.reportHtml;
+        box.append(frame);
+      } else if (file.key === "exposuresCsv") {
+        box.append(table(state.packet.exposureTableRows.slice(0, 18), [
+          { key: "sample", label: "Sample" },
+          { key: "signature", label: "Signature" },
+          { key: "exposure", label: "Exposure" },
+        ]));
+      } else if (file.key === "manifestCsv") {
+        box.append(table(state.packet.manifestRows, [
+          { key: "file", label: "File" },
+          { key: "purpose", label: "Purpose" },
+          { key: "status", label: "Status", badge: true },
+        ]));
+        box.prepend(statusGuide());
+      } else if (file.key === "spectraTsv") {
+        const rows = state.analysis.selectedSamples.map((sample) => ({
+          sample,
+          mutations: formatNumber(totalMutations(state.analysis.spectra[sample])),
+          contexts: Object.keys(state.analysis.spectra[sample] || {}).length,
+        }));
+        box.append(table(rows, [
+          { key: "sample", label: "Sample" },
+          { key: "mutations", label: "Mutations" },
+          { key: "contexts", label: "Contexts" },
+        ]));
+      } else if (file.key === "runRecordJson") {
+        const provenance = state.analysis.analysis.provenance;
+        box.append(table([
+          { field: "Generated", value: provenance.generatedAt },
+          { field: "SDK", value: `${provenance.sdk?.name || "mSigSDK"} ${provenance.sdk?.version || ""}` },
+          { field: "Analysis", value: provenance.analysis },
+          { field: "Source URLs", value: provenance.sourceUrls?.length || 0 },
+          { field: "Runtime", value: provenance.runtime?.platform || "browser" },
+        ], [
+          { key: "field", label: "Field" },
+          { key: "value", label: "Value" },
+        ]));
+      } else {
+        const report = state.packet.report;
+        box.append(table([
+          { field: "Title", value: report.title },
+          { field: "Schema", value: report.schemaVersion },
+          { field: "Generated", value: report.generatedAt },
+          { field: "Top-level fields", value: Object.keys(report).length },
+          { field: "Citations", value: report.citations?.length || 0 },
+          { field: "Notes", value: report.notes?.length || 0 },
+        ], [
+          { key: "field", label: "Field" },
+          { key: "value", label: "Value" },
+        ]));
+      }
+      viewHost.append(box);
+    }
+
+    function render() {
+      renderTabs();
+      if (state.activeView === "audit") return renderAudit();
+      if (state.activeView === "files") return renderFiles();
+      if (state.activeView === "preview") return renderPreview();
+      return renderSummary();
     }
 
     async function initialize() {
-      buildOutput.append(makeStatus("Loading a compact public SBS96 dataset for packet building."));
-      auditOutput.append(makeStatus("Build the packet to populate the audit."));
-      downloadOutput.append(makeStatus("Build and audit the packet before downloads are created."));
-      previewSelect.append(new Option("Build the packet to preview artifacts", ""));
-
-      state.dataset = await loadPublicSbs96Dataset(mSigSDK, {
-        study: "PCAWG",
-        genomeDataType: "WGS",
-        cancerType: "Lung-AdenoCA",
-        mutationType: "SBS",
-        matrixSize: 96,
-        signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
-        sampleNames: ["SP50611", "SP50592", "SP52284", "SP50406", "SP55004"],
-        sampleLimit: 5,
-        signatureNames: ["SBS1", "SBS2", "SBS4", "SBS5", "SBS13", "SBS17a", "SBS17b", "SBS18", "SBS40"],
-        allowAlternate: true,
-        allowDemoFallback: true,
+      setStatus("Data loading", "review");
+      viewHost.replaceChildren(emptyState("Loading dataset."));
+      SECTION_OPTIONS.forEach((option) => {
+        makeCheck(option, sectionHost, state.sectionInputs, refreshPacketOnly);
       });
-
-      const sampleRows = Object.keys(state.dataset.spectra).map((sample) => ({
-        key: sample,
-        label: `${sample} (${formatNumber(totalMutations(state.dataset.spectra[sample]))} mutations)`,
-        checked: true,
-        name: "packet-sample",
-      }));
-      for (const option of sampleRows) {
-        const { labelNode, input } = makeCheckbox(option);
-        input.value = option.key;
-        input.addEventListener("change", queuePacketRefresh);
-        sampleControls.append(labelNode);
-      }
-
-      for (const option of REPORT_SECTION_OPTIONS) {
-        const { labelNode, input } = makeCheckbox({ ...option, name: "packet-section" });
-        input.addEventListener("change", queuePacketRefresh);
-        state.sectionInputs[option.key] = input;
-        sectionControls.append(labelNode);
-      }
-
-      for (const option of EXPORT_OPTIONS) {
-        const { labelNode, input } = makeCheckbox({ ...option, name: "packet-export" });
-        input.addEventListener("change", queuePacketRefresh);
-        state.exportInputs[option.key] = input;
-        exportControls.append(labelNode);
-      }
-
-      buildOutput.replaceChildren(
-        metricGrid([
-          { label: "Dataset", value: state.dataset.status },
-          { label: "Samples loaded", value: Object.keys(state.dataset.spectra).length },
-          { label: "Signatures", value: Object.keys(state.dataset.signatures).length },
-          { label: "Files selected", value: selectedExports().length },
-        ])
-      );
-      syncPreviewOptions();
+      EXPORT_OPTIONS.forEach((option) => {
+        makeCheck(option, exportHost, state.exportInputs, refreshPacketOnly);
+      });
+      bindFileInput(spectraFileInput, spectraInput, "Spectra table");
+      bindFileInput(signaturesFileInput, signaturesInput, "Signature catalog");
+      bindFileInput(metadataFileInput, metadataInput, "Sample details");
+      publicDataButton.addEventListener("click", () => {
+        loadDefaultDataset().catch((error) => {
+          setStatus("Data failed", "review");
+          setSourceMessage(error.message);
+          viewHost.replaceChildren(emptyState(error.message));
+        });
+      });
+      applyCustomButton.addEventListener("click", applyCustomDataset);
+      titleInput.addEventListener("input", refreshPacketOnly);
+      burdenCutoffInput.addEventListener("change", markNeedsBuild);
+      buildButton.addEventListener("click", async () => {
+        buildButton.disabled = true;
+        buildButton.textContent = "Building...";
+        setStatus("Building", "review");
+        try {
+          await buildAnalysis();
+        } catch (error) {
+          setStatus("Build failed", "review");
+          viewHost.replaceChildren(emptyState(error.message));
+        } finally {
+          buildButton.disabled = false;
+          buildButton.textContent = state.analysis ? "Refresh packet" : "Build packet";
+        }
+      });
+      updatePanelCounts();
+      await loadDefaultDataset();
+      buildButton.textContent = "Refresh packet";
     }
 
-    titleInput.addEventListener("input", queuePacketRefresh);
-    burdenCutoffInput.addEventListener("change", queuePacketRefresh);
-    previewSelect.addEventListener("change", renderAudit);
-    refreshDownloadsButton.addEventListener("click", renderDownloads);
-    buildButton.addEventListener("click", async () => {
-      buildButton.disabled = true;
-      buildButton.textContent = "Building...";
-      buildOutput.replaceChildren(makeStatus("Building report packet from selected samples and sections."));
-      try {
-        await buildPacket();
-      } catch (error) {
-        buildOutput.replaceChildren(makeStatus(error.message, true));
-      } finally {
-        buildButton.disabled = false;
-        buildButton.textContent = "Build packet";
-      }
-    });
-
     initialize().catch((error) => {
-      buildOutput.replaceChildren(makeStatus(`Dataset loading failed: ${error.message}`, true));
+      setStatus("Data failed", "review");
+      viewHost.replaceChildren(emptyState(error.message));
     });
   </script>
 </notebook>

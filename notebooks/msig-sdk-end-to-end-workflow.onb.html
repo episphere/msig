@@ -11,7 +11,7 @@ One way to think about it is a mystery-drink problem. The observed mutation spec
 
 Start by loading a real public cohort through the mSigPortal APIs. The default selection is TCGA WES Lung-AdenoCa SBS96, but the menu lets you choose the public study, cancer type, sequencing strategy, mutation-pattern table, table size, and compatible reference signature catalog. You can also paste or upload your own spectra and signature catalog when adapting the workflow.
 
-The fitting method menu can run the built-in SDK fit, package adapters for SigProfilerAssignment and MuSiCal when Pyodide can install them, package adapters for deconstructSigs and sigminer when WebR can install them, and mSigSDK de novo extraction with SigProfilerExtractor handoff files. The downstream mSigSDK checks, plots, reports, and exports stay the same around whichever fitting method produced the contribution table.
+The fitting method menu can run the built-in SDK fit, package adapters for SigProfilerAssignment and MuSiCal when Pyodide can install them, deconstructSigs through WebR with the original archived R source when needed, sigminer when WebR can install it, and mSigSDK de novo extraction with SigProfilerExtractor handoff files. The downstream mSigSDK checks, plots, reports, and exports stay the same around whichever fitting method produced the contribution table.
 
 A close reconstruction is useful, but it is not the whole analysis. Some reference signatures look similar to each other, like two ingredients with similar flavor. The workflow also checks mutation counts, leftover pattern after fitting, uncertainty, cutoff sensitivity, and reference-signature similarity. These are review diagnostics: they tell you what deserves inspection before making a claim.
 </script>
@@ -184,7 +184,7 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
         cutoffSensitivityBasis:
           "mSigSDK cutoff review applied around the deconstructSigs contribution table.",
         description:
-          "Runs the deconstructSigs R package in the browser through WebR when compatible WebAssembly package builds are available in the selected repository. mSigSDK parses the package exposure table and runs the same review outputs around it.",
+          "Runs deconstructSigs in WebR. When the selected WebR binary repository does not provide the archived package, the adapter loads the original deconstructSigs 1.8.0 R source from the CRAN archive and parses the exposure table.",
       },
       sigminer_webr: {
         label: "sigminer",
@@ -1410,13 +1410,7 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
         },
         residualOptions
       );
-      const groupComparison =
-        workflowState.parameters.groupKey && workflowState.metadata.length
-          ? mSigSDK.advisor.compareSignatureExposures(exposures, metadataBySample(), {
-              groupKey: workflowState.parameters.groupKey,
-              permutationIterations: 0,
-            })
-          : null;
+      const groupComparison = null;
       const warnings = dedupeWarnings([
         ...(advisor.warnings || []),
         ...(fitQualityEvidence.warnings || []),
@@ -2173,7 +2167,7 @@ Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 
 <script type="text/markdown">
 ## Step 2. Choose settings and run
 
-These controls choose the fitting engine and package settings. Check the input first, then choose which method should guess the signature recipe. You can use mSigSDK's built-in fit, package adapters such as SigProfilerAssignment and MuSiCal where Pyodide is available, exact deconstructSigs and sigminer package runs where WebR package builds are available, or mSigSDK de novo extraction with exact SigProfilerExtractor handoff files.
+These controls choose the fitting engine and package settings. Check the input first, then choose which method should guess the signature recipe. You can use mSigSDK's built-in fit, package adapters such as SigProfilerAssignment and MuSiCal where Pyodide is available, deconstructSigs through WebR with the original archived R source when needed, sigminer where WebR package builds are available, or mSigSDK de novo extraction with exact SigProfilerExtractor handoff files.
 </script>
 
   <script type="module" pinned id="3">
@@ -2707,7 +2701,7 @@ These controls choose the fitting engine and package settings. Check the input f
       if (isWebR) {
         engineSummary.append(workflowOutputGuide(
           "Browser R check",
-          "WebR runs compatible R package builds inside the browser. Exact deconstructSigs and sigminer package runs check package availability before installing or running anything.",
+          "WebR runs compatible R package builds inside the browser. deconstructSigs can load its original archived R source when the active WebR binary repository lacks the package; sigminer requires a compatible package build in the selected repository.",
           webRRuntimeRows()
         ));
       }

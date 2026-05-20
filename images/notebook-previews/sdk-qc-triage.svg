@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="sdk-qc-triage-svg-title sdk-qc-triage-svg-desc">
+  <title id="sdk-qc-triage-svg-title">Cohort QC triage</title>
+  <desc id="sdk-qc-triage-svg-desc">Concern queue, gauge, and action states for quality review</desc>
+  <defs>
+    <linearGradient id="sdk-qc-triage-svg-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fffafb"/>
+      <stop offset="58%" stop-color="#fbf3ee"/>
+      <stop offset="100%" stop-color="#f4faf5"/>
+    </linearGradient>
+    <radialGradient id="sdk-qc-triage-svg-glow" cx="72%" cy="26%" r="70%">
+      <stop offset="0%" stop-color="#d59b2e" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#d59b2e" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="sdk-qc-triage-svg-shadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#10201b" flood-opacity="0.12"/>
+    </filter>
+    <marker id="sdk-qc-triage-svg-arrow" markerWidth="13" markerHeight="13" refX="10" refY="6.5" orient="auto">
+      <path d="M 0 0 L 13 6.5 L 0 13 Z" fill="#c86f80"/>
+    </marker>
+  </defs>
+  <rect width="960" height="540" fill="url(#sdk-qc-triage-svg-bg)"/>
+  <rect width="960" height="540" fill="url(#sdk-qc-triage-svg-glow)"/>
+  <path d="M 42 120 C 210 46 356 74 492 148 C 650 234 738 180 924 108 L 924 0 L 42 0 Z" fill="#d59b2e10" /><path d="M 0 426 C 176 362 310 468 492 392 C 674 316 768 370 960 310 L 960 540 L 0 540 Z" fill="#c86f8012" />
+  <g ><g ><rect x="96" y="142" width="230" height="106" rx="22" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" /><rect x="132" y="174" width="120" height="13" rx="7" fill="#dfeae4" /><rect x="132" y="204" width="160" height="10" rx="5" fill="#dfeae4" /><circle cx="286" cy="194" r="20" fill="#2f7d55" /></g><g ><rect x="114" y="188" width="230" height="106" rx="22" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" /><rect x="150" y="220" width="120" height="13" rx="7" fill="#dfeae4" /><rect x="150" y="250" width="160" height="10" rx="5" fill="#dfeae4" /><circle cx="304" cy="240" r="20" fill="#d59b2e" /></g><g ><rect x="132" y="234" width="230" height="106" rx="22" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" filter="url(#sdk-qc-triage-svg-shadow)" /><rect x="168" y="266" width="120" height="13" rx="7" fill="#c86f80" /><rect x="168" y="296" width="160" height="10" rx="5" fill="#dfeae4" /><circle cx="322" cy="286" r="20" fill="#c86f80" /></g></g><g ><rect x="418" y="126" width="224" height="250" rx="30" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" filter="url(#sdk-qc-triage-svg-shadow)" /><path d="M 464 292 A 72 72 0 1 1 596 292" fill="none" stroke="#e2ece5" stroke-width="28" stroke-linecap="round" /><path d="M 464 292 A 72 72 0 0 1 584 206" fill="none" stroke="#c86f80" stroke-width="28" stroke-linecap="round" /><line x1="530" y1="292" x2="584" y2="232" stroke="#10201b" stroke-width="8" stroke-linecap="round" /><circle cx="530" cy="292" r="13" fill="#10201b" /><rect x="478" y="347.84" width="19.5" height="8.16" rx="8" fill="#2f7d55" /><rect x="505.5" y="332.2" width="19.5" height="23.799999999999997" rx="8" fill="#d59b2e" /><rect x="533" y="341.72" width="19.5" height="14.28" rx="8" fill="#c86f80" /><rect x="560.5" y="336.28" width="19.5" height="19.72" rx="8" fill="#2f7d55" /></g><g ><rect x="700" y="150" width="150" height="236" rx="72" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" filter="url(#sdk-qc-triage-svg-shadow)" /><circle cx="775" cy="206" r="28" fill="#2f7d55" /><circle cx="775" cy="270" r="28" fill="#d59b2e" /><circle cx="775" cy="334" r="28" fill="#c86f80" /></g>
+</svg>

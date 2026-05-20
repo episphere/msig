@@ -35,20 +35,6 @@ import {
 } from "./validation.js";
 
 const RESULT_SCHEMA_VERSION = "msig.pipeline.v0.3";
-const EXPERIMENTAL_WARNING_STATE = new Set();
-
-function warnExperimentalAdvisorFunction(functionName) {
-  if (EXPERIMENTAL_WARNING_STATE.has(functionName)) {
-    return;
-  }
-  EXPERIMENTAL_WARNING_STATE.add(functionName);
-
-  if (typeof console !== "undefined" && typeof console.warn === "function") {
-    console.warn(
-      `${functionName} is experimental in mSigSDK v0.3. Results are descriptive review artifacts and are not part of the manuscript-validated advisor claim set.`
-    );
-  }
-}
 
 const WARNING_CODES = {
   CATALOG_INCOMPLETE_SUSPECTED: "CATALOG_INCOMPLETE_SUSPECTED",
@@ -64,9 +50,7 @@ const WARNING_CODES = {
   METADATA_MISSING: "METADATA_MISSING",
   PANEL_LIMITED: "PANEL_LIMITED",
   PANEL_SIGNATURE_NOT_ASSESSABLE: "PANEL_SIGNATURE_NOT_ASSESSABLE",
-  REGIONAL_PROCESS_SUSPECTED: "REGIONAL_PROCESS_SUSPECTED",
   SIGNATURE_AMBIGUITY: "SIGNATURE_AMBIGUITY",
-  SUBGROUP_EXTRACTION_SKIPPED: "SUBGROUP_EXTRACTION_SKIPPED",
   THRESHOLD_DEPENDENT: "THRESHOLD_DEPENDENT",
 };
 
@@ -97,12 +81,8 @@ const WARNING_RESOLUTIONS = {
     "Use panel/WES evidence tiers and avoid interpreting non-detection as absence.",
   [WARNING_CODES.PANEL_SIGNATURE_NOT_ASSESSABLE]:
     "Report the signature/sample setting as not assessable under these rules or use a broader assay for stronger review evidence.",
-  [WARNING_CODES.REGIONAL_PROCESS_SUSPECTED]:
-    "Inspect rainfall plots, compare focal spectra to background, and treat context labels as hypothesis-generating.",
   [WARNING_CODES.SIGNATURE_AMBIGUITY]:
     "Inspect neighboring/broad catalog signatures and avoid interpreting the individual fitted signature as uniquely identified.",
-  [WARNING_CODES.SUBGROUP_EXTRACTION_SKIPPED]:
-    "Run subgroup discovery explicitly only when subgroup sample count and mutation burden meet readiness thresholds.",
   [WARNING_CODES.THRESHOLD_DEPENDENT]:
     "Run bootstrap uncertainty if not already performed and report threshold-dependent calls with threshold-sensitivity context.",
 };
@@ -240,16 +220,12 @@ const SCOPE_STATEMENTS = {
     "Restricted-assay evidence summary for planning and panel/WES review.",
   panel:
     "Panel/WES review evidence summary for restricted genomic territory.",
-  localized:
-    "Experimental localized-mutation clustering summary. Results are descriptive review artifacts and are not validated for manuscript-grade use.",
   singleSamplePipeline:
     "High-level single-sample refitting workflow for research review.",
   cohortPipeline:
     "High-level cohort refitting workflow for research review.",
   discoveryPipeline:
     "High-level exploratory signature-discovery workflow.",
-  subgroupPipeline:
-    "Experimental subgroup-aware extraction and matched refitting workflow. Results are descriptive review artifacts and are not validated for manuscript-grade use.",
 };
 
 const SYNTHETIC_VALIDATION_ANCHORS = {
@@ -297,26 +273,6 @@ const PANEL_TIER_RULE_DEFINITIONS = {
       "Assigned when the call is assessable and exposure is below limitedSupportExposureThreshold.",
     interpretation:
       "The fitted signal did not cross the configured review threshold.",
-  },
-};
-
-const LOCALIZED_CONTEXT_PATTERN_DEFINITIONS = {
-  version: `${RESULT_SCHEMA_VERSION}.localizedContextPatterns.v1`,
-  "APOBEC-context-enriched localized cluster": {
-    patternClass: "APOBEC-context-enriched localized cluster",
-    contexts: ["T[C>G]A", "T[C>G]T", "T[C>T]A", "T[C>T]T"],
-    fractionField: "apobecLikeFraction",
-    definition:
-      "Fraction of context-annotated variants in TC[A/T] pyrimidine contexts corresponding to COSMIC SBS2/SBS13 APOBEC-associated substitutions.",
-    interpretation: "Descriptive context enrichment.",
-  },
-  "localized mutation cluster": {
-    patternClass: "localized mutation cluster",
-    contexts: [],
-    fractionField: null,
-    definition:
-      "Sequential same-chromosome mutation cluster meeting distance and mutation-count thresholds without crossing the APOBEC-context enrichment threshold.",
-    interpretation: "Descriptive focal clustering.",
   },
 };
 
@@ -417,24 +373,6 @@ const ADVISOR_DEFAULTS = Object.freeze({
     clusterCosineThreshold: 0.85,
     minSubgroupSamples: 5,
   }),
-  subgroupDiscovery: Object.freeze({
-    clusterCosineThreshold: 0.85,
-    minSubgroupSamples: 8,
-    minMedianBurden: 750,
-    lowBurdenThreshold: 100,
-    minMatchCosine: 0.85,
-    shortlistTopN: 8,
-    minRank: 2,
-    maxRank: 4,
-    maxIterations: 750,
-    tolerance: 1e-5,
-    nRuns: 10,
-    seed: 123,
-    topN: 5,
-    refitExposureThreshold: 0,
-    exposureType: "relative",
-    renormalize: true,
-  }),
   discoveryWorkflow: Object.freeze({
     ranks: Object.freeze([2, 3, 4, 5]),
     rankSelectionMaxIterations: 500,
@@ -461,16 +399,6 @@ const ADVISOR_DEFAULTS = Object.freeze({
     higherSupportExposureThreshold: 0.2,
     limitedSupportExposureThreshold: 0.05,
     opportunityEpsilon: 1e-12,
-  }),
-  localizedMutagenesis: Object.freeze({
-    maxIntermutationDistance: 10000,
-    minMutations: 6,
-    minBurdenForLocalizedAnalysis: 50,
-    apobecLikeFractionThreshold: 0.4,
-    clusterSignificanceThreshold: 0.05,
-    callableGenomeSize: 3000000000,
-    nullModelSpecification:
-      "Poisson upper-tail test using the genome-wide per-sample mutation rate estimated as total input variants divided by callableGenomeSize.",
   }),
 });
 
@@ -1479,12 +1407,6 @@ function buildPublicationFigureDescriptors(workflowType, fields = {}) {
       purpose: "Shows signatures with the largest fitted exposure differences between sample groups.",
       recommendedRenderer: "mSigSDK.qcPlots.plotCohortGroupComparison",
     });
-    base.push({
-      id: "subgroup_discovery",
-      title: "Subgroup extraction and matched refitting summary",
-      purpose: "Shows which cohort subgroups were extracted, skipped, matched to references, and refitted.",
-      recommendedRenderer: "mSigSDK.experimental.runSubgroupDiscoveryWorkflow",
-    });
   }
 
   if (workflowType === "panel") {
@@ -1503,15 +1425,6 @@ function buildPublicationFigureDescriptors(workflowType, fields = {}) {
       title: "NMF rank and run stability",
       purpose: "Shows whether extracted signatures are stable across ranks and random starts.",
       recommendedRenderer: "mSigSDK.signatureExtractionPlots.plotNMFRankSelection",
-    });
-  }
-
-  if (workflowType === "localized") {
-    base.push({
-      id: "rainfall",
-      title: "Rainfall plot with focal mutation clusters",
-      purpose: "Shows localized hypermutation and kataegis-like regional processes.",
-      recommendedRenderer: "mSigSDK.experimental.runLocalizedMutagenesisAnalysis",
     });
   }
 
@@ -3300,16 +3213,14 @@ function adjustBenjaminiHochberg(comparisons) {
 /**
  * Compares fitted signature exposures between metadata-defined sample groups.
  *
- * @function compareSignatureExposures
- * @memberof advisor
- * @experimental Descriptive group comparison helper outside the manuscript-validated advisor claim set.
+ * @function buildCohortGroupComparison
+ * @private
  * @param {Object<string,Object<string,number>>} exposures - Sample-by-signature exposure matrix.
  * @param {Object[]|Object<string,Object>} metadata - Sample metadata rows or object keyed by sample.
  * @param {Object} [options] - Group comparison options.
  * @returns {Object} Group summaries, pairwise exposure comparisons, warnings, and recommendations.
  */
-function compareSignatureExposures(exposures, metadata, options = {}) {
-  warnExperimentalAdvisorFunction("compareSignatureExposures");
+function buildCohortGroupComparison(exposures, metadata, options = {}) {
   const comparisonOptions = mergeDefinedOptions(
     ADVISOR_DEFAULTS.groupComparison,
     options.comparison,
@@ -3507,297 +3418,6 @@ function subsetMatrixBySamples(matrix, sampleNames) {
       .filter((sampleName) => matrix[sampleName])
       .map((sampleName) => [sampleName, matrix[sampleName]])
   );
-}
-
-function shortlistReferenceSignatures(comparison, options = {}) {
-  const minMatchCosine =
-    options.minMatchCosine ?? ADVISOR_DEFAULTS.subgroupDiscovery.minMatchCosine;
-  const topN = options.topN ?? ADVISOR_DEFAULTS.subgroupDiscovery.shortlistTopN;
-  const matched = uniqueStrings(
-    (comparison || [])
-      .flatMap((signature) =>
-        (signature.matches || [])
-          .filter((match) => match.cosineSimilarity >= minMatchCosine)
-          .map((match) => match.referenceName)
-      )
-  );
-
-  if (matched.length > 0) {
-    return matched.slice(0, topN);
-  }
-
-  return uniqueStrings(
-    (comparison || [])
-      .map((signature) => signature.bestMatch?.referenceName)
-    .filter(Boolean)
-  ).slice(0, topN);
-}
-
-function describeShortlistingCriteria(options = {}) {
-  return {
-    minMatchCosine:
-      options.minMatchCosine ?? ADVISOR_DEFAULTS.subgroupDiscovery.minMatchCosine,
-    topN: options.topN ?? ADVISOR_DEFAULTS.subgroupDiscovery.shortlistTopN,
-    rule:
-      "Reference signatures are shortlisted when an extracted subgroup signature has cosine similarity at or above minMatchCosine; if no match crosses the threshold, the best available reference matches are retained up to topN for exploratory refitting.",
-    interpretationBoundary:
-      "Shortlisting defines a follow-up refitting set and does not identify the biological source of a subgroup signature.",
-  };
-}
-
-/**
- * Runs subgroup-aware NMF extraction and optional matched-reference refitting.
- *
- * @async
- * @function runSubgroupDiscoveryWorkflow
- * @memberof pipelines
- * @experimental Full subgroup-discovery pipeline outside the manuscript-validated advisor claim set.
- * @param {Object} input - Cohort spectra, optional signatures, and optional subgroups.
- * @param {Object} [options] - Subgroup extraction options.
- * @returns {Promise<Object>} Subgroup extraction/refit summaries and skipped subgroup caveats.
- */
-async function runSubgroupDiscoveryWorkflow(input = {}, options = {}) {
-  warnExperimentalAdvisorFunction("runSubgroupDiscoveryWorkflow");
-  const subgroupOptions = mergeDefinedOptions(
-    ADVISOR_DEFAULTS.subgroupDiscovery,
-    options.subgroupDiscovery,
-    options.subgroupDiscoveryOptions,
-    options
-  );
-  const spectra = normalizeSpectraInput(input.spectra || input, subgroupOptions);
-  const referenceSignatures = normalizeMatrixObject(
-    input.referenceSignatures ||
-      input.signatures ||
-      subgroupOptions.referenceSignatures ||
-      {}
-  );
-  const contexts = getContextList(referenceSignatures, spectra, subgroupOptions);
-  const subgroups =
-    input.subgroups ||
-    clusterSamplesBySimilarity(
-      spectra,
-      contexts,
-      subgroupOptions.clusterCosineThreshold
-    );
-  const minSubgroupSamples = subgroupOptions.minSubgroupSamples;
-  const minMedianBurden = subgroupOptions.minMedianBurden;
-  const shortlistingCriteria = describeShortlistingCriteria({
-    minMatchCosine: subgroupOptions.minMatchCosine,
-    topN: subgroupOptions.shortlistTopN,
-  });
-  const subgroupExtractionCaveats = [
-    "Small subgroup NMF is unstable when sample count and mutation burden are low.",
-    "Extracted subgroup signatures require external validation before biological interpretation.",
-    "Reference matches and matched refits are exploratory summaries rather than causal labels.",
-  ];
-  const subgroupResults = [];
-  const warnings = [];
-
-  for (const subgroup of subgroups) {
-    const subgroupSpectra = subsetMatrixBySamples(spectra, subgroup.samples || []);
-    const sampleNames = Object.keys(subgroupSpectra);
-    const burden = summarizeMutationBurden(subgroupSpectra, {
-      expectedContexts: contexts,
-      lowBurdenThreshold: subgroupOptions.lowBurdenThreshold,
-    });
-    const medianMutationBurden = quantile(
-      burden.samples.map((sample) => sample.totalMutations),
-      0.5
-    );
-
-    if (
-      sampleNames.length < minSubgroupSamples ||
-      !Number.isFinite(medianMutationBurden) ||
-      medianMutationBurden < minMedianBurden
-    ) {
-      const warning = makeWarning(
-        WARNING_CODES.SUBGROUP_EXTRACTION_SKIPPED,
-        `${subgroup.clusterId || "subgroup"} was not extracted because sample count or mutation burden was too low.`,
-        {
-          subgroupId: subgroup.clusterId,
-          sampleCount: sampleNames.length,
-          medianMutationBurden,
-          minSubgroupSamples,
-          minMedianBurden,
-        }
-      );
-      warnings.push(warning);
-      subgroupResults.push({
-        subgroupId: subgroup.clusterId,
-        samples: sampleNames,
-        sampleCount: sampleNames.length,
-        medianMutationBurden,
-        status: "skipped",
-        warnings: [warning],
-        extraction: null,
-        comparison: null,
-        subgroupExtractionCaveats,
-        refit: null,
-      });
-      continue;
-    }
-
-    const rank =
-      subgroupOptions.rank ??
-      Math.min(
-        subgroupOptions.maxRank,
-        Math.max(subgroupOptions.minRank, Math.floor(sampleNames.length / 3))
-      );
-    const extraction = extractSignaturesNMF(subgroupSpectra, {
-      contexts,
-      rank,
-      maxIterations: subgroupOptions.maxIterations,
-      tolerance: subgroupOptions.tolerance,
-      nRuns: subgroupOptions.nRuns,
-      seed: subgroupOptions.seed + subgroupResults.length * 101,
-      signaturePrefix: `${subgroup.clusterId || "cluster"}_NMF`,
-    });
-    const comparison =
-      Object.keys(referenceSignatures).length > 0
-        ? compareExtractedToReference(extraction, referenceSignatures, {
-            contexts,
-            topN: subgroupOptions.topN,
-          })
-        : null;
-    const shortlistedSignatureNames = shortlistReferenceSignatures(comparison, {
-      minMatchCosine: subgroupOptions.minMatchCosine,
-      topN: subgroupOptions.shortlistTopN,
-    });
-    const shortlistedSignatures = Object.fromEntries(
-      shortlistedSignatureNames
-        .filter((signatureName) => referenceSignatures[signatureName])
-        .map((signatureName) => [signatureName, referenceSignatures[signatureName]])
-    );
-    const refit =
-      Object.keys(shortlistedSignatures).length > 0
-        ? {
-            signatures: shortlistedSignatureNames,
-            exposures: await fitSpectraWithNNLS(
-              shortlistedSignatures,
-              subgroupSpectra,
-              {
-                contexts,
-                exposureThreshold: subgroupOptions.refitExposureThreshold,
-                exposureType: subgroupOptions.exposureType,
-                renormalize: subgroupOptions.renormalize,
-              }
-            ),
-          }
-        : null;
-
-    if (refit) {
-      refit.reconstructionError = calculateReconstructionError(
-        shortlistedSignatures,
-        subgroupSpectra,
-        refit.exposures,
-        { contexts, normalizeMode: subgroupOptions.exposureType }
-      );
-    }
-
-    subgroupResults.push({
-      subgroupId: subgroup.clusterId,
-      samples: sampleNames,
-      sampleCount: sampleNames.length,
-      medianMutationBurden,
-      status: "extracted",
-      rank,
-      extraction,
-      comparison,
-      shortlistedSignatureNames,
-      shortlistingCriteria,
-      subgroupExtractionCaveats,
-      refit,
-      warnings: [],
-    });
-  }
-
-  return {
-    schemaVersion: RESULT_SCHEMA_VERSION,
-    workflow: "subgroup_discovery",
-    workflowRole: "subgroup_discovery_pipeline",
-    scopeStatement: SCOPE_STATEMENTS.subgroupPipeline,
-    methodBasis: {
-      subgroupReadiness:
-        "Subgroups are extracted only when sample count and median mutation burden satisfy configurable readiness defaults.",
-      minimumSubgroupSize:
-        "The default minimum subgroup size is 8 samples, matching the advisor's minimum de novo extraction guard for exploratory cohort analysis.",
-      shortlistingCriteria,
-      extractionInterpretation:
-        "Extracted subgroup signatures are exploratory profiles. Reference matches and matched refits are follow-up summaries, not causal labels.",
-      configurableDefaults: {
-        minSubgroupSamples,
-        minMedianBurden,
-        clusterCosineThreshold: subgroupOptions.clusterCosineThreshold,
-        shortlistTopN: subgroupOptions.shortlistTopN,
-        minMatchCosine: subgroupOptions.minMatchCosine,
-      },
-      references: [
-        LITERATURE_REFERENCES.alexandrov2013,
-        LITERATURE_REFERENCES.alexandrov2020,
-        LITERATURE_REFERENCES.degasperi2020,
-        LITERATURE_REFERENCES.koh2021,
-        LITERATURE_REFERENCES.islam2022,
-      ],
-    },
-    primaryInterpretationFields: [
-      "subgroups[].status",
-      "subgroups[].warnings",
-      "subgroups[].comparison",
-      "subgroups[].refit.reconstructionError",
-    ],
-    experimentalStatus: {
-      state: "experimental",
-      validatedForManuscriptUse: false,
-      scopeStatement: SCOPE_STATEMENTS.subgroupPipeline,
-    },
-    parameters: {
-      workflow: "runSubgroupDiscoveryWorkflow",
-      minSubgroupSamples,
-      minMedianBurden,
-      clusterCosineThreshold: subgroupOptions.clusterCosineThreshold,
-      shortlistTopN: subgroupOptions.shortlistTopN,
-      minMatchCosine: subgroupOptions.minMatchCosine,
-      rank: subgroupOptions.rank,
-      minRank: subgroupOptions.minRank,
-      maxRank: subgroupOptions.maxRank,
-      nRuns: subgroupOptions.nRuns,
-      seed: subgroupOptions.seed,
-    },
-    validation: {
-      spectra: validateSpectra(spectra, { expectedContexts: contexts }),
-    },
-    qc: {
-      subgroups: subgroupResults.map((subgroup) => ({
-        subgroupId: subgroup.subgroupId,
-        sampleCount: subgroup.sampleCount,
-        medianMutationBurden: subgroup.medianMutationBurden,
-        status: subgroup.status,
-        warnings: subgroup.warnings,
-      })),
-    },
-    contexts,
-    minimumSubgroupSamples: minSubgroupSamples,
-    minimumMedianMutationBurden: minMedianBurden,
-    shortlistingCriteria,
-    subgroupExtractionCaveats,
-    subgroups: subgroupResults,
-    summary: {
-      subgroupCount: subgroupResults.length,
-      extractedSubgroupCount: subgroupResults.filter(
-        (subgroup) => subgroup.status === "extracted"
-      ).length,
-      skippedSubgroupCount: subgroupResults.filter(
-        (subgroup) => subgroup.status === "skipped"
-      ).length,
-    },
-    warnings,
-    recommendedActions: uniqueStrings([
-      warnings.length > 0
-        ? "Use subgroup discovery only for sufficiently large, information-rich clusters."
-        : null,
-      "Compare extracted subgroup signatures to the reference catalog, then refit with the matched shortlist before biological interpretation.",
-    ]),
-  };
 }
 
 /**
@@ -4013,66 +3633,26 @@ async function runCohortFit(input = {}, options = {}) {
   const eligibleSubgroupCount = subgroups.filter(
     (subgroup) => subgroup.sampleCount >= cohortOptions.minSubgroupSamples
   ).length;
-  const shouldRunSubgroupDiscovery = options.runSubgroupDiscovery === true;
-  const subgroupDiscovery = shouldRunSubgroupDiscovery
-    ? await runSubgroupDiscoveryWorkflow(
-        {
-          spectra,
-          referenceSignatures: signatures,
-          subgroups,
-        },
-        {
-          ...options,
-          contexts,
-        }
-      )
-      : {
-        schemaVersion: RESULT_SCHEMA_VERSION,
-        workflow: "subgroup_discovery",
-        workflowRole: "subgroup_discovery_pipeline",
-        scopeStatement: SCOPE_STATEMENTS.subgroupPipeline,
-        methodBasis: {
-          subgroupReadiness:
-            "Subgroup discovery is gated by cohort heterogeneity, sample count, mutation burden, and explicit experimental-workflow selection.",
-          extractionInterpretation:
-            "A not-run status means the exploratory extraction step was not executed under the current settings; it is not evidence of absent subgroup processes.",
-        },
-        status: "not_run",
-        reason:
-          subgroups.length <= 1
-            ? "Cohort similarity graph produced one subgroup."
-            : "Subgroup discovery was not requested through the experimental workflow.",
-        subgroups: [],
-        summary: {
-          subgroupCount: subgroups.length,
-          extractedSubgroupCount: 0,
-          skippedSubgroupCount: 0,
-        },
-        warnings:
-          subgroups.length > 1
-            ? [
-                makeWarning(
-                  WARNING_CODES.SUBGROUP_EXTRACTION_SKIPPED,
-                  "The subgroup-screening criterion was met, but experimental subgroup extraction is not run automatically; call mSigSDK.experimental.runSubgroupDiscoveryWorkflow for extraction and matched refitting.",
-                  { subgroupCount: subgroups.length }
-                ),
-              ]
-            : [],
-        recommendedActions:
-          subgroups.length > 1
-            ? [
-                "Use mSigSDK.experimental.runSubgroupDiscoveryWorkflow for heterogeneous cohorts with sufficiently high mutation burden.",
-              ]
-            : [],
-      };
-  const subgroupDiscoveryStatus = shouldRunSubgroupDiscovery
-    ? "run"
-    : options.runSubgroupDiscovery === false
-      ? "not_requested"
-      : "skipped";
+  const subgroupReview = {
+    schemaVersion: RESULT_SCHEMA_VERSION,
+    workflowRole: "cohort_subgroup_review",
+    scopeStatement: "Cohort similarity summary for stratification review.",
+    status: subgroups.length > 1 ? "stratification_review" : "single_similarity_group",
+    summary: {
+      subgroupCount: subgroups.length,
+      eligibleSubgroupCount,
+      minSubgroupSamples: cohortOptions.minSubgroupSamples,
+    },
+    subgroups,
+    warnings: [],
+    recommendedActions:
+      subgroups.length > 1
+        ? ["Review cohort subgroup structure before pooled interpretation."]
+        : [],
+  };
   const groupComparison =
     groupKey && Object.keys(metadata).length > 0
-      ? compareSignatureExposures(exposures, metadata, {
+      ? buildCohortGroupComparison(exposures, metadata, {
           ...options.comparison,
         groupKey,
         permutationIterations:
@@ -4091,14 +3671,14 @@ async function runCohortFit(input = {}, options = {}) {
         : "representative_samples";
   const cohortSizeCaveat =
     Object.keys(spectra).length < 20
-    ? "Cohorts with fewer than 20 samples should be treated as limited for de novo extraction and subgroup inference; use recommendAnalysisStrategy and mSigSDK.experimental.runSubgroupDiscoveryWorkflow explicitly before interpreting extracted signatures."
+    ? "Cohorts with fewer than 20 samples should be treated as limited for de novo extraction and subgroup inference."
       : null;
   const primaryWarnings = deduplicateWarnings([
     ...(advisor.warnings || []),
     ...(fitQualityEvidence.warnings || []),
     ...(catalogCheck.warnings || []),
     ...(thresholdSensitivity?.warnings || []),
-    ...(subgroupDiscovery.warnings || []),
+    ...(subgroupReview.warnings || []),
     ...(groupComparison?.warnings || []),
     ...Object.values(bootstrap || {}).flatMap((entry) => entry.warnings || []),
   ]);
@@ -4107,7 +3687,7 @@ async function runCohortFit(input = {}, options = {}) {
     summarizeSubsystem("fitQualityEvidence", fitQualityEvidence, fitQualityEvidence.warnings),
     summarizeSubsystem("catalogCheck", catalogCheck, catalogCheck.warnings),
     summarizeSubsystem("thresholdSensitivity", thresholdSensitivity, thresholdSensitivity?.warnings),
-    summarizeSubsystem("subgroupDiscovery", subgroupDiscovery, subgroupDiscovery.warnings),
+    summarizeSubsystem("subgroupReview", subgroupReview, subgroupReview.warnings),
     summarizeSubsystem("groupComparison", groupComparison, groupComparison?.warnings),
   ];
   const thresholdBootstrapAction =
@@ -4126,7 +3706,7 @@ async function runCohortFit(input = {}, options = {}) {
       scopeStatement: SCOPE_STATEMENTS.cohortPipeline,
       methodBasis: {
         pipeline:
-          "Cohort refitting combines NNLS exposures with burden-aware advice, residual review, reconstruction metrics, fit-quality reporting modes, subgroup structure, optional subgroup extraction, and optional metadata-stratified exposure comparison.",
+          "Cohort refitting combines NNLS exposures with burden-aware advice, residual review, reconstruction metrics, fit-quality reporting modes, subgroup structure, and optional metadata-stratified exposure comparison.",
         validationAnchor: [
           SYNTHETIC_VALIDATION_ANCHORS.burden50,
           SYNTHETIC_VALIDATION_ANCHORS.burden100,
@@ -4140,7 +3720,7 @@ async function runCohortFit(input = {}, options = {}) {
       primaryInterpretationFields: [
         "fitQualityEvidence.samples[].reportingMode",
         "advisor.cohort.primaryRecommendation",
-        "subgroupDiscovery.summary",
+        "subgroupReview.summary",
         "groupComparison.reportingMode",
       ],
       parameters: {
@@ -4157,7 +3737,7 @@ async function runCohortFit(input = {}, options = {}) {
         fitQualityEvidence: fitQualityEvidence.summary,
         catalogCheck: catalogCheck.summary,
         subgroups,
-        subgroupDiscovery: subgroupDiscovery.summary,
+        subgroupReview: subgroupReview.summary,
         groupComparison:
           groupComparison && {
             groupKey: groupComparison.groupKey,
@@ -4186,7 +3766,7 @@ async function runCohortFit(input = {}, options = {}) {
     scopeStatement: SCOPE_STATEMENTS.cohortPipeline,
     methodBasis: {
       pipeline:
-        "Cohort refitting combines NNLS exposures with burden-aware advice, residual review, reconstruction metrics, fit-quality reporting modes, subgroup structure, optional subgroup extraction, and optional metadata-stratified exposure comparison.",
+        "Cohort refitting combines NNLS exposures with burden-aware advice, residual review, reconstruction metrics, fit-quality reporting modes, subgroup structure, and optional metadata-stratified exposure comparison.",
       groupComparison:
         "Metadata-stratified comparisons are exploratory unless group sizes, multiplicity, effect-size interpretation, and cohort design support inference.",
       validationAnchor: [
@@ -4202,7 +3782,7 @@ async function runCohortFit(input = {}, options = {}) {
     primaryInterpretationFields: [
       "fitQualityEvidence.samples[].reportingMode",
       "advisor.cohort.primaryRecommendation",
-      "subgroupDiscovery.summary",
+      "subgroupReview.summary",
       "groupComparison.reportingMode",
     ],
     parameters: {
@@ -4232,7 +3812,7 @@ async function runCohortFit(input = {}, options = {}) {
       fitQualityEvidence: fitQualityEvidence.summary,
       catalogCheck: catalogCheck.summary,
       subgroups,
-      subgroupDiscovery: subgroupDiscovery.summary,
+      subgroupReview: subgroupReview.summary,
       groupComparison:
         groupComparison && {
           groupKey: groupComparison.groupKey,
@@ -4247,12 +3827,12 @@ async function runCohortFit(input = {}, options = {}) {
     subsystemSummary,
     advisor,
     cohort: advisor.cohort,
-    subgroupDiscoveryStatus,
+    subgroupReviewStatus: subgroupReview.status,
     bootstrapScope,
     bootstrapAnalyzedSamples,
     cohortSizeCaveat,
     subgroups,
-    subgroupDiscovery,
+    subgroupReview,
     groupComparison,
     fit: {
       method: "NNLS",
@@ -4271,11 +3851,10 @@ async function runCohortFit(input = {}, options = {}) {
       ...advisor.recommendedActions,
       ...fitQualityEvidence.recommendedActions,
       ...catalogCheck.recommendedActions,
-      ...subgroupDiscovery.recommendedActions,
+      ...subgroupReview.recommendedActions,
       ...(groupComparison?.recommendedActions || []),
       cohortSizeCaveat,
       thresholdBootstrapAction,
-      "Use mSigSDK.experimental.runSubgroupDiscoveryWorkflow when NMF discovery is the primary analysis rather than a cohort-fit submodule.",
     ]),
     publicationFigures: buildPublicationFigureDescriptors("cohort", {
       cohort_exposure_heatmap: ["fit.exposures", "fitQualityEvidence", "advisor.mutationBurden"],
@@ -4283,7 +3862,6 @@ async function runCohortFit(input = {}, options = {}) {
       reconstruction_residuals: ["residuals"],
       fit_quality_evidence_dashboard: ["fitQualityEvidence"],
       group_comparison: groupComparison ? ["groupComparison"] : [],
-      subgroup_discovery: ["subgroupDiscovery"],
     }),
     report,
   };
@@ -4666,15 +4244,13 @@ function summarizeCallableOpportunityForSignature(
 /**
  * Summarizes transparent restricted-assay evidence components for reference signatures.
  *
- * @function summarizeRestrictedAssayEvidence
- * @memberof advisor
- * @experimental Descriptive restricted-assay evidence helper outside the manuscript-validated advisor claim set.
+ * @function buildRestrictedAssayEvidenceSummary
+ * @private
  * @param {Object<string,Object<string,number>>} signatures - Reference signature matrix.
  * @param {Object} [options] - Restricted-assay evidence options.
  * @returns {Object} Signature-specific burden/exposure grids and callable-territory summaries.
  */
-function summarizeRestrictedAssayEvidence(signatures, options = {}) {
-  warnExperimentalAdvisorFunction("summarizeRestrictedAssayEvidence");
+function buildRestrictedAssayEvidenceSummary(signatures, options = {}) {
   const restrictedOptions = mergeDefinedOptions(
     ADVISOR_DEFAULTS.restrictedAssayEvidence,
     options.restrictedAssayEvidence,
@@ -4967,7 +4543,7 @@ async function runPanelWorkflow(input = {}, options = {}) {
       )
     );
   }
-  const restrictedAssayEvidenceSummary = summarizeRestrictedAssayEvidence(signatures, {
+  const restrictedAssayEvidenceSummary = buildRestrictedAssayEvidenceSummary(signatures, {
     contexts,
     burdens: panelOptions.restrictedAssayBurdens,
     exposureLevels: panelOptions.restrictedAssayExposureLevels,
@@ -5303,7 +4879,7 @@ async function runSingleSampleFitLite(input = {}, options = {}) {
 }
 
 /**
- * Runs the beginner-facing cohort refit path with experimental subgroup discovery disabled.
+ * Runs the beginner-facing cohort refit path with stable cohort-review defaults.
  *
  * @async
  * @function runCohortFitLite
@@ -5317,7 +4893,6 @@ async function runCohortFitLite(input = {}, options = {}) {
     input,
     mergeDefinedOptions(
       {
-        runSubgroupDiscovery: false,
         runBootstrap: false,
         runThresholdSensitivity: true,
         exposureThreshold: 0.01,
@@ -5349,7 +4924,6 @@ async function runPanelWorkflowLite(input = {}, options = {}) {
     input,
     mergeDefinedOptions(
       {
-        runSubgroupDiscovery: false,
         runBootstrap: false,
         runThresholdSensitivity: true,
         reportFormat: "object",
@@ -5392,399 +4966,9 @@ function runDiscoveryWorkflowLite(input = {}, options = {}) {
   );
 }
 
-function normalizeVariantRows(variants) {
-  const rows = Array.isArray(variants) ? variants : variants?.variants || [];
-  return rows
-    .map((row, index) => {
-      const chromosome =
-        row.chromosome ||
-        row.chrom ||
-        row.chr ||
-        row.Chromosome ||
-        row.CHROM ||
-        row["#CHROM"] ||
-        null;
-      const position = toFiniteNumber(
-        row.position ||
-          row.pos ||
-          row.start_position ||
-          row.Start_Position ||
-          row.POS ||
-          row.start
-      );
-      return {
-        id: row.id || row.variantId || `variant_${index + 1}`,
-        chromosome: chromosome ? String(chromosome).replace(/^chr/i, "") : null,
-        position,
-        context:
-          row.context || row.mutationType || row.MutationType || row.mutation_type || null,
-        sample: row.sample || row.Tumor_Sample_Barcode || row.sampleName || null,
-        raw: row,
-      };
-    })
-    .filter((row) => row.chromosome && Number.isFinite(row.position))
-    .sort((a, b) => {
-      if (a.chromosome === b.chromosome) {
-        return a.position - b.position;
-      }
-      return String(a.chromosome).localeCompare(String(b.chromosome), undefined, {
-        numeric: true,
-      });
-    });
-}
-
-function isApobecLikeContext(context) {
-  if (!context) {
-    return false;
-  }
-  const normalized = String(context).toUpperCase().replace(/\s+/g, "");
-  return /^T\[C>[GT]\][AT]$/.test(normalized);
-}
-
-function buildChromosomeMutationStats(rainfall) {
-  const grouped = {};
-  for (const variant of rainfall) {
-    if (!variant.chromosome || !Number.isFinite(variant.position)) {
-      continue;
-    }
-    if (!grouped[variant.chromosome]) {
-      grouped[variant.chromosome] = {
-        chromosome: variant.chromosome,
-        mutationCount: 0,
-        minPosition: variant.position,
-        maxPosition: variant.position,
-      };
-    }
-    const stats = grouped[variant.chromosome];
-    stats.mutationCount += 1;
-    stats.minPosition = Math.min(stats.minPosition, variant.position);
-    stats.maxPosition = Math.max(stats.maxPosition, variant.position);
-  }
-  return Object.fromEntries(
-    Object.entries(grouped).map(([chromosome, stats]) => {
-      const observedSpan = Math.max(stats.maxPosition - stats.minPosition + 1, 1);
-      return [
-        chromosome,
-        {
-          ...stats,
-          observedSpan,
-          backgroundRatePerBase: stats.mutationCount / observedSpan,
-        },
-      ];
-    })
-  );
-}
-
-function buildGenomeMutationStats(rainfall, callableGenomeSize) {
-  const positions = rainfall
-    .map((variant) => variant.position)
-    .filter((position) => Number.isFinite(position));
-  if (positions.length === 0) {
-    return null;
-  }
-  const minPosition = Math.min(...positions);
-  const maxPosition = Math.max(...positions);
-  const observedSpan = Math.max(callableGenomeSize || maxPosition - minPosition + 1, 1);
-  return {
-    mutationCount: positions.length,
-    minPosition,
-    maxPosition,
-    observedSpan,
-    backgroundRatePerBase: positions.length / observedSpan,
-  };
-}
-
-function poissonUpperTail(k, lambda) {
-  if (!Number.isFinite(k) || k <= 0 || !Number.isFinite(lambda) || lambda < 0) {
-    return null;
-  }
-  if (lambda === 0) {
-    return 0;
-  }
-  let probability = Math.exp(-lambda);
-  let cumulative = probability;
-  for (let count = 1; count < k; count += 1) {
-    probability *= lambda / count;
-    cumulative += probability;
-    if (!Number.isFinite(cumulative)) {
-      return null;
-    }
-  }
-  return clamp(1 - cumulative, 0, 1);
-}
-
-function finalizeFocus(current, foci, options) {
-  if (current.length < options.minMutations) {
-    return;
-  }
-
-  const distances = current
-    .slice(1)
-    .map((variant) => variant.previousDistance)
-    .filter((distance) => Number.isFinite(distance));
-  const contexts = current.map((variant) => variant.context).filter(Boolean);
-  const apobecLikeCount = contexts.filter(isApobecLikeContext).length;
-  const apobecLikeFraction =
-    contexts.length === 0 ? 0 : apobecLikeCount / contexts.length;
-  const start = current[0].position;
-  const end = current[current.length - 1].position;
-  const regionSpan = Math.max(end - start + 1, 1);
-  const backgroundStats = options.genomeBackgroundStats || null;
-  const expectedMutations =
-    backgroundStats && Number.isFinite(backgroundStats.backgroundRatePerBase)
-      ? backgroundStats.backgroundRatePerBase * regionSpan
-      : null;
-  const clusterPValue =
-    expectedMutations === null
-      ? null
-      : poissonUpperTail(current.length, expectedMutations);
-  const contextPattern =
-    apobecLikeFraction >= options.apobecLikeFractionThreshold
-      ? "APOBEC-context-enriched localized cluster"
-      : "localized mutation cluster";
-
-  foci.push({
-    focusId: `focus_${foci.length + 1}`,
-    chromosome: current[0].chromosome,
-    start,
-    end,
-    regionSpan,
-    mutationCount: current.length,
-    medianIntermutationDistance: quantile(distances, 0.5),
-    clusterPValue,
-    clusterSignificant:
-      clusterPValue !== null && clusterPValue <= options.clusterSignificanceThreshold,
-    clusterSignificanceThreshold: options.clusterSignificanceThreshold,
-    callableGenomeSize: backgroundStats?.observedSpan || null,
-    expectedMutationsUnderPoisson: expectedMutations,
-    expectedMutationsUnderGenomeWidePoisson: expectedMutations,
-    significanceModel:
-      "Poisson upper-tail test using the genome-wide per-sample mutation rate estimated as total input variants divided by callableGenomeSize.",
-    nullModelSpecification: options.nullModelSpecification,
-    contextPattern,
-    associatedPattern: contextPattern,
-    contextPatternDefinition:
-      LOCALIZED_CONTEXT_PATTERN_DEFINITIONS[contextPattern] ||
-      LOCALIZED_CONTEXT_PATTERN_DEFINITIONS["localized mutation cluster"],
-    contextPatternInterpretation:
-      "Context-pattern labels are descriptive and hypothesis-generating; they are not etiology assignments.",
-    apobecLikeFraction,
-    apobecLikeDefinition:
-      "Fraction of mutations with standardized pyrimidine-context labels T[C>G]A, T[C>G]T, T[C>T]A, or T[C>T]T among variants with available context labels.",
-    variantIds: current.map((variant) => variant.id),
-  });
-}
-
-/**
- * Detects localized mutagenesis candidates and prepares rainfall-plot data.
- *
- * @function runLocalizedMutagenesisAnalysis
- * @memberof pipelines
- * @experimental Localized-mutagenesis pipeline outside the manuscript-validated advisor claim set.
- * @param {Object[]|Object} variants - Variant rows or an object with a variants field.
- * @param {string} genomeBuild - Genome build label.
- * @param {Object} [options] - Localized mutagenesis options.
- * @returns {Object} Rainfall data, focal regions, warnings, and publication artifacts.
- */
-function runLocalizedMutagenesisAnalysis(variants, genomeBuild, options = {}) {
-  warnExperimentalAdvisorFunction("runLocalizedMutagenesisAnalysis");
-  const localizedOptions = mergeDefinedOptions(
-    ADVISOR_DEFAULTS.localizedMutagenesis,
-    options.localized,
-    options.localizedOptions,
-    options
-  );
-  const normalizedVariants = normalizeVariantRows(variants);
-  const maxIntermutationDistance = localizedOptions.maxIntermutationDistance;
-  const minMutations = localizedOptions.minMutations;
-  const minBurdenForLocalizedAnalysis =
-    localizedOptions.minBurdenForLocalizedAnalysis;
-  const apobecLikeFractionThreshold =
-    localizedOptions.apobecLikeFractionThreshold;
-  const clusterSignificanceThreshold =
-    localizedOptions.clusterSignificanceThreshold;
-  const callableGenomeSize = localizedOptions.callableGenomeSize;
-  const nullModelSpecification =
-    localizedOptions.nullModelSpecification;
-  const rainfall = normalizedVariants.map((variant, index) => {
-    const previous = normalizedVariants[index - 1];
-    const previousDistance =
-      previous && previous.chromosome === variant.chromosome
-        ? variant.position - previous.position
-        : null;
-    return {
-      ...variant,
-      previousDistance,
-      log10PreviousDistance:
-        previousDistance && previousDistance > 0
-          ? Math.log10(previousDistance)
-          : null,
-    };
-  });
-  const chromosomeStats = buildChromosomeMutationStats(rainfall);
-  const genomeBackgroundStats = buildGenomeMutationStats(rainfall, callableGenomeSize);
-  const foci = [];
-  let current = [];
-
-  for (const variant of rainfall) {
-    const continuesFocus =
-      current.length === 0 ||
-      (variant.chromosome === current[current.length - 1].chromosome &&
-        variant.previousDistance !== null &&
-        variant.previousDistance <= maxIntermutationDistance);
-    if (continuesFocus) {
-      current.push(variant);
-    } else {
-      finalizeFocus(current, foci, {
-        minMutations,
-        chromosomeStats,
-        genomeBackgroundStats,
-        apobecLikeFractionThreshold,
-        clusterSignificanceThreshold,
-        nullModelSpecification,
-      });
-      current = [variant];
-    }
-  }
-  finalizeFocus(current, foci, {
-    minMutations,
-    chromosomeStats,
-    genomeBackgroundStats,
-    apobecLikeFractionThreshold,
-    clusterSignificanceThreshold,
-    nullModelSpecification,
-  });
-
-  const totalMutations = normalizedVariants.length;
-  const analysisEligible = totalMutations >= minBurdenForLocalizedAnalysis;
-  const warnings = [];
-  if (!analysisEligible) {
-    warnings.push(
-      makeWarning(
-        WARNING_CODES.LOW_BURDEN,
-        `Localized mutagenesis screening is below the configured minimum burden of ${minBurdenForLocalizedAnalysis} variants.`,
-        { totalMutations, minBurdenForLocalizedAnalysis }
-      )
-    );
-  }
-  if (foci.length > 0) {
-      warnings.push(
-        makeWarning(
-          WARNING_CODES.REGIONAL_PROCESS_SUSPECTED,
-        "One or more focal mutation clusters met the configured screening criteria; compare focal spectra with the genomic background before interpretation.",
-        { focusCount: foci.length }
-      )
-    );
-  }
-
-  return {
-    schemaVersion: RESULT_SCHEMA_VERSION,
-    workflow: "localized_mutagenesis",
-    workflowRole: "localized_mutagenesis_pipeline",
-    scopeStatement: SCOPE_STATEMENTS.localized,
-    experimentalStatus: {
-      state: "experimental",
-      validatedForManuscriptUse: false,
-      scopeStatement: SCOPE_STATEMENTS.localized,
-    },
-    methodBasis: {
-      localizedClustering:
-        "Clusters are descriptive runs of nearby same-chromosome variants under a configurable maximum intermutation-distance rule.",
-      contextPattern:
-        "APOBEC-context enrichment is reported as a context pattern, not as a causal etiology assignment.",
-      significanceModel:
-        nullModelSpecification,
-      nullModelSpecification,
-      contextPatternDefinitionVersion: LOCALIZED_CONTEXT_PATTERN_DEFINITIONS.version,
-      contextPatternDefinition: LOCALIZED_CONTEXT_PATTERN_DEFINITIONS,
-      references: [
-        LITERATURE_REFERENCES.roberts2013,
-        LITERATURE_REFERENCES.alexandrov2020,
-        LITERATURE_REFERENCES.petljak2022,
-      ],
-    },
-    primaryInterpretationFields: [
-      "analysisEligibility",
-      "foci[].contextPattern",
-      "foci[].clusterPValue",
-      "warnings",
-    ],
-    genomeBuild,
-    parameters: {
-      maxIntermutationDistance,
-      minMutations,
-      minBurdenForLocalizedAnalysis,
-      apobecLikeFractionThreshold,
-      clusterSignificanceThreshold,
-      callableGenomeSize,
-      nullModelSpecification,
-      clusterAlgorithm:
-        "Sequential distance-threshold run: sorted variants are assigned to the same focus when consecutive variants are on the same chromosome and separated by no more than maxIntermutationDistance.",
-    },
-    validation: {
-      variants: {
-        valid: rainfall.length > 0,
-        variantCount: rainfall.length,
-        requiredFields: ["chromosome", "position"],
-      },
-    },
-    qc: {
-      chromosomeStats,
-      focusCount: foci.length,
-      analysisEligibility: {
-        totalMutations,
-        minBurdenForLocalizedAnalysis,
-        analysisEligible,
-      },
-    },
-    analysisEligibility: {
-      totalMutations,
-      minBurdenForLocalizedAnalysis,
-      analysisEligible,
-    },
-    genomeBackgroundStats,
-    chromosomeStats,
-    rainfall,
-    foci,
-    nullModelSpecification,
-    clusterSignificanceThreshold,
-    focalSpectra: null,
-    flankComparison: null,
-    genomeTracks: {
-      suggestedTrackType: "rainfall",
-      fields: ["chromosome", "position", "previousDistance", "focusId"],
-    },
-    contextPatterns: uniqueStrings(foci.map((focus) => focus.contextPattern)),
-    associatedPatterns: uniqueStrings(foci.map((focus) => focus.associatedPattern)),
-    contextPatternDefinition: LOCALIZED_CONTEXT_PATTERN_DEFINITIONS,
-    localized: {
-      analysisEligibility: {
-        totalMutations,
-        minBurdenForLocalizedAnalysis,
-        analysisEligible,
-      },
-      foci,
-      rainfall,
-      contextPatterns: uniqueStrings(foci.map((focus) => focus.contextPattern)),
-      nullModelSpecification,
-    },
-    warnings,
-    recommendedActions: uniqueStrings([
-      foci.length > 0
-        ? "Generate a rainfall plot, extract focal spectra, and compare foci against matched genomic background."
-        : "No focal clusters met the configured screening criteria.",
-    ]),
-    publicationFigures: buildPublicationFigureDescriptors("localized", {
-      rainfall: ["rainfall", "foci"],
-    }),
-    provenance: null,
-  };
-}
-
 export {
   ADVISOR_DEFAULTS,
   WARNING_CODES,
-  compareSignatureExposures,
   computeFitQualityEvidence,
   computeSignatureAmbiguity,
   computeSignatureIdentifiability,
@@ -5794,11 +4978,8 @@ export {
   runCohortFitLite,
   runDiscoveryWorkflow,
   runDiscoveryWorkflowLite,
-  runLocalizedMutagenesisAnalysis,
   runPanelWorkflow,
   runPanelWorkflowLite,
   runSingleSampleFit,
   runSingleSampleFitLite,
-  runSubgroupDiscoveryWorkflow,
-  summarizeRestrictedAssayEvidence,
 };

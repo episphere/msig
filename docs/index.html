@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Generated mSigSDK documentation for browser-native mutational signature fitting, NMF extraction, visualization, reporting, and interoperability."
+    />
+    <title>mSigSDK documentation</title>
+    <style>
+      :root {
+        --bg: #f7f8f4;
+        --surface: #ffffff;
+        --surface-soft: #eef5f1;
+        --surface-warm: #fbf5e8;
+        --ink: #16211d;
+        --muted: #61706a;
+        --rule: #d9e2dc;
+        --teal: #168a8c;
+        --green: #2f7d55;
+        --blue: #4772b2;
+        --gold: #b77a24;
+        --rose: #b96475;
+        --code-bg: #111915;
+        --code-ink: #ecf5ef;
+        --shadow: 0 20px 60px rgba(22, 33, 29, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      code,
+      pre {
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        border-bottom: 1px solid rgba(217, 226, 220, 0.9);
+        background: rgba(247, 248, 244, 0.94);
+        backdrop-filter: blur(14px);
+      }
+
+      .nav,
+      main,
+      .footer-inner {
+        width: min(1180px, calc(100% - 36px));
+        margin: 0 auto;
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 14px 0;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink);
+        font-weight: 760;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .nav-links a,
+      .text-link,
+      footer a {
+        color: var(--teal);
+        font-weight: 760;
+        text-decoration: none;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.02fr) minmax(380px, 0.98fr);
+        gap: 34px;
+        align-items: stretch;
+        padding: 54px 0 42px;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--green);
+        font-size: 13px;
+        font-weight: 820;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        margin: 0;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        max-width: 780px;
+        font-size: 62px;
+      }
+
+      .lede {
+        max-width: 720px;
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: 19px;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .button,
+      .namespace-button {
+        display: inline-flex;
+        min-height: 42px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--ink);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--ink);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 760;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .button {
+        padding: 10px 15px;
+      }
+
+      .button.primary {
+        border-color: var(--teal);
+        background: var(--teal);
+        color: #fff;
+      }
+
+      .hero-panel {
+        display: grid;
+        gap: 16px;
+        align-content: start;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        padding: 18px;
+      }
+
+      .import-code,
+      .signature-code {
+        overflow-x: auto;
+        border-radius: 8px;
+        background: var(--code-bg);
+        color: var(--code-ink);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      .import-code {
+        margin: 0;
+        padding: 18px;
+        font-size: 13px;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .stat-card {
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: rgba(238, 245, 241, 0.58);
+        padding: 14px;
+      }
+
+      .stat-card strong,
+      .stat-card span {
+        display: block;
+      }
+
+      .stat-card strong {
+        font-size: 24px;
+      }
+
+      .stat-card span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .section {
+        padding: 42px 0;
+        border-top: 1px solid var(--rule);
+      }
+
+      .section-header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 22px;
+      }
+
+      .section-header h2 {
+        font-size: 42px;
+      }
+
+      .section-header p {
+        max-width: 760px;
+        margin: 10px 0 0;
+        color: var(--muted);
+      }
+
+      .path-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .path-card,
+      .function-card {
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+
+      .path-card {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+        padding: 18px;
+      }
+
+      .path-card span {
+        color: var(--green);
+        font-size: 12px;
+        font-weight: 820;
+        text-transform: uppercase;
+      }
+
+      .path-card h3 {
+        font-size: 20px;
+      }
+
+      .path-card p,
+      .function-card p,
+      .api-summary {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .api-layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .api-sidebar {
+        position: sticky;
+        top: 82px;
+        display: grid;
+        gap: 12px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--surface);
+        padding: 14px;
+      }
+
+      .search-box {
+        width: 100%;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--ink);
+        font: inherit;
+        padding: 12px;
+      }
+
+      .namespace-list {
+        display: grid;
+        gap: 6px;
+        max-height: 620px;
+        overflow: auto;
+        padding-right: 4px;
+      }
+
+      .namespace-button {
+        justify-content: space-between;
+        gap: 10px;
+        width: 100%;
+        min-height: 38px;
+        border-color: transparent;
+        padding: 8px 10px;
+        text-align: left;
+      }
+
+      .namespace-button:hover,
+      .namespace-button.active {
+        border-color: var(--rule);
+        background: var(--surface-soft);
+      }
+
+      .namespace-button span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 680;
+      }
+
+      .api-main {
+        display: grid;
+        gap: 16px;
+      }
+
+      .namespace-banner {
+        display: grid;
+        gap: 8px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--surface), var(--surface-warm));
+        padding: 20px;
+      }
+
+      .namespace-banner h3 {
+        font-size: 30px;
+      }
+
+      .function-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .function-card {
+        display: grid;
+        gap: 12px;
+        padding: 18px;
+      }
+
+      .function-heading {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .function-heading h4 {
+        font-size: 20px;
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .badge {
+        border-radius: 999px;
+        background: var(--surface-soft);
+        color: var(--green);
+        font-size: 12px;
+        font-weight: 760;
+        padding: 4px 8px;
+      }
+
+      .signature-code {
+        margin: 0;
+        padding: 12px;
+        font-size: 12px;
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .detail-block {
+        border-top: 1px solid var(--rule);
+        padding-top: 10px;
+      }
+
+      .detail-block h5 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        text-transform: uppercase;
+        color: var(--green);
+      }
+
+      .detail-block ul {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding-left: 18px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .empty-state {
+        border: 1px dashed var(--rule);
+        border-radius: 8px;
+        color: var(--muted);
+        padding: 22px;
+      }
+
+      footer {
+        border-top: 1px solid var(--rule);
+        color: var(--muted);
+        font-size: 14px;
+        padding: 24px 0 36px;
+      }
+
+      @media (max-width: 980px) {
+        .hero,
+        .api-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .api-sidebar {
+          position: static;
+        }
+
+        h1 {
+          font-size: 48px;
+        }
+
+        .path-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        .nav,
+        .section-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        h1 {
+          font-size: 38px;
+        }
+
+        .section-header h2 {
+          font-size: 30px;
+        }
+
+        .stats-grid,
+        .path-grid,
+        .detail-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav" aria-label="Documentation navigation">
+        <a class="brand" href="../">
+          <span class="brand-mark">mS</span>
+          <span>mSigSDK</span>
+        </a>
+        <div class="nav-links">
+          <a href="../">Home</a>
+          <a href="#api-reference">API</a>
+          <a href="../notebooks/viewer.html">Notebooks</a>
+          <a href="https://github.com/episphere/msig">GitHub</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Generated documentation</p>
+          <h1 id="page-title">mSigSDK reference for browser-native signature analysis.</h1>
+          <p class="lede">
+            A static documentation site generated from source comments with
+            documentation.js. The reference covers mSigPortal access, spectra
+            validation, known-signature fitting, browser-sized NMF, QC,
+            visualization, reports, and interoperability handoffs.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#api-reference">Browse API reference</a>
+            <a class="button" href="../notebooks/viewer.html">Open notebooks</a>
+            <a class="button" href="./MSIGSDK_FEATURE_REFERENCE.html">Feature reference</a>
+          </div>
+        </div>
+
+        <aside class="hero-panel" aria-label="Generated API summary">
+          <div>
+            <p class="eyebrow">Import</p>
+            <pre class="import-code"><code id="import-snippet">Loading import snippet...</code></pre>
+          </div>
+          <div class="stats-grid" id="stats-grid" aria-live="polite">
+            <div class="stat-card"><strong>...</strong><span>Namespaces</span></div>
+            <div class="stat-card"><strong>...</strong><span>Functions</span></div>
+            <div class="stat-card"><strong>...</strong><span>Async APIs</span></div>
+            <div class="stat-card"><strong>...</strong><span>Examples</span></div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="section" aria-labelledby="paths-heading">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Analysis paths</p>
+            <h2 id="paths-heading">What the SDK documents</h2>
+            <p>
+              The public API is organized around the work a reviewer or
+              researcher needs to audit: input preparation, fitting, extraction,
+              uncertainty review, figure generation, and interoperable exports.
+            </p>
+          </div>
+        </div>
+        <div class="path-grid">
+          <article class="path-card">
+            <span>Data</span>
+            <h3>mSigPortal and local spectra</h3>
+            <p>Project, sample, signature, exposure, MAF, SBS96, and matrix import helpers.</p>
+          </article>
+          <article class="path-card">
+            <span>Fit</span>
+            <h3>Known-signature workflows</h3>
+            <p>NNLS refitting, cohort workflows, panel/WES evidence tiers, and reporting outputs.</p>
+          </article>
+          <article class="path-card">
+            <span>Extract</span>
+            <h3>Browser-sized NMF</h3>
+            <p>Rank selection, extracted signatures, exposure heatmaps, worker execution, and handoffs.</p>
+          </article>
+          <article class="path-card">
+            <span>QC</span>
+            <h3>Uncertainty and evidence</h3>
+            <p>Mutation burden, missing contexts, residuals, bootstrap intervals, ambiguity, and warnings.</p>
+          </article>
+          <article class="path-card">
+            <span>Figures</span>
+            <h3>Report-ready visualization</h3>
+            <p>SBS96 profiles, exposures, residuals, similarity heatmaps, NMF profiles, and report panels.</p>
+          </article>
+          <article class="path-card">
+            <span>Interop</span>
+            <h3>External package handoffs</h3>
+            <p>SigProfiler, deconstructSigs, sigminer, MuSiCal, Pyodide, WebR, JSON, TSV, and archives.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="api-reference" aria-labelledby="api-heading">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">API reference</p>
+            <h2 id="api-heading">Generated public namespace index</h2>
+            <p id="api-summary" class="api-summary">
+              Loading generated API reference...
+            </p>
+          </div>
+          <a class="button" href="./api-reference.generated.json">JSON reference</a>
+        </div>
+
+        <div class="api-layout">
+          <aside class="api-sidebar" aria-label="API filters">
+            <label>
+              <span class="eyebrow">Search</span>
+              <input
+                class="search-box"
+                id="api-search"
+                type="search"
+                placeholder="Function, namespace, parameter"
+              />
+            </label>
+            <div class="namespace-list" id="namespace-list"></div>
+          </aside>
+
+          <div class="api-main">
+            <div class="namespace-banner" id="namespace-banner">
+              <p class="eyebrow">Namespace</p>
+              <h3>Select a namespace</h3>
+              <p class="api-summary">Choose a namespace or search the full generated API index.</p>
+            </div>
+            <div class="function-list" id="function-list">
+              <div class="empty-state">Loading functions...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        API data is generated from source comments with documentation.js and served
+        from <a href="./api-reference.generated.json">api-reference.generated.json</a>.
+      </div>
+    </footer>
+
+    <script type="module">
+      const namespaceList = document.getElementById("namespace-list");
+      const functionList = document.getElementById("function-list");
+      const namespaceBanner = document.getElementById("namespace-banner");
+      const searchInput = document.getElementById("api-search");
+      const statsGrid = document.getElementById("stats-grid");
+      const apiSummary = document.getElementById("api-summary");
+      const importSnippet = document.getElementById("import-snippet");
+
+      let apiData = null;
+      let activeNamespace = "workflows";
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function compactType(value) {
+        return value ? `: ${value}` : "";
+      }
+
+      function parameterLabel(param) {
+        const optional = param.default !== null || param.type.endsWith("=");
+        return `${param.name || "value"}${optional ? "?" : ""}${compactType(
+          param.type.replace(/=$/, ""),
+        )}`;
+      }
+
+      function publicPath(namespace, fn) {
+        if (
+          namespace.name === "mSigPortal" &&
+          ["mSigPortalData", "mSigPortalPlots"].includes(fn.sourceNamespace)
+        ) {
+          return `mSigSDK.mSigPortal.${fn.sourceNamespace}.${fn.name}`;
+        }
+        return `mSigSDK.${namespace.name}.${fn.name}`;
+      }
+
+      function signatureFor(namespace, fn) {
+        const params = (fn.params || []).map((param) => param.name || "value");
+        return `${publicPath(namespace, fn)}(${params.join(", ")})`;
+      }
+
+      function renderStats() {
+        const stats = apiData.stats;
+        const generator = apiData.generator;
+        statsGrid.innerHTML = [
+          [stats.namespaces, "Public namespaces"],
+          [stats.functions, "Documented functions"],
+          [stats.asyncFunctions, "Async APIs"],
+          [stats.functionsWithExamples, "Examples"],
+        ]
+          .map(
+            ([value, label]) =>
+              `<div class="stat-card"><strong>${escapeHtml(value)}</strong><span>${escapeHtml(
+                label,
+              )}</span></div>`,
+          )
+          .join("");
+        importSnippet.textContent = apiData.importSnippet;
+        apiSummary.textContent = `${stats.namespaces} public namespaces and ${stats.functions} documented functions generated with ${generator.name} ${generator.version}.`;
+      }
+
+      function renderNamespaceButtons() {
+        namespaceList.innerHTML = apiData.namespaces
+          .map(
+            (namespace) => `
+              <button
+                class="namespace-button${namespace.name === activeNamespace ? " active" : ""}"
+                type="button"
+                data-namespace="${escapeHtml(namespace.name)}"
+              >
+                ${escapeHtml(namespace.label)}
+                <span>${namespace.functions.length}</span>
+              </button>
+            `,
+          )
+          .join("");
+      }
+
+      function matchesSearch(namespace, fn, query) {
+        if (!query) return namespace.name === activeNamespace;
+        const haystack = [
+          namespace.name,
+          namespace.label,
+          namespace.summary,
+          fn.name,
+          fn.description,
+          ...(fn.params || []).flatMap((param) => [
+            param.name,
+            param.type,
+            param.description,
+          ]),
+          ...(fn.returns || []).flatMap((entry) => [entry.type, entry.description]),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(query);
+      }
+
+      function paramsList(fn) {
+        if (!fn.params?.length) return "<li>No parameters.</li>";
+        return fn.params
+          .map(
+            (param) => `
+              <li>
+                <code>${escapeHtml(parameterLabel(param))}</code>
+                ${param.description ? ` - ${escapeHtml(param.description)}` : ""}
+              </li>
+            `,
+          )
+          .join("");
+      }
+
+      function returnsList(fn) {
+        if (!fn.returns?.length) return "<li>No return value documented.</li>";
+        return fn.returns
+          .map(
+            (entry) => `
+              <li>
+                <code>${escapeHtml(entry.type || "value")}</code>
+                ${entry.description ? ` - ${escapeHtml(entry.description)}` : ""}
+              </li>
+            `,
+          )
+          .join("");
+      }
+
+      function renderFunctionCard(namespace, fn) {
+        const source =
+          fn.source?.file && fn.source?.line
+            ? `${fn.source.file}:${fn.source.line}`
+            : "Source unavailable";
+        return `
+          <article class="function-card">
+            <div class="function-heading">
+              <h4>${escapeHtml(fn.name)}</h4>
+              <div class="badges">
+                ${fn.async ? '<span class="badge">async</span>' : ""}
+                <span class="badge">${escapeHtml(namespace.label)}</span>
+              </div>
+            </div>
+            <pre class="signature-code"><code>${escapeHtml(signatureFor(namespace, fn))}</code></pre>
+            <p>${escapeHtml(fn.description || namespace.summary || "No description documented.")}</p>
+            <div class="detail-grid">
+              <div class="detail-block">
+                <h5>Parameters</h5>
+                <ul>${paramsList(fn)}</ul>
+              </div>
+              <div class="detail-block">
+                <h5>Returns</h5>
+                <ul>${returnsList(fn)}</ul>
+              </div>
+            </div>
+            <p class="api-summary">Source: ${escapeHtml(source)}</p>
+          </article>
+        `;
+      }
+
+      function renderApi() {
+        const query = searchInput.value.trim().toLowerCase();
+        const active =
+          apiData.namespaces.find((namespace) => namespace.name === activeNamespace) ||
+          apiData.namespaces[0];
+        const rows = [];
+
+        for (const namespace of apiData.namespaces) {
+          for (const fn of namespace.functions) {
+            if (matchesSearch(namespace, fn, query)) {
+              rows.push({ namespace, fn });
+            }
+          }
+        }
+
+        namespaceBanner.innerHTML = `
+          <p class="eyebrow">${query ? "Search results" : "Namespace"}</p>
+          <h3>${escapeHtml(query ? `Results for "${query}"` : active.label)}</h3>
+          <p class="api-summary">${escapeHtml(
+            query
+              ? `${rows.length} matching functions across the generated API index.`
+              : `${active.summary} ${active.functions.length} documented functions.`,
+          )}</p>
+        `;
+
+        functionList.innerHTML =
+          rows.length > 0
+            ? rows
+                .map(({ namespace, fn }) => renderFunctionCard(namespace, fn))
+                .join("")
+            : '<div class="empty-state">No API entries match this search.</div>';
+
+        renderNamespaceButtons();
+      }
+
+      async function loadApiReference() {
+        try {
+          const response = await fetch("./api-reference.generated.json");
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          apiData = await response.json();
+          renderStats();
+          renderNamespaceButtons();
+          renderApi();
+        } catch (error) {
+          importSnippet.textContent =
+            'const { mSigSDK } = await import("https://episphere.github.io/msig/main.js");';
+          apiSummary.textContent =
+            "Generated API reference could not be loaded from api-reference.generated.json.";
+          functionList.innerHTML =
+            '<div class="empty-state">Run <code>npm run docs:api</code> to regenerate the API index.</div>';
+        }
+      }
+
+      namespaceList.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-namespace]");
+        if (!button) return;
+        activeNamespace = button.dataset.namespace;
+        searchInput.value = "";
+        renderApi();
+      });
+
+      searchInput.addEventListener("input", renderApi);
+
+      await loadApiReference();
+    </script>
+  </body>
+</html>

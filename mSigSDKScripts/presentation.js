@@ -56,6 +56,34 @@ function ensurePresentationStyles() {
       border-radius: 8px;
       background: #fff;
     }
+    .msigsdk-output-table-pagination {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 8px;
+      color: #5f6d67;
+      font: 12px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .msigsdk-output-table-pagination-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .msigsdk-output-table-pagination button {
+      border: 1px solid #cbd8d1;
+      border-radius: 6px;
+      background: #fff;
+      color: #147d7f;
+      cursor: pointer;
+      font: 800 12px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 6px 9px;
+    }
+    .msigsdk-output-table-pagination button:disabled {
+      cursor: default;
+      opacity: 0.45;
+    }
     .msigsdk-output-table-title {
       margin: 0 0 4px;
       color: #17201d;
@@ -776,7 +804,10 @@ function inferTableDescription(data, columns) {
 
 function table(rows, columns = null, options = {}) {
   requireDom("table");
-  const maxRows = Number.isFinite(options.maxRows) ? options.maxRows : 12;
+  const pageSize = Math.max(
+    1,
+    Math.floor(Number.isFinite(options.pageSize) ? options.pageSize : Number.isFinite(options.maxRows) ? options.maxRows : 12)
+  );
   const tooltipTerms = options.tooltipTerms
     ? normalizeTooltipTerms({ ...DEFAULT_TOOLTIP_TERMS, ...options.tooltipTerms })
     : null;
@@ -819,6 +850,8 @@ function table(rows, columns = null, options = {}) {
     }));
   const tableElement = document.createElement("table");
   tableElement.className = "msigsdk-output-table";
+  tableElement.dataset.msigsdkManagedTable = "true";
+  tableElement.dataset.pageSize = String(pageSize);
   if (tableCaption) {
     const caption = tableElement.createCaption();
     caption.textContent = tableCaption;
@@ -839,34 +872,75 @@ function table(rows, columns = null, options = {}) {
   tableElement.append(thead);
 
   const tbody = document.createElement("tbody");
-  data.slice(0, maxRows).forEach((row) => {
-    const tr = document.createElement("tr");
-    normalizedColumns.forEach((column) => {
-      const key = typeof column === "string" ? column : column.key;
-      const formatter = typeof column === "object" ? column.format : null;
-      const td = document.createElement("td");
-      const value = row?.[key];
-      if (tooltipTerms) {
-        appendTooltipCellContent(td, value, row, typeof column === "object" ? column : {}, tooltipTerms, formatter);
-      } else {
-        td.textContent = formatter ? formatter(value, row) : formatCell(value);
-      }
-      tr.append(td);
+  let pageIndex = 0;
+  const pageCount = Math.max(1, Math.ceil(data.length / pageSize));
+  let pageStatus = null;
+  let previousButton = null;
+  let nextButton = null;
+
+  function renderPage() {
+    const start = pageIndex * pageSize;
+    const end = Math.min(start + pageSize, data.length);
+    tbody.replaceChildren();
+    data.slice(start, end).forEach((row) => {
+      const tr = document.createElement("tr");
+      normalizedColumns.forEach((column) => {
+        const key = typeof column === "string" ? column : column.key;
+        const formatter = typeof column === "object" ? column.format : null;
+        const td = document.createElement("td");
+        const value = row?.[key];
+        if (tooltipTerms) {
+          appendTooltipCellContent(td, value, row, typeof column === "object" ? column : {}, tooltipTerms, formatter);
+        } else {
+          td.textContent = formatter ? formatter(value, row) : formatCell(value);
+        }
+        tr.append(td);
+      });
+      tbody.append(tr);
     });
-    tbody.append(tr);
-  });
+    if (pageStatus) {
+      pageStatus.textContent = `Rows ${start + 1}-${end} of ${data.length}`;
+    }
+    if (previousButton) previousButton.disabled = pageIndex === 0;
+    if (nextButton) nextButton.disabled = pageIndex >= pageCount - 1;
+  }
+
   tableElement.append(tbody);
   const scroll = document.createElement("div");
   scroll.className = "msigsdk-output-table-scroll";
   scroll.append(tableElement);
   wrapper.append(scroll);
 
-  if (data.length > maxRows) {
-    const rowCountCaption = document.createElement("p");
-    rowCountCaption.className = "msigsdk-output-caption";
-    rowCountCaption.textContent = `Showing ${maxRows} of ${data.length} rows.`;
-    wrapper.append(rowCountCaption);
+  if (pageCount > 1) {
+    const pagination = document.createElement("div");
+    pagination.className = "msigsdk-output-table-pagination";
+    pageStatus = document.createElement("span");
+    const controls = document.createElement("span");
+    controls.className = "msigsdk-output-table-pagination-controls";
+    previousButton = document.createElement("button");
+    previousButton.type = "button";
+    previousButton.textContent = "Previous";
+    nextButton = document.createElement("button");
+    nextButton.type = "button";
+    nextButton.textContent = "Next";
+    previousButton.addEventListener("click", () => {
+      if (pageIndex > 0) {
+        pageIndex -= 1;
+        renderPage();
+      }
+    });
+    nextButton.addEventListener("click", () => {
+      if (pageIndex < pageCount - 1) {
+        pageIndex += 1;
+        renderPage();
+      }
+    });
+    controls.append(previousButton, nextButton);
+    pagination.append(pageStatus, controls);
+    wrapper.append(pagination);
   }
+
+  renderPage();
 
   return wrapper;
 }
@@ -1178,6 +1252,50 @@ function thresholdRows(thresholdSensitivity) {
   }));
 }
 
+function roundedFraction(value) {
+  return Number.isFinite(value) ? Number(value.toFixed(4)) : null;
+}
+
+function thresholdExposureRange(thresholdSensitivity, sample, signature) {
+  const values = (thresholdSensitivity?.runs || [])
+    .map((run) => Number(run.exposures?.[sample]?.[signature]))
+    .filter(Number.isFinite);
+  if (!values.length) return null;
+  return Math.max(...values) - Math.min(...values);
+}
+
+function uncertaintyDecisionRows(
+  bootstrap,
+  thresholdSensitivity,
+  {
+    sample = "sample",
+    minSelectionFrequency = 0.8,
+    maxUncertaintyWidth = 0.2,
+    topN = 12,
+  } = {}
+) {
+  return bootstrapRows(bootstrap, { topN }).map((row) => {
+    const width = Number(row.upper95 || 0) - Number(row.lower95 || 0);
+    const cutoffRange = thresholdExposureRange(thresholdSensitivity, sample, row.signature);
+    const selectedOften = Number(row.selectionFrequency || 0) >= minSelectionFrequency;
+    const intervalNarrow = width <= maxUncertaintyWidth;
+    const cutoffStable = cutoffRange === null || cutoffRange <= maxUncertaintyWidth;
+    const decision = selectedOften && intervalNarrow && cutoffStable
+      ? "report with QC context"
+      : selectedOften
+        ? "report with uncertainty caveat"
+        : "do not emphasize";
+    return {
+      signature: row.signature,
+      meanExposure: roundedFraction(row.mean),
+      ciWidth: roundedFraction(width),
+      selectionFrequency: roundedFraction(row.selectionFrequency),
+      cutoffRange: roundedFraction(cutoffRange),
+      decision,
+    };
+  });
+}
+
 function nmfMatchRows(matches, { maxRows = 12 } = {}) {
   return (Array.isArray(matches) ? matches : [])
     .flatMap((matchGroup) =>
@@ -1218,4 +1336,5 @@ export {
   table,
   thresholdRows,
   tooltipTable,
+  uncertaintyDecisionRows,
 };

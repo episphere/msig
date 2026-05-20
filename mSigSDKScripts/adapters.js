@@ -35,6 +35,8 @@ const DEFAULT_SPS_PACKAGE = "SigProfilerSimulator==1.2.2";
 const DEFAULT_SPC_PACKAGE = "SigProfilerClusters==1.2.2";
 const DEFAULT_SPP_PACKAGE = "sigProfilerPlotting==1.4.3";
 const DEFAULT_DECONSTRUCTSIGS_WEBR_PACKAGES = ["deconstructSigs"];
+const DEFAULT_DECONSTRUCTSIGS_SOURCE_ARCHIVE_URL =
+  "https://cran.r-project.org/src/contrib/Archive/deconstructSigs/deconstructSigs_1.8.0.tar.gz";
 const DEFAULT_SIGMINER_WEBR_PACKAGES = ["sigminer"];
 const DEFAULT_PYODIDE_SCIENTIFIC_PACKAGES = [
   "numpy",
@@ -1262,28 +1264,53 @@ function createDeconstructSigsRScript({
   signaturePath = "deconstructsigs_signatures.tsv",
   outputPath = "deconstructsigs_exposures.tsv",
   signatureCutoff = 0.01,
+  sourceArchiveUrl = null,
 } = {}) {
+  const loader = sourceArchiveUrl
+    ? [
+        `.deconstructSigs_archive <- ${JSON.stringify(sourceArchiveUrl)}`,
+        `.deconstructSigs_tar <- tempfile(fileext = ".tar.gz")`,
+        `utils::download.file(.deconstructSigs_archive, .deconstructSigs_tar, mode = "wb", quiet = TRUE)`,
+        `.deconstructSigs_needed <- c("deconstructSigs/R/golden_section_search.R", "deconstructSigs/R/internal.scripts.R", "deconstructSigs/R/normalize.data.R", "deconstructSigs/R/whichSignatures.R")`,
+        `.deconstructSigs_files <- utils::untar(.deconstructSigs_tar, list = TRUE)`,
+        `.deconstructSigs_missing <- setdiff(.deconstructSigs_needed, .deconstructSigs_files)`,
+        `if (length(.deconstructSigs_missing)) stop(paste("Archived deconstructSigs source is missing", paste(.deconstructSigs_missing, collapse = ", ")))`,
+        `utils::untar(.deconstructSigs_tar, files = .deconstructSigs_needed, exdir = tempdir())`,
+        `for (.deconstructSigs_file in .deconstructSigs_needed) source(file.path(tempdir(), .deconstructSigs_file), local = globalenv())`,
+      ]
+    : ["library(deconstructSigs)"];
   return [
-    "library(deconstructSigs)",
+    ...loader,
     "",
-    `spectra <- read.delim(${JSON.stringify(spectraPath)}, check.names = FALSE)`,
-    `signatures <- read.delim(${JSON.stringify(signaturePath)}, check.names = FALSE)`,
-    "rownames(spectra) <- spectra[[1]]",
-    "spectra[[1]] <- NULL",
-    "rownames(signatures) <- signatures[[1]]",
-    "signatures[[1]] <- NULL",
-    "signature.matrix <- as.matrix(signatures)",
-    "results <- lapply(colnames(spectra), function(sample_name) {",
+    `spectra <- read.delim(${JSON.stringify(spectraPath)}, check.names = FALSE, row.names = 1)`,
+    `signatures <- read.delim(${JSON.stringify(signaturePath)}, check.names = FALSE, row.names = 1)`,
+    "spectra <- t(as.matrix(spectra))",
+    "signatures <- t(as.matrix(signatures))",
+    "common.contexts <- intersect(colnames(spectra), colnames(signatures))",
+    "spectra <- spectra[, common.contexts, drop = FALSE]",
+    "signatures <- signatures[, common.contexts, drop = FALSE]",
+    "spectra <- spectra / rowSums(spectra)",
+    "signatures <- signatures / rowSums(signatures)",
+    "signature.names <- rownames(signatures)",
+    "results <- lapply(rownames(spectra), function(sample_name) {",
     "  fit <- whichSignatures(",
-    "    tumor.ref = spectra[[sample_name]],",
-    "    signatures.ref = signature.matrix,",
+    "    tumor.ref = as.data.frame(spectra),",
+    "    signatures.ref = as.data.frame(signatures),",
     "    sample.id = sample_name,",
     `    signature.cutoff = ${Number(signatureCutoff)}`,
+    "    contexts.needed = FALSE",
     "  )",
-    "  weights <- fit$weights",
-    "  data.frame(sample = sample_name, t(weights), check.names = FALSE)",
+    "  weights <- as.numeric(fit$weights)",
+    "  names(weights) <- names(fit$weights)",
+    "  exposure <- setNames(rep(0, length(signature.names)), signature.names)",
+    "  matching <- intersect(names(weights), signature.names)",
+    "  exposure[matching] <- weights[matching]",
+    "  total <- sum(exposure)",
+    "  if (is.finite(total) && total > 0) exposure <- exposure / total",
+    "  data.frame(sample = sample_name, t(exposure), check.names = FALSE)",
     "})",
     "exposures <- do.call(rbind, results)",
+    "dir.create(dirname(" + JSON.stringify(outputPath) + "), recursive = TRUE, showWarnings = FALSE)",
     `write.table(exposures, file = ${JSON.stringify(outputPath)}, sep = "\\t", quote = FALSE, row.names = FALSE)`,
     "",
   ].join("\n");
@@ -1674,6 +1701,8 @@ async function runDeconstructSigsWebR(
     binaryRVersion,
     packageIndexUrls,
     skipPackageCheck = false,
+    useSourceArchiveOnMissingPackage = true,
+    sourceArchiveUrl = DEFAULT_DECONSTRUCTSIGS_SOURCE_ARCHIVE_URL,
     timeoutMs = 300000,
     runnerOptions = {},
   } = {}
@@ -1695,14 +1724,31 @@ async function runDeconstructSigsWebR(
         rPackages,
         ...packageOptions,
       });
-  if (availability) {
+  const sourceArchiveExecution =
+    Boolean(
+      availability &&
+        !availability.available &&
+        useSourceArchiveOnMissingPackage &&
+        availability.status === "missing package" &&
+        (availability.missing || []).includes("deconstructSigs")
+    );
+  if (availability && !sourceArchiveExecution) {
     assertWebRAdapterAvailable(availability, "deconstructSigs");
   }
+  const rSnippet = sourceArchiveExecution
+    ? createDeconstructSigsRScript({
+        spectraPath,
+        signaturePath,
+        outputPath,
+        signatureCutoff,
+        sourceArchiveUrl,
+      })
+    : prepared.rSnippet;
 
   const rawRun = await runWebR(
     {
-      r: prepared.rSnippet,
-      rPackages: uniquePackages(rPackages),
+      r: rSnippet,
+      rPackages: sourceArchiveExecution ? [] : uniquePackages(rPackages),
       files: prepared.files,
       outputFiles: [prepared.manifest.outputPath],
       timeoutMs,
@@ -1722,9 +1768,13 @@ async function runDeconstructSigsWebR(
   return {
     schemaVersion: ADAPTER_SCHEMA_VERSION,
     adapter: "deconstructsigs",
-    runtime: "webr",
+    runtime: sourceArchiveExecution ? "webr_source_archive" : "webr",
     status: "completed",
-    exactPackageExecution: true,
+    exactPackageExecution: !sourceArchiveExecution,
+    sourceArchiveExecution,
+    loadedOutput: sourceArchiveExecution
+      ? "Computed by original deconstructSigs 1.8.0 R source in WebR for the active data"
+      : "Computed by deconstructSigs in WebR for the active data",
     packageAvailability: availability,
     preparedInput: prepared.manifest,
     exposures,
@@ -1733,9 +1783,11 @@ async function runDeconstructSigsWebR(
       tool: "deconstructSigs",
       runtime: "webr",
       packageName: "deconstructSigs",
+      packageVersion: sourceArchiveExecution ? "1.8.0" : null,
       parameters: prepared.manifest,
-      notes:
-        "Exact package execution through webR. Availability depends on compatible WebAssembly package builds in the active repository.",
+      notes: sourceArchiveExecution
+        ? "Original deconstructSigs 1.8.0 R source loaded from the CRAN archive and executed in webR because the active WebR binary repository did not provide the archived package."
+        : "Exact package execution through webR. Availability depends on compatible WebAssembly package builds in the active repository.",
     }),
   };
 }

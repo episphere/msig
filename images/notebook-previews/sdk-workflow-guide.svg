@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="sdk-workflow-guide-svg-title sdk-workflow-guide-svg-desc">
+  <title id="sdk-workflow-guide-svg-title">Workflow guide</title>
+  <desc id="sdk-workflow-guide-svg-desc">Roadmap through input, fit, review, and report decisions</desc>
+  <defs>
+    <linearGradient id="sdk-workflow-guide-svg-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbfcf8"/>
+      <stop offset="58%" stop-color="#f3faf5"/>
+      <stop offset="100%" stop-color="#e8f5ef"/>
+    </linearGradient>
+    <radialGradient id="sdk-workflow-guide-svg-glow" cx="72%" cy="26%" r="70%">
+      <stop offset="0%" stop-color="#168a8c" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#168a8c" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="sdk-workflow-guide-svg-shadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#10201b" flood-opacity="0.12"/>
+    </filter>
+    <marker id="sdk-workflow-guide-svg-arrow" markerWidth="13" markerHeight="13" refX="10" refY="6.5" orient="auto">
+      <path d="M 0 0 L 13 6.5 L 0 13 Z" fill="#2f7d55"/>
+    </marker>
+  </defs>
+  <rect width="960" height="540" fill="url(#sdk-workflow-guide-svg-bg)"/>
+  <rect width="960" height="540" fill="url(#sdk-workflow-guide-svg-glow)"/>
+  <path d="M 0 390 C 150 316 276 448 424 372 C 548 308 698 328 960 228 L 960 540 L 0 540 Z" fill="#2f7d5512" /><circle cx="132" cy="94" r="104" fill="#168a8c12" /><circle cx="850" cy="448" r="146" fill="#2f7d5512" />
+  <path d="M 118 350 C 180 174 318 178 386 278 S 594 384 698 214 C 754 124 838 142 872 214" fill="none" stroke="#2f7d5544" stroke-width="22" stroke-linecap="round" /><circle cx="150" cy="310" r="7" fill="#2f7d55" opacity="0.7" /><circle cx="205" cy="230" r="5" fill="#2f7d55" opacity="0.35" /><circle cx="296" cy="210" r="7" fill="#2f7d55" opacity="0.7" /><circle cx="386" cy="278" r="5" fill="#2f7d55" opacity="0.35" /><circle cx="488" cy="338" r="7" fill="#2f7d55" opacity="0.7" /><circle cx="600" cy="328" r="5" fill="#2f7d55" opacity="0.35" /><circle cx="698" cy="214" r="7" fill="#2f7d55" opacity="0.7" /><circle cx="790" cy="172" r="5" fill="#2f7d55" opacity="0.35" /><circle cx="860" cy="214" r="7" fill="#2f7d55" opacity="0.7" /><g ><rect x="104" y="280" width="120" height="118" rx="26" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" filter="url(#sdk-workflow-guide-svg-shadow)" /><circle cx="164" cy="338" r="40" fill="#168a8c18" stroke="#168a8c" stroke-width="4" />,<path d="M 164 306 L 136 338 H 152 V 370 H 176 V 338 H 192 Z" fill="#168a8c" /></g><g ><rect x="330" y="210" width="126" height="120" rx="26" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" filter="url(#sdk-workflow-guide-svg-shadow)" /><rect x="370" y="292.32" width="7.5" height="17.68" rx="8" fill="#2f7d55" /><rect x="385.5" y="273.6" width="7.5" height="36.4" rx="8" fill="#d59b2e" /><rect x="401" y="284" width="7.5" height="26" rx="8" fill="#2f7d55" /><rect x="416.5" y="267.36" width="7.5" height="42.64" rx="8" fill="#d59b2e" /></g><g ><rect x="562" y="270" width="128" height="122" rx="26" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" filter="url(#sdk-workflow-guide-svg-shadow)" /><rect x="594" y="302" width="14" height="14" rx="4" fill="#168a8c" opacity="0.72" /><rect x="612" y="302" width="14" height="14" rx="4" fill="#168a8c" opacity="0.32" /><rect x="630" y="302" width="14" height="14" rx="4" fill="#168a8c" opacity="0.52" /><rect x="648" y="302" width="14" height="14" rx="4" fill="#168a8c" opacity="0.72" /><rect x="594" y="320" width="14" height="14" rx="4" fill="#2f7d55" opacity="0.62" /><rect x="612" y="320" width="14" height="14" rx="4" fill="#2f7d55" opacity="0.32" /><rect x="630" y="320" width="14" height="14" rx="4" fill="#2f7d55" opacity="0.62" /><rect x="648" y="320" width="14" height="14" rx="4" fill="#2f7d55" opacity="0.32" /><rect x="594" y="338" width="14" height="14" rx="4" fill="#4772b2" opacity="0.52" /><rect x="612" y="338" width="14" height="14" rx="4" fill="#4772b2" opacity="0.32" /><rect x="630" y="338" width="14" height="14" rx="4" fill="#4772b2" opacity="0.72" /><rect x="648" y="338" width="14" height="14" rx="4" fill="#4772b2" opacity="0.52" /></g><g ><rect x="778" y="144" width="126" height="122" rx="26" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" filter="url(#sdk-workflow-guide-svg-shadow)" /><circle cx="841" cy="205" r="38" fill="#eef8f1" stroke="#2f7d55" stroke-width="8" /><path d="M 824.28 205 L 836.44 217.16 L 859.24 191.32" fill="none" stroke="#2f7d55" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" /></g><polygon points="104,128 134,82 164,128 134,174" fill="#2f7d5520" stroke="#2f7d55" stroke-width="4" /><circle cx="134" cy="128" r="12" fill="#2f7d55" />
+</svg>

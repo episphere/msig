@@ -87,8 +87,6 @@ import {
   recommendAnalysisStrategy,
   runCohortFit,
   runPanelWorkflow,
-  runSubgroupDiscoveryWorkflow,
-  summarizeRestrictedAssayEvidence,
 } from "../../../../mSigSDKScripts/guidance.js";
 import {
   extractSignaturesNMF,
@@ -109,7 +107,7 @@ const DISCOVERY_SCENARIOS = [
 ];
 const WORKFLOW_SCENARIOS = [
   { id: "panel_wes_batch", useCase: "Small panel/WES batch", sequencing: "Panel/WES", sampleCount: 24, signatureCount: 12, burden: 80, seed: 4101, workflows: ["advisor", "fitQualityEvidence", "panel"] },
-  { id: "rare_cancer_cohort", useCase: "Rare-cancer cohort", sequencing: "WES/WGS", sampleCount: 40, signatureCount: 18, burden: 300, seed: 4102, workflows: ["advisor", "fitQualityEvidence", "cohort", "subgroup"] },
+  { id: "rare_cancer_cohort", useCase: "Rare-cancer cohort", sequencing: "WES/WGS", sampleCount: 40, signatureCount: 18, burden: 300, seed: 4102, workflows: ["advisor", "fitQualityEvidence", "cohort"] },
   { id: "medium_research_cohort", useCase: "Medium research cohort", sequencing: "WGS/WES", sampleCount: 120, signatureCount: 24, burden: 1200, seed: 4103, workflows: ["advisor", "fitQualityEvidence", "cohort"] },
 ];
 
@@ -492,15 +490,6 @@ async function runGuidanceScenario({ scenario, repeats }) {
     );
     rows.push(fitQualityEvidence.row);
   }
-  if (scenario.workflows.includes("panel")) {
-    const restrictedAssayEvidence = await measure(
-      "v03_restricted_assay_evidence",
-      baseScenario,
-      () => summarizeRestrictedAssayEvidence(signatures, { contexts }),
-      repeats
-    );
-    rows.push(restrictedAssayEvidence.row);
-  }
   if (scenario.workflows.includes("cohort")) {
     const cohort = await measure(
       "v03_cohort_fit_pipeline",
@@ -542,33 +531,6 @@ async function runGuidanceScenario({ scenario, repeats }) {
       repeats
     );
     rows.push(panel.row);
-  }
-  if (scenario.workflows.includes("subgroup")) {
-    const subgroupSamples = Object.keys(spectra).slice(0, Math.min(scenario.sampleCount, 12));
-    const subgroup = await measure(
-      "v03_subgroup_discovery",
-      { ...baseScenario, samples: subgroupSamples.length, iterations: 75, ranks: [2] },
-      () =>
-        runSubgroupDiscoveryWorkflow(
-          {
-            spectra: Object.fromEntries(
-              subgroupSamples.map((sampleName) => [sampleName, spectra[sampleName]])
-            ),
-            signatures,
-            subgroups: [{ clusterId: "benchmark_subgroup", samples: subgroupSamples }],
-          },
-          {
-            contexts,
-            rank: 2,
-            nRuns: 3,
-            maxIterations: 75,
-            minSubgroupSamples: 5,
-            minMedianBurden: 100,
-          }
-        ),
-      repeats
-    );
-    rows.push(subgroup.row);
   }
   return rows;
 }

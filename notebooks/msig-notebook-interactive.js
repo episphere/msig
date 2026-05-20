@@ -74,12 +74,6 @@ const MODE_COPY = {
       "Compare mSigSDK with other fitting tools on the same spectra and reference signatures.",
     kind: "engine",
   },
-  experimental: {
-    title: "Interactive experimental sandbox",
-    summary:
-      "Edit variant rows and early-stage clustering settings while keeping the limits and required follow-up visible.",
-    kind: "experimental",
-  },
 };
 
 const NOTEBOOK_LINKS = [
@@ -120,13 +114,13 @@ const NOTEBOOK_LINKS = [
     result: "A verified mutation spectrum plus the checks behind the conversion.",
   },
   {
-    title: "Known-signature quality check",
+    title: "Cohort QC triage",
     file: "msig-sdk-qc-walkthrough.onb.html",
     topic: "Quality control",
     phase: "Judge results",
-    summary: "Read mutation burden, reconstruction quality, residuals, warnings, and review steps together.",
-    bestFor: "You already have a known-signature fit and need to decide whether it is interpretable.",
-    result: "A practical review of the evidence around fitted signature estimates.",
+    summary: "Rank known-signature fits by cohort-level QC concern, then inspect burden, reconstruction, residuals, warnings, and next steps.",
+    bestFor: "You have fitted samples and need to decide which results need review before reporting.",
+    result: "A cohort triage table with sample-level evidence behind fitted signature estimates.",
   },
   {
     title: "Cohort and panel workflow",
@@ -181,15 +175,6 @@ const NOTEBOOK_LINKS = [
     summary: "Compare fitting engines on the same inputs and inspect sample-level disagreements.",
     bestFor: "You want to know whether different tools agree on the same sample.",
     result: "Agreement and disagreement evidence, not a package leaderboard.",
-  },
-  {
-    title: "Experimental sandbox",
-    file: "msig-sdk-experimental-sandbox.onb.html",
-    topic: "Exploratory outputs",
-    phase: "Explore",
-    summary: "Keep early-stage workflows visibly separate from validated signature calls.",
-    bestFor: "You are trying an experimental method and need the limitations to stay attached.",
-    result: "Exploratory output with warnings and validation boundaries.",
   },
 ];
 
@@ -259,13 +244,6 @@ const DATA_GUIDES = {
       "Provide a spectra table with multiple samples and enough mutations for discovery. Reference signatures are optional for matching learned patterns to known signatures.",
     example: '{ "tumor_a": { "A[C>A]A": 420 }, "tumor_b": { "T[C>T]A": 165 } }',
   },
-  experimental: {
-    sample:
-      "The default experimental rows are real public TCGA/GDC variant rows trimmed to a browser-sized localized-mutagenesis screen.",
-    format:
-      "Provide CSV, TSV, or JSON rows with chromosome, position, context, and an optional id. These exploratory outputs are not validated signature calls.",
-    example: "chromosome,position,context,id",
-  },
 };
 
 function clone(value) {
@@ -306,7 +284,6 @@ function guideForKind(kind) {
   if (kind === "maf") return DATA_GUIDES.maf;
   if (kind === "panel" || kind === "cohort-panel") return DATA_GUIDES.panel;
   if (kind === "nmf") return DATA_GUIDES.nmf;
-  if (kind === "experimental") return DATA_GUIDES.experimental;
   return DATA_GUIDES.matrixFit;
 }
 
@@ -592,30 +569,6 @@ function panelRows(result) {
   );
 }
 
-function fociRows(result) {
-  return (result?.foci || result?.localized?.foci || []).map((focus, index) => ({
-    focus: index + 1,
-    chromosome: focus.chromosome,
-    start: focus.start,
-    end: focus.end,
-    mutations: focus.mutationCount,
-    contextPattern: focus.contextPattern,
-    apobecLikeFraction: focus.apobecLikeFraction,
-    clusterPValue: focus.clusterPValue,
-  }));
-}
-
-function rainfallRows(result) {
-  return (result?.rainfall || result?.localized?.rainfall || []).map((variant) => ({
-    id: variant.id,
-    chromosome: variant.chromosome,
-    position: variant.position,
-    previousDistance: variant.previousDistance,
-    log10PreviousDistance: variant.log10PreviousDistance,
-    context: variant.context,
-  }));
-}
-
 function renderDownloads(items) {
   const list = document.createElement("div");
   list.className = "download-list";
@@ -631,7 +584,7 @@ function renderDownloads(items) {
   return list;
 }
 
-async function plotCard(grid, label, renderer, fallback = null) {
+async function plotCard(grid, label, renderer, fallback = null, options = {}) {
   const section = document.createElement("section");
   section.className = "workflow-plot-section";
   const heading = document.createElement("h3");
@@ -642,13 +595,13 @@ async function plotCard(grid, label, renderer, fallback = null) {
   section.append(heading, host);
   grid.append(section);
   try {
-    await renderer(host);
+    await renderer(host, options.figureContext || options);
   } catch (error) {
     host.replaceChildren(fallback || placeholder(`Could not render ${label}: ${error.message}`));
   }
 }
 
-async function plotSampleCard(grid, label, samples, initialSample, renderer, fallback = null, help = "") {
+async function plotSampleCard(grid, label, samples, initialSample, renderer, fallback = null, help = "", options = {}) {
   const section = document.createElement("section");
   section.className = "workflow-plot-section";
   const heading = document.createElement("h3");
@@ -678,7 +631,7 @@ async function plotSampleCard(grid, label, samples, initialSample, renderer, fal
     status.textContent = sample ? `Showing sample ${sample}.` : "Choose a sample to render this plot.";
     host.replaceChildren(placeholder(`Rendering ${label}${sample ? ` for ${sample}` : ""}...`));
     try {
-      await renderer(host, sample, status);
+      await renderer(host, sample, status, options.figureContext || options);
     } catch (error) {
       const fallbackNode = typeof fallback === "function" ? fallback(sample) : fallback;
       host.replaceChildren(fallbackNode || placeholder(`Could not render ${label}: ${error.message}`));
@@ -728,8 +681,6 @@ function readParams(controls) {
     callableScale: parseNumber(controls.callableScaleInput.value, 1),
     genomeBuild: controls.genomeBuildInput.value.trim() || "GRCh37",
     mafGroupBy: controls.mafGroupByInput.value.trim() || "project_code",
-    localizedMaxDistance: Math.max(1, Math.round(parseNumber(controls.localizedDistanceInput.value, 700))),
-    localizedMinMutations: Math.max(1, Math.round(parseNumber(controls.localizedMinMutationsInput.value, 3))),
   };
 }
 
@@ -760,22 +711,6 @@ async function fillSampleData(mSigSDK, controls, kind) {
     if (controls.mafText) controls.mafText.value = rowsToCsv(mafData.rows);
     if (controls.signaturesText) controls.signaturesText.value = JSON.stringify(signatureData.signatures, null, 2);
     if (controls.mafGroupByInput) controls.mafGroupByInput.value = "sample";
-  } else if (kind === "experimental") {
-    const variantData = await loadPublicMafRows(mSigSDK, {
-      projects: ["TCGA-LUAD"],
-      maxFiles: 1,
-      maxVariants: 120,
-    });
-    if (controls.variantText) {
-      controls.variantText.value = rowsToCsv(variantData.rows.map((row) => ({
-        chromosome: row.chromosome,
-        position: row.position,
-        context: row.context || `${row.reference_allele || "N"}>${row.tumor_seq_allele2 || "N"}`,
-        id: row.id,
-        sample: row.sample,
-        source: row.source,
-      })));
-    }
   } else {
     const sampleLimit = kind === "panel" ? 3 : kind === "nmf" ? 6 : 8;
     const publicData = await loadPublicSbs96Dataset(mSigSDK, { sampleLimit });
@@ -1265,46 +1200,12 @@ async function runEngineWorkflow(app) {
   ]));
 }
 
-async function runExperimentalWorkflow(app) {
-  const { mSigSDK, controls, outputs, presentation } = app;
-  const params = readParams(controls);
-  const variants = parseMafRows(controls.variantText.value);
-  const result = mSigSDK.experimental.runLocalizedMutagenesisAnalysis(
-    variants,
-    params.genomeBuild,
-    {
-      maxIntermutationDistance: params.localizedMaxDistance,
-      minMutations: params.localizedMinMutations,
-      minBurdenForLocalizedAnalysis: params.localizedMinMutations,
-      clusterSignificanceThreshold: 0.05,
-    }
-  );
-  const rainfall = rainfallRows(result);
-  const foci = fociRows(result);
-  outputs.summary.append(presentation.metrics([
-    { label: "Workflow", value: result.workflow },
-    { label: "Validated for manuscript use", value: result.experimentalStatus?.validatedForManuscriptUse ? "Yes" : "No" },
-    { label: "Variants", value: result.validation?.variants?.variantCount || variants.length },
-    { label: "Foci", value: foci.length },
-  ]));
-  outputs.summary.append(presentation.table(variants, undefined, { maxRows: 12 }));
-  outputs.summary.append(presentation.table(foci, undefined, { maxRows: 12 }));
-  outputs.summary.append(presentation.table(warningRowList(result.warnings), undefined, { maxRows: 12 }));
-  outputs.summary.append(presentation.table((result.recommendedActions || []).map((action) => ({ action })), undefined, { maxRows: 12 }));
-  outputs.exports.append(renderDownloads([
-    { filename: "interactive_localized_rainfall.csv", text: rowsToCsv(rainfall), label: "Download rainfall CSV" },
-    { filename: "interactive_localized_foci.csv", text: rowsToCsv(foci), label: "Download foci CSV" },
-    { filename: "interactive_experimental_report.json", type: "json", value: { params, result }, label: "Download experimental report JSON" },
-  ]));
-}
-
 function buildControls(config) {
   const controls = {};
   controls.spectraText = textArea("Paste spectra JSON or SigProfiler-style TSV");
   controls.signaturesText = textArea("Paste signature JSON or COSMIC-style TSV");
   controls.metadataText = textArea("Optional sample details CSV/TSV/JSON", 5);
   controls.mafText = textArea("Paste MAF-like CSV/TSV/JSON rows", 7);
-  controls.variantText = textArea("Paste variant CSV/TSV/JSON rows", 7);
   controls.lowBurdenInput = input(100, "number", 10);
   controls.moderateBurdenInput = input(1000, "number", 50);
   controls.exposureThresholdInput = input(0.01, "number", 0.005);
@@ -1322,13 +1223,11 @@ function buildControls(config) {
   controls.callableScaleInput = input(1, "number", 0.1);
   controls.genomeBuildInput = input("GRCh37");
   controls.mafGroupByInput = input("project_code");
-  controls.localizedDistanceInput = input(700, "number", 50);
-  controls.localizedMinMutationsInput = input(3, "number", 1);
   return controls;
 }
 
 function appendDataControls(grid, controls, kind) {
-  if (kind !== "maf" && kind !== "experimental") {
+  if (kind !== "maf") {
     grid.append(
       field("Spectra table", controls.spectraText, "JSON object or SigProfiler-style TSV."),
       field("Upload spectra", fileInput(controls.spectraText))
@@ -1352,21 +1251,13 @@ function appendDataControls(grid, controls, kind) {
       field("Upload MAF", fileInput(controls.mafText))
     );
   }
-  if (kind === "experimental") {
-    grid.append(
-      field("Variant rows", controls.variantText, "CSV/TSV/JSON with chromosome, position, context, and id."),
-      field("Upload variants", fileInput(controls.variantText))
-    );
-  }
 }
 
 function appendParameterControls(grid, controls, kind) {
-  if (kind !== "experimental") {
-    grid.append(
-      field("Low mutation-count cutoff", controls.lowBurdenInput),
-      field("Moderate mutation-count cutoff", controls.moderateBurdenInput)
-    );
-  }
+  grid.append(
+    field("Low mutation-count cutoff", controls.lowBurdenInput),
+    field("Moderate mutation-count cutoff", controls.moderateBurdenInput)
+  );
   if (["fit", "portability", "maf", "cohort-panel", "panel", "uncertainty", "report", "engine"].includes(kind)) {
     grid.append(
       field("Minimum signature contribution", controls.exposureThresholdInput),
@@ -1398,13 +1289,6 @@ function appendParameterControls(grid, controls, kind) {
       field("Random seed", controls.seedInput)
     );
   }
-  if (kind === "experimental") {
-    grid.append(
-      field("Genome build", controls.genomeBuildInput),
-      field("Maximum distance between nearby variants", controls.localizedDistanceInput),
-      field("Minimum clustered mutations", controls.localizedMinMutationsInput)
-    );
-  }
 }
 
 function resetOutputs(outputs, message = "Ready.") {
@@ -1428,7 +1312,6 @@ async function dispatchRun(app) {
   if (kind === "uncertainty") return await runKnownFit(app, { includeUncertainty: true });
   if (kind === "report") return await runKnownFit(app, { includePortability: true, includeUncertainty: true });
   if (kind === "engine") return await runEngineWorkflow(app);
-  if (kind === "experimental") return await runExperimentalWorkflow(app);
   return null;
 }
 
@@ -1501,9 +1384,7 @@ export function renderInteractiveNotebook({ mode, mSigSDK, display }) {
       updateSampleSelect(mSigSDK, controls);
       const preview = config.kind === "maf"
         ? parseMafRows(controls.mafText.value).slice(0, 10)
-        : config.kind === "experimental"
-          ? parseMafRows(controls.variantText.value).slice(0, 10)
-          : sampleRows(parseMatrix(mSigSDK, controls.spectraText.value, "spectra"));
+        : sampleRows(parseMatrix(mSigSDK, controls.spectraText.value, "spectra"));
       summary.replaceChildren();
       summary.append(presentation.table(preview, undefined, { maxRows: 12 }));
       if (controls.signaturesText.value.trim()) {
@@ -1532,7 +1413,7 @@ export function renderInteractiveNotebook({ mode, mSigSDK, display }) {
     }
   });
   clear.addEventListener("click", () => {
-    for (const key of ["spectraText", "signaturesText", "metadataText", "mafText", "variantText"]) {
+    for (const key of ["spectraText", "signaturesText", "metadataText", "mafText"]) {
       if (controls[key]) controls[key].value = "";
     }
     controls.sampleSelect.replaceChildren();
@@ -1620,8 +1501,6 @@ export function renderInteractiveStep({
       outputs.exports.replaceChildren();
       if (config.kind === "maf") {
         outputs.summary.append(presentation.table(parseMafRows(controls.mafText.value).slice(0, 12), undefined, { maxRows: 12 }));
-      } else if (config.kind === "experimental") {
-        outputs.summary.append(presentation.table(parseMafRows(controls.variantText.value).slice(0, 12), undefined, { maxRows: 12 }));
       } else {
         const spectra = parseMatrix(mSigSDK, controls.spectraText.value, "spectra");
         outputs.summary.append(presentation.table(sampleRows(spectra), undefined, { maxRows: 12 }));

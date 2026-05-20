@@ -5,30 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="mSigSDK examples, notebook workflows, and browser-first JavaScript APIs for mutational signature analysis."
+      content="mSigSDK browser notebooks and JavaScript APIs for mutational signature analysis."
     />
     <meta property="og:title" content="mSigSDK" />
     <meta
       property="og:description"
-      content="Run focused mSigSDK examples, inspect notebook code, and import the SDK directly from GitHub Pages."
+      content="Run browser-native mutational signature review workflows, inspect notebook code, and import the SDK from GitHub Pages."
     />
     <meta property="twitter:card" content="summary_large_image" />
-    <title>mSigSDK examples and workflow resources</title>
+    <title>mSigSDK browser workflows</title>
     <style>
       :root {
         --bg: #f7f8f4;
         --surface: #ffffff;
-        --surface-alt: #eef3ee;
-        --ink: #17201d;
-        --muted: #5f6d67;
-        --rule: #d8ded8;
-        --teal: #147d7f;
-        --green: #2d6a4f;
-        --coral: #b85c38;
-        --gold: #9b6a1d;
-        --code-bg: #101614;
-        --code-ink: #e8f1ed;
-        --shadow: 0 18px 55px rgba(23, 32, 29, 0.09);
+        --surface-soft: #eef5f1;
+        --ink: #16211d;
+        --muted: #61706a;
+        --rule: #d9e2dc;
+        --teal: #168a8c;
+        --green: #2f7d55;
+        --blue: #4772b2;
+        --gold: #b77a24;
+        --rose: #b96475;
+        --code-bg: #111915;
+        --code-ink: #ecf5ef;
+        --shadow: 0 18px 60px rgba(22, 33, 29, 0.1);
       }
 
       * {
@@ -46,7 +47,7 @@
         font-family:
           Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
           "Segoe UI", sans-serif;
-        line-height: 1.55;
+        line-height: 1.5;
       }
 
       a {
@@ -67,10 +68,17 @@
       .site-header {
         position: sticky;
         top: 0;
-        z-index: 10;
-        border-bottom: 1px solid rgba(216, 222, 216, 0.9);
+        z-index: 20;
+        border-bottom: 1px solid rgba(217, 226, 220, 0.9);
         background: rgba(247, 248, 244, 0.94);
         backdrop-filter: blur(14px);
+      }
+
+      .nav,
+      main,
+      .footer-inner {
+        width: min(1160px, calc(100% - 36px));
+        margin: 0 auto;
       }
 
       .nav {
@@ -78,8 +86,6 @@
         align-items: center;
         justify-content: space-between;
         gap: 24px;
-        width: min(1180px, calc(100% - 36px));
-        margin: 0 auto;
         padding: 14px 0;
       }
 
@@ -88,19 +94,20 @@
         align-items: center;
         gap: 12px;
         color: var(--ink);
-        font-weight: 750;
+        font-weight: 760;
         text-decoration: none;
       }
 
       .brand-mark {
         display: grid;
-        width: 34px;
-        height: 34px;
+        width: 36px;
+        height: 36px;
         place-items: center;
         border-radius: 8px;
         background: var(--ink);
         color: #fff;
         font-size: 14px;
+        font-weight: 800;
         letter-spacing: 0;
       }
 
@@ -109,7 +116,7 @@
         flex-wrap: wrap;
         align-items: center;
         justify-content: flex-end;
-        gap: 14px;
+        gap: 18px;
         color: var(--muted);
         font-size: 14px;
       }
@@ -122,62 +129,97 @@
         color: var(--ink);
       }
 
-      main {
-        width: min(1180px, calc(100% - 36px));
-        margin: 0 auto;
-      }
-
-      .intro {
+      .hero {
         display: grid;
-        grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
-        gap: 28px;
+        grid-template-columns: minmax(0, 0.92fr) minmax(440px, 1.08fr);
+        gap: 42px;
         align-items: stretch;
-        padding: 42px 0 28px;
+        padding: 58px 0 54px;
       }
 
-      .intro-copy {
+      .hero-copy {
         display: flex;
-        min-height: 420px;
+        min-height: 620px;
+        max-width: 650px;
         flex-direction: column;
         justify-content: space-between;
-        gap: 30px;
-        border-left: 5px solid var(--teal);
-        padding: 8px 0 8px 26px;
+        padding: 36px 0;
       }
 
       .eyebrow {
         margin: 0 0 12px;
         color: var(--green);
         font-size: 13px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
+        font-weight: 820;
+        letter-spacing: 0;
         text-transform: uppercase;
       }
 
       h1,
       h2,
-      h3 {
+      h3,
+      h4 {
         margin: 0;
         letter-spacing: 0;
         line-height: 1.08;
       }
 
       h1 {
-        max-width: 820px;
-        font-size: clamp(38px, 5vw, 72px);
+        max-width: 680px;
+        font-size: 58px;
       }
 
       .lede {
-        max-width: 740px;
-        margin: 20px 0 0;
+        max-width: 600px;
+        margin: 22px 0 0;
         color: var(--muted);
-        font-size: clamp(18px, 2vw, 22px);
+        font-size: 18px;
       }
 
       .action-row {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
+        margin-top: 28px;
+      }
+
+      .hero-points {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 38px;
+      }
+
+      .hero-point {
+        display: grid;
+        gap: 7px;
+        border-top: 3px solid var(--teal);
+        background: rgba(255, 255, 255, 0.58);
+        padding: 14px 0 0;
+      }
+
+      .hero-point span {
+        color: var(--green);
+        font-size: 12px;
+        font-weight: 820;
+        text-transform: uppercase;
+      }
+
+      .hero-point strong {
+        font-size: 17px;
+      }
+
+      .hero-point p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.42;
+      }
+
+      .hero-note {
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: 14px;
       }
 
       .button {
@@ -190,7 +232,7 @@
         padding: 10px 15px;
         color: var(--ink);
         font-size: 14px;
-        font-weight: 750;
+        font-weight: 760;
         text-decoration: none;
       }
 
@@ -204,70 +246,142 @@
         transform: translateY(-1px);
       }
 
-      .live-panel {
-        display: flex;
-        min-height: 420px;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: 18px;
+      .module-meter {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .meter-item {
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 12px;
+      }
+
+      .meter-item strong,
+      .meter-item span {
+        display: block;
+      }
+
+      .meter-item strong {
+        font-size: 18px;
+      }
+
+      .meter-item span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .import-panel {
+        display: grid;
+        gap: 16px;
+        align-self: center;
         border: 1px solid var(--rule);
         border-radius: 8px;
         background: var(--surface);
         box-shadow: var(--shadow);
         overflow: hidden;
+        padding: 16px;
       }
 
-      .panel-image {
-        height: 154px;
-        border-bottom: 1px solid var(--rule);
-        background: #fff;
-        object-fit: cover;
-        object-position: center;
+      .import-visual {
+        overflow: hidden;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--surface-soft);
+      }
+
+      .import-visual img {
         width: 100%;
+        aspect-ratio: 19 / 8;
+        object-fit: cover;
       }
 
-      .panel-body {
-        padding: 22px;
+      .import-panel h2 {
+        font-size: 30px;
       }
 
-      .status-grid {
+      .import-panel p {
+        margin: 10px 0 0;
+        color: var(--muted);
+      }
+
+      .import-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .capability-flow {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
-        margin: 18px 0;
+        margin-top: 16px;
       }
 
-      .status-box {
+      .flow-item {
         border: 1px solid var(--rule);
         border-radius: 8px;
+        background: rgba(238, 245, 241, 0.62);
         padding: 12px;
-        background: var(--surface-alt);
       }
 
-      .status-box span {
+      .flow-item span,
+      .flow-item strong {
         display: block;
-        color: var(--muted);
-        font-size: 12px;
       }
 
-      .status-box strong {
-        display: block;
-        margin-top: 2px;
+      .flow-item span {
+        color: var(--green);
+        font-size: 11px;
+        font-weight: 820;
+        text-transform: uppercase;
+      }
+
+      .flow-item strong {
+        margin-top: 4px;
         font-size: 16px;
       }
 
-      .code-block {
-        margin: 0;
-        overflow-x: auto;
-        border-radius: 8px;
-        background: var(--code-bg);
-        color: var(--code-ink);
-        padding: 16px;
+      .flow-item p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .code-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 16px 0 8px;
+        color: var(--muted);
         font-size: 13px;
       }
 
+      .code-label strong {
+        color: var(--ink);
+        font-size: 14px;
+      }
+
+      .source-link {
+        color: var(--teal);
+        font-weight: 760;
+        text-decoration: none;
+      }
+
+      .button.copy-confirmed {
+        border-color: var(--green);
+        background: var(--green);
+        color: #fff;
+      }
+
       .section {
-        padding: 44px 0;
+        padding: 42px 0;
         border-top: 1px solid var(--rule);
       }
 
@@ -280,144 +394,142 @@
       }
 
       .section-header h2 {
-        font-size: clamp(26px, 3vw, 40px);
+        font-size: 42px;
       }
 
       .section-header p {
-        max-width: 650px;
-        margin: 8px 0 0;
+        max-width: 670px;
+        margin: 10px 0 0;
         color: var(--muted);
       }
 
-      .notebook-grid {
+      .capability-stack {
+        display: grid;
+        gap: 0;
+      }
+
+      .capability-row {
+        display: grid;
+        grid-template-columns: 150px minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+        border-top: 1px solid var(--rule);
+        padding: 14px 0;
+      }
+
+      .capability-row:last-child {
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .capability-row h3 {
+        color: var(--green);
+        font-size: 16px;
+        line-height: 1.22;
+      }
+
+      .capability-row p {
+        margin: 0;
+        color: var(--ink);
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      .notebook-grid,
+      .notebook-group {
         display: grid;
         gap: 24px;
       }
 
-      .notebook-group {
-        display: grid;
+      .notebook-group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 12px;
-      }
-
-      .notebook-group h3 {
         color: var(--green);
         font-size: 13px;
-        font-weight: 850;
-        letter-spacing: 0.08em;
+        font-weight: 820;
         text-transform: uppercase;
+      }
+
+      .notebook-group-count {
+        color: var(--muted);
+        font-weight: 680;
+        text-transform: none;
       }
 
       .notebook-group-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
       }
 
-      .notebook-card,
-      .resource-card,
-      .review-card {
+      .notebook-card {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-height: 100%;
+        overflow: hidden;
         border: 1px solid var(--rule);
         border-radius: 8px;
         background: var(--surface);
       }
 
-      .notebook-card {
-        display: flex;
-        min-height: 100%;
-        flex-direction: column;
-        overflow: hidden;
-      }
-
       .notebook-card img {
-        height: 124px;
         width: 100%;
+        aspect-ratio: 16 / 9;
         border-bottom: 1px solid var(--rule);
-        background: #fff;
+        background: var(--surface-soft);
         object-fit: cover;
       }
 
-      .notebook-card .body,
-      .resource-card,
-      .review-card {
+      .notebook-card .body {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
         padding: 18px;
       }
 
-      .notebook-card h3,
-      .resource-card h3,
-      .review-card h3 {
-        font-size: 18px;
+      .notebook-card h4 {
+        font-size: 20px;
       }
 
-      .notebook-card p,
-      .resource-card p,
-      .review-card p {
-        margin: 9px 0 16px;
+      .notebook-card p {
+        margin: 0;
         color: var(--muted);
         font-size: 14px;
       }
 
       .card-link {
+        margin-top: auto;
         color: var(--teal);
         font-size: 14px;
-        font-weight: 800;
+        font-weight: 820;
         text-decoration: none;
       }
 
-      .resource-grid,
-      .review-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
+      .loading-state {
+        margin: 0;
+        border: 1px dashed var(--rule);
+        border-radius: 8px;
+        padding: 24px;
+        color: var(--muted);
       }
 
-      .namespace-list {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-        margin: 16px 0 0;
-        padding: 0;
-        list-style: none;
-      }
-
-      .namespace-list li {
+      .api-code {
         border: 1px solid var(--rule);
         border-radius: 8px;
-        background: var(--surface-alt);
-        padding: 9px 10px;
-        color: var(--green);
-        font-family:
-          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-        font-size: 12px;
       }
 
-      .two-column {
+      .api-code {
         display: grid;
-        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-        gap: 18px;
-        align-items: start;
-      }
-
-      .steps {
-        display: grid;
-        gap: 10px;
+        align-content: center;
         margin: 0;
-        padding: 0;
-        list-style: none;
-      }
-
-      .steps li {
-        border-left: 4px solid var(--gold);
-        background: var(--surface);
-        padding: 14px 16px;
-      }
-
-      .steps strong {
-        display: block;
-        margin-bottom: 4px;
-      }
-
-      .steps span {
-        color: var(--muted);
+        overflow-x: auto;
+        background: var(--code-bg);
+        color: var(--code-ink);
+        padding: 15px;
+        font-size: 13px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
       }
 
       footer {
@@ -429,49 +541,80 @@
 
       footer a {
         color: var(--teal);
-        font-weight: 700;
+        font-weight: 760;
         text-decoration: none;
       }
 
-      @media (max-width: 960px) {
-        .intro,
-        .two-column {
+      @media (max-width: 980px) {
+        .hero {
           grid-template-columns: 1fr;
+          gap: 28px;
         }
 
-        .notebook-group-grid,
-        .resource-grid,
-        .review-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+        .hero-copy {
+          min-height: auto;
+          max-width: none;
         }
 
-        .namespace-list {
+        h1 {
+          font-size: 58px;
+        }
+
+        .section-header h2 {
+          font-size: 34px;
+        }
+
+        .import-panel h2 {
+          font-size: 28px;
+        }
+
+        .notebook-group-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
 
       @media (max-width: 640px) {
-        .nav {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-
-        .intro-copy,
-        .live-panel {
-          min-height: auto;
-        }
-
+        .nav,
         .section-header {
           align-items: flex-start;
           flex-direction: column;
         }
 
-        .notebook-group-grid,
-        .resource-grid,
-        .review-grid,
-        .status-grid,
-        .namespace-list {
+        .module-meter,
+        .hero-points,
+        .capability-flow,
+        .notebook-group-grid {
           grid-template-columns: 1fr;
+        }
+
+        .capability-row {
+          grid-template-columns: 1fr;
+          gap: 6px;
+          padding: 12px 0;
+        }
+
+        .hero {
+          padding-top: 34px;
+        }
+
+        h1 {
+          font-size: 42px;
+        }
+
+        .lede {
+          font-size: 18px;
+        }
+
+        .section-header h2 {
+          font-size: 30px;
+        }
+
+        .import-panel {
+          padding: 14px;
+        }
+
+        .import-panel h2 {
+          font-size: 26px;
         }
       }
     </style>
@@ -484,255 +627,196 @@
           <span>mSigSDK</span>
         </a>
         <div class="nav-links">
-          <a href="#notebooks">Runnable notebooks</a>
-          <a href="#api">SDK API</a>
-          <a href="#checks">Workflow checks</a>
+          <a href="#capabilities">Capabilities</a>
+          <a href="#notebooks">Notebooks</a>
+          <a href="./docs/">Docs</a>
+          <a href="#api">API</a>
           <a href="https://github.com/episphere/msig">GitHub</a>
         </div>
       </nav>
     </header>
 
     <main>
-      <section class="intro" aria-labelledby="page-title">
-        <div class="intro-copy">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
           <div>
-            <p class="eyebrow">Browser-first mutational signature analysis</p>
-            <h1 id="page-title">Run the SDK, inspect the code, and reproduce the examples.</h1>
+            <p class="eyebrow">mSigSDK</p>
+            <h1 id="page-title">Browser-native mutational signature analysis from spectra to reports.</h1>
             <p class="lede">
-              mSigSDK is a JavaScript module for mutational signature data access,
-              validation, fitting, QC, uncertainty analysis, exploratory NMF,
-              reports, and browser-rendered figures. This page is a working
-              entry point for researchers evaluating and adapting the SDK, not a brochure.
+              Import one ES module for mSigPortal access, spectra validation,
+              known-signature fitting, browser-sized NMF, uncertainty-aware QC,
+              report-ready visualizations, and reproducible exports.
             </p>
+            <div class="action-row" aria-label="Primary actions">
+              <button class="button primary" data-copy-import type="button">Copy import</button>
+              <a class="button" href="./notebooks/viewer.html">Open notebooks</a>
+              <a class="button" href="./docs/">Docs</a>
+            </div>
           </div>
-          <div class="action-row" aria-label="Primary actions">
-            <a class="button primary" href="./notebooks/viewer.html">Open notebook gallery</a>
-            <a class="button" href="./main.js">View SDK source</a>
-            <a class="button" href="https://github.com/episphere/msig">Clone on GitHub</a>
+          <div class="hero-points" aria-label="Workflow coverage">
+            <div class="hero-point">
+              <span>Static</span>
+              <strong>Browser module</strong>
+              <p>Runs in notebooks, static pages, and local browser workflows.</p>
+            </div>
+            <div class="hero-point">
+              <span>Evidence</span>
+              <strong>QC attached</strong>
+              <p>Uncertainty, residuals, thresholds, and provenance stay with outputs.</p>
+            </div>
+            <div class="hero-point">
+              <span>Interop</span>
+              <strong>Tool handoffs</strong>
+              <p>Adapters prepare files for established signature packages.</p>
+            </div>
+            <div class="hero-point">
+              <span>Report</span>
+              <strong>Figure outputs</strong>
+              <p>SBS96, exposure, residual, similarity, and summary plots.</p>
+            </div>
           </div>
+          <p class="hero-note">
+            Runs as a static browser module; compatible external engines stay
+            connected through adapters and optional browser runtimes.
+          </p>
         </div>
 
-        <aside class="live-panel" aria-label="Live SDK import check">
-          <img
-            class="panel-image"
-            src="./images/Mutational%20Burden.png"
-            alt="Example mutation burden visualization rendered by mSigSDK"
-          />
-          <div class="panel-body">
-            <p class="eyebrow">Live module check</p>
-            <h2>Import the hosted SDK</h2>
-            <div class="status-grid" aria-live="polite">
-              <div class="status-box">
-                <span>Status</span>
-                <strong id="sdk-status">Loading</strong>
+        <aside class="import-panel" id="api" aria-labelledby="api-heading">
+          <div class="import-visual">
+            <img
+              src="./images/notebook-previews/sdk-hero-overview.svg"
+              alt="Abstract browser workflow with module import, analysis matrix, diagnostics, and report output"
+            />
+          </div>
+          <div>
+            <p class="eyebrow">SDK capability map</p>
+            <h2 id="api-heading">One module, several analysis paths</h2>
+            <p>
+              The public SDK combines browser-native analysis utilities with
+              portable outputs for downstream signature packages.
+            </p>
+            <div class="capability-flow" aria-label="mSigSDK analysis paths">
+              <div class="flow-item">
+                <span>Data</span>
+                <strong>mSigPortal</strong>
+                <p>Project, sample, signature, and exposure retrieval.</p>
               </div>
-              <div class="status-box">
-                <span>Version</span>
-                <strong id="sdk-version">...</strong>
+              <div class="flow-item">
+                <span>Input</span>
+                <strong>Spectra</strong>
+                <p>SBS96 matrices, MAF conversion, and context checks.</p>
               </div>
-              <div class="status-box">
-                <span>Namespaces</span>
-                <strong id="sdk-namespace-count">...</strong>
+              <div class="flow-item">
+                <span>Fit</span>
+                <strong>Refitting</strong>
+                <p>Known-signature exposures with residual QC.</p>
+              </div>
+              <div class="flow-item">
+                <span>Extract</span>
+                <strong>NMF</strong>
+                <p>Browser-sized extraction runs and rank review.</p>
+              </div>
+              <div class="flow-item">
+                <span>Plot</span>
+                <strong>Figures</strong>
+                <p>Profiles, exposures, similarity, uncertainty, and reports.</p>
+              </div>
+              <div class="flow-item">
+                <span>Share</span>
+                <strong>Exports</strong>
+                <p>HTML, JSON, TSV, and package handoff bundles.</p>
               </div>
             </div>
-            <pre class="code-block"><code>const { mSigSDK } = await import(
+            <div class="code-label">
+              <strong>Hosted ES module</strong>
+              <a class="source-link" href="./main.js">View source</a>
+            </div>
+            <pre class="api-code"><code id="import-command-code">const { mSigSDK } = await import(
   "https://episphere.github.io/msig/main.js"
-);
-
-console.log(mSigSDK.version);</code></pre>
+);</code></pre>
+          </div>
+          <div class="module-meter" aria-live="polite">
+            <div class="meter-item">
+              <strong id="sdk-status">Loading</strong>
+              <span>SDK import</span>
+            </div>
+            <div class="meter-item">
+              <strong id="sdk-version">...</strong>
+              <span>Version</span>
+            </div>
+            <div class="meter-item">
+              <strong id="sdk-namespace-count">...</strong>
+              <span>Namespaces</span>
+            </div>
           </div>
         </aside>
+      </section>
+
+      <section id="capabilities" class="section" aria-labelledby="capabilities-heading">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Capabilities</p>
+            <h2 id="capabilities-heading">From spectra to report</h2>
+            <p>
+              mSigSDK supports browser-based mutational-signature review from
+              public or local inputs through validation, fitting, quality
+              checks, visual review, and exportable reports. External tools
+              remain separate engines; mSigSDK prepares handoff files and
+              records provenance for those workflows.
+            </p>
+          </div>
+          <a class="button" href="./docs/MSIGSDK_FEATURE_REFERENCE.html">Feature reference</a>
+        </div>
+
+        <div class="capability-stack" aria-label="mSigSDK workflow capabilities">
+          <article class="capability-row">
+            <h3>Get data</h3>
+            <p>Use mSigPortal and TCGA/GDC resources, local MAF files, and matrix imports.</p>
+          </article>
+
+          <article class="capability-row">
+            <h3>Check inputs</h3>
+            <p>Validate spectra, signatures, exposures, contexts, and MAF fields before analysis.</p>
+          </article>
+
+          <article class="capability-row">
+            <h3>Run review</h3>
+            <p>Fit known signatures, review panel/WES results, summarize cohorts, and run exploratory NMF.</p>
+          </article>
+
+          <article class="capability-row">
+            <h3>Share outputs</h3>
+            <p>Export QC figures, JSON/HTML reports, TSV files, handoff bundles, and provenance.</p>
+          </article>
+        </div>
       </section>
 
       <section id="notebooks" class="section" aria-labelledby="notebooks-heading">
         <div class="section-header">
           <div>
-            <p class="eyebrow">Executable examples</p>
-            <h2 id="notebooks-heading">Focused notebooks hosted with the site</h2>
+            <p class="eyebrow">Runnable examples</p>
+            <h2 id="notebooks-heading">Notebook workflows</h2>
             <p>
-              Each notebook opens in a static GitHub Pages runner. Users can read the
-              narrative, see the JavaScript cells, edit code in the browser, and rerun
-              the notebook against the hosted SDK. The gallery follows a researcher
-              workflow from orientation and input setup through fitting, reliability
-              checks, reporting, interoperability, and advanced workflows.
+              Each notebook focuses on one analysis decision and opens in the static
+              browser runner with editable JavaScript cells.
             </p>
           </div>
-          <a class="button" href="./notebooks/viewer.html">Browse all notebooks</a>
+          <a class="button" href="./notebooks/viewer.html">Browse all</a>
         </div>
 
         <div class="notebook-grid" id="notebook-grid">
-          <article class="notebook-card">
-            <img src="./images/Mutational%20Burden.png" alt="Mutation burden plot preview" />
-            <div class="body">
-              <h3>Known-signature QC</h3>
-              <p>Load count-scale mSigPortal spectra, fit COSMIC signatures, and inspect burden, reconstruction, and residuals.</p>
-              <a class="card-link" href="./notebooks/viewer.html?notebook=msig-sdk-qc-walkthrough.onb.html">Run notebook</a>
-            </div>
-          </article>
-
-          <article class="notebook-card">
-            <img src="./images/mSigPortal.png" alt="mSigPortal resource preview" />
-            <div class="body">
-              <h3>Resource portability</h3>
-              <p>Discover mSigPortal and TCGA/GDC resources, convert them into SDK matrices, export files, and attach provenance.</p>
-              <a class="card-link" href="./notebooks/viewer.html?notebook=msig-sdk-resource-portability.onb.html">Run notebook</a>
-            </div>
-          </article>
-
-          <article class="notebook-card">
-            <img src="./images/CosineSimilarityHeatmap.png" alt="Heatmap preview" />
-            <div class="body">
-              <h3>Uncertainty thresholds</h3>
-              <p>Run bootstrap intervals and threshold sweeps on higher-burden spectra to see which fitted exposures remain stable.</p>
-              <a class="card-link" href="./notebooks/viewer.html?notebook=msig-sdk-uncertainty-thresholds.onb.html">Run notebook</a>
-            </div>
-          </article>
-
-          <article class="notebook-card">
-            <img src="./images/signatureComparison.png" alt="Signature profile comparison preview" />
-            <div class="body">
-              <h3>NMF extraction</h3>
-              <p>Try browser-sized de novo extraction, reference matching, exposure heatmaps, and rank diagnostics.</p>
-              <a class="card-link" href="./notebooks/viewer.html?notebook=msig-sdk-nmf-extraction.onb.html">Run notebook</a>
-            </div>
-          </article>
-
-          <article class="notebook-card">
-            <img src="./images/datasetSummary.png" alt="Dataset summary preview" />
-            <div class="body">
-              <h3>Export and reports</h3>
-              <p>Exercise SigProfiler-style matrix I/O, provenance, structured reports, and workflow helpers with low-burden flags included.</p>
-              <a class="card-link" href="./notebooks/viewer.html?notebook=msig-sdk-export-report.onb.html">Run notebook</a>
-            </div>
-          </article>
+          <p class="loading-state">Loading notebook gallery...</p>
         </div>
       </section>
 
-      <section id="api" class="section" aria-labelledby="api-heading">
-        <div class="section-header">
-          <div>
-            <p class="eyebrow">SDK surface</p>
-            <h2 id="api-heading">What users can call directly</h2>
-            <p>
-              The public entry point is <code>main.js</code>. These namespaces are
-              exposed as ordinary ES module exports and are used by the notebooks.
-            </p>
-          </div>
-          <a class="button" href="./main.js">Open main.js</a>
-        </div>
-
-        <ul class="namespace-list" id="namespace-list">
-          <li>mSigPortal</li>
-          <li>TCGA</li>
-          <li>validation</li>
-          <li>qc</li>
-          <li>qcPlots</li>
-          <li>signatureFitting</li>
-          <li>signatureExtraction</li>
-          <li>signatureExtractionPlots</li>
-          <li>io</li>
-          <li>reports</li>
-          <li>workflows</li>
-          <li>provenance</li>
-          <li>advisor</li>
-          <li>pipelines</li>
-        </ul>
-      </section>
-
-      <section id="checks" class="section" aria-labelledby="checks-heading">
-        <div class="section-header">
-          <div>
-            <p class="eyebrow">Workflow checks</p>
-            <h2 id="checks-heading">Fast checks without local setup</h2>
-            <p>
-              The examples are designed to make the implementation auditable from the
-              browser while keeping heavier development workflows available in Git.
-            </p>
-          </div>
-        </div>
-
-        <div class="review-grid">
-          <article class="review-card">
-            <h3>1. Verify importability</h3>
-            <p>The live check above imports the same module URL that public users can import in their own pages.</p>
-            <a class="card-link" href="./main.js">Inspect source</a>
-          </article>
-          <article class="review-card">
-            <h3>2. Run focused workflows</h3>
-            <p>Notebook cells are shown inline and can be edited before rerunning the full example.</p>
-            <a class="card-link" href="./notebooks/viewer.html">Open examples</a>
-          </article>
-          <article class="review-card">
-            <h3>3. Clone for reproducibility</h3>
-            <p>The same notebooks live in source control as plain HTML, so diffs and review are transparent.</p>
-            <a class="card-link" href="https://github.com/episphere/msig/tree/main/notebooks">View notebook files</a>
-          </article>
-        </div>
-      </section>
-
-      <section class="section" aria-labelledby="local-heading">
-        <div class="two-column">
-          <div>
-            <p class="eyebrow">Local development</p>
-            <h2 id="local-heading">Run the same site from a clone</h2>
-            <p class="lede">
-              Hosted notebooks can be used immediately. Developers can clone
-              the repository and run the local server to test unmerged changes.
-            </p>
-          </div>
-          <div>
-            <ol class="steps">
-              <li>
-                <strong>Clone the repository</strong>
-                <span><code>git clone https://github.com/episphere/msig.git</code></span>
-              </li>
-              <li>
-                <strong>Start the local static server</strong>
-                <span><code>npm run serve:observable</code></span>
-              </li>
-              <li>
-                <strong>Open the notebook gallery</strong>
-                <span><code>http://127.0.0.1:8080/notebooks/viewer.html</code></span>
-              </li>
-            </ol>
-          </div>
-        </div>
-      </section>
-
-      <section class="section" aria-labelledby="resources-heading">
-        <div class="section-header">
-          <div>
-            <p class="eyebrow">Resources</p>
-            <h2 id="resources-heading">Source, documentation, and issues</h2>
-          </div>
-        </div>
-        <div class="resource-grid">
-          <article class="resource-card">
-            <h3>Repository</h3>
-            <p>Browse implementation history, file issues, or open pull requests.</p>
-            <a class="card-link" href="https://github.com/episphere/msig">github.com/episphere/msig</a>
-          </article>
-          <article class="resource-card">
-            <h3>Notebook source</h3>
-            <p>Review the plain HTML notebook files that power the hosted examples.</p>
-            <a class="card-link" href="https://github.com/episphere/msig/tree/main/notebooks">GitHub notebooks folder</a>
-          </article>
-          <article class="resource-card">
-            <h3>mSigPortal</h3>
-            <p>Public mutational signature resources used by the data-access examples.</p>
-            <a class="card-link" href="https://analysistools.cancer.gov/mutational-signatures/">Open mSigPortal</a>
-          </article>
-        </div>
-      </section>
     </main>
 
     <footer>
-      <main>
+      <div class="footer-inner">
         mSigSDK is maintained in the
         <a href="https://github.com/episphere/msig">episphere/msig</a>
-        repository. Hosted examples import <code>./main.js</code> from this
-        GitHub Pages site.
-      </main>
+        repository. Hosted examples import <code>./main.js</code> from GitHub Pages.
+      </div>
     </footer>
 
     <script type="module">
@@ -740,6 +824,81 @@ console.log(mSigSDK.version);</code></pre>
       const version = document.getElementById("sdk-version");
       const namespaceCount = document.getElementById("sdk-namespace-count");
       const notebookGrid = document.getElementById("notebook-grid");
+      const copyImportButtons = Array.from(
+        document.querySelectorAll("[data-copy-import]"),
+      );
+      const importCommand = `const { mSigSDK } = await import(
+  "https://episphere.github.io/msig/main.js"
+);`;
+
+      function fallbackCopy(value) {
+        const textarea = document.createElement("textarea");
+        textarea.value = value;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.inset = "0 auto auto 0";
+        textarea.style.opacity = "0";
+        document.body.append(textarea);
+        textarea.select();
+        const copied = document.execCommand("copy");
+        textarea.remove();
+        if (!copied) {
+          throw new Error("Copy command unavailable");
+        }
+      }
+
+      function selectImportCommand() {
+        const code = document.getElementById("import-command-code");
+        if (!code) return;
+        const range = document.createRange();
+        range.selectNodeContents(code);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      function setCopyImportButtons(label, confirmed = false, title = "") {
+        copyImportButtons.forEach((button) => {
+          button.textContent = label;
+          button.classList.toggle("copy-confirmed", confirmed);
+          if (title) {
+            button.title = title;
+          } else {
+            button.removeAttribute("title");
+          }
+        });
+      }
+
+      function resetCopyImportButtons() {
+        setCopyImportButtons("Copy import");
+      }
+
+      async function copyImportCommand() {
+        if (copyImportButtons.length === 0) return;
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(importCommand);
+          } else {
+            fallbackCopy(importCommand);
+          }
+          setCopyImportButtons("Copied", true);
+          setTimeout(resetCopyImportButtons, 1600);
+        } catch (error) {
+          try {
+            fallbackCopy(importCommand);
+            setCopyImportButtons("Copied", true);
+            setTimeout(resetCopyImportButtons, 1600);
+          } catch (fallbackError) {
+            selectImportCommand();
+            setCopyImportButtons("Selected", true, "Selected import command");
+            setTimeout(resetCopyImportButtons, 1600);
+          }
+        }
+      }
+
+      copyImportButtons.forEach((button) => {
+        button.addEventListener("click", copyImportCommand);
+      });
 
       function renderNotebookCards(notebooks) {
         if (!notebookGrid || !Array.isArray(notebooks) || notebooks.length === 0) {
@@ -766,39 +925,47 @@ console.log(mSigSDK.version);</code></pre>
           ...groups.map((group) => {
             const section = document.createElement("section");
             section.className = "notebook-group";
-            const groupHeading = document.createElement("h3");
-            groupHeading.textContent = group.label;
+
+            const header = document.createElement("div");
+            header.className = "notebook-group-header";
+            const heading = document.createElement("h3");
+            heading.textContent = group.label;
+            const count = document.createElement("span");
+            count.className = "notebook-group-count";
+            count.textContent = `${group.entries.length} workflow${group.entries.length === 1 ? "" : "s"}`;
+            header.append(heading, count);
+
             const groupGrid = document.createElement("div");
             groupGrid.className = "notebook-group-grid";
 
             group.entries.forEach((entry) => {
-            const article = document.createElement("article");
-            article.className = "notebook-card";
+              const article = document.createElement("article");
+              article.className = "notebook-card";
 
-            const image = document.createElement("img");
-            image.src = entry.image || "images/mSigPortal.png";
-            image.alt = `${entry.title || "mSigSDK notebook"} preview`;
-            image.loading = "lazy";
+              const image = document.createElement("img");
+              image.src = entry.image || "images/notebook-previews/sdk-workflow-guide.svg";
+              image.alt = `${entry.title || "mSigSDK notebook"} preview`;
+              image.loading = "eager";
 
-            const body = document.createElement("div");
-            body.className = "body";
-            const heading = document.createElement("h3");
-            heading.textContent = entry.title || entry.file;
-            const summary = document.createElement("p");
-            summary.textContent = entry.summary || "Runnable mSigSDK notebook.";
-            const link = document.createElement("a");
-            link.className = "card-link";
-            link.href = `./notebooks/viewer.html?notebook=${encodeURIComponent(
-              entry.file
-            )}`;
-            link.textContent = "Run notebook";
+              const body = document.createElement("div");
+              body.className = "body";
+              const title = document.createElement("h4");
+              title.textContent = entry.title || entry.file;
+              const summary = document.createElement("p");
+              summary.textContent = entry.summary || "Runnable mSigSDK workflow.";
+              const link = document.createElement("a");
+              link.className = "card-link";
+              link.href = `./notebooks/viewer.html?notebook=${encodeURIComponent(
+                entry.file
+              )}`;
+              link.textContent = "Run notebook";
 
-            body.append(heading, summary, link);
-            article.append(image, body);
+              body.append(title, summary, link);
+              article.append(image, body);
               groupGrid.append(article);
             });
 
-            section.append(groupHeading, groupGrid);
+            section.append(header, groupGrid);
             return section;
           })
         );
@@ -813,7 +980,7 @@ console.log(mSigSDK.version);</code></pre>
           renderNotebookCards(manifest.notebooks);
         }
       } catch (error) {
-        console.warn("Using embedded notebook cards.", error);
+        console.warn("Could not load notebook manifest.", error);
       }
 
       try {
@@ -822,7 +989,7 @@ console.log(mSigSDK.version);</code></pre>
           (key) => key !== "name" && key !== "version"
         );
         status.textContent = "Ready";
-        version.textContent = mSigSDK.version || "available";
+        version.textContent = mSigSDK.version || "Available";
         namespaceCount.textContent = String(namespaces.length);
       } catch (error) {
         status.textContent = "Import failed";

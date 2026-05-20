@@ -53,7 +53,7 @@ These three contributions organize the Implementation, Results, and Discussion s
 import { mSigSDK } from "https://episphere.github.io/msig/main.js";
 ```
 
-and includes namespaces for data access and interoperability (`mSigPortal`, `TCGA`, `userData`, `io`, `runners`, `adapters`), validation, refitting, QC, and uncertainty (`validation`, `signatureFitting`, `qc`, `signatureExtraction`), and workflows and reporting (`pipelines`, `workflows`, `reports`, `advisor`, `qcPlots`, `presentation`, `provenance`). Advisory functions used in this manuscript (`computeFitQualityEvidence`, `computeSignatureAmbiguity`, `detectOutOfReferenceSignal`, `recommendAnalysisStrategy`) are part of the validated core; remaining advisory and pipeline functions are marked experimental and are reserved for future validation.
+and includes namespaces for data access and interoperability (`mSigPortal`, `TCGA`, `userData`, `io`, `runners`, `adapters`), validation, refitting, QC, and uncertainty (`validation`, `signatureFitting`, `qc`, `signatureExtraction`), and workflows and reporting (`pipelines`, `workflows`, `reports`, `advisor`, `qcPlots`, `presentation`, `provenance`). Advisory functions used in this manuscript (`computeFitQualityEvidence`, `computeSignatureAmbiguity`, `detectOutOfReferenceSignal`, `recommendAnalysisStrategy`) are part of the validated core.
 
 ---
 
@@ -148,9 +148,9 @@ The `runners` and `adapters` namespaces separate three modes of interoperability
 
 This design separates attribution engines from the review layer. mSigSDK can run its own standard NNLS and exploratory browser NMF, execute compatible Python packages when Pyodide supports them, or prepare matched handoff bundles for local/server execution while preserving one shared context order and provenance model.
 
-### Experimental modules
+### Scope boundaries
 
-Experimental functions are isolated under `mSigSDK.experimental`. The current namespace contains `runSubgroupDiscoveryWorkflow` and `runLocalizedMutagenesisAnalysis`. These functions emit console warnings, return `experimentalStatus` metadata, and include `scopeStatement` fields stating that outputs are descriptive and not validated for manuscript-grade discovery in this paper.
+The public SDK surface is limited to stable analysis and reporting namespaces. Workflow outputs retain scope statements, warnings, and provenance fields so review limitations remain attached to reportable objects.
 
 ### Provenance and report validation
 
@@ -271,7 +271,7 @@ Selected PCAWG Lung-AdenoCA samples were refitted to nine COSMIC SBS96 reference
 
 The same review framework was applied to restricted-assay spectra generated from PCAWG Lung-AdenoCA WGS profiles with `createWGStoPanelValidationPairs` (Figure 5). Callable-context masks retained the top 24, 48, or 72 SBS96 contexts by aggregate WGS burden, and each retained spectrum was scaled to 25, 75, 200, or 1,000 panel mutations. The panel workflow returned expected fitted signature mutation counts, callable signature mass, fit-quality reporting mode, and the four-level evidence tier per signature. Overall tier accuracy increased with callable context breadth, from 0.629 for the 24-context mask to 0.741 for the 48-context mask and 0.846 for the 72-context mask; mean panel-vs-WGS exposure cosine increased from 0.813 to 0.899 and 0.959 across the same masks. At 25 panel mutations, the expected `not_assessable` tier was recovered for all exposure strata, separating assay-burden limitations from fitted exposure summaries.
 
-*Figure 5. Cohort and panel workflows. Metadata-stratified exposure comparison for 18 selected PCAWG Lung-AdenoCA samples is paired with a panel evidence matrix generated from PCAWG-derived callable-context downsampling, a fit-quality reporting-mode summary, and a subgroup extraction/refit summary. The panel view shows that exposure estimates and evidence tiers must be interpreted together with callable territory and assessable burden.*
+*Figure 5. Cohort and panel workflows. Metadata-stratified exposure comparison for 18 selected PCAWG Lung-AdenoCA samples is paired with a panel evidence matrix generated from PCAWG-derived callable-context downsampling, a fit-quality reporting-mode summary, and a cohort subgroup-structure review. The panel view shows that exposure estimates and evidence tiers must be interpreted together with callable territory and assessable burden.*
 
 ### Browser-sized exploratory extraction (Contribution 1)
 
@@ -338,7 +338,7 @@ mSigSDK is positioned for four user groups. Portal and web-application developer
 
 ### Limitations
 
-mSigSDK does not introduce a new attribution algorithm; it relies on standard NNLS and multiplicative-update NMF. Plain NNLS may over-assign confusable signatures relative to sparse likelihood-based methods such as MuSiCal [13,14,15]; the SDK flags high-ambiguity signature pairs and surfaces discordant bootstrap selection frequencies, but does not apply a sparse prior. Rank selection in `selectNMFRank` now supports reconstruction error, cophenetic correlation, and average silhouette, but browser-sized rank selection should remain a screening result rather than a definitive discovery claim. MAF-to-context conversion can use row-supplied contexts, a caller-supplied offline lookup table, or bundled sparse lookup assets for hg19, hg38, and T2T-CHM13 smoke testing; full genome-wide offline tables remain better supplied as project-specific assets because of size and coordinate-convention requirements. Browser memory and runtime constraints limit cohort size for fully synchronous workflows, motivating the optional Web Worker mode. Panel and exome opportunity tables must be derived externally from the assay target intervals, genome build, and callable-region definition. Localized mutagenesis and subgroup-discovery pipelines are available under `mSigSDK.experimental`; they are not validated in this manuscript.
+mSigSDK does not introduce a new attribution algorithm; it relies on standard NNLS and multiplicative-update NMF. Plain NNLS may over-assign confusable signatures relative to sparse likelihood-based methods such as MuSiCal [13,14,15]; the SDK flags high-ambiguity signature pairs and surfaces discordant bootstrap selection frequencies, but does not apply a sparse prior. Rank selection in `selectNMFRank` now supports reconstruction error, cophenetic correlation, and average silhouette, but browser-sized rank selection should remain a screening result rather than a definitive discovery claim. MAF-to-context conversion can use row-supplied contexts, a caller-supplied offline lookup table, or bundled sparse lookup assets for hg19, hg38, and T2T-CHM13 smoke testing; full genome-wide offline tables remain better supplied as project-specific assets because of size and coordinate-convention requirements. Browser memory and runtime constraints limit cohort size for fully synchronous workflows, motivating the optional Web Worker mode. Panel and exome opportunity tables must be derived externally from the assay target intervals, genome build, and callable-region definition.
 
 ### Future work
 

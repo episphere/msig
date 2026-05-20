@@ -589,6 +589,7 @@ h2 {
 
 .output-table-scroll,
 .msigsdk-output-table-scroll,
+.notebook-table-scroll,
 .maf-row-table-wrap {
   max-height: var(--notebook-table-max-height, min(360px, 58vh));
   overflow: auto;
@@ -637,6 +638,47 @@ h2 {
   font-size: 12px;
   font-weight: 800;
   background: #f4f6f2;
+}
+
+.output-table-pagination,
+.msigsdk-output-table-pagination,
+.notebook-table-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.output-table-pagination-controls,
+.msigsdk-output-table-pagination-controls,
+.notebook-table-pagination-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.output-table-pagination button,
+.msigsdk-output-table-pagination button,
+.notebook-table-pagination button {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--teal);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 9px;
+}
+
+.output-table-pagination button:disabled,
+.msigsdk-output-table-pagination button:disabled,
+.notebook-table-pagination button:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 
 .msigsdk-output-table-scroll th,

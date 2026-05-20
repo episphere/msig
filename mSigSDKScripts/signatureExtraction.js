@@ -178,7 +178,33 @@ function buildNMFResult({
   };
 }
 
-function runNMF(x, { rank, maxIterations, tolerance, seed }) {
+function emitProgress(onProgress, payload) {
+  if (typeof onProgress !== "function") return;
+  try {
+    onProgress(payload);
+  } catch {
+    // Progress callbacks should never interrupt the numerical routine.
+  }
+}
+
+function getProgressInterval(maxIterations, progressInterval) {
+  const explicit = Math.round(Number(progressInterval));
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  return Math.max(1, Math.floor(Math.max(1, Number(maxIterations) || 1) / 20));
+}
+
+function runNMF(
+  x,
+  {
+    rank,
+    maxIterations,
+    tolerance,
+    seed,
+    onProgress = null,
+    progressInterval = null,
+    progressContext = {},
+  }
+) {
   const random = seededRandom(seed);
   const contextCount = x.length;
   const sampleCount = x[0]?.length || 0;
@@ -189,6 +215,7 @@ function runNMF(x, { rank, maxIterations, tolerance, seed }) {
   let iterations = 0;
 
   normalizeColumnsAndScaleRows(w, h);
+  const reportEvery = getProgressInterval(maxIterations, progressInterval);
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     const wt = transpose(w);
@@ -220,8 +247,30 @@ function runNMF(x, { rank, maxIterations, tolerance, seed }) {
         ? Infinity
         : Math.abs(previousError - metrics.reconstructionError) /
           Math.max(previousError, EPSILON);
+    const willConverge = relativeImprovement < tolerance;
+    if (
+      iterations === 1 ||
+      iterations === maxIterations ||
+      iterations % reportEvery === 0 ||
+      willConverge
+    ) {
+      emitProgress(onProgress, {
+        phase: "iteration",
+        ...progressContext,
+        rank,
+        seed,
+        iteration: iterations,
+        maxIterations,
+        reconstructionError: metrics.reconstructionError,
+        averageSampleCosineSimilarity: metrics.averageSampleCosineSimilarity,
+        relativeImprovement: Number.isFinite(relativeImprovement)
+          ? relativeImprovement
+          : null,
+        converged: willConverge,
+      });
+    }
 
-    if (relativeImprovement < tolerance) {
+    if (willConverge) {
       converged = true;
       break;
     }
@@ -560,6 +609,8 @@ function compareRankSelectionRuns(currentBest, candidate, criterion) {
  * @param {string[]} [options.contexts=null] - Context order to use.
  * @param {string[]} [options.sampleNames=null] - Sample order to use.
  * @param {string} [options.signaturePrefix="NMF"] - Prefix for extracted signature names.
+ * @param {Function} [options.onProgress=null] - Optional callback receiving run and iteration progress.
+ * @param {number} [options.progressInterval] - Iteration interval between progress callbacks.
  * @returns {Object} Best-run NMF result with signatures, exposures, reconstruction, and run metrics.
  * @example
  * const nmf = mSigSDK.signatureExtraction.extractSignaturesNMF(groupedSpectra, {
@@ -579,6 +630,8 @@ function extractSignaturesNMF(
     contexts = null,
     sampleNames = null,
     signaturePrefix = "NMF",
+    onProgress = null,
+    progressInterval = null,
   } = {}
 ) {
   const matrixInput = spectraToMatrix(spectra, { contexts, sampleNames });
@@ -586,11 +639,27 @@ function extractSignaturesNMF(
   const runs = [];
 
   for (let runIndex = 0; runIndex < nRuns; runIndex++) {
+    emitProgress(onProgress, {
+      method: "extractSignaturesNMF",
+      phase: "run_start",
+      rank,
+      run: runIndex + 1,
+      totalRuns: nRuns,
+      iteration: 0,
+      maxIterations,
+    });
     const run = runNMF(x, {
       rank,
       maxIterations,
       tolerance,
       seed: seed + runIndex,
+      onProgress,
+      progressInterval,
+      progressContext: {
+        method: "extractSignaturesNMF",
+        run: runIndex + 1,
+        totalRuns: nRuns,
+      },
     });
     runs.push({
       run: runIndex + 1,
@@ -601,6 +670,19 @@ function extractSignaturesNMF(
       averageSampleCosineSimilarity: run.averageSampleCosineSimilarity,
       w: run.w,
       h: run.h,
+    });
+    emitProgress(onProgress, {
+      method: "extractSignaturesNMF",
+      phase: "run_complete",
+      rank,
+      run: runIndex + 1,
+      totalRuns: nRuns,
+      iteration: maxIterations,
+      maxIterations,
+      completedIterations: run.iterations,
+      converged: run.converged,
+      reconstructionError: run.reconstructionError,
+      averageSampleCosineSimilarity: run.averageSampleCosineSimilarity,
     });
   }
 
@@ -631,6 +713,8 @@ function extractSignaturesNMF(
  * @param {string} [options.rankSelectionCriterion="reconstruction_error"] - Criterion used to select rank: "reconstruction_error", "cophenetic", or "silhouette".
  * @param {string[]} [options.contexts=null] - Context order to use.
  * @param {string[]} [options.sampleNames=null] - Sample order to use.
+ * @param {Function} [options.onProgress=null] - Optional callback receiving rank, run, and iteration progress.
+ * @param {number} [options.progressInterval] - Iteration interval between progress callbacks.
  * @returns {Object} Candidate runs, embedded NMF results, and recommended rank.
  */
 function selectNMFRank(
@@ -644,6 +728,8 @@ function selectNMFRank(
     rankSelectionCriterion = "reconstruction_error",
     contexts = null,
     sampleNames = null,
+    onProgress = null,
+    progressInterval = null,
   } = {}
 ) {
   const criterion = normalizeRankSelectionCriterion(rankSelectionCriterion);
@@ -653,14 +739,45 @@ function selectNMFRank(
   const originalCosineDistances = pairwiseValues(originalCosineDistanceMatrix);
   const runs = ranks.map((rank, index) => {
     const rankRuns = [];
+    emitProgress(onProgress, {
+      method: "selectNMFRank",
+      phase: "rank_start",
+      rank,
+      rankIndex: index + 1,
+      totalRanks: ranks.length,
+      run: 0,
+      totalRuns: nRuns,
+      iteration: 0,
+      maxIterations,
+    });
 
     for (let runIndex = 0; runIndex < nRuns; runIndex++) {
       const runSeed = seed + index * 1000 + runIndex;
+      emitProgress(onProgress, {
+        method: "selectNMFRank",
+        phase: "run_start",
+        rank,
+        rankIndex: index + 1,
+        totalRanks: ranks.length,
+        run: runIndex + 1,
+        totalRuns: nRuns,
+        iteration: 0,
+        maxIterations,
+      });
       const run = runNMF(x, {
         rank,
         maxIterations,
         tolerance,
         seed: runSeed,
+        onProgress,
+        progressInterval,
+        progressContext: {
+          method: "selectNMFRank",
+          rankIndex: index + 1,
+          totalRanks: ranks.length,
+          run: runIndex + 1,
+          totalRuns: nRuns,
+        },
       });
       rankRuns.push({
         run: runIndex + 1,
@@ -671,6 +788,21 @@ function selectNMFRank(
         averageSampleCosineSimilarity: run.averageSampleCosineSimilarity,
         w: run.w,
         h: run.h,
+      });
+      emitProgress(onProgress, {
+        method: "selectNMFRank",
+        phase: "run_complete",
+        rank,
+        rankIndex: index + 1,
+        totalRanks: ranks.length,
+        run: runIndex + 1,
+        totalRuns: nRuns,
+        iteration: maxIterations,
+        maxIterations,
+        completedIterations: run.iterations,
+        converged: run.converged,
+        reconstructionError: run.reconstructionError,
+        averageSampleCosineSimilarity: run.averageSampleCosineSimilarity,
       });
     }
 
@@ -710,7 +842,7 @@ function selectNMFRank(
       originalCosineDistances
     );
 
-    return {
+    const rankSummary = {
       rank,
       reconstructionError: result.reconstructionError,
       averageSampleCosineSimilarity: result.averageSampleCosineSimilarity,
@@ -728,6 +860,22 @@ function selectNMFRank(
             : result.reconstructionError,
       result,
     };
+    emitProgress(onProgress, {
+      method: "selectNMFRank",
+      phase: "rank_complete",
+      rank,
+      rankIndex: index + 1,
+      totalRanks: ranks.length,
+      run: nRuns,
+      totalRuns: nRuns,
+      iteration: maxIterations,
+      maxIterations,
+      reconstructionError: result.reconstructionError,
+      averageSampleCosineSimilarity: result.averageSampleCosineSimilarity,
+      copheneticCorrelation,
+      averageSilhouette,
+    });
+    return rankSummary;
   });
   const recommended = runs.reduce((best, run) =>
     compareRankSelectionRuns(best, run, criterion)
@@ -802,6 +950,7 @@ function extractSignaturesNMFInWorker(spectra, options = {}) {
   if (typeof Worker === "undefined" || typeof Blob === "undefined") {
     return Promise.resolve(extractSignaturesNMF(spectra, options));
   }
+  const { onProgress, ...workerOptions } = options || {};
 
   const moduleUrl = new URL("./signatureExtraction.js", import.meta.url).href;
   const workerSource = `
@@ -810,7 +959,10 @@ function extractSignaturesNMFInWorker(spectra, options = {}) {
     self.onmessage = function (event) {
       try {
         const { spectra, options } = event.data;
-        const result = extractSignaturesNMF(spectra, options);
+        const result = extractSignaturesNMF(spectra, {
+          ...options,
+          onProgress: (progress) => self.postMessage({ progress }),
+        });
         self.postMessage({ result });
       } catch (error) {
         self.postMessage({ error: error.message });
@@ -824,6 +976,10 @@ function extractSignaturesNMFInWorker(spectra, options = {}) {
 
   return new Promise((resolve, reject) => {
     worker.onmessage = (event) => {
+      if (event.data.progress) {
+        emitProgress(onProgress, event.data.progress);
+        return;
+      }
       worker.terminate();
       URL.revokeObjectURL(workerUrl);
 
@@ -840,7 +996,7 @@ function extractSignaturesNMFInWorker(spectra, options = {}) {
       reject(error);
     };
 
-    worker.postMessage({ spectra, options });
+    worker.postMessage({ spectra, options: workerOptions });
   });
 }
 

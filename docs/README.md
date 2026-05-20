@@ -4,7 +4,10 @@ This directory holds project-facing documentation for SDK use, manuscript assets
 
 ## Contents
 
-- `MSIGSDK_FEATURE_REFERENCE.md`: source-grounded public API reference for mSigSDK 0.3.0, including the primary `workflows` happy path, lite wrappers, optional Pyodide runners, external-tool adapters, warning semantics, advisor validation scope, experimental namespace boundaries, and interpretation limits.
+- `MSIGSDK_FEATURE_REFERENCE.html`: rendered source-grounded public API reference for mSigSDK 0.3.0.
+- `MSIGSDK_FEATURE_REFERENCE.md`: Markdown source for the rendered feature reference, including the primary `workflows` happy path, lite wrappers, optional Pyodide/WebR runners, external-tool adapters, warning semantics, advisor validation scope, and interpretation limits.
+- `index.html`: generated-documentation landing page that renders the documentation.js API index for browser navigation.
+- `api-reference.generated.json`: generated documentation.js API index used by `index.html`.
 - `project/MEMORY.md`: durable project context, design priorities, active SDK capabilities, notebook list, and development notes.
 - `manuscript/manuscript/`: current manuscript drafts.
 - `manuscript/data/`: current benchmark, concordance, stress-test, and synthetic-validation outputs used by manuscript generators.
@@ -15,4 +18,4 @@ This directory holds project-facing documentation for SDK use, manuscript assets
 - `templates/`: static template fragments used by documentation and legacy API examples.
 - `../schemas/msig.report.v0.3/report.schema.json`: versioned JSON Schema for `createAnalysisReport` objects.
 
-The public SDK documentation for end users remains in the repository `README.md`. Generated JSDoc output is no longer committed; run `npm run docs` to rebuild it locally under `out/`.
+Run `npm run docs` to regenerate `api-reference.generated.json` with documentation.js. Legacy JSDoc output and configuration are no longer part of the repository.

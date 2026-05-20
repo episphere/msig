@@ -284,7 +284,7 @@ function benchmarkRowsRaw(payload, browserPayload = { rows: [] }) {
     v03_restricted_assay_evidence: "Restricted-assay evidence summary",
     v03_cohort_fit_pipeline: "Cohort fit workflow",
     v03_panel_workflow: "Panel/WES review workflow",
-    v03_subgroup_discovery: "Subgroup discovery workflow",
+    v03_subgroup_discovery: "Cohort subgroup-structure review",
   };
   const operationOrder = new Map(
     Object.keys(operationLabels).map((operation, index) => [operation, index])
@@ -1037,12 +1037,12 @@ try {
   const figure4 = figureShell({
     title: "Figure 4. Cohort and panel workflows",
     subtitle:
-      "mSigSDK v0.3 outputs from PCAWG Lung-AdenoCA spectra: group exposure comparison, subgroup extraction/refit summary, PCAWG-derived panel downsampling evidence matrix, and cohort fit-quality summary.",
+      "mSigSDK v0.3 outputs from PCAWG Lung-AdenoCA spectra: group exposure comparison, subgroup-structure review, PCAWG-derived panel downsampling evidence matrix, and cohort fit-quality summary.",
     panels: `
     <section class="panel wide"><p class="panel-title">A. Metadata-stratified exposure comparison</p><div id="fig4Group"></div></section>
     <section class="panel wide"><p class="panel-title">B. Panel/WES evidence matrix</p><div id="fig4Panel"></div></section>
     <section class="panel"><p class="panel-title">C. Cohort fit-quality summary</p><div id="fig4FitQuality"></div></section>
-    <section class="panel"><p class="panel-title">D. Subgroup extraction and matched refitting summary</p><div id="fig4Subgroups"></div></section>`,
+    <section class="panel"><p class="panel-title">D. Cohort subgroup-structure review</p><div id="fig4Subgroups"></div></section>`,
     script: `${figureScriptPrelude}
 try {
   const mSigSDK = await loadSdk();
@@ -1084,28 +1084,13 @@ try {
     runSubgroupDiscovery: false,
   });
   await mSigSDK.qcPlots.plotPanelEvidenceMatrix(document.getElementById("fig4Panel"), panel);
-  const subgroupSamples = selected.slice(0, 8);
-  const subgroup = await mSigSDK.experimental.runSubgroupDiscoveryWorkflow({
-    spectra: subsetObject(spectra, subgroupSamples),
-    signatures,
-    subgroups: [{ clusterId: "high_burden_subset", samples: subgroupSamples }],
-  }, {
-    contexts: data.contexts,
-    rank: 2,
-    nRuns: 2,
-    maxIterations: 80,
-    minSubgroupSamples: 5,
-    minMedianBurden: 100,
-  });
   rowsToTable("fig4Subgroups",
-    ["Subgroup", "Samples", "Median burden", "Status", "Rank", "Shortlisted references"],
-    subgroup.subgroups.map((row) => [
-      row.subgroupId || "subgroup",
+    ["Similarity group", "Samples", "Status", "Minimum review size"],
+    cohort.subgroupReview.subgroups.map((row, index) => [
+      row.clusterId || \`group_\${index + 1}\`,
       row.sampleCount,
-      Math.round(row.medianMutationBurden || 0),
-      row.status,
-      row.rank || "NA",
-      (row.shortlistedSignatureNames || []).slice(0, 5).join(", ") || "NA",
+      cohort.subgroupReview.status,
+      cohort.subgroupReview.summary.minSubgroupSamples,
     ])
   );
   setStatus("Rendered Figure 4 v0.3 cohort and panel workflows for " + selected.length + " PCAWG Lung-AdenoCA samples.");
@@ -1244,7 +1229,7 @@ function completionPlan() {
 ## Package Contents
 
 1. Manuscript framing centered on mSigSDK v0.3 as a client-side JavaScript extension of mSigPortal, with local review workflows as added capabilities.
-2. v0.3 SDK features: burden-aware review, fit-quality evidence, catalog-sufficiency checks, cohort comparison, subgroup discovery/refitting, panel/WES restricted-assay evidence, evidence labels, localized mutagenesis workflow, and publication-oriented figures.
+2. v0.3 SDK features: burden-aware review, fit-quality evidence, catalog-sufficiency checks, cohort comparison, cohort subgroup-structure review, panel/WES restricted-assay evidence, evidence labels, optional Pyodide/WebR package execution, external-tool handoff adapters, provenance-aware reports, and publication-oriented figures.
 3. Seven Google Docs-ready HTML tables.
 4. Generated five reproducible HTML figure pages that call mSigSDK functions and use PCAWG Lung-AdenoCA spectra plus COSMIC SBS96 references where applicable.
 5. Scenario-calibrated runtime outputs for single-sample, panel/WES, rare-cancer, medium-cohort, portal-scale, and discovery-cohort use cases.
@@ -1275,7 +1260,7 @@ mSigSDK v0.3 is presented as a client-side extension of mSigPortal with local re
 - mSigPortal API calls provide public reference and cohort data.
 - User-supplied spectra can be validated, fitted, stress-tested, and visualized locally in the browser.
 - TCGA/GDC helpers are additional public-resource access modules.
-- v0.3 adds local review layers on top of the portal-SDK layer: burden-aware recommendations, fit-quality evidence, catalog-sufficiency checks, subgroup workflows, metadata comparisons, and panel/WES evidence labels.
+- v0.3 adds local review layers on top of the portal-SDK layer: burden-aware recommendations, fit-quality evidence, catalog-sufficiency checks, cohort subgroup-structure review, metadata comparisons, panel/WES evidence labels, and external-tool interoperability.
 - Browser-side NMF supports browser-sized profile inspection and handoff to production extraction tools such as SigProfilerExtractor.
 
 ## Title Direction
@@ -1385,7 +1370,7 @@ Table 2. Computation locus, external dependencies, and privacy boundary.
 
 The main input is a sample-by-context mutation spectrum. For SBS96 analysis, rows represent samples and columns represent the 96 trinucleotide contexts. A reference catalog is a signature-by-context matrix with the same context definitions. Outputs are structured objects that include validation results, parameters, fitted exposures, reconstruction metrics, residuals, uncertainty summaries, and plot-ready data.
 
-The SDK reports separate QC signals for burden, context coverage, reconstruction, residual structure, bootstrap stability, threshold sensitivity, signature ambiguity, catalog sufficiency, panel/WES restricted-assay evidence, and subgroup support. Table 3 gives the operational defaults used in the manuscript examples, including the NNLS solver behavior, normalization, bootstrap procedure, confidence intervals, threshold grid, residual metrics, ambiguity cutoffs, catalog-sufficiency triggers, panel/WES review evidence tiers, and NMF settings. These defaults are configurable.
+The SDK reports separate QC signals for burden, context coverage, reconstruction, residual structure, bootstrap stability, threshold sensitivity, signature ambiguity, catalog sufficiency, panel/WES restricted-assay evidence, and cohort subgroup structure. Table 3 gives the operational defaults used in the manuscript examples, including the NNLS solver behavior, normalization, bootstrap procedure, confidence intervals, threshold grid, residual metrics, ambiguity cutoffs, catalog-sufficiency triggers, panel/WES review evidence tiers, and NMF settings. These defaults are configurable.
 
 Table 3. Algorithmic defaults used in manuscript workflows.
 
@@ -1482,13 +1467,13 @@ We then asked whether the review workflow could expose cases where a fitted expo
 
 ### Cohort and panel/WES workflows
 
-We then tested workflows that answer common review questions for groups and restricted assays (Figure 5). For cohort review, PCAWG Lung-AdenoCA samples were grouped by mutation burden to demonstrate metadata-stratified exposure comparison and subgroup-aware extraction/refitting. For panel/WES review, restricted callable opportunities were used to normalize context counts and return review evidence tiers.
+We then tested workflows that answer common review questions for groups and restricted assays (Figure 5). For cohort review, PCAWG Lung-AdenoCA samples were grouped by mutation burden to demonstrate metadata-stratified exposure comparison and cohort subgroup-structure review. For panel/WES review, restricted callable opportunities were used to normalize context counts and return review evidence tiers.
 
 The panel/WES tiers are higher review support, limited review support, not detected within review settings, or not assessable. They are based on fitted exposure, mutation burden, callable-territory evidence, and fit-quality checks. A not-assessable label indicates insufficient burden or callable territory for a tier call [16].
 
 ![Figure 5. Cohort and panel workflows](../actual-figure-pages/screenshots/figure4-cohort-panel-workflows.png)
 
-**Figure 5. Cohort and panel workflows.** Metadata-stratified exposure comparison, panel evidence matrix, fit-quality evidence summary, and subgroup extraction/refit summary generated by mSigSDK.
+**Figure 5. Cohort and panel workflows.** Metadata-stratified exposure comparison, panel evidence matrix, fit-quality evidence summary, and cohort subgroup-structure review generated by mSigSDK.
 
 ### Exploratory browser-side NMF
 
@@ -1580,7 +1565,7 @@ The validation results clarify the proper scope. Synthetic mixtures showed stron
 
 Privacy should also be stated precisely. User-supplied spectra can remain local after import, and the SDK does not require those spectra to be sent to a new analysis backend. This does not mean that all activity is offline. A web page may load public reference signatures, scripts, plotting libraries, and other remote assets. Deployments that require strict privacy should pin local assets, document the resource boundary, and avoid remote logging.
 
-Several limits remain. mSigSDK does not introduce a new attribution algorithm; it relies on standard NNLS and multiplicative-update NMF. Plain NNLS may over-assign confusable signatures relative to sparse likelihood-based methods such as MuSiCal; the SDK flags high-ambiguity signature pairs and surfaces discordant bootstrap selection frequencies, but it does not apply a sparse prior. Browser memory, single-threaded execution, device speed, browser version, catalog size, and workflow settings can affect performance. Panel/WES labels depend on assay design, callable territory, mutation burden, and signature-specific callable context coverage. Localized mutagenesis and subgroup-discovery pipelines are available under \`mSigSDK.experimental\`; they are not validated in this manuscript.
+Several limits remain. mSigSDK does not introduce a new attribution algorithm; it relies on standard NNLS and multiplicative-update NMF. Plain NNLS may over-assign confusable signatures relative to sparse likelihood-based methods such as MuSiCal; the SDK flags high-ambiguity signature pairs and surfaces discordant bootstrap selection frequencies, but it does not apply a sparse prior. Browser memory, single-threaded execution, device speed, browser version, catalog size, and workflow settings can affect performance. Panel/WES labels depend on assay design, callable territory, mutation burden, and signature-specific callable context coverage.
 
 ## Conclusions
 

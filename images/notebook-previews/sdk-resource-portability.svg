@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="sdk-resource-portability-svg-title sdk-resource-portability-svg-desc">
+  <title id="sdk-resource-portability-svg-title">Resource portability</title>
+  <desc id="sdk-resource-portability-svg-desc">Multiple file formats converted into reusable analysis resources</desc>
+  <defs>
+    <linearGradient id="sdk-resource-portability-svg-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fffdf7"/>
+      <stop offset="58%" stop-color="#f8f5ec"/>
+      <stop offset="100%" stop-color="#ecf8f4"/>
+    </linearGradient>
+    <radialGradient id="sdk-resource-portability-svg-glow" cx="72%" cy="26%" r="70%">
+      <stop offset="0%" stop-color="#168a8c" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#168a8c" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="sdk-resource-portability-svg-shadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#10201b" flood-opacity="0.12"/>
+    </filter>
+    <marker id="sdk-resource-portability-svg-arrow" markerWidth="13" markerHeight="13" refX="10" refY="6.5" orient="auto">
+      <path d="M 0 0 L 13 6.5 L 0 13 Z" fill="#d59b2e"/>
+    </marker>
+  </defs>
+  <rect width="960" height="540" fill="url(#sdk-resource-portability-svg-bg)"/>
+  <rect width="960" height="540" fill="url(#sdk-resource-portability-svg-glow)"/>
+  <path d="M 42 120 C 210 46 356 74 492 148 C 650 234 738 180 924 108 L 924 0 L 42 0 Z" fill="#168a8c10" /><path d="M 0 426 C 176 362 310 468 492 392 C 674 316 768 370 960 310 L 960 540 L 0 540 Z" fill="#d59b2e12" />
+  <g opacity="0.98"><rect x="92" y="104" width="126" height="142" rx="18" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" /><path d="M 174 104 L 218 148 L 174 148 Z" fill="#d59b2e33" /><rect x="116" y="138" width="57.96" height="12" rx="6" fill="#d59b2e" /><rect x="116" y="170" width="83.16000000000001" height="9" rx="5" fill="#dce8e1" /><rect x="116" y="194" width="65.52" height="9" rx="5" fill="#dce8e1" /><rect x="126" y="210" width="126" height="142" rx="18" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" /><path d="M 208 210 L 252 254 L 208 254 Z" fill="#168a8c33" /><rect x="150" y="244" width="57.96" height="12" rx="6" fill="#168a8c" /><rect x="150" y="276" width="83.16000000000001" height="9" rx="5" fill="#dce8e1" /><rect x="150" y="300" width="65.52" height="9" rx="5" fill="#dce8e1" /><rect x="78" y="300" width="126" height="142" rx="18" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" /><path d="M 160 300 L 204 344 L 160 344 Z" fill="#4772b233" /><rect x="102" y="334" width="57.96" height="12" rx="6" fill="#4772b2" /><rect x="102" y="366" width="83.16000000000001" height="9" rx="5" fill="#dce8e1" /><rect x="102" y="390" width="65.52" height="9" rx="5" fill="#dce8e1" /></g><path d="M 286 272 C 358 214 410 214 470 270" stroke="#d59b2e" stroke-width="7" fill="none" stroke-linecap="round" marker-end="url(#sdk-resource-portability-svg-arrow)" /><g ><rect x="430" y="176" width="192" height="190" rx="30" fill="#ffffff" stroke="#d8e2dc" stroke-width="2" filter="url(#sdk-resource-portability-svg-shadow)" /><polygon points="476,226 536,196 596,226 596,294 536,328 476,294" fill="#168a8c22" stroke="#168a8c" stroke-width="5" /><path d="M 536 196 V 328 M 476 226 L 596 294 M 596 226 L 476 294" stroke="#168a8c66" stroke-width="4" fill="none" /></g><path d="M 634 270 C 706 214 760 214 826 264" stroke="#168a8c" stroke-width="7" fill="none" stroke-linecap="round" marker-end="url(#sdk-resource-portability-svg-arrow)" /><path d="M 742 276 Q 742 260 760 260 H 796.72 L 811.92 242 H 869.68 Q 894 242 894 260 V 362 Q 894 380 876 380 H 760 Q 742 380 742 362 Z" fill="#2f7d5533" stroke="#2f7d55" stroke-width="2" /><rect x="762" y="294" width="112" height="92" rx="18" fill="#ffffff" opacity="0.72" /><circle cx="840" cy="216" r="38" fill="#2f7d5518" stroke="#2f7d55" stroke-width="5" /><circle cx="840" cy="216" r="24" fill="#eef8f1" stroke="#2f7d55" stroke-width="8" /><path d="M 829.44 216 L 837.12 223.68 L 851.52 207.36" fill="none" stroke="#2f7d55" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

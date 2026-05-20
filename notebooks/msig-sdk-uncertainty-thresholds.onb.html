@@ -7,15 +7,12 @@
 
     Post-fit stability review answers a narrow question: whether a fitted signature contribution is stable enough to report. Cohort QC, panel/WES evidence, cross-tool comparison, and report packaging live in separate notebooks.
 
-    Choose public example data or provide project spectra and signatures, run the resampling and cutoff sweep, then read the decision table with the bootstrap and cutoff figures before reporting a fitted signature contribution.
+    Choose a public mSigPortal dataset or provide project spectra and signatures, run the resampling and cutoff sweep, then read the decision table with the bootstrap and cutoff figures before reporting a fitted signature contribution.
   </script>
 
   <script type="module" pinned id="interactive-uncertainty-review">
-    const uncSdkUrl = new URL("../main.js?v=2026-05-20-uncertainty-upload-figures", location.href).href;
+const uncSdkUrl = new URL("../main.js?v=2026-05-20-publication-context-v2", location.href).href;
     const { mSigSDK } = await import(uncSdkUrl);
-    const {
-      loadPublicSbs96Dataset,
-    } = await import("./msig-notebook-fixtures.js");
     const {
       bootstrapRows,
       burdenSampleRows,
@@ -23,36 +20,31 @@
       note,
       table,
       thresholdRows,
+      uncertaintyDecisionRows,
     } = mSigSDK.presentation;
 
     const DEFAULT_CONTEXTS = mSigSDK.validation.getExpectedContexts({
       profile: "SBS",
       matrix: 96,
     });
-    const DEFAULT_PUBLIC_SAMPLES = [
-      "SP50611",
-      "SP53387",
-      "SP50827",
-      "SP52779",
-      "SP52667",
-      "SP52232",
-    ];
-    const DEFAULT_SIGNATURES = [
-      "SBS1",
-      "SBS2",
-      "SBS4",
-      "SBS5",
-      "SBS13",
-      "SBS17a",
-      "SBS17b",
-      "SBS18",
-      "SBS40",
-    ];
+    const PUBLIC_API_BASE = "https://analysistools.cancer.gov/mutational-signatures/api/";
+    const PANCANCER_VALUE = "__all_cancers__";
+    const DEFAULT_PUBLIC_SELECTION = {
+      study: "TCGA",
+      strategy: "WES",
+      profile: "SBS",
+      matrix: "96",
+      cancer: "Lung-AdenoCa",
+      signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
+    };
 
     function addUncertaintyStyles() {
-      if (document.getElementById("uncertainty-review-styles")) return;
-      const style = document.createElement("style");
-      style.id = "uncertainty-review-styles";
+      let style = document.getElementById("uncertainty-review-styles");
+      if (!style) {
+        style = document.createElement("style");
+        style.id = "uncertainty-review-styles";
+        document.head.append(style);
+      }
       style.textContent = `
         .uncertainty-review-grid {
           display: grid;
@@ -93,15 +85,71 @@
         .uncertainty-upload-grid textarea {
           min-height: 170px;
         }
-        .uncertainty-figure-grid {
+        .uncertainty-source-panel {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          gap: 10px;
+          min-width: 0;
+          border: 1px solid var(--rule);
+          border-radius: 8px;
+          background: #fbfcfa;
+          padding: 12px;
+        }
+        .uncertainty-source-panel strong {
+          color: var(--ink);
+          font-size: 13px;
+          line-height: 1.25;
+        }
+        .uncertainty-source-panel p {
+          margin: 0;
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.4;
+        }
+        .uncertainty-public-status {
+          margin: 0;
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.4;
+        }
+        .uncertainty-sample-panel {
+          display: grid;
+          gap: 10px;
+          min-width: 0;
+          border: 2px solid #15908c;
+          border-radius: 8px;
+          background: #f3fbfa;
+          padding: 14px;
+        }
+        .uncertainty-sample-panel strong {
+          color: var(--ink);
+          font-size: 15px;
+          line-height: 1.25;
+        }
+        .uncertainty-sample-panel p {
+          margin: 0;
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.4;
+        }
+        .uncertainty-sample-panel select {
+          min-height: 42px;
+          font-size: 15px;
+          font-weight: 700;
+        }
+        .uncertainty-advanced-inputs > .workflow-output-stack {
+          margin-top: 10px;
+        }
+        .uncertainty-figure-grid {
+          display: flex;
+          flex-direction: column;
           gap: 12px;
+          width: 100%;
         }
         .uncertainty-figure-card {
           display: grid;
           gap: 8px;
           min-width: 0;
+          width: 100%;
           border: 1px solid var(--rule);
           border-radius: 8px;
           background: #fbfcfa;
@@ -120,16 +168,53 @@
           line-height: 1.4;
         }
         .uncertainty-plot-host {
-          min-height: 300px;
           overflow-x: auto;
+        }
+        .uncertainty-plot-host svg {
+          display: block;
+          min-width: 760px;
+          width: 100%;
+          height: auto;
+        }
+        .uncertainty-plot-note {
+          margin-top: 6px;
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.4;
         }
         .uncertainty-downloads {
           display: flex;
           flex-wrap: wrap;
           gap: 9px;
         }
+        .uncertainty-evidence-guide {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+          gap: 10px;
+        }
+        .uncertainty-evidence-card {
+          border: 1px solid var(--rule);
+          border-radius: 8px;
+          background: #fbfcfa;
+          padding: 11px 12px;
+        }
+        .uncertainty-evidence-card strong {
+          display: block;
+          margin-bottom: 4px;
+          color: var(--ink);
+          font-size: 13px;
+          line-height: 1.25;
+        }
+        .uncertainty-evidence-card span {
+          display: block;
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.4;
+        }
+        .uncertainty-source-tables .workflow-output-stack {
+          margin-top: 10px;
+        }
       `;
-      document.head.append(style);
     }
 
     function element(tag, className = "", text = "") {
@@ -185,6 +270,13 @@
         return option;
       }));
       return node;
+    }
+
+    function optionNode(label, value = label) {
+      const option = document.createElement("option");
+      option.value = String(value);
+      option.textContent = String(label);
+      return option;
     }
 
     function fileInput(target) {
@@ -315,6 +407,41 @@
         expectedContexts: state.contexts,
       });
       const selectedSample = sampleSelect.value;
+      const detailsNode = element("details", "output-details uncertainty-source-tables");
+      const detailsSummary = element("summary", "", "Active dataset details");
+      const detailsStack = element("div", "workflow-output-stack");
+      detailsStack.append(
+        table(
+          [
+            { field: "Data source", value: state.source },
+            { field: "Selected public study", value: state.publicSelection ? `${state.publicSelection.study} ${state.publicSelection.cancer}` : "not public API data" },
+            { field: "Profile and table size", value: state.publicSelection ? `${state.publicSelection.profile}${state.publicSelection.matrix}` : `${state.contexts.length} contexts` },
+            { field: "Signature catalog", value: state.publicSelection?.signatureSetName || "user supplied" },
+          ],
+          [
+            { key: "field", label: "Field" },
+            { key: "value", label: "Value" },
+          ],
+          {
+            title: "Loaded source",
+            caption: "Records which data source and signature catalog are active for this stability review.",
+          }
+        ),
+        table(
+          signatureRows(state.signatures).slice(0, 12),
+          [
+            { key: "signature", label: "Signature" },
+            { key: "nonZeroContexts", label: "Nonzero contexts" },
+            { key: "totalWeight", label: "Total weight" },
+          ],
+          {
+            title: "Reference signature catalog",
+            caption: "The cutoff sweep uses the same signature catalog across all loaded samples.",
+            maxRows: 12,
+          }
+        )
+      );
+      detailsNode.append(detailsSummary, detailsStack);
       dataOutput.replaceChildren(
         metrics([
           { label: "Data source", value: state.source },
@@ -335,19 +462,7 @@
             maxRows: 8,
           }
         ),
-        table(
-          signatureRows(state.signatures).slice(0, 12),
-          [
-            { key: "signature", label: "Signature" },
-            { key: "nonZeroContexts", label: "Nonzero contexts" },
-            { key: "totalWeight", label: "Total weight" },
-          ],
-          {
-            title: "Reference signature catalog",
-            caption: "The cutoff sweep uses the same signature catalog across all loaded samples.",
-            maxRows: 12,
-          }
-        )
+        detailsNode
       );
     }
 
@@ -356,43 +471,215 @@
       setStatus("Settings ready", "Run the stability review to refresh tables, figures, and downloads.", "");
     }
 
-    async function loadPublicData() {
-      const requestedLimit = Math.max(1, Math.min(
-        DEFAULT_PUBLIC_SAMPLES.length,
-        Math.round(parseNumber(publicSampleLimitInput.value, DEFAULT_PUBLIC_SAMPLES.length))
-      ));
-      setStatus("Loading public example data", "Fetching public mSigPortal spectra and compatible COSMIC SBS96 signatures.", "running");
-      dataOutput.replaceChildren(note("Loading public spectra and signatures...", "info"));
-      const dataset = await loadPublicSbs96Dataset(mSigSDK, {
-        study: "PCAWG",
-        genomeDataType: "WGS",
-        cancerType: "Lung-AdenoCA",
-        mutationType: "SBS",
-        matrixSize: 96,
-        signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
-        sampleNames: DEFAULT_PUBLIC_SAMPLES.slice(0, requestedLimit),
-        sampleLimit: requestedLimit,
-        signatureNames: DEFAULT_SIGNATURES,
-        allowAlternate: false,
-      });
-      const selectedSignatures = DEFAULT_SIGNATURES
-        .filter((signature) => dataset.allSignatures?.[signature])
-        .slice(0, 8);
-      state.spectra = dataset.spectra;
-      state.signatures = Object.fromEntries(
-        (selectedSignatures.length ? selectedSignatures : Object.keys(dataset.signatures || {}))
-          .map((signature) => [signature, (dataset.allSignatures || dataset.signatures)[signature]])
-          .filter(([, value]) => value)
+    const publicOptionsState = {
+      spectra: [],
+      signatures: [],
+      loaded: false,
+    };
+
+    function publicApiUrl(endpoint, params = {}) {
+      const url = new URL(endpoint, PUBLIC_API_BASE);
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null && value !== "") {
+          url.searchParams.set(key, value);
+        }
+      }
+      return url;
+    }
+
+    async function fetchPublicApiRows(endpoint, params = {}, limit = 100000) {
+      const rows = [];
+      let offset = 0;
+      for (let page = 0; page < 10; page += 1) {
+        const url = publicApiUrl(endpoint, { ...params, limit, offset });
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`${endpoint} API request failed with ${response.status}`);
+        const pageRows = await response.json();
+        if (!Array.isArray(pageRows)) throw new Error(`${endpoint} API response was not an array.`);
+        rows.push(...pageRows);
+        if (pageRows.length < limit) break;
+        offset += limit;
+      }
+      return rows;
+    }
+
+    function uniqueSorted(values) {
+      return [...new Set(values.filter((value) => value !== undefined && value !== null && value !== ""))]
+        .map(String)
+        .sort((a, b) => a.localeCompare(b));
+    }
+
+    function setSelectOptions(selectNode, items, preferredValue = "") {
+      const normalized = items.map((item) =>
+        typeof item === "string" ? { label: item, value: item } : item
       );
-      state.contexts = dataset.contexts || DEFAULT_CONTEXTS;
-      state.source = dataset.status || "live mSigPortal";
-      state.datasetStatus = dataset.status;
+      selectNode.replaceChildren(...normalized.map((item) => optionNode(item.label, item.value)));
+      const values = normalized.map((item) => String(item.value));
+      if (preferredValue && values.includes(String(preferredValue))) {
+        selectNode.value = String(preferredValue);
+      } else if (values.length) {
+        selectNode.value = values[0];
+      }
+      return selectNode.value;
+    }
+
+    function selectedPublicRows() {
+      const matrix = Number(publicMatrixSelect.value);
+      return publicOptionsState.spectra.filter((row) =>
+        row.study === publicStudySelect.value &&
+        row.strategy === publicStrategySelect.value &&
+        row.profile === publicProfileSelect.value &&
+        Number(row.matrix) === matrix &&
+        (publicCancerSelect.value === PANCANCER_VALUE || row.cancer === publicCancerSelect.value)
+      );
+    }
+
+    function publicSampleOptions() {
+      const bySample = new Map();
+      for (const row of selectedPublicRows()) {
+        if (!bySample.has(row.sample)) bySample.set(row.sample, row);
+      }
+      return [...bySample.values()];
+    }
+
+    function currentPublicSelection() {
+      return {
+        study: publicStudySelect.value,
+        cancer: publicCancerSelect.value === PANCANCER_VALUE ? "PanCancer" : publicCancerSelect.value,
+        strategy: publicStrategySelect.value,
+        profile: publicProfileSelect.value,
+        matrix: Number(publicMatrixSelect.value),
+        signatureSetName: publicSignatureSetSelect.value,
+      };
+    }
+
+    function updatePublicStatus() {
+      const selection = currentPublicSelection();
+      const samples = publicSampleOptions();
+      publicStatus.textContent = publicOptionsState.loaded
+        ? `${samples.length} public samples match ${selection.study} ${selection.cancer} ${selection.strategy} ${selection.profile}${selection.matrix}. The loader will fetch up to ${maxSamplesInput.value} samples plus ${selection.signatureSetName || "a compatible signature set"}.`
+        : "Load the public dataset menu to choose real API-backed spectra.";
+    }
+
+    function populatePublicMenus(preferred = {}) {
+      const current = {
+        study: publicStudySelect.value || preferred.study || DEFAULT_PUBLIC_SELECTION.study,
+        strategy: publicStrategySelect.value || preferred.strategy || DEFAULT_PUBLIC_SELECTION.strategy,
+        profile: publicProfileSelect.value || preferred.profile || DEFAULT_PUBLIC_SELECTION.profile,
+        matrix: publicMatrixSelect.value || preferred.matrix || DEFAULT_PUBLIC_SELECTION.matrix,
+        cancer: publicCancerSelect.value || preferred.cancer || DEFAULT_PUBLIC_SELECTION.cancer,
+        signatureSetName: publicSignatureSetSelect.value || preferred.signatureSetName || DEFAULT_PUBLIC_SELECTION.signatureSetName,
+      };
+
+      const study = setSelectOptions(publicStudySelect, uniqueSorted(publicOptionsState.spectra.map((row) => row.study)), current.study);
+      const studyRows = publicOptionsState.spectra.filter((row) => row.study === study);
+      const strategy = setSelectOptions(publicStrategySelect, uniqueSorted(studyRows.map((row) => row.strategy)), current.strategy);
+      const strategyRows = studyRows.filter((row) => row.strategy === strategy);
+      const profile = setSelectOptions(publicProfileSelect, uniqueSorted(strategyRows.map((row) => row.profile)), current.profile);
+      const profileRows = strategyRows.filter((row) => row.profile === profile);
+      const matrix = setSelectOptions(publicMatrixSelect, uniqueSorted(profileRows.map((row) => row.matrix)), current.matrix);
+      const matrixRows = profileRows.filter((row) => String(row.matrix) === String(matrix));
+      const cancerItems = uniqueSorted(matrixRows.map((row) => row.cancer)).map((value) => ({ label: value, value }));
+      if (study === "PCAWG" || study === "TCGA") {
+        cancerItems.unshift({ label: "PanCancer (all cancer types)", value: PANCANCER_VALUE });
+      }
+      setSelectOptions(publicCancerSelect, cancerItems, current.cancer);
+
+      const exactSignatureRows = publicOptionsState.signatures.filter((row) =>
+        row.strategy === strategy &&
+        row.profile === profile &&
+        String(row.matrix) === String(matrix)
+      );
+      const fallbackSignatureRows = publicOptionsState.signatures.filter((row) =>
+        row.profile === profile &&
+        String(row.matrix) === String(matrix)
+      );
+      const signatureRows = exactSignatureRows.length ? exactSignatureRows : fallbackSignatureRows;
+      setSelectOptions(publicSignatureSetSelect, uniqueSorted(signatureRows.map((row) => row.signatureSetName)), current.signatureSetName);
+      updatePublicStatus();
+    }
+
+    async function loadPublicMenus(preferred = DEFAULT_PUBLIC_SELECTION) {
+      publicStatus.textContent = "Loading public dataset options from mSigPortal APIs...";
+      loadPublicButton.disabled = true;
+      refreshPublicButton.disabled = true;
+      try {
+        const [spectraOptions, signatureOptions] = await Promise.all([
+          fetchPublicApiRows("mutational_spectrum_options"),
+          fetchPublicApiRows("mutational_signature_options", { source: "Reference_signatures" }),
+        ]);
+        publicOptionsState.spectra = spectraOptions;
+        publicOptionsState.signatures = signatureOptions;
+        publicOptionsState.loaded = true;
+        populatePublicMenus(preferred);
+      } catch (error) {
+        publicOptionsState.loaded = false;
+        publicStatus.textContent = `Could not load public dataset menu: ${error.message}`;
+        throw error;
+      } finally {
+        loadPublicButton.disabled = false;
+        refreshPublicButton.disabled = false;
+      }
+    }
+
+    async function fetchSpectrumRowsForSamples(samples, selection) {
+      const groups = [];
+      for (let index = 0; index < samples.length; index += 1) {
+        const sample = samples[index];
+        publicStatus.textContent = `Fetching public spectra ${index + 1}/${samples.length}: ${sample.sample}`;
+        dataOutput.replaceChildren(note(`Fetching ${index + 1}/${samples.length} public spectra from mSigPortal...`, "info"));
+        groups.push(await fetchPublicApiRows("mutational_spectrum", {
+          study: sample.study,
+          sample: sample.sample,
+          cancer: sample.cancer,
+          strategy: sample.strategy,
+          profile: sample.profile,
+          matrix: sample.matrix,
+        }, 100000));
+      }
+      publicStatus.textContent = `Loading reference signatures: ${selection.signatureSetName}`;
+      return groups.flat();
+    }
+
+    async function loadPublicData() {
+      if (!publicOptionsState.loaded) await loadPublicMenus();
+      const limit = Math.max(1, Math.min(
+        50,
+        Math.round(parseNumber(maxSamplesInput.value, 6))
+      ));
+      const selectedSamples = publicSampleOptions().slice(0, limit);
+      if (!selectedSamples.length) throw new Error("No public samples match the selected menu values.");
+      const selection = {
+        ...currentPublicSelection(),
+        sampleCount: selectedSamples.length,
+      };
+      if (!selection.signatureSetName) {
+        throw new Error("No compatible reference signature set is available for the selected profile and table size.");
+      }
+      setStatus("Loading selected public data", `Fetching ${selection.sampleCount} spectra and ${selection.signatureSetName}.`, "running");
+      const spectrumRows = await fetchSpectrumRowsForSamples(selectedSamples, selection);
+      const signatureRows = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
+        selection.strategy,
+        selection.signatureSetName,
+        selection.profile,
+        selection.matrix,
+        100000
+      );
+      const spectra = mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(spectrumRows);
+      const signatures = mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(signatureRows, "signatureName");
+      state.spectra = spectra;
+      state.signatures = signatures;
+      state.contexts = inferContexts(spectra, signatures);
+      state.source = `mSigPortal public API: ${selection.study} ${selection.cancer} ${selection.strategy} ${selection.profile}${selection.matrix}`;
+      state.datasetStatus = "mSigPortal API";
+      state.publicSelection = selection;
       spectraText.value = mSigSDK.io.exportSigProfilerMatrix(state.spectra, { contexts: state.contexts });
       signaturesText.value = mSigSDK.io.exportCOSMICSignatureMatrix(state.signatures, { contexts: state.contexts });
-      updateSampleSelect(DEFAULT_PUBLIC_SAMPLES[0]);
+      updateSampleSelect(selectedSamples[0]?.sample);
       renderDataSummary();
       clearReview();
-      setStatus("Public data loaded", "Adjust the sample and review settings or paste/upload project data.", "success");
+      updatePublicStatus();
+      setStatus("Public data loaded", "Choose a sample or run the stability review with the selected public dataset.", "success");
     }
 
     function applyUploadedData() {
@@ -405,43 +692,19 @@
       state.contexts = inferContexts(spectra, signatures);
       state.source = "uploaded or pasted matrices";
       state.datasetStatus = "user supplied";
+      state.publicSelection = null;
       updateSampleSelect(sampleSelect.value);
       renderDataSummary();
       clearReview();
       setStatus("Uploaded data applied", "Run the review after confirming the selected sample and settings.", "success");
     }
 
-    function cutoffRangeForSignature(signature) {
-      const sample = reviewState.sample;
-      const values = (reviewState.thresholdSensitivity?.runs || [])
-        .map((run) => Number(run.exposures?.[sample]?.[signature]))
-        .filter(Number.isFinite);
-      if (!values.length) return null;
-      return Math.max(...values) - Math.min(...values);
-    }
-
     function buildDecisionRows() {
-      const minSelection = parseNumber(selectionInput.value, 0.8);
-      const maxWidth = parseNumber(widthInput.value, 0.2);
-      return reviewState.bootstrapRows.map((row) => {
-        const width = Number(row.upper95 || 0) - Number(row.lower95 || 0);
-        const cutoffRange = cutoffRangeForSignature(row.signature);
-        const selectedOften = Number(row.selectionFrequency || 0) >= minSelection;
-        const intervalNarrow = width <= maxWidth;
-        const cutoffStable = cutoffRange === null || cutoffRange <= maxWidth;
-        const decision = selectedOften && intervalNarrow && cutoffStable
-          ? "report with QC context"
-          : selectedOften
-            ? "report with uncertainty caveat"
-            : "do not emphasize";
-        return {
-          signature: row.signature,
-          meanExposure: formatFraction(row.mean),
-          ciWidth: formatFraction(width),
-          selectionFrequency: formatFraction(row.selectionFrequency),
-          cutoffRange: formatFraction(cutoffRange),
-          decision,
-        };
+      return uncertaintyDecisionRows(reviewState.bootstrap, reviewState.thresholdSensitivity, {
+        sample: reviewState.sample,
+        minSelectionFrequency: parseNumber(selectionInput.value, 0.8),
+        maxUncertaintyWidth: parseNumber(widthInput.value, 0.2),
+        topN: 12,
       });
     }
 
@@ -466,6 +729,25 @@
       }
     }
 
+    function currentFigureContext() {
+      const publicSelection = state.publicSelection || {};
+      return {
+        dataset: state.source,
+        study: publicSelection.study,
+        cancerType: publicSelection.cancer,
+        strategy: publicSelection.strategy,
+        profile: publicSelection.profile,
+        matrix: publicSelection.matrix,
+        signatureCatalog: publicSelection.signatureSetName || "user supplied",
+        sample: reviewState.sample,
+        sampleCount: matrixNames(state.spectra).length,
+        signatureCount: matrixNames(state.signatures).length,
+        fittingThreshold: reviewState.exposureThreshold,
+        bootstrapIterations: reviewState.iterations,
+        cutoffGrid: reviewState.thresholds.join(", "),
+      };
+    }
+
     async function renderFigures() {
       figuresOutput.replaceChildren();
       if (!reviewState.bootstrap || !reviewState.thresholdSensitivity) {
@@ -475,68 +757,52 @@
       figuresGrid.replaceChildren();
       figuresOutput.append(figuresGrid);
       await renderFigureCard(
-        "Bootstrap confidence intervals",
-        "Shows repeat-fit mean exposure, 95% confidence intervals, and selection frequency for the selected sample.",
-        (host) => mSigSDK.qcPlots.plotBootstrapConfidenceIntervals(host, reviewState.bootstrap)
+        "Bootstrap exposure uncertainty",
+        "Top fitted signatures by mean exposure. Full signature names and all rows remain in the decision and diagnostic tables.",
+        (host) => mSigSDK.qcPlots.plotBootstrapExposureSummary(host, reviewState.bootstrap, {
+          topN: 8,
+          figureContext: currentFigureContext(),
+          dataset: state.source,
+          sample: reviewState.sample,
+          signatureCatalog: state.publicSelection?.signatureSetName || "user supplied",
+        })
       );
       await renderFigureCard(
         "Cutoff sensitivity",
-        "Shows how reconstruction quality and active-signature count change across the configured contribution cutoffs.",
-        (host) => mSigSDK.qcPlots.plotThresholdSensitivity(host, reviewState.thresholdSensitivity)
+        "Contribution cutoffs, active-signature counts, and reconstruction quality on separate readable scales.",
+        (host) => mSigSDK.qcPlots.plotThresholdSensitivitySummary(host, reviewState.thresholdSensitivity, {
+          figureContext: currentFigureContext(),
+          dataset: state.source,
+          sample: reviewState.sample,
+          signatureCatalog: state.publicSelection?.signatureSetName || "user supplied",
+        })
       );
     }
 
+    function renderEvidenceGuide() {
+      const wrapper = element("div", "uncertainty-evidence-guide");
+      [
+        {
+          title: "Reporting decision",
+          text: "Combines exposure size, bootstrap interval width, selection frequency, and cutoff-driven range for each fitted signature.",
+        },
+        {
+          title: "Bootstrap evidence",
+          text: "Tests repeat-fit stability for the selected sample; it supplies the confidence interval and selection-frequency columns.",
+        },
+        {
+          title: "Cutoff evidence",
+          text: "Tests whether removing small contributions changes the fitted answer; it supplies cutoff range and cohort-level drift context.",
+        },
+      ].forEach((item) => {
+        const card = element("div", "uncertainty-evidence-card");
+        card.append(element("strong", "", item.title), element("span", "", item.text));
+        wrapper.append(card);
+      });
+      return wrapper;
+    }
+
     function selectedResultTable() {
-      const view = tableViewSelect.value;
-      const warnings = [
-        ...warningTableRows(reviewState.bootstrap?.warnings || []),
-        ...warningTableRows(reviewState.thresholdSensitivity?.warnings || []),
-      ];
-      if (view === "bootstrap") {
-        return table(
-          reviewState.bootstrapRows,
-          [
-            { key: "signature", label: "Signature" },
-            { key: "mean", label: "Mean exposure" },
-            { key: "lower95", label: "Lower 95% CI" },
-            { key: "upper95", label: "Upper 95% CI" },
-            { key: "selectionFrequency", label: "Selection frequency" },
-          ],
-          {
-            title: "Bootstrap uncertainty",
-            caption: "Shows repeat-fit exposure estimates for the selected sample.",
-          }
-        );
-      }
-      if (view === "cutoff") {
-        return table(
-          reviewState.thresholdRows,
-          [
-            { key: "threshold", label: "Contribution cutoff" },
-            { key: "averageCosineSimilarity", label: "Mean cosine" },
-            { key: "averageRmse", label: "Mean RMSE" },
-            { key: "averageActiveSignatures", label: "Mean active signatures" },
-          ],
-          {
-            title: "Cutoff sensitivity",
-            caption: "Shows whether reconstruction and active-signature counts change when small contributions are removed.",
-          }
-        );
-      }
-      if (view === "warnings") {
-        return table(
-          warnings,
-          [
-            { key: "code", label: "Warning code" },
-            { key: "message", label: "Message" },
-            { key: "resolution", label: "Resolution" },
-          ],
-          {
-            title: "Review warnings",
-            caption: "Shows SDK cues raised by uncertainty or cutoff checks.",
-          }
-        );
-      }
       return table(
         reviewState.decisions,
         [
@@ -552,6 +818,69 @@
           caption: "Translates uncertainty and cutoff drift into a compact reporting recommendation for each fitted signature.",
         }
       );
+    }
+
+    function renderDiagnosticTables() {
+      const warnings = [
+        ...warningTableRows(reviewState.bootstrap?.warnings || []),
+        ...warningTableRows(reviewState.thresholdSensitivity?.warnings || []),
+      ];
+      const detailsNode = element("details", "output-details uncertainty-source-tables");
+      const summary = element("summary", "", "Source diagnostic tables");
+      const stack = element("div", "workflow-output-stack");
+      stack.append(
+        note(
+          "These tables are audit details behind the decision table. Use them to check the calculation source rather than as separate interpretation views.",
+          "info"
+        ),
+        table(
+          reviewState.bootstrapRows,
+          [
+            { key: "signature", label: "Signature" },
+            { key: "mean", label: "Mean exposure" },
+            { key: "lower95", label: "Lower 95% CI" },
+            { key: "upper95", label: "Upper 95% CI" },
+            { key: "selectionFrequency", label: "Selection frequency" },
+          ],
+          {
+            title: "Bootstrap uncertainty",
+            caption: "Shows repeat-fit exposure estimates for the selected sample.",
+          }
+        ),
+        table(
+          reviewState.thresholdRows,
+          [
+            { key: "threshold", label: "Contribution cutoff" },
+            { key: "averageCosineSimilarity", label: "Mean cosine" },
+            { key: "averageRmse", label: "Mean RMSE" },
+            { key: "averageActiveSignatures", label: "Mean active signatures" },
+          ],
+          {
+            title: "Cutoff sensitivity",
+            caption: "Shows whether reconstruction and active-signature counts change when small contributions are removed.",
+          }
+        )
+      );
+      if (warnings.length) {
+        stack.append(
+          table(
+            warnings,
+            [
+              { key: "code", label: "Warning code" },
+              { key: "message", label: "Message" },
+              { key: "resolution", label: "Resolution" },
+            ],
+            {
+              title: "Review warnings",
+              caption: "Shows SDK cues raised by uncertainty or cutoff checks.",
+            }
+          )
+        );
+      } else {
+        stack.append(note("No uncertainty or cutoff warnings were raised for the current settings.", "info"));
+      }
+      detailsNode.append(summary, stack);
+      return detailsNode;
     }
 
     function artifactText({ text, value }) {
@@ -587,6 +916,49 @@
         }
       });
       return node;
+    }
+
+    function renderSdkRecipe() {
+      const detailsNode = element("details", "output-details uncertainty-source-tables");
+      const summary = element("summary", "", "Recreate outputs with SDK calls");
+      const pre = element("pre", "msigsdk-output-inspector");
+      pre.textContent = `const bootstrapRows = mSigSDK.presentation.bootstrapRows(bootstrap, { topN: 12 });
+const thresholdRows = mSigSDK.presentation.thresholdRows(thresholdSensitivity);
+const figureContext = {
+  dataSource,
+  sample,
+  signatureCatalog,
+  exposureThreshold,
+  bootstrapIterations,
+  cutoffs,
+};
+const decisions = mSigSDK.presentation.uncertaintyDecisionRows(bootstrap, thresholdSensitivity, {
+  sample,
+  minSelectionFrequency: 0.8,
+  maxUncertaintyWidth: 0.2,
+  topN: 12,
+});
+
+mSigSDK.presentation.table(decisions, decisionColumns, { title: "Reporting decision" });
+mSigSDK.presentation.table(bootstrapRows, bootstrapColumns, { title: "Bootstrap uncertainty" });
+mSigSDK.presentation.table(thresholdRows, thresholdColumns, { title: "Cutoff sensitivity" });
+
+await mSigSDK.qcPlots.plotBootstrapExposureSummary(bootstrapFigure, bootstrap, {
+  topN: 8,
+  figureContext,
+  signatureCatalog,
+});
+await mSigSDK.qcPlots.plotThresholdSensitivitySummary(cutoffFigure, thresholdSensitivity, {
+  figureContext,
+  sample,
+  signatureCatalog,
+});`;
+      detailsNode.append(
+        summary,
+        note("The notebook result tables and figures are generated from public mSigSDK helpers so the same output can be recreated in another page or report.", "info"),
+        pre
+      );
+      return detailsNode;
     }
 
     function renderDownloads() {
@@ -646,7 +1018,8 @@
           "Use Copy when the browser blocks native downloads, including some embedded preview browsers.",
           "info"
         ),
-        wrapper
+        wrapper,
+        renderSdkRecipe()
       );
     }
 
@@ -666,7 +1039,9 @@
           { label: "Cutoffs tested", value: reviewState.thresholds.length },
           { label: "Max mean cutoff drift", value: formatFraction(reviewState.thresholdSensitivity.summary?.maxMeanL1ExposureDrift) },
         ]),
-        selectedResultTable()
+        renderEvidenceGuide(),
+        selectedResultTable(),
+        renderDiagnosticTables()
       );
       await renderFigures();
       renderDownloads();
@@ -718,6 +1093,12 @@
             contexts: state.contexts,
           }
         );
+        bootstrap.sampleName = sample;
+        bootstrap.dataset = state.source;
+        bootstrap.signatureCatalog = state.publicSelection?.signatureSetName || "user supplied";
+        thresholdSensitivity.sampleName = sample;
+        thresholdSensitivity.dataset = state.source;
+        thresholdSensitivity.signatureCatalog = state.publicSelection?.signatureSetName || "user supplied";
         reviewState.sample = sample;
         reviewState.iterations = iterations;
         reviewState.seed = seed;
@@ -745,8 +1126,8 @@
     const statusCard = element("div", "workflow-status-card uncertainty-review-status");
     const statusDot = element("div", "workflow-status-dot");
     const statusText = element("div");
-    const statusTitle = element("strong", "", "Loading public example data");
-    const statusDetail = element("span", "", "Preparing spectra and signatures.");
+    const statusTitle = element("strong", "", "Loading public data menu");
+    const statusDetail = element("span", "", "Preparing API-backed spectra and signatures.");
     statusText.append(statusTitle, statusDetail);
     statusCard.append(statusDot, statusText);
     root.append(statusCard);
@@ -755,6 +1136,7 @@
     const state = {
       source: "not loaded",
       datasetStatus: "",
+      publicSelection: null,
       spectra: {},
       signatures: {},
       contexts: DEFAULT_CONTEXTS,
@@ -772,8 +1154,14 @@
       decisions: [],
     };
 
-    const publicSampleLimitInput = input(DEFAULT_PUBLIC_SAMPLES.length, "number", 1);
-    publicSampleLimitInput.max = String(DEFAULT_PUBLIC_SAMPLES.length);
+    const publicStudySelect = select([]);
+    const publicCancerSelect = select([]);
+    const publicStrategySelect = select([]);
+    const publicProfileSelect = select([]);
+    const publicMatrixSelect = select([]);
+    const publicSignatureSetSelect = select([]);
+    const maxSamplesInput = input(6, "number", 1);
+    maxSamplesInput.max = "50";
     const spectraText = textarea("Paste spectra JSON or a SigProfiler-style TSV matrix.");
     const signaturesText = textarea("Paste signature JSON or a COSMIC-style TSV matrix.");
     const sampleSelect = select([]);
@@ -781,16 +1169,13 @@
     const thresholdInput = input("0, 0.005, 0.01, 0.03, 0.05, 0.1");
     const iterationsInput = input(40, "number", 5);
     const seedInput = input(42, "number", 1);
-    const tableViewSelect = select(["decision", "bootstrap", "cutoff", "warnings"]);
-    tableViewSelect.options[0].textContent = "Reporting decision";
-    tableViewSelect.options[1].textContent = "Bootstrap table";
-    tableViewSelect.options[2].textContent = "Cutoff table";
-    tableViewSelect.options[3].textContent = "Warnings";
     const selectionInput = input(0.8, "number", 0.05);
     const widthInput = input(0.2, "number", 0.05);
-    const loadPublicButton = button("Load public example", true);
+    const loadPublicButton = button("Load selected public data", true);
+    const refreshPublicButton = button("Refresh public menu");
     const applyUploadButton = button("Apply uploaded data", true);
     const runButton = button("Run stability review", true);
+    const publicStatus = element("p", "uncertainty-public-status", "Loading public dataset options from mSigPortal APIs...");
 
     const dataOutput = element("div", "workflow-output-stack");
     const resultsOutput = element("div", "workflow-output-stack");
@@ -801,14 +1186,38 @@
     const step1 = element("section", "uncertainty-review-step");
     const step1Header = element("header");
     step1Header.append(
-      element("h3", "", "1. Load data and choose the sample"),
-      element("p", "", "Use the public SBS96 example or upload project spectra and reference signatures in JSON or TSV form.")
+      element("h3", "", "1. Load data"),
+      element("p", "", "Choose real public mSigPortal data or provide project matrices. The review sample is selected separately because it drives the downstream stability review.")
+    );
+    const publicPanel = element("section", "uncertainty-source-panel");
+    publicPanel.append(
+      element("strong", "", "Public API data"),
+      element("p", "", "Choose study, cancer type, sequencing strategy, mutation pattern table, signature catalog, and sample count.")
     );
     const publicControls = element("div", "workflow-control-grid compact");
     publicControls.append(
-      field("Public sample count", publicSampleLimitInput, "Uses PCAWG WGS Lung-AdenoCA SBS96 spectra."),
-      field("Review sample", sampleSelect, "Changing the sample requires rerunning the stability review.")
+      field("Study", publicStudySelect),
+      field("Cancer type", publicCancerSelect),
+      field("Sequencing strategy", publicStrategySelect),
+      field("Mutation type", publicProfileSelect),
+      field("Matrix size", publicMatrixSelect),
+      field("Signature catalog", publicSignatureSetSelect),
+      field("Max samples", maxSamplesInput, "Small values keep bootstrap runs responsive.")
     );
+    const publicButtonRow = element("div", "workflow-button-row");
+    publicButtonRow.append(loadPublicButton, refreshPublicButton);
+    publicPanel.append(publicControls, publicStatus, publicButtonRow);
+
+    const samplePanel = element("section", "uncertainty-sample-panel");
+    samplePanel.append(
+      element("strong", "", "Review sample"),
+      element("p", "", "Bootstrap intervals, cutoff sensitivity, figures, and downloads are generated for this sample."),
+      field("Selected sample", sampleSelect, "Change the sample before running the stability review.")
+    );
+
+    const uploadDetails = element("details", "workflow-step-details uncertainty-advanced-inputs");
+    const uploadSummary = element("summary", "", "Use pasted or uploaded matrices");
+    const uploadStack = element("div", "workflow-output-stack");
     const uploadGrid = element("div", "uncertainty-upload-grid");
     uploadGrid.append(
       field("Spectra matrix", spectraText, "JSON object keyed by sample or SigProfiler-style TSV."),
@@ -819,9 +1228,11 @@
       field("Upload spectra", fileInput(spectraText), "Optional file input for the spectra matrix."),
       field("Upload signatures", fileInput(signaturesText), "Optional file input for the signature catalog.")
     );
-    const dataActions = element("div", "workflow-button-row");
-    dataActions.append(loadPublicButton, applyUploadButton);
-    step1.append(step1Header, publicControls, uploadGrid, uploadControls, dataActions, dataOutput);
+    const uploadActions = element("div", "workflow-button-row");
+    uploadActions.append(applyUploadButton);
+    uploadStack.append(uploadGrid, uploadControls, uploadActions);
+    uploadDetails.append(uploadSummary, uploadStack);
+    step1.append(step1Header, publicPanel, samplePanel, uploadDetails, dataOutput);
 
     const step2 = element("section", "uncertainty-review-step");
     const step2Header = element("header");
@@ -843,12 +1254,11 @@
     const step3 = element("section", "uncertainty-review-step");
     const step3Header = element("header");
     step3Header.append(
-      element("h3", "", "3. Inspect tables, figures, and downloads"),
-      element("p", "", "The decision table, bootstrap plot, cutoff plot, and download files update from the same review result.")
+      element("h3", "", "3. Inspect the decision, figures, and downloads"),
+      element("p", "", "The decision table is the interpretation surface. Bootstrap and cutoff source tables remain available as audit details.")
     );
     const resultControls = element("div", "workflow-control-grid compact");
     resultControls.append(
-      field("Table view", tableViewSelect, "Switch the table without rerunning the calculations."),
       field("Minimum selection frequency", selectionInput, "A signature below this frequency is not emphasized."),
       field("Maximum uncertainty width", widthInput, "Applies to 95% CI width and cutoff-driven exposure range.")
     );
@@ -867,6 +1277,26 @@
         loadPublicButton.disabled = false;
       }
     });
+    refreshPublicButton.addEventListener("click", async () => {
+      try {
+        await loadPublicMenus(currentPublicSelection());
+      } catch (error) {
+        setStatus("Public menu load failed", error.message, "error");
+      }
+    });
+    [publicStudySelect, publicStrategySelect, publicProfileSelect, publicMatrixSelect].forEach((control) => {
+      control.addEventListener("change", () => {
+        populatePublicMenus(currentPublicSelection());
+        markStale();
+      });
+    });
+    [publicCancerSelect, publicSignatureSetSelect, maxSamplesInput].forEach((control) => {
+      control.addEventListener("change", () => {
+        updatePublicStatus();
+        markStale();
+      });
+      control.addEventListener("input", updatePublicStatus);
+    });
     applyUploadButton.addEventListener("click", () => {
       try {
         applyUploadedData();
@@ -882,13 +1312,18 @@
     [exposureInput, thresholdInput, iterationsInput, seedInput].forEach((control) => {
       control.addEventListener("input", markStale);
     });
-    [tableViewSelect, selectionInput, widthInput].forEach((control) => {
+    [selectionInput, widthInput].forEach((control) => {
       control.addEventListener("input", renderResults);
       control.addEventListener("change", renderResults);
     });
     runButton.addEventListener("click", runReview);
 
-    await loadPublicData();
-    await runReview();
+    try {
+      await loadPublicData();
+      await runReview();
+    } catch (error) {
+      setStatus("Public data load failed", error.message, "error");
+      dataOutput.replaceChildren(note(error.message, "warning"));
+    }
   </script>
 </notebook>

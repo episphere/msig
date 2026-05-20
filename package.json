@@ -17,8 +17,12 @@
     "LICENSE"
   ],
   "scripts": {
-    "docs": "jsdoc -c jsdoc.json",
+    "docs": "npm run docs:api && npm run docs:feature-reference",
+    "docs:api": "node scripts/build-docs-api.mjs",
+    "docs:feature-reference": "node scripts/build-feature-reference-html.mjs",
     "test:report-schema": "node scripts/validate-report-schema.mjs",
+    "test:plot-context": "node scripts/verify-plot-publication-context.mjs",
+    "assets:notebook-previews": "node scripts/build-notebook-preview-assets.mjs",
     "notebooks:manifest": "node scripts/build-notebook-manifest.mjs",
     "serve:observable": "npm run notebooks:manifest && node scripts/serve-observable-sdk.mjs",
     "smoke:adapters": "node scripts/smoke-adapters.mjs",
@@ -48,11 +52,11 @@
   "license": "MIT",
   "homepage": "https://episphere.github.io/msig/",
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^15.0.1"
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "documentation": "^14.0.3"
   },
   "dependencies": {
     "build": "^0.1.4",
-    "js-yaml": "^4.1.0",
-    "jsdoc": "^4.0.4"
+    "js-yaml": "^4.1.0"
   }
 }

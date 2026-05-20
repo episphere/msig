@@ -30,10 +30,9 @@ The top-level object returned by the SDK contains:
 | `runners` | Optional browser execution runtimes, including Pyodide for Python packages and WebR for compatible R package builds. |
 | `adapters` | External-tool adapters for SigProfilerAssignment, SigProfilerExtractor, SigProfilerMatrixGenerator, SigProfilerSimulator, SigProfilerClusters, sigProfilerPlotting, deconstructSigs, sigminer, and MuSiCal-compatible refit workflows. |
 | `reports` | Structured, JSON, and standalone HTML report generation. |
-| `advisor` | Validated manuscript advisor functions plus experimental descriptive helpers that warn on use. |
+| `advisor` | Validated manuscript advisor functions for analysis strategy, signature ambiguity, catalog sufficiency, and fit-quality evidence. |
 | `pipelines` | Higher-level single-sample, cohort, discovery, and panel/WES workflows. |
 | `workflows` | High-level report-assembly workflows plus aliases to validated pipeline functions. |
-| `experimental` | Localized-mutagenesis and subgroup-discovery pipelines reserved for future validation. |
 | `provenance` | SDK, runtime, catalog, genome, endpoint, parameter, and source metadata helpers. |
 | `presentation` | DOM table, metric, note, details, and row-normalization helpers for notebooks and reports. |
 
@@ -45,7 +44,7 @@ New users should start with the small stable surface under `mSigSDK.workflows`. 
 |---|---|---|---|
 | `workflows.analyzeMafFiles(mafFiles, signatures = null, options = {})` | Convert MAF-like rows into SBS96 spectra with optional known-signature fitting. | MAF rows or nested row arrays, optional signature catalog, `groupBy`, `genome`, `offline`, `contextLookupTable`, `expectedContexts`, and `reportFormat`. | MAF conversion metadata, spectra, provenance, validation/QC, and optional signature-fit analysis. |
 | `workflows.runSingleSampleFit(input, options = {})` | Fit one sample against a supplied signature catalog. | `sampleName`, `spectrum`, `signatures`, optional `expectedContexts`, `exposureThreshold`, `bootstrapIterations`, and low-burden threshold. | Single-sample result with fit, fit-quality evidence, warnings, recommended actions, and report-ready figure descriptors. |
-| `workflows.runCohortFit(input, options = {})` | Fit a spectra matrix with optional metadata. | `spectra`, `signatures`, optional `metadata`, `expectedContexts`, `groupKey`, and `comparisonKey`. | Cohort result with sample-level fit outputs, cohort guidance, fit-quality evidence, subgroup status, and QC summaries. |
+| `workflows.runCohortFit(input, options = {})` | Fit a spectra matrix with optional metadata. | `spectra`, `signatures`, optional `metadata`, `expectedContexts`, `groupKey`, and `comparisonKey`. | Cohort result with sample-level fit outputs, cohort guidance, fit-quality evidence, subgroup review, and QC summaries. |
 | `workflows.runPanelWorkflow(input, options = {})` | Review panel/WES spectra with optional callable-opportunity metadata. | `spectra`, `signatures`, optional `callableOpportunities`, `referenceOpportunities`, `genomeBuild`, and evidence thresholds. | Panel result with normalized spectra metadata, evidence tiers, panel limitations, QC, warnings, and recommended actions. |
 
 Namespace boundaries:
@@ -53,7 +52,6 @@ Namespace boundaries:
 - `workflows` is the documented first-use surface and report-oriented workflow namespace.
 - `pipelines` exposes full computational controls and structured analysis objects.
 - `quickstart` remains available as compact aliases for applications that prefer an explicit beginner namespace.
-- `experimental` contains localized-mutagenesis and subgroup-discovery workflows that emit warnings and include `experimentalStatus` metadata.
 
 ## Shared data structures
 
@@ -114,16 +112,16 @@ Stable workflow and pipeline functions return a predictable top-level frame so a
 - `publicationFigures`.
 - `provenance`.
 
-Workflow-specific details are nested by domain. Panel/WES review uses `panel`. Discovery workflows use `discovery` with `rankSelection`, `extraction`, `comparison`, and `productionHandoffRecommendation`. Experimental localized-mutagenesis outputs use `localized` with `analysisEligibility`, `foci`, `rainfall`, `contextPatterns`, and `nullModelSpecification`; experimental subgroup-discovery outputs include subgroup-level extraction and matched-refit details.
+Workflow-specific details are nested by domain. Panel/WES review uses `panel`. Discovery workflows use `discovery` with `rankSelection`, `extraction`, `comparison`, and `productionHandoffRecommendation`.
 
 ### Configurable defaults
 
 The SDK exposes default parameter maps so callers can inspect, copy, and override operating points without modifying source code:
 
 - `mSigSDK.qc.QC_DEFAULTS`: default settings for mutation-burden QC, sample selection, exposure normalization, residual review, NNLS fitting, threshold sensitivity, and bootstrap uncertainty.
-- `mSigSDK.advisor.ADVISOR_DEFAULTS`: default settings for analysis strategy advice, ambiguity screening, catalog sufficiency, fit-quality evidence, group comparison, single-sample and cohort pipelines, discovery workflows, panel/WES evidence, restricted-assay evidence, subgroup discovery, and localized-mutagenesis screening.
+- `mSigSDK.advisor.ADVISOR_DEFAULTS`: default settings for analysis strategy advice, ambiguity screening, catalog sufficiency, fit-quality evidence, group comparison, single-sample and cohort pipelines, discovery workflows, panel/WES evidence, and restricted-assay evidence.
 
-Defaults are review settings, not immutable biological rules. Direct QC/advisor functions accept their documented options flatly. Pipeline functions accept both flat options for backward compatibility and nested option groups for subsystem-specific control. Advisory functions used in the manuscript validation set are `recommendAnalysisStrategy`, `computeSignatureAmbiguity`, `detectOutOfReferenceSignal`, and `computeFitQualityEvidence`. `compareSignatureExposures`, `summarizeRestrictedAssayEvidence`, and the pipelines exposed under `mSigSDK.experimental` are descriptive or exploratory and emit console warnings when called.
+Defaults are review settings, not immutable biological rules. Direct QC/advisor functions accept their documented options flatly. Pipeline functions accept both flat options for backward compatibility and nested option groups for subsystem-specific control. Advisory functions used in the manuscript validation set are `recommendAnalysisStrategy`, `computeSignatureAmbiguity`, `detectOutOfReferenceSignal`, and `computeFitQualityEvidence`.
 
 Common nested groups are:
 
@@ -177,9 +175,7 @@ The resolved values are reported in `parameters`, `thresholds`, or `methodBasis.
 | `METADATA_MISSING` | Group-comparison metadata are missing or unusable. |
 | `PANEL_LIMITED` | Restricted assay information is insufficient for unrestricted interpretation. |
 | `PANEL_SIGNATURE_NOT_ASSESSABLE` | A signature/sample combination is not assessable under the supplied panel/WES evidence. |
-| `REGIONAL_PROCESS_SUSPECTED` | Localized mutagenesis screening raised a focal-clustering review cue. |
 | `SIGNATURE_AMBIGUITY` | Active fitted signatures met catalog-relative identifiability review criteria, such as similar neighbors, broad/flat profiles, or crowded catalog regions. |
-| `SUBGROUP_EXTRACTION_SKIPPED` | Subgroup extraction was skipped by readiness gates. |
 | `THRESHOLD_DEPENDENT` | Fitted interpretation depends on exposure-threshold settings. |
 
 ## Advisor validation scope
@@ -192,14 +188,7 @@ The validated manuscript advisor surface consists of:
 - `detectOutOfReferenceSignal`.
 - `computeFitQualityEvidence`.
 
-The remaining advisor and pipeline helpers are available for descriptive review and workflow prototyping:
-
-- `compareSignatureExposures`.
-- `summarizeRestrictedAssayEvidence`.
-- `mSigSDK.experimental.runSubgroupDiscoveryWorkflow`.
-- `mSigSDK.experimental.runLocalizedMutagenesisAnalysis`.
-
-Experimental helpers return structured objects, but their thresholds and operating characteristics are not validated in the manuscript. Each experimental helper emits a console warning so application code can distinguish manuscript-validated advisor evidence from exploratory workflow output.
+Group-comparison and restricted-assay evidence blocks are returned by the cohort and panel workflows as part of their structured outputs.
 
 ## Public data access: `mSigPortal.mSigPortalData`
 
@@ -224,7 +213,7 @@ These functions call the public NCI mSigPortal mutational-signatures API and ret
 
 ## Public visualizations: `mSigPortal.mSigPortalPlots`
 
-All mSigPortal plot functions require a browser DOM. Plotly plots include a compact data-download control.
+All mSigPortal plot functions require a browser DOM. Plotly plots include compact PNG, SVG, and JSON controls. Public plot helpers render standalone figure context by default and accept optional `figureContext` or `publication` metadata when the caller needs to specify dataset, sample, profile, matrix, catalog, or method settings that cannot be inferred from the input object.
 
 | Feature | Inputs | What it renders or returns |
 |---|---|---|
@@ -245,6 +234,7 @@ All mSigPortal plot functions require a browser DOM. Plotly plots include a comp
 | `convertMatrix(MAFfiles, groupBy = "project_code", batch_size = 100, genome = "hg19", tcga = false, options = {})` | MAF-like rows or nested row arrays, grouping field, batch size, genome build, TCGA field mapping flag, and context options. `options.offline = true` uses row-supplied contexts, a supplied `contextLookupTable`, or bundled sparse smoke-test lookup assets for hg19, hg38, or T2T-CHM13. | Sample-by-SBS96 spectra. | Live mode retrieves trinucleotide context through the UCSC Genome Browser sequence endpoint. Offline mode requires a matching position-indexed lookup table for production-scale conversion. High-level workflows record genome build, lookup mode, endpoint when used, timestamp, offline-table status, and count-reconciliation checks. |
 | `convertWGStoPanel(WgMAFs, panelDf)` | WGS MAF arrays and panel interval table or CSV path. | Downsampled MAF arrays containing mutations inside panel intervals. | Filters by chromosome and genomic start/end inclusion. |
 | `createWGStoPanelValidationPairs(wgsSpectra, callableOpportunityMasks, options)` | WGS spectra, callable SBS96 opportunity masks, and optional burden/scaling settings. | Matched WGS and panel spectra pairs with mask and burden metadata. | Designed for controlled panel-tier validation against WGS-derived truth. |
+| `plotCosmicSbs96Profile(divID, spectra, options = {})` | One SBS96 record or a sample-keyed spectra object plus optional sample, context order, normalization, highlighted contexts, title, subtitle, and figure-context metadata. | COSMIC-style SBS96 bar profile grouped by base-substitution class, with mutation-count or relative-fraction scaling. | Also exposed under `qcPlots` for report and notebook use. |
 | `plotPatientMutationalSpectrumuserData(mutationalSpectra, divID, project, profile, matrix)` | Local mutational spectra and plot settings. | Mutational profile plot for local user spectra. | Browser plotting helper around the profile renderers. |
 | `convertMutationalSpectraIntoJSON(MAFfiles, mutSpec, sample_name, dataType = "WGS")` | MAF arrays, spectra object, sample-name field, strategy label. | mSigPortal-style nested JSON rows with `sample`, `strategy`, `profile`, `matrix`, `mutationType`, and `mutations`. | Throws if the MAF array count does not match the number of spectra. |
 
@@ -526,16 +516,20 @@ Methodological support:
 
 ## QC plots: `qcPlots`
 
+QC plot helpers render a publication footer with the figure caption and context fields. Each helper accepts optional `figureContext` or `publication` metadata; notebook and report integrations should pass the active data source, selected sample or cohort scope, profile/matrix, signature catalog, and method settings.
+
 | Feature | Input | Output semantics |
 |---|---|---|
 | `plotMutationBurdenSummary(divID, burdenSummary)` | Output from `summarizeMutationBurden`. | Horizontal bar chart of total mutations by sample, low-burden threshold marker, low/empty status colors, and badges for threshold, low-burden review cues, and empty spectra. Returns `{ data, threshold }`. |
 | `plotReconstructionError(divID, reconstructionError, { cosineReferenceLines = [] })` | Output from `calculateReconstructionError`. | Paired sample-level view of cosine similarity and RMSE, sorted by cosine. Returns rendered rows and reference-line metadata. |
 | `plotFitQualityEvidenceDashboard(divID, fitQualityEvidenceResult)` | Output from `advisor.computeFitQualityEvidence`. | Sample-level dashboard with reporting mode, review-cue count, and evidence components for burden, reconstruction, residual, bootstrap, threshold, ambiguity, and catalog. Returns `{ data, components }`. |
-| `plotCohortGroupComparison(divID, comparisonResult)` | Output from `advisor.compareSignatureExposures`. | Bar chart of comparison-group minus reference-group mean exposure differences for top signals, with effect size, p value, and q value in tooltips. |
+| `plotCohortGroupComparison(divID, comparisonResult)` | `groupComparison` block returned by `runCohortFit`. | Bar chart of comparison-group minus reference-group mean exposure differences for top signals, with effect size, p value, and q value in tooltips. |
 | `plotPanelEvidenceMatrix(divID, panelResultOrEvidenceCalls)` | Output from `pipelines.runPanelWorkflow` or an `evidenceCalls` object. | Sample-by-signature matrix colored by panel/WES tier: higher review tier, limited review tier, below review threshold, or not assessable. |
+| `plotCosmicSbs96Profile(divID, spectra, options)` | One SBS96 record or sample-keyed spectra object. | COSMIC-style SBS96 profile with substitution-class grouping, optional normalization, highlighted contexts, and standalone figure context. |
 | `plotFitResiduals(divID, residualResult, sampleName = null)` | Output from `calculateFitResiduals`. | SBS96 observed-versus-reconstructed profile comparison for a selected sample. |
+| `plotBootstrapExposureSummary(divID, bootstrapResult, options)` | Output from `bootstrapSignatureFit`. | Compact reporting view of mean exposure, confidence interval, and selection frequency for the top fitted signatures. |
 | `plotBootstrapConfidenceIntervals(divID, bootstrapResult)` | Output from `bootstrapSignatureFit`. | Per-signature bootstrap exposure distributions, confidence intervals, means, and selection frequencies. |
-| `plotThresholdSensitivity(divID, thresholdResult)` | Output from `runThresholdSensitivity`. | Threshold stability atlas showing percent change from baseline for cosine, RMSE, and active signatures, plus signed metric-change heatmap and mean absolute drift panel. |
+| `plotThresholdSensitivity(divID, thresholdResult)` / `plotThresholdSensitivitySummary(divID, thresholdResult)` | Output from `runThresholdSensitivity`. | Cutoff-sensitivity summary with one row per contribution cutoff, reporting mean active-signature count, reconstruction cosine, RMSE, cutoff grid, and standalone figure context. |
 
 ## Advisory and interpretation support: `advisor`
 
@@ -736,94 +730,6 @@ Interpretation boundary:
 
 - The function intentionally avoids a weighted composite score. It reports explicit review cues and a rule-based tier, because burden, reconstruction, residuals, bootstrap behavior, identifiability, and catalog sufficiency are not independent calibrated confidence components.
 
-### `compareSignatureExposures(exposures, metadata, options)`
-
-Validation status: experimental. The function emits a console warning when called and is not part of the manuscript-validated advisor claim set.
-
-Inputs:
-
-- Sample-by-signature exposures.
-- Metadata rows or object keyed by sample.
-- `groupKey = "group"` or `comparisonKey`.
-- `referenceGroup = first observed group` unless supplied.
-- `minGroupSizeForReliableStats = 5`.
-- `permutationIterations = 0`.
-- `topN = 10`.
-- `seed = 123`.
-
-Outputs:
-
-- `schemaVersion`.
-- `workflowRole = "cohort_group_comparison"`.
-- `scopeStatement`.
-- `methodBasis`: summary-statistic caveat, rank-biserial effect size, permutation-test description, Benjamini-Hochberg correction scope, references.
-- `groupKey`.
-- `minGroupSizeForReliableStats`.
-- `reportingMode`: `standard_qc_passed`, `restricted_interpretation`, or `not_assessable`.
-- `groups[]`: group name, sample count, and samples.
-- `referenceGroup`.
-- `comparisonGroups`.
-- `permutationIterations`.
-- `effectSizeMethod = "rank_biserial_correlation"`.
-- `multipleTestingCorrection`: method `benjamini_hochberg`, scope `all_signature_by_group_comparisons_in_call`, and applied flag.
-- `comparisons[]`: signature, reference group, comparison group, median/IQR/mean/SD summaries for each group, mean difference, absolute mean difference, standardized mean difference, rank-biserial `effectSize`, effect-size direction, p value, and q value.
-- `topSignals`.
-- `warnings`.
-- `recommendedActions`.
-
-Interpretation boundary:
-
-- Exposure data are bounded and often zero-inflated. Medians and IQRs are reported with means and SDs. Permutation p values are optional and have limited resolution in small groups.
-
-### `summarizeRestrictedAssayEvidence(signatures, options)`
-
-Validation status: experimental. The function emits a console warning when called and is not part of the manuscript-validated advisor claim set.
-
-Inputs:
-
-- Signature matrix.
-- `contexts = null`.
-- `burdens = [25, 50, 100, 250, 500, 1000, 2500]`.
-- `exposureLevels = [0.05, 0.1, 0.2, 0.3, 0.5]`.
-- `opportunityCoverage = 1`.
-- `callableOpportunities` or `opportunities = null`.
-
-Outputs:
-
-- `schemaVersion`.
-- `workflowRole = "restricted_assay_evidence"`.
-- `scopeStatement`: descriptive restricted-assay evidence without calibrated detection probabilities.
-- `methodBasis`:
-  - `modelDefinition`: no calibrated detection-probability model is applied.
-  - `modelType = "descriptive_restricted_assay_evidence"`.
-  - `calibrationStatus`: descriptive only; use study-specific simulation or validated external panel-signature models for inferential detection claims.
-  - `opportunityCoverageDefinition`.
-  - references.
-- `modelType = "descriptive_restricted_assay_evidence"`.
-- `modelParameters.opportunityCoverage`.
-- `opportunityCoverageDefinition`.
-- `contexts`.
-- `burdens`.
-- `exposureLevels`.
-- `opportunityCoverage`.
-- `signatures[]`:
-  - `signatureName`.
-  - `confusabilityScore`.
-  - `confusabilityPercentile`.
-  - `evidenceTags`.
-  - `reviewRecommended`.
-  - `flatnessScore`.
-  - `nearestNeighbor`.
-  - `nearestCosineSimilarity`.
-  - `callableEvidence`: supplied-opportunity status, callable context count, total callable opportunity, signature mass in callable contexts, and related fields.
-  - `curves[]`: `burden`, `exposure`, `expectedSignatureMutations`, `expectedCallableSignatureMutations`, `callableSignatureMass`, and `evidenceType = "descriptive_expected_mutation_count"`.
-  - `warningCodes`.
-- `warnings`: `PANEL_SIGNATURE_NOT_ASSESSABLE` when a supplied opportunity matrix gives a signature zero callable mass.
-
-Interpretation boundary:
-
-- The output does not include `confidence` or a calibrated probability of detection. It reports expected mutation counts, callable-territory evidence, and ambiguity descriptors.
-
 ## High-level pipelines: `pipelines`
 
 The `pipelines` namespace contains stable computational workflows. Each full workflow accepts nested option groups for advanced callers. Matching lite wrappers expose the same workflows with a smaller option set:
@@ -831,7 +737,7 @@ The `pipelines` namespace contains stable computational workflows. Each full wor
 | Lite wrapper | Full workflow | Use |
 |---|---|---|
 | `runSingleSampleFitLite(input, options)` | `runSingleSampleFit(input, options)` | Known-signature fit for one sample with default QC, threshold sensitivity, and bootstrap settings. |
-| `runCohortFitLite(input, options)` | `runCohortFit(input, options)` | Cohort refitting with experimental subgroup extraction disabled. |
+| `runCohortFitLite(input, options)` | `runCohortFit(input, options)` | Cohort refitting with stable cohort-review defaults. |
 | `runPanelWorkflowLite(input, options)` | `runPanelWorkflow(input, options)` | Panel/WES evidence review with default tier thresholds and report-ready outputs. |
 | `runDiscoveryWorkflowLite(input, options)` | `runDiscoveryWorkflow(input, options)` | Fixed-rank browser NMF screening with production handoff guidance. |
 
@@ -897,8 +803,7 @@ Inputs:
 - Optional metadata and `groupKey`.
 - Fitting options as in `runSingleSampleFit`.
 - `runBootstrap = false` by default; when true, `bootstrapSampleLimit = 5`.
-- Cohort options: `clusterCosineThreshold = 0.85`, `runSubgroupDiscovery = false`, and `minSubgroupSamples = 5` for subgroup-readiness checks. Experimental subgroup extraction runs only when explicitly requested.
-- Subgroup extraction options can be supplied under `subgroupDiscovery` when extraction is run.
+- Cohort options: `clusterCosineThreshold = 0.85` and `minSubgroupSamples = 5` for cohort-similarity review.
 - Group-comparison options can be supplied under `comparison` or `groupComparison`; key settings are `groupKey`, `referenceGroup`, `minGroupSizeForReliableStats = 5`, `permutationIterations = 0`, `topN = 10`, and `seed = 123`.
 
 Outputs:
@@ -908,22 +813,22 @@ Outputs:
 - `workflowRole = "cohort_fit_pipeline"`.
 - `scopeStatement`.
 - `methodBasis`.
-- `primaryInterpretationFields`: fit-quality modes, cohort advisor recommendation, subgroup discovery summary, group comparison reporting mode.
-- `parameters`: resolved group, fitting, burden, threshold, bootstrap, subgroup, catalog, comparison, and fit-quality settings.
+- `primaryInterpretationFields`: fit-quality modes, cohort advisor recommendation, subgroup review summary, group comparison reporting mode.
+- `parameters`: resolved group, fitting, burden, threshold, bootstrap, cohort, catalog, comparison, and fit-quality settings.
 - `validationAnchor`.
 - `validation`.
-- `qc`: mutation burden, context coverage, reconstruction error, residuals, threshold sensitivity, bootstrap, fit-quality summary, catalog-check summary, subgroups, subgroup-discovery summary, and group-comparison summary.
+- `qc`: mutation burden, context coverage, reconstruction error, residuals, threshold sensitivity, bootstrap, fit-quality summary, catalog-check summary, subgroups, subgroup-review summary, and group-comparison summary.
 - `primaryWarnings`.
 - `warnings`: alias for the primary deduplicated warning list.
 - `subsystemSummary`.
 - `advisor`.
 - `cohort`.
-- `subgroupDiscoveryStatus`: `run`, `not_requested`, or `skipped`.
+- `subgroupReviewStatus`: `stratification_review` or `single_similarity_group`.
 - `bootstrapScope`: `none`, `per_sample`, or `representative_samples`.
 - `bootstrapAnalyzedSamples`.
 - `cohortSizeCaveat` when sample count is below 20.
 - `subgroups`.
-- `subgroupDiscovery`.
+- `subgroupReview`.
 - `groupComparison`.
 - `fit`.
 - `fitQualityEvidence`.
@@ -939,7 +844,7 @@ Outputs:
 
 Interpretation boundary:
 
-- Cohort fitting packages sample-level refits with cohort-level structure. Subgroup extraction inside the cohort workflow is optional and explicitly marked as run, skipped, or not requested.
+- Cohort fitting packages sample-level refits with cohort-level structure. The subgroup review summarizes similarity structure for stratification review.
 
 ### `runDiscoveryWorkflow(input, options)`
 
@@ -1046,7 +951,7 @@ Outputs:
 - `panel`: nested panel-specific details containing opportunity normalization, opportunity metadata, evidence calls, evidence summary, tier rules, and limitations.
 - `opportunityNormalization`.
 - `opportunityMetadata`: genome version, opportunity source, source details, reference source, whether reference opportunities were applied, opportunity coverage, and opportunity coverage definition.
-- `restrictedAssayEvidenceSummary`: output from `summarizeRestrictedAssayEvidence`.
+- `restrictedAssayEvidenceSummary`: internal restricted-assay evidence summary.
 - `tierRules` and `tierRuleDefinitions`.
 - `evidenceCalls`: object keyed by sample, each containing one row per fitted signature.
 - `evidenceSummary`.
@@ -1094,116 +999,9 @@ Interpretation boundary:
 
 - Panel/WES outputs are transparent review evidence, not calibrated detection probabilities or full WGS-equivalent decompositions.
 
-## Experimental pipelines: `experimental`
-
-The following pipelines are exposed under `mSigSDK.experimental`, not under the default `pipelines` or `workflows` namespaces. They emit console warnings and are reserved for future validation.
-
-### `runSubgroupDiscoveryWorkflow(input, options)`
-
-Inputs:
-
-- `input.spectra`.
-- Optional `input.referenceSignatures` or `input.signatures`.
-- Optional `input.subgroups`; if absent, subgroups are generated by cosine-similarity clustering.
-- `clusterCosineThreshold = 0.85`.
-- `minSubgroupSamples = 8`.
-- `minMedianBurden = 750`.
-- Rank options: `rank`, `maxRank = 4`, `minRank = 2`.
-- NMF options: `maxIterations = 750`, `tolerance = 1e-5`, `nRuns = 10`, `seed = 123`.
-- Shortlisting options: `minMatchCosine = 0.85`, `shortlistTopN = 8`, `topN = 5`.
-- Refit options: `refitExposureThreshold = 0`, `exposureType = "relative"`, `renormalize = true`.
-
-Outputs:
-
-- `schemaVersion`.
-- `workflow = "subgroup_discovery"`.
-- `workflowRole = "subgroup_discovery_pipeline"`.
-- `scopeStatement`.
-- `experimentalStatus`: explicit experimental state, validation flag, and manuscript-use scope statement.
-- `methodBasis`: subgroup readiness, minimum subgroup size, shortlisting criteria, extraction interpretation, configurable defaults, and references.
-- `primaryInterpretationFields`.
-- `parameters`: resolved clustering, burden, rank, NMF, shortlisting, and refit settings.
-- `validation`: spectra validation summary.
-- `qc`: subgroup-count, extracted-count, skipped-count, and warning summary.
-- `contexts`.
-- `minimumSubgroupSamples`.
-- `minimumMedianMutationBurden`.
-- `shortlistingCriteria`.
-- `subgroupExtractionCaveats`.
-- `subgroups[]`:
-  - skipped subgroups: subgroup ID, samples, sample count, median mutation burden, `status = "skipped"`, warnings, null extraction/comparison/refit, and caveats.
-  - extracted subgroups: subgroup ID, samples, sample count, median burden, `status = "extracted"`, rank, extraction, comparison, shortlisted signature names, shortlisting criteria, caveats, optional matched refit with reconstruction error, and warnings.
-- `summary`.
-- `warnings`.
-- `recommendedActions`.
-
-Interpretation boundary:
-
-- Subgroup extraction is exploratory. Reference matches and matched refits are follow-up summaries, not causal labels.
-
-### `runLocalizedMutagenesisAnalysis(variants, genomeBuild, options)`
-
-Inputs:
-
-- Variant rows with chromosome and position fields, plus optional context annotations.
-- `genomeBuild`.
-- `maxIntermutationDistance = 10000`.
-- `minMutations = 6`.
-- `minBurdenForLocalizedAnalysis = 50`.
-- `apobecLikeFractionThreshold = 0.4`.
-- `clusterSignificanceThreshold = 0.05`.
-- `callableGenomeSize = 3000000000`.
-- `nullModelSpecification`: default is a Poisson upper-tail test using the genome-wide per-sample mutation rate, estimated as total input variants divided by `callableGenomeSize`.
-- Localized-mutagenesis settings may be supplied flatly or under `localized` or `localizedOptions`.
-
-Outputs:
-
-- `schemaVersion`.
-- `workflow = "localized_mutagenesis"`.
-- `workflowRole = "localized_mutagenesis_pipeline"`.
-- `scopeStatement`: context-pattern labels are hypothesis-generating and are not etiology assignments.
-- `experimentalStatus`: explicit experimental state, validation flag, and manuscript-use scope statement.
-- `methodBasis`: localized clustering, context pattern, significance model, null model specification, context-pattern definition version, context-pattern lookup, and references.
-- `primaryInterpretationFields`.
-- `validation`: variant validation and eligibility metadata.
-- `qc`: chromosome statistics, focus count, and analysis-eligibility summary.
-- `genomeBuild`.
-- `parameters`: distance, mutation-count, burden, APOBEC fraction, cluster significance, callable genome size, null model, and cluster algorithm.
-- `analysisEligibility`: total mutations, minimum burden, and eligible flag.
-- `genomeBackgroundStats`.
-- `chromosomeStats`.
-- `rainfall`: variants with previous distance and log10 previous distance.
-- `foci`: focal clusters that met the configured screening criteria.
-- `nullModelSpecification`.
-- `clusterSignificanceThreshold`.
-- `focalSpectra = null`.
-- `flankComparison = null`.
-- `genomeTracks`: suggested rainfall track fields.
-- `contextPatterns`.
-- `associatedPatterns`.
-- `contextPatternDefinition`.
-- `warnings`.
-- `recommendedActions`.
-- `publicationFigures`.
-
-Cluster algorithm:
-
-- Variants are sorted.
-- A focus continues while consecutive variants are on the same chromosome and separated by no more than `maxIntermutationDistance`.
-- A focus is retained when it has at least `minMutations`.
-
-Context-pattern definitions:
-
-- `APOBEC-context-enriched localized cluster` uses `T[C>G]A`, `T[C>G]T`, `T[C>T]A`, and `T[C>T]T`, corresponding to TC[A/T] pyrimidine contexts associated with COSMIC SBS2/SBS13.
-- `localized mutation cluster` is a same-chromosome cluster that meets distance and mutation-count thresholds without crossing the APOBEC-context enrichment threshold.
-
-Interpretation boundary:
-
-- `contextPattern` and `associatedPattern` are descriptive. They do not assign etiology or causality.
-
 ## Report-assembly workflows: `workflows`
 
-The `workflows` namespace includes report-assembly wrappers and aliases to the validated pipeline functions. Experimental subgroup-discovery and localized-mutagenesis pipelines are available only under `mSigSDK.experimental`.
+The `workflows` namespace includes report-assembly wrappers and aliases to the validated pipeline functions.
 
 | Feature | Inputs and parameters | Output |
 |---|---|---|
@@ -1216,7 +1014,7 @@ The `workflows` namespace includes report-assembly wrappers and aliases to the v
 | `runSingleSampleFit` | Alias to `pipelines.runSingleSampleFit`. | Same output as pipeline function. |
 | `runSingleSampleFitLite` | Alias to `pipelines.runSingleSampleFitLite`. | Same output frame as the full pipeline with reduced option surface. |
 | `runCohortFit` | Alias to `pipelines.runCohortFit`. | Same output as pipeline function. |
-| `runCohortFitLite` | Alias to `pipelines.runCohortFitLite`. | Same output frame as the full pipeline with experimental subgroup extraction disabled. |
+| `runCohortFitLite` | Alias to `pipelines.runCohortFitLite`. | Same output frame as the full pipeline with stable cohort-review defaults. |
 | `runDiscoveryWorkflow` | Alias to `pipelines.runDiscoveryWorkflow`. | Same output as pipeline function. |
 | `runDiscoveryWorkflowLite` | Alias to `pipelines.runDiscoveryWorkflowLite`. | Same output frame as the full pipeline with fixed-rank NMF screening defaults. |
 | `runPanelWorkflow` | Alias to `pipelines.runPanelWorkflow`. | Same output as pipeline function. |
@@ -1255,6 +1053,8 @@ The spectra-only `validation` object contains `maf`, `spectra`, and `mafToSbs96C
 | `extractSignaturesNMFInWorker(spectra, options = {})` | Spectra and NMF options. | Promise resolving to worker-computed NMF output when browser Worker is available. | Runs extraction off the UI thread where supported. |
 
 ## Signature extraction plots: `signatureExtractionPlots`
+
+Signature-extraction plot helpers use the same standalone figure context contract as `qcPlots`. Pass `figureContext` or `publication` to identify the dataset, extracted-rank settings, and whether exposures are relative or raw.
 
 | Feature | Input | Output semantics |
 |---|---|---|
@@ -1304,8 +1104,11 @@ WebR payloads accept `rPackages`, `files`, `inputJson`, `outputFiles`, and `outp
 
 Adapters prepare stable file formats for established tools and return provenance-rich results. They separate package execution from the validated JavaScript core so browser apps can choose between pure SDK review, Pyodide/WebR execution, or local/server execution.
 
+The namespace also exposes `ADAPTER_SCHEMA_VERSION` and default package spec constants for SigProfilerAssignment (`DEFAULT_SPA_PACKAGE`), SigProfilerExtractor (`DEFAULT_SPE_PACKAGE`), SigProfilerMatrixGenerator (`DEFAULT_SPMG_PACKAGE`), SigProfilerSimulator (`DEFAULT_SPS_PACKAGE`), SigProfilerClusters (`DEFAULT_SPC_PACKAGE`), and sigProfilerPlotting (`DEFAULT_SPP_PACKAGE`) so callers can record the intended adapter version and package targets in provenance.
+
 | Feature | Inputs and parameters | Output | Method and interpretation |
 |---|---|---|---|
+| `adapters.parseExposureTables(files, options)` / `parseExposureTables(...)` | Collected text files, optional delimiter, and `normalize = true`. | Best candidate sample-by-signature exposure matrix plus scored candidate-table metadata. | Shared parser used by assignment/extraction adapters to reimport compatible exposure tables without assuming a single external filename. |
 | `adapters.createInteroperabilityBundle({ spectra, signatures }, options)` / `createInteroperabilityBundle(...)` | Sample spectra, optional signature catalog, context order, and included tool names. | Matched handoff bundles for SigProfilerAssignment, SigProfilerExtractor, sigProfilerPlotting, deconstructSigs, sigminer, and MuSiCal when inputs are available. | Uses the same context order across tools so outputs can be compared after external execution. Variant-level SigProfiler tools are exposed as standalone adapters because they start from VCF/MAF-like files. |
 | `adapters.sigProfilerAssignment.prepareInput({ spectra, signatures }, { contexts = null })` / `prepareSigProfilerAssignmentInput(...)` | Sample spectra and optional custom signature catalog. | Virtual TSV files and manifest metadata in SigProfiler matrix orientation. | Produces `MutationType`-by-sample spectra and optional `MutationType`-by-signature catalog files. |
 | `adapters.sigProfilerAssignment.run({ spectra, signatures }, options)` / `runSigProfilerAssignment(...)` | Spectra, optional signatures, context order, Pyodide packages, `SigProfilerAssignment` package spec, genome build, COSMIC version, and runtime options. | Pyodide run result, collected output files, parsed exposure matrix when an exposure table is detected, candidate table list, and provenance. | Runs SigProfilerAssignment in matrix mode with plotting disabled, mutation-level probability export disabled, and `cpu = 1` by default for browser compatibility. |
@@ -1315,7 +1118,7 @@ Adapters prepare stable file formats for established tools and return provenance
 | `adapters.sigProfilerMatrixGenerator.prepareInput({ files }, options)` / `prepareSigProfilerMatrixGeneratorInput(...)` | VCF/MAF/CNV/SV-like virtual files, project name, reference genome, input directory, and MatrixGenerator options. | Virtual files, manifest metadata, and Python snippet using `SigProfilerMatrixGeneratorFunc`. | Standalone variant-to-matrix handoff adapter. Reference-genome installation remains an external package/runtime concern. |
 | `adapters.sigProfilerMatrixGenerator.parseOutput(files, options)` / `parseSigProfilerMatrixGeneratorOutput(...)` | Collected MatrixGenerator text files. | Candidate SigProfiler matrices imported into sample-by-context SDK matrix objects. | Scans text outputs whose first column looks like mutation context/channel labels. |
 | `adapters.sigProfilerSimulator.prepareInput({ files }, options)` / `prepareSigProfilerSimulatorInput(...)` | VCF-like virtual files, project path, genome, contexts, number of simulations, and simulator options. | Virtual files under the expected project input directory, manifest metadata, and Python snippet using `SigProfilerSimulator`. | Standalone simulation handoff adapter for benchmark/null-model generation. |
-| `adapters.sigProfilerClusters.prepareInput({ files }, options)` / `prepareSigProfilerClustersInput(...)` | VCF-like virtual files, project, genome, contexts, simulation context, input path, and cluster-analysis options. | Virtual files, manifest metadata, and Python snippet using `SigProfilerClusters.analysis`. | Standalone localized-mutagenesis/clustering handoff adapter. |
+| `adapters.sigProfilerClusters.prepareInput({ files }, options)` / `prepareSigProfilerClustersInput(...)` | VCF-like virtual files, project, genome, contexts, simulation context, input path, and cluster-analysis options. | Virtual files, manifest metadata, and Python snippet using `SigProfilerClusters.analysis`. | Standalone regional mutation-clustering handoff adapter. |
 | `adapters.sigProfilerPlotting.prepareInput({ spectra, matrixText, files }, options)` / `prepareSigProfilerPlottingInput(...)` | SDK spectra or a pre-rendered SigProfiler matrix, project, output directory, matrix type, plot type, and plotting options. | Matrix input file, manifest metadata, and Python snippet calling the matching `sigProfilerPlotting` plot function. | Handoff adapter for exact SigProfiler-style plot generation when the Python plotting package is available. |
 | `adapters.deconstructSigs.prepareInput({ spectra, signatures }, options)` / `prepareDeconstructSigsInput(...)` | Sample spectra, signature catalog, context order, output path, and signature cutoff. | Spectra TSV, signature TSV, manifest metadata, and R snippet using `deconstructSigs::whichSignatures`. | Handoff adapter for R execution with a shared context basis. |
 | `adapters.deconstructSigs.checkWebRAvailability(options)` / `checkDeconstructSigsWebRAvailability(...)` | Optional WebR package repository settings and package list. | Availability object with `available`, `status`, runtime status, package availability, and missing package names. | Reports `available`, `missing package`, or `runtime unavailable` before exact WebR execution. |
@@ -1380,7 +1183,7 @@ Schema support:
 
 | Feature | Inputs | Output |
 |---|---|---|
-| `createProvenance(options)` | `analysis`, `parameters`, `sourceUrls`, `dataSources`, `catalogVersion`, `catalogSource`, `genomeBuild`, `contextSource`, `contextApiVersion`, `contextFetchTimestamp`, `apiEndpointSnapshot`, and `notes`. | Metadata object with `analysis`, `generatedAt`, SDK name/version/import URL/fallback/repository, parameters, catalog, genome, API endpoint snapshot, source URLs, data sources, runtime context, and notes. |
+| `createProvenance(options)` | `analysis`, `parameters`, `sourceUrls`, `dataSources`, `catalogVersion`, `catalogSource`, `genomeBuild`, `contextSource`, `contextApiVersion`, `contextLookupMode`, `contextFetchTimestamp`, `apiEndpointSnapshot`, and `notes`. | Metadata object with `analysis`, `generatedAt`, SDK name/version/import URL/fallback/repository, parameters, catalog, genome/context metadata, API endpoint snapshot, source URLs, data sources, runtime context, and notes. |
 | `withProvenance(data, options = {})` | Any output and provenance options. | `{ data, provenance }`. |
 
 ## Presentation helpers: `presentation`
@@ -1389,6 +1192,7 @@ These helpers are intended for browser notebooks, reports, and teaching pages. D
 
 | Feature | Inputs | Output |
 |---|---|---|
+| `DEFAULT_TOOLTIP_TERMS` | No inputs. | Frozen glossary map for reporting modes, review flags, identifiability evidence, catalog statuses, and panel evidence tiers. |
 | `formatNumber(value, digits = 3)` | Numeric value and significant-digit setting. | Human-readable number or `n/a`. |
 | `formatCell(value)` | Primitive, array, or object. | Compact display string. |
 | `compactSummary(value)` | Object or array. | Short text summary. |
@@ -1406,6 +1210,7 @@ These helpers are intended for browser notebooks, reports, and teaching pages. D
 | `exposureRows(exposures, { minExposure = 0, topN = 10 })` | Exposure matrix. | Top exposure rows sorted descending. |
 | `bootstrapRows(bootstrap, { topN = 8 })` | Bootstrap output. | Rows with signature, mean, lower/upper interval bounds, and selection frequency. |
 | `thresholdRows(thresholdSensitivity)` | Threshold-sensitivity output. | Rows with threshold, average cosine, average RMSE, and average active signatures. |
+| `uncertaintyDecisionRows(bootstrap, thresholdSensitivity, options = {})` | Bootstrap output, threshold-sensitivity output, selected sample name, selection-frequency cutoff, maximum interval width, and row limit. | Per-signature rows with mean exposure, CI width, selection frequency, cutoff range, and reportability decision text for uncertainty notebooks and report packets. |
 | `nmfMatchRows(matches, { maxRows = 12 })` | Reference match output. | Rows with extracted signature, reference signature, and cosine similarity. |
 | `reportFieldRows(report)` | Report object. | Rows summarizing top-level report fields. |
 
@@ -1427,8 +1232,6 @@ These helpers are intended for browser notebooks, reports, and teaching pages. D
 | Panel sequencing considerations | Lawrence L et al. Performance characteristics of mutational signature analysis in targeted panel sequencing. Arch Pathol Lab Med. 2021. doi:10.5858/arpa.2020-0536-OA. |
 | Parametric bootstrap attribution uncertainty | Senkin S, Baez-Ortega A. MSA: reproducible mutational signature attribution with confidence based on simulations. BMC Bioinformatics. 2021. doi:10.1186/s12859-021-04450-8. |
 | SigProfilerExtractor and production extraction | Islam SMA et al. Uncovering novel mutational signatures by de novo extraction with SigProfilerExtractor. Cell Genomics. 2022. doi:10.1016/j.xgen.2022.100179. |
-| APOBEC localized context patterns | Roberts SA et al. An APOBEC cytidine deaminase mutagenesis pattern is widespread in human cancers. Nat Genet. 2013. doi:10.1038/ng.2702. |
-| APOBEC mutagenesis caution | Petljak M et al. Addressing the benefits of inhibiting APOBEC3-dependent mutagenesis in cancer. Nat Genet. 2022. doi:10.1038/s41588-022-01196-8. |
 | Reproducibility and provenance | Wilkinson MD et al. The FAIR Guiding Principles for scientific data management and stewardship. Sci Data. 2016. doi:10.1038/sdata.2016.18. |
 
 ## Interpretation boundaries
@@ -1438,5 +1241,5 @@ These helpers are intended for browser notebooks, reports, and teaching pages. D
 - Residual matches are candidate signals for review and do not identify causal mutational processes.
 - Fit-quality evidence uses rule-based reporting modes and explicit review cues; no calibrated composite confidence score is returned.
 - Restricted-assay outputs expose burden, fitted exposure, callable territory, and ambiguity descriptors; they do not estimate calibrated panel/WES detection probability.
-- Localized mutagenesis context labels describe observed clustering and context enrichment; they are hypothesis-generating and do not assign etiology.
+- Regional mutation-clustering support is limited to external-tool handoff files through the SigProfilerClusters adapter.
 - Browser-native NMF extraction and rank selection are exploratory and should be validated with production extraction workflows for manuscript-grade discovery.

@@ -13,23 +13,33 @@
 
     ## Start with your question
 
-    - **I want the complete workflow:** open [End-to-end workflow](?notebook=msig-sdk-end-to-end-workflow.onb.html).
-    - **I need public example data:** open [Public cohort explorer](?notebook=msig-sdk-public-cohort-exploration.onb.html).
-    - **I have raw variant rows:** open [Variant rows to mutation patterns](?notebook=msig-sdk-maf-fit-report.onb.html).
-    - **I already fit signatures and need to judge the result:** open [Known-signature quality check](?notebook=msig-sdk-qc-walkthrough.onb.html).
-    - **I need a report or files for review:** open [Export and reports](?notebook=msig-sdk-export-report.onb.html).
+    - **I need to choose the right notebook:** stay on [Workflow guide](?notebook=msig-sdk-notebooks.onb.html).
+    - **I want the full fit-review-export arc:** open [End-to-end workflow](?notebook=msig-sdk-end-to-end-workflow.onb.html).
+    - **I need public spectra or cohort examples:** open [Public cohort explorer](?notebook=msig-sdk-public-cohort-exploration.onb.html).
+    - **I need to move SBS96 matrices between tools:** open [Resource portability](?notebook=msig-sdk-resource-portability.onb.html).
+    - **I have MAF or variant rows:** open [MAF to SBS96 explainer](?notebook=msig-sdk-maf-fit-report.onb.html).
+    - **I need to triage fitted samples:** open [Cohort QC triage](?notebook=msig-sdk-qc-walkthrough.onb.html).
+    - **I need cohort groups or panel limits in one workflow:** open [Cohort and panel workflow](?notebook=msig-sdk-cohort-panel-workflow.onb.html).
+    - **I need panel or WES evidence tiers:** open [Panel/WES evidence review](?notebook=msig-sdk-panel-evidence-tiers.onb.html).
+    - **I need to extract candidate signatures:** open [Discovery extraction (NMF)](?notebook=msig-sdk-nmf-extraction.onb.html).
+    - **I need to test cutoffs and confidence:** open [Uncertainty and cutoffs](?notebook=msig-sdk-uncertainty-thresholds.onb.html).
+    - **I need a reviewable archive:** open [Report packet builder](?notebook=msig-sdk-export-report.onb.html).
+    - **I need to compare fitting engines:** open [Multi-tool comparison](?notebook=msig-sdk-multi-engine-comparison.onb.html).
 
-    ## Suggested path
+    ## Complete notebook map
 
-    Suggested order:
-
-    1. [End-to-end workflow](?notebook=msig-sdk-end-to-end-workflow.onb.html)
-    2. [Public cohort explorer](?notebook=msig-sdk-public-cohort-exploration.onb.html)
-    3. [Known-signature quality check](?notebook=msig-sdk-qc-walkthrough.onb.html)
-    4. [Uncertainty and cutoffs](?notebook=msig-sdk-uncertainty-thresholds.onb.html)
-    5. [Export and reports](?notebook=msig-sdk-export-report.onb.html)
-    6. [Resource portability](?notebook=msig-sdk-resource-portability.onb.html) or [Variant rows to mutation patterns](?notebook=msig-sdk-maf-fit-report.onb.html)
-    7. [Panel/WES evidence review](?notebook=msig-sdk-panel-evidence-tiers.onb.html), [Discovery extraction (NMF)](?notebook=msig-sdk-nmf-extraction.onb.html), or [Multi-tool comparison](?notebook=msig-sdk-multi-engine-comparison.onb.html)
+    1. [Workflow guide](?notebook=msig-sdk-notebooks.onb.html): choose a workflow and learn the shared terms.
+    2. [End-to-end workflow](?notebook=msig-sdk-end-to-end-workflow.onb.html): run the complete fit-review-export path.
+    3. [Public cohort explorer](?notebook=msig-sdk-public-cohort-exploration.onb.html): load public mSigPortal and TCGA/GDC-derived examples.
+    4. [Resource portability](?notebook=msig-sdk-resource-portability.onb.html): normalize, export, and round-trip SBS96 matrices.
+    5. [MAF to SBS96 explainer](?notebook=msig-sdk-maf-fit-report.onb.html): convert variant rows into mutation spectra.
+    6. [Cohort QC triage](?notebook=msig-sdk-qc-walkthrough.onb.html): rank fitted samples by quality concern.
+    7. [Cohort and panel workflow](?notebook=msig-sdk-cohort-panel-workflow.onb.html): connect group interpretation with assay limits.
+    8. [Panel/WES evidence review](?notebook=msig-sdk-panel-evidence-tiers.onb.html): review support tiers for restricted assays.
+    9. [Discovery extraction (NMF)](?notebook=msig-sdk-nmf-extraction.onb.html): extract candidate signatures from spectra.
+    10. [Uncertainty and cutoffs](?notebook=msig-sdk-uncertainty-thresholds.onb.html): stress-test fit stability and reporting thresholds.
+    11. [Report packet builder](?notebook=msig-sdk-export-report.onb.html): build a reviewable report archive.
+    12. [Multi-tool comparison](?notebook=msig-sdk-multi-engine-comparison.onb.html): compare fitting-engine outputs on the same spectra.
 
     ## Terms
 
@@ -40,23 +50,5 @@
     - **Uncertainty:** how much the answer changes when the data or cutoffs are tested.
     - **Provenance:** the record of data, settings, and software used to make the result.
 
-    ## Important reading rule
-
-    Do not read a signature contribution table by itself. A number in that table is only meaningful beside the evidence around it: input checks, mutation counts, reconstruction quality, residual patterns, warnings, review steps, uncertainty, assay limits, and provenance.
-
-    ## Adapting a workflow
-
-    For a local project, replace the input-loading step first. Keep the validation, warning, quality-check, uncertainty, report, and export sections in place so the adapted workflow still leaves a complete review trail.
-
-    For local development, keep the SDK server running.
-
-    ```bash
-    npm run serve:observable
-    ```
-  </script>
-
-  <script type="module" pinned id="interactive-index">
-    const msigNotebookInteractiveIndex = await import("./msig-notebook-interactive.js?v=2026-05-15-readable-index");
-    msigNotebookInteractiveIndex.renderNotebookIndex({ display });
   </script>
 </notebook>
