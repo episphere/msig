@@ -23,14 +23,14 @@ const DEFAULT_NOTEBOOKS = [
   {
     file: "msig-sdk-resource-portability.onb.html",
     title: "Resource portability",
-    summary: "Prove that public resource data survive SDK table conversion, file export, reload, and handoff without losing metadata.",
+    summary: "Show the SBS96 format bridge around shared matrix conventions: exports, parser normalization, and round-trip checks.",
     workflowGroup: "input",
     workflowGroupLabel: "Load Data",
   },
   {
     file: "msig-sdk-maf-fit-report.onb.html",
-    title: "Variant rows to mutation patterns",
-    summary: "Turn variant rows into a checked 96-bin mutation pattern by sorting DNA changes, checking counts, and saving the proof trail.",
+    title: "MAF to SBS96 explainer",
+    summary: "Step through position/ref/alt rows, reference context lookup, pyrimidine normalization, and labeled SBS96 spectra.",
     workflowGroup: "input",
     workflowGroupLabel: "Load Data",
   },
@@ -746,7 +746,10 @@ function table(rows, columns = null, options = {}) {
     tbody.append(tr);
   });
   tableElement.append(tbody);
-  wrapper.append(tableElement);
+  const scroll = document.createElement("div");
+  scroll.className = "output-table-scroll";
+  scroll.append(tableElement);
+  wrapper.append(scroll);
 
   if (data.length > maxRows) {
     const rowCountCaption = document.createElement("p");

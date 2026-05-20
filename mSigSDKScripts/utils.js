@@ -110,11 +110,11 @@ async function nnls(A, b, maxiter = 3 * A[0].length) {
 }
 
 async function fetchURLAndCache(cacheName, url, header = null, ICGC = null) {
-  const isCacheSupported = "caches" in window;
+  const isCacheSupported = typeof window !== "undefined" && "caches" in window;
   let matchedURL;
 
   if (!isCacheSupported) {
-    return await fetch(url);
+    return await fetch(url, header || undefined);
   } else {
     // Retrieve data from the cache
 

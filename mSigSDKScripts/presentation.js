@@ -48,6 +48,14 @@ function ensurePresentationStyles() {
     .msigsdk-output-table-wrap {
       overflow-x: auto;
     }
+    .msigsdk-output-table-scroll {
+      max-height: var(--msigsdk-output-table-max-height, min(360px, 58vh));
+      overflow: auto;
+      overscroll-behavior: contain;
+      border: 1px solid #d8ded8;
+      border-radius: 8px;
+      background: #fff;
+    }
     .msigsdk-output-table-title {
       margin: 0 0 4px;
       color: #17201d;
@@ -74,6 +82,9 @@ function ensurePresentationStyles() {
       vertical-align: top;
     }
     .msigsdk-output-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
       background: #f4f6f2;
       color: #17201d;
       font-weight: 800;
@@ -156,6 +167,10 @@ function ensurePresentationStyles() {
       z-index: 2147483647;
       box-sizing: border-box;
       max-width: min(380px, calc(100vw - 20px));
+      max-height: calc(100vh - 20px);
+      max-height: calc(100dvh - 20px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
       border: 1px solid rgba(232, 241, 237, 0.16);
       border-radius: 8px;
       background: #17201d;
@@ -167,6 +182,7 @@ function ensurePresentationStyles() {
       transform: translateY(2px);
       transition: opacity 80ms ease, transform 80ms ease;
       font: 12px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-wrap: anywhere;
     }
     .msigsdk-tooltip-popover[data-visible="true"] {
       opacity: 1;
@@ -196,23 +212,35 @@ function ensureTooltipBehavior() {
 
   function positionPopover(popover, target) {
     const targetRect = target.getBoundingClientRect();
-    const tooltipRect = popover.getBoundingClientRect();
     const margin = 10;
     const offset = 8;
+    const viewportWidth = window.innerWidth || document.documentElement?.clientWidth || 1024;
+    const viewportHeight = window.innerHeight || document.documentElement?.clientHeight || 768;
+    popover.style.maxHeight = `${Math.max(96, viewportHeight - margin * 2)}px`;
+
+    const tooltipRect = popover.getBoundingClientRect();
     let left = targetRect.right + offset;
-    if (left + tooltipRect.width > window.innerWidth - margin) {
+    if (left + tooltipRect.width > viewportWidth - margin) {
       left = targetRect.left - tooltipRect.width - offset;
     }
     left = Math.min(
       Math.max(left, margin),
-      Math.max(margin, window.innerWidth - tooltipRect.width - margin)
+      Math.max(margin, viewportWidth - tooltipRect.width - margin)
     );
 
+    const spaceBelow = viewportHeight - targetRect.bottom - margin;
+    const spaceAbove = targetRect.top - margin;
     let top = targetRect.top;
-    if (top + tooltipRect.height > window.innerHeight - margin) {
-      top = targetRect.top - tooltipRect.height - 8;
+    if (top + tooltipRect.height > viewportHeight - margin) {
+      top =
+        spaceAbove > spaceBelow
+          ? targetRect.top - tooltipRect.height - offset
+          : targetRect.bottom + offset;
     }
-    if (top < margin) top = margin;
+    top = Math.min(
+      Math.max(top, margin),
+      Math.max(margin, viewportHeight - tooltipRect.height - margin)
+    );
     popover.style.left = `${left}px`;
     popover.style.top = `${top}px`;
   }
@@ -282,7 +310,7 @@ const REPORTING_MODE_LABELS = Object.freeze({
 
 const REPORTING_MODE_DEFINITIONS = Object.freeze({
   standard_qc_passed:
-    "No configured fit-quality rule raised a review cue. This does not prove correctness; exposures still depend on the supplied catalog, assay context, and thresholds.",
+    "No configured fit-quality rule raised a review cue. Exposures still depend on the supplied catalog, assay context, and thresholds.",
   report_with_caveats:
     "One or more review cues were triggered. Interpret the fit with the listed uncertainty, threshold, identifiability, or catalog caveats.",
   restricted_interpretation:
@@ -311,11 +339,11 @@ const REVIEW_FLAG_LABELS = Object.freeze({
 
 const REVIEW_FLAG_DEFINITIONS = Object.freeze({
   CATALOG_INCOMPLETE_SUSPECTED:
-    "Triggered when residual and reconstruction criteria indicate the supplied catalog may not explain all observed structure. This is a cue to inspect residuals or compare a broader/more appropriate catalog, not proof that a missing signature exists.",
+    "Triggered when residual and reconstruction criteria indicate the supplied catalog may not explain all observed structure. Inspect residuals or compare a broader/more appropriate catalog.",
   FIT_UNSTABLE:
     "Triggered by bootstrap or sensitivity criteria indicating that fitted exposures should not be interpreted without uncertainty context.",
   FLAT_SIGNATURE_RISK:
-    "Triggered when a fitted reference signature meets the broad/flat catalog criterion. Such profiles can be exchangeable with related signatures, especially in low-burden samples.",
+    "Triggered when a fitted reference signature meets the broad/flat catalog criterion. Such profiles can be hard to separate from related signatures, especially in low-burden samples.",
   HIGH_RESIDUAL_STRUCTURE:
     "Triggered when the residual screen finds structured residual patterning under the configured rule. Inspect the residual plot before drawing interpretation.",
   INCOMPLETE_CONTEXTS:
@@ -327,7 +355,7 @@ const REVIEW_FLAG_DEFINITIONS = Object.freeze({
   PANEL_SIGNATURE_NOT_ASSESSABLE:
     "Triggered because the restricted assay or callable context space does not provide enough review evidence for this signature/sample setting.",
   SIGNATURE_AMBIGUITY:
-    "Triggered by continuous, catalog-relative signature-identifiability evidence for at least one active fitted signature. The cue reflects neighbor similarity, catalog crowding, broad/flat profile shape, or low specificity; it is not based on the sample reconstruction cosine and is not an etiology claim.",
+    "Triggered when active fitted signatures have identifiability cues from neighbor similarity, catalog crowding, broad/flat profile shape, or low specificity.",
   THRESHOLD_DEPENDENT:
     "Triggered when a fitted signature crosses the present/nonzero review threshold differently across the tested exposure cutoffs.",
 });
@@ -359,17 +387,17 @@ const IDENTIFIABILITY_EVIDENCE_LABELS = Object.freeze({
 
 const IDENTIFIABILITY_EVIDENCE_DEFINITIONS = Object.freeze({
   catalog_neighbor_confusable:
-    "Assigned because this reference signature is unusually similar to its nearest catalog neighbor under the configured catalog-relative rule. Treat fitted exposure as potentially exchangeable with nearby signatures.",
+    "Nearest catalog neighbor is unusually similar under the configured rule. Fitted contribution may be hard to separate from nearby signatures.",
   neighbor_crowded_catalog_region:
-    "Assigned because several nearby reference signatures have similar profiles under the configured catalog-relative rule. This is a cue for review, not a distinct biological conclusion.",
+    "Several nearby reference signatures have similar profiles under the configured rule. Review exchangeability with related signatures.",
   broad_or_flat_signature:
     "Assigned because this reference signature meets the broad/flat profile criterion relative to the selected catalog. Such profiles may absorb related signal and should be interpreted cautiously.",
   low_specificity_profile:
     "Assigned because this reference signature meets the low-specificity criterion under the configured summary statistic; no single context strongly dominates the profile.",
   near_review_boundary:
-    "Assigned because the continuous confusability percentile is close to the configured review boundary. Do not treat the boundary as a scientific discontinuity.",
+    "Confusability percentile is close to the configured review boundary.",
   none:
-    "No configured catalog-relative identifiability cue was active for this table entry.",
+    "No identifiability cue was active for this table entry.",
 });
 
 const IDENTIFIABILITY_EVIDENCE_TOOLTIPS = Object.freeze({
@@ -386,11 +414,11 @@ const CATALOG_STATUS_LABELS = Object.freeze({
 
 const CATALOG_STATUS_DEFINITIONS = Object.freeze({
   catalog_sufficient_for_fit:
-    "No configured residual/reconstruction rule raised a catalog review cue. This does not prove that the catalog is complete.",
+    "No configured residual/reconstruction rule raised a catalog review cue.",
   possible_out_of_reference:
-    "A weak residual or reconstruction criterion was met. Inspect residuals before considering a broader catalog; this is not proof of out-of-reference signal.",
+    "A weak residual or reconstruction criterion was met. Inspect residuals before considering a broader catalog.",
   suspected_out_of_reference:
-    "A catalog-review residual or reconstruction criterion was met. This is a review cue that the selected catalog may not explain all observed structure, not proof of a missing process.",
+    "A catalog-review residual or reconstruction criterion was met. The selected catalog may not explain all observed structure.",
   not_checked:
     "Catalog sufficiency was not checked or no catalog status was available for this sample.",
 });
@@ -409,11 +437,11 @@ const PANEL_TIER_LABELS = Object.freeze({
 
 const PANEL_TIER_DEFINITIONS = Object.freeze({
   higher_review_support:
-    "The fitted exposure met the configured higher-support review threshold and upstream fit evidence was not restricted. This is review support, not definitive detection.",
+    "The fitted exposure met the configured higher-support review threshold and upstream fit evidence was not restricted.",
   limited_review_support:
     "The fitted exposure met the lower review threshold but did not meet all higher-support criteria.",
   not_detected_within_review_settings:
-    "The fitted exposure was below the configured review threshold. This is not proof of biological absence.",
+    "The fitted exposure was below the configured review threshold.",
   not_assessable:
     "The assay/sample setting does not provide enough review evidence for a detection or non-detection statement for this signature.",
 });
@@ -453,6 +481,11 @@ function formatNumber(value, digits = 3) {
     return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
   }
   return value.toLocaleString(undefined, { maximumSignificantDigits: digits });
+}
+
+function formatPercent(value, digits = 3) {
+  if (!Number.isFinite(value)) return "n/a";
+  return `${formatNumber(value * 100, digits)}%`;
 }
 
 function formatCell(value) {
@@ -625,9 +658,9 @@ function inferTableDescription(data, columns) {
 
 	  if (has("sample", "signature", "exposure")) {
 	    return {
-	      title: "Signature recipe estimates",
+	      title: "Signature contribution estimates",
 	      caption:
-	        "Shows the fitted signature recipe by sample and signature. These are model estimates, so read them with the review evidence and warnings.",
+	        "Shows the fitted contribution for each signature in each sample. These are model estimates, so read them with the review evidence and warnings.",
 	    };
 	  }
 
@@ -643,7 +676,7 @@ function inferTableDescription(data, columns) {
 	    return {
 	      title: "Reconstruction quality values",
 	      caption:
-	        "Shows whether the guessed signature recipe can recreate each observed sample pattern. Higher cosine and lower RMSE are reassuring, but neither is a stand-alone proof of correctness.",
+	        "Shows whether the fitted signature contributions can recreate each observed sample pattern. Higher cosine and lower RMSE are reassuring, but neither is a stand-alone proof of correctness.",
 	    };
 	  }
 
@@ -651,7 +684,7 @@ function inferTableDescription(data, columns) {
 	    return {
 	      title: "Review evidence",
 	      caption:
-	        "Shows the reporting mode and review cues for each sample. Use this table to decide what caveats should accompany the fitted signature recipe.",
+	        "Shows the reporting mode and review cues for each sample. Use this table to decide what caveats should accompany the fitted signature contributions.",
 	    };
 	  }
 
@@ -671,27 +704,27 @@ function inferTableDescription(data, columns) {
     };
   }
 
-  if (hasAny("threshold", "cutoff", "thresholdLabel")) {
-    return {
-      title: "Cutoff sensitivity values",
-      caption:
-        "Shows how results change as the minimum signature contribution cutoff changes. Stable results should change gradually rather than abruptly.",
-    };
-  }
+	  if (hasAny("threshold", "cutoff", "thresholdLabel")) {
+	    return {
+	      title: "Cutoff sensitivity values",
+	      caption:
+	        "Shows how results change as the minimum signature contribution cutoff changes. Total exposure change is the sum of absolute changes in fitted signature fractions across the tested cutoff range, reported on a 0 to 200 total percentage-point scale.",
+	    };
+	  }
 
-  if (has("signature") && hasAny("lower", "upper", "selectedFrequency", "selectionFrequency")) {
-    return {
-      title: "Uncertainty interval values",
-      caption:
-	        "Shows resampling-based uncertainty for fitted signature recipe estimates. Wide intervals or inconsistent selection suggest extra caution.",
-    };
-  }
+	  if (has("signature") && hasAny("lower", "upper", "selectedFrequency", "selectionFrequency")) {
+	    return {
+	      title: "Uncertainty interval values",
+	      caption:
+		        "Shows resampling-based uncertainty for fitted signature contributions. Confidence intervals are reported on a 0 to 100 percentage-point scale; inconsistent selection suggests extra caution.",
+	    };
+	  }
 
   if (hasAny("similarity cues", "nearest-neighbor similarity", "similarity risk score")) {
     return {
       title: "Reference-signature similarity evidence",
       caption:
-        "Shows catalog-level similarity cues for reference signatures. These cues describe possible exchangeability among signatures, not sample reconstruction quality.",
+        "Shows catalog-level similarity cues for reference signatures. These cues describe signatures that may be hard to separate from each other, not sample reconstruction quality.",
     };
   }
 
@@ -823,7 +856,10 @@ function table(rows, columns = null, options = {}) {
     tbody.append(tr);
   });
   tableElement.append(tbody);
-  wrapper.append(tableElement);
+  const scroll = document.createElement("div");
+  scroll.className = "msigsdk-output-table-scroll";
+  scroll.append(tableElement);
+  wrapper.append(scroll);
 
   if (data.length > maxRows) {
     const rowCountCaption = document.createElement("p");
@@ -850,6 +886,49 @@ function fitQualityEvidenceRows(fitQualityEvidence) {
     const ambiguity = sample.componentEvidence?.ambiguity || {};
     const reconstruction = sample.componentEvidence?.reconstruction || {};
     const burden = sample.componentEvidence?.burden || {};
+    const residual = sample.componentEvidence?.residual || {};
+    const catalog = sample.componentEvidence?.catalog || {};
+    const confusablePairs = (ambiguity.activeConfusablePairs || []).map(
+      (pair) =>
+        `${pair.signatureA}/${pair.signatureB} (${formatNumber(
+          pair.cosineSimilarity,
+          3
+        )})`
+    );
+    const pairThreshold = ambiguity.pairCosineThreshold;
+    const nearestActivePair = ambiguity.nearestActivePair;
+    const activeSignatureCount = (
+      ambiguity.activeSignatures ||
+      sample.metrics?.activeSignatures ||
+      []
+    ).length;
+    const confusionSummary =
+      activeSignatureCount < 2
+        ? "n/a"
+        : confusablePairs.length
+          ? `${confusablePairs.length} >= ${formatNumber(
+              pairThreshold,
+              3
+            )}: ${confusablePairs.join("; ")}`
+          : nearestActivePair
+            ? `none >= ${formatNumber(pairThreshold, 3)}; max ${
+                nearestActivePair.signatureA
+              }/${nearestActivePair.signatureB} (${formatNumber(
+                nearestActivePair.cosineSimilarity,
+                3
+              )})`
+            : `none >= ${formatNumber(pairThreshold, 3)}`;
+    const residualUnexplained =
+      residual.unexplainedFraction ?? catalog.unexplainedFraction;
+    const residualSummary = Number.isFinite(residualUnexplained)
+      ? `${formatPercent(residualUnexplained, 3)} unexplained`
+      : "n/a";
+    const residualCatalogSummary =
+      catalog.fitReviewStatus === "limited_by_low_burden"
+        ? `${residualSummary}; burden-limited`
+        : catalog.fitReviewStatus === "review"
+          ? `${residualSummary}; residual cue`
+          : residualSummary;
     return {
       sample: sample.sample,
       reportingMode: displayTerm(
@@ -879,8 +958,10 @@ function fitQualityEvidenceRows(fitQualityEvidence) {
         ambiguity.activeReviewRecommendedSignatures ||
         sample.metrics?.activeReviewRecommendedSignatures ||
         [],
+      activeConfusablePairs: confusionSummary,
+      residualCatalog: residualCatalogSummary,
       catalogStatus: displayTerm(
-        sample.catalogStatus || sample.componentEvidence?.catalog?.status,
+        sample.catalogStatus || catalog.status,
         CATALOG_STATUS_LABELS
       ),
     };
@@ -897,14 +978,14 @@ function fitQualityEvidenceTable(fitQualityEvidence, options = {}) {
 	        key: "reportingMode",
 	        label: "Reporting mode",
 	        tooltip:
-	          "Plain-language reporting recommendation for the sample. Hover each value for the SDK code, triggering rule, and interpretation boundary.",
+	          "Reporting recommendation for the sample.",
         tooltipTerms: REPORTING_MODE_TOOLTIPS,
       },
       {
 	        key: "reviewFlagCodes",
 	        label: "Review cues",
 	        tooltip:
-	          "Rule-based reasons to inspect the fitted recipe more carefully. Hover each cue for the SDK code and why it was triggered.",
+	          "Rule-based reasons to inspect the fitted signature contributions more carefully.",
         tooltipTerms: REVIEW_FLAG_TOOLTIPS,
       },
       {
@@ -924,39 +1005,35 @@ function fitQualityEvidenceTable(fitQualityEvidence, options = {}) {
 	        key: "reconstructionCosine",
 	        label: "Reconstruction cosine",
 	        tooltip:
-	          "Shape-match score between the observed sample pattern and the pattern rebuilt from the fitted signature recipe. Closer to 1 is better. This is not the rule that emits SIGNATURE_AMBIGUITY.",
-      },
-      {
-	        key: "activeIdentifiabilityEvidence",
-	        label: "Identifiability cues",
-	        tooltip:
-	          "Catalog-relative review cues for active fitted signatures. They mean some reference ingredients are similar or hard to separate; they do not come from a single hard sample-cosine cutoff.",
-        tooltipTerms: IDENTIFIABILITY_EVIDENCE_TOOLTIPS,
-      },
-      {
-	        key: "maxConfusabilityScore",
-	        label: "Max confusability",
-	        tooltip:
-	          "Maximum continuous catalog-relative similarity score among active fitted signatures. Higher values mean more reason to review whether similar signatures could be exchanged; they are not cause-of-mutation claims.",
-      },
-      {
-	        key: "catalogStatus",
-	        label: "Catalog status",
-	        tooltip:
-	          "Catalog review status from leftover-pattern and reconstruction checks. A cue indicates a reason to inspect residuals or catalog choice, not proof of a missing process.",
-        tooltipTerms: CATALOG_STATUS_TOOLTIPS,
+	          "Shape-match score between the observed sample pattern and the pattern rebuilt from the fitted signature contributions. Closer to 1 is better.",
       },
     ]
   ).map((column) => (typeof column === "string" ? column : { ...column }));
 
   if (options.includeActiveSignatures) {
-    const insertAt = columns.findIndex((column) => column.key === "activeIdentifiabilityEvidence");
-    columns.splice(Math.max(insertAt, 0), 0, {
+    columns.push({
 	      key: "activeSignatures",
 	      label: "Active signatures",
 	      tooltip:
-	        "Reference signatures with non-zero fitted contribution in the sample. Identifiability review cues refer to these active fitted signatures.",
+	        "Reference signatures with non-zero fitted contribution in the sample.",
     });
+  }
+
+  if (options.includeInterpretationEvidence) {
+    columns.push(
+      {
+        key: "activeConfusablePairs",
+        label: "Confusable active pairs",
+        tooltip:
+          "Pairs of active fitted signatures whose reference profiles are similar enough to make the sample-level contribution estimates less uniquely determined.",
+      },
+      {
+        key: "residualCatalog",
+        label: "Residual/catalog",
+        tooltip:
+          "Leftover pattern after fitting, including the catalog-suitability screen derived from residual and reconstruction evidence.",
+      }
+    );
   }
 
   return tooltipTable(rows, columns, {
@@ -965,7 +1042,7 @@ function fitQualityEvidenceTable(fitQualityEvidence, options = {}) {
 	    title: options.title || "Review evidence",
 	    caption:
 	      options.caption ||
-	      "Shows the reporting mode and review cues that qualify each sample's fitted signature recipe.",
+	      "Shows the reporting mode and review cues that qualify each sample's fitted signature contributions.",
 	  });
 	}
 

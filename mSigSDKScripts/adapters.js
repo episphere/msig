@@ -16,7 +16,16 @@ import {
   calculateReconstructionError,
   fitSpectraWithNNLS,
 } from "./qc.js";
-import { runPyodide } from "./runners.js";
+import {
+  checkWebRPackageAvailability,
+  detectWebRRuntime,
+  runPyodide,
+  runWebR,
+} from "./runners.js";
+import {
+  extractSignaturesNMFInWorker,
+  selectNMFRank,
+} from "./signatureExtraction.js";
 
 const ADAPTER_SCHEMA_VERSION = "msig.adapters.v0.3";
 const DEFAULT_SPA_PACKAGE = "SigProfilerAssignment==1.1.3";
@@ -25,6 +34,8 @@ const DEFAULT_SPMG_PACKAGE = "SigProfilerMatrixGenerator==1.3.6";
 const DEFAULT_SPS_PACKAGE = "SigProfilerSimulator==1.2.2";
 const DEFAULT_SPC_PACKAGE = "SigProfilerClusters==1.2.2";
 const DEFAULT_SPP_PACKAGE = "sigProfilerPlotting==1.4.3";
+const DEFAULT_DECONSTRUCTSIGS_WEBR_PACKAGES = ["deconstructSigs"];
+const DEFAULT_SIGMINER_WEBR_PACKAGES = ["sigminer"];
 const DEFAULT_PYODIDE_SCIENTIFIC_PACKAGES = [
   "numpy",
   "scipy",
@@ -144,6 +155,107 @@ function parseExposureTables(files, { delimiter = "\t", normalize = true } = {})
       path,
       score,
       orientation,
+    })),
+  };
+}
+
+function metricDelimiterFor(text) {
+  const firstLine = String(text || "").split(/\r?\n/)[0] || "";
+  return firstLine.split(",").length > firstLine.split("\t").length ? "," : "\t";
+}
+
+function canonicalReconstructionMetricColumn(header) {
+  const normalized = String(header || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ");
+  if (/^sample\b|sample name|sample id|\bsamples\b/.test(normalized)) {
+    return "sample";
+  }
+  if (/cosine/.test(normalized)) {
+    return "cosineSimilarity";
+  }
+  if (/\bkl\b|kullback|leibler/.test(normalized)) {
+    return "klDivergence";
+  }
+  if (/pearson|correlation/.test(normalized)) {
+    return "pearsonCorrelation";
+  }
+  if (/\bl1\b/.test(normalized)) {
+    return "l1Error";
+  }
+  if (/\bl2\b/.test(normalized)) {
+    return "l2Error";
+  }
+  return null;
+}
+
+function parseReconstructionMetricTables(files) {
+  const candidates = [];
+  for (const file of files || []) {
+    if (!file?.text) {
+      continue;
+    }
+    const delimiter = metricDelimiterFor(file.text);
+    const rows = parseDelimited(file.text, delimiter);
+    if (rows.length < 2 || rows[0].length < 2) {
+      continue;
+    }
+    const header = rows[0].map((value) => String(value || "").trim());
+    const columnMap = {};
+    header.forEach((column, index) => {
+      const canonical = canonicalReconstructionMetricColumn(column);
+      if (canonical && columnMap[canonical] === undefined) {
+        columnMap[canonical] = index;
+      }
+    });
+    const metricKeys = [
+      "cosineSimilarity",
+      "klDivergence",
+      "pearsonCorrelation",
+      "l1Error",
+      "l2Error",
+    ].filter((key) => columnMap[key] !== undefined);
+    if (columnMap.sample === undefined || metricKeys.length === 0) {
+      continue;
+    }
+    const parsedRows = rows
+      .slice(1)
+      .map((row) => {
+        const sample = String(row[columnMap.sample] || "").trim();
+        if (!sample) {
+          return null;
+        }
+        const record = { sample };
+        metricKeys.forEach((key) => {
+          record[key] = safeNumber(row[columnMap[key]]);
+        });
+        return record;
+      })
+      .filter(Boolean);
+    if (!parsedRows.length) {
+      continue;
+    }
+    const pathScore = /assignment|solution|stat|metric|reconstruction|quality/i.test(
+      file.path || ""
+    )
+      ? 4
+      : 0;
+    candidates.push({
+      path: file.path || "",
+      score: pathScore + metricKeys.length * 3 + parsedRows.length / 100,
+      columns: metricKeys,
+      rows: parsedRows,
+    });
+  }
+  candidates.sort((left, right) => right.score - left.score);
+  return {
+    metrics: candidates[0]?.rows || null,
+    candidateTables: candidates.map(({ path, score, columns, rows }) => ({
+      path,
+      score,
+      columns,
+      rowCount: rows.length,
     })),
   };
 }
@@ -479,6 +591,211 @@ function parseSigProfilerExtractorOutput(files, { delimiter = "\t", normalize = 
       ({ path, signatureCount }) => ({ path, signatureCount })
     ),
     candidateExposureTables,
+  };
+}
+
+function integerInRange(value, fallback, min, max) {
+  const numeric = Math.floor(Number(value));
+  const resolved = Number.isFinite(numeric) ? numeric : fallback;
+  return Math.max(min, Math.min(max, resolved));
+}
+
+function buildSigProfilerExtractorRankGrid({
+  minimumSignatures = 1,
+  maximumSignatures = 5,
+  sampleCount = 1,
+  contextCount = 1,
+} = {}) {
+  const upperBound = Math.max(1, Math.min(
+    integerInRange(maximumSignatures, 5, 1, 20),
+    Math.max(1, sampleCount || 1),
+    Math.max(1, contextCount || 1)
+  ));
+  const lowerBound = Math.min(
+    upperBound,
+    integerInRange(minimumSignatures, 1, 1, upperBound)
+  );
+  return Array.from(
+    { length: upperBound - lowerBound + 1 },
+    (_, index) => lowerBound + index
+  );
+}
+
+function summarizeSigProfilerExtractorRankSelection(rankSelection) {
+  if (!rankSelection) {
+    return null;
+  }
+  return {
+    ranks: rankSelection.ranks,
+    recommendedRank: rankSelection.recommendedRank,
+    rankSelectionCriterion: rankSelection.rankSelectionCriterion,
+    criterionDirection: rankSelection.criterionDirection,
+    criterionValue: rankSelection.criterionValue,
+    runs: (rankSelection.runs || []).map((run) => ({
+      rank: run.rank,
+      reconstructionError: run.reconstructionError,
+      averageSampleCosineSimilarity: run.averageSampleCosineSimilarity,
+      copheneticCorrelation: run.copheneticCorrelation,
+      averageSilhouette: run.averageSilhouette,
+      criterionValue: run.criterionValue,
+      converged: run.converged,
+      iterations: run.iterations,
+    })),
+  };
+}
+
+function sigProfilerExtractorPackageSpec(packages = []) {
+  return normalizeArray(packages).find((packageName) =>
+    /(^|[/@])SigProfilerExtractor([=@<>\s]|$)/i.test(String(packageName || ""))
+  );
+}
+
+function createSigProfilerExtractorPyodideError({ prepared, packageSpec } = {}) {
+  const error = new Error(
+    "SigProfilerExtractor cannot currently be installed in browser Python because its package dependency chain includes torch, which Pyodide cannot install. Use the browser extraction run or export the SigProfilerExtractor handoff files for a local or server Python run."
+  );
+  error.name = "SigProfilerExtractorPyodideDependencyError";
+  error.code = "PYODIDE_UNSUPPORTED_DEPENDENCY";
+  error.packageSpec = packageSpec || DEFAULT_SPE_PACKAGE;
+  error.missingDependency = "torch>=1.8.1";
+  error.preparedInput = prepared?.manifest || null;
+  return error;
+}
+
+async function runSigProfilerExtractorBrowserNmf(
+  { spectra },
+  {
+    contexts = null,
+    outputDirectory = "/output/sigprofiler_extractor",
+    referenceGenome = "GRCh37",
+    minimumSignatures = 1,
+    maximumSignatures = 5,
+    nmfReplicates = 100,
+    cpu = 1,
+    maxBrowserRuns = 8,
+    maxIterations = 700,
+    tolerance = 1e-5,
+    seed = 123,
+    signaturePrefix = "SPE_NMF",
+    rankSelectionCriterion = "reconstruction_error",
+  } = {}
+) {
+  const prepared = prepareSigProfilerExtractorInput(
+    { spectra },
+    {
+      contexts,
+      outputDirectory,
+      referenceGenome,
+      minimumSignatures,
+      maximumSignatures,
+      nmfReplicates,
+      cpu,
+    }
+  );
+  const normalizedSpectra = normalizeMatrixObject(spectra);
+  const ranks = buildSigProfilerExtractorRankGrid({
+    minimumSignatures,
+    maximumSignatures,
+    sampleCount: Object.keys(normalizedSpectra).length,
+    contextCount: prepared.manifest.contextCount,
+  });
+  const nRuns = integerInRange(nmfReplicates, 8, 1, Math.max(1, maxBrowserRuns));
+  let extraction;
+  let rankSelection = null;
+
+  if (ranks.length > 1) {
+    rankSelection = selectNMFRank(normalizedSpectra, {
+      ranks,
+      maxIterations,
+      tolerance,
+      nRuns,
+      seed,
+      rankSelectionCriterion,
+      contexts: prepared.manifest.contexts,
+    });
+    extraction =
+      rankSelection.runs.find((run) => run.rank === rankSelection.recommendedRank)
+        ?.result || rankSelection.runs[0]?.result;
+  } else {
+    extraction = await extractSignaturesNMFInWorker(normalizedSpectra, {
+      rank: ranks[0] || 1,
+      maxIterations,
+      tolerance,
+      nRuns,
+      seed,
+      contexts: prepared.manifest.contexts,
+      signaturePrefix,
+    });
+  }
+
+  if (!extraction) {
+    throw new Error("Browser extraction did not return signatures and contributions.");
+  }
+
+  if (rankSelection && extraction.signatures) {
+    extraction.signatures = Object.fromEntries(
+      Object.entries(extraction.signatures).map(([signature, profile], index) => [
+        `${signaturePrefix}${index + 1}`,
+        profile,
+      ])
+    );
+    extraction.exposures = Object.fromEntries(
+      Object.entries(extraction.exposures || {}).map(([sample, row]) => [
+        sample,
+        Object.fromEntries(Object.values(row || {}).map((value, index) => [
+          `${signaturePrefix}${index + 1}`,
+          value,
+        ])),
+      ])
+    );
+  }
+
+  return {
+    schemaVersion: ADAPTER_SCHEMA_VERSION,
+    adapter: "sigprofilerextractor",
+    runtime: "browser_nmf",
+    status: "completed",
+    signatures: extraction.signatures,
+    exposures: extraction.exposures,
+    candidateSignatureTables: [
+      {
+        path: "browser_nmf_signatures",
+        signatureCount: Object.keys(extraction.signatures || {}).length,
+      },
+    ],
+    candidateExposureTables: [
+      {
+        path: "browser_nmf_exposures",
+        score: null,
+        orientation: "sample_by_signature",
+      },
+    ],
+    preparedInput: prepared.manifest,
+    extraction: {
+      rank: extraction.rank,
+      reconstructionError: extraction.reconstructionError,
+      averageSampleCosineSimilarity: extraction.averageSampleCosineSimilarity,
+      iterations: extraction.iterations,
+      converged: extraction.converged,
+      bestRun: extraction.bestRun,
+      rankSelection: summarizeSigProfilerExtractorRankSelection(rankSelection),
+    },
+    provenance: buildAdapterProvenance({
+      tool: "SigProfilerExtractor-compatible extraction",
+      runtime: "browser_nmf",
+      parameters: {
+        ...prepared.manifest,
+        rankGrid: ranks,
+        selectedRank: extraction.rank,
+        nRuns,
+        maxIterations,
+        tolerance,
+        seed,
+        rankSelectionCriterion,
+      },
+      notes:
+        "Browser-native NMF run using the same matrix prepared for SigProfilerExtractor. The handoff files and Python snippet remain available for local or server SigProfilerExtractor execution.",
+    }),
   };
 }
 
@@ -1216,6 +1533,317 @@ function parseSigminerOutput(
   });
 }
 
+function uniquePackages(packages) {
+  return [...new Set(normalizeArray(packages).filter(Boolean))];
+}
+
+function sigminerSolverPackage(method = "NNLS") {
+  const normalized = String(method || "NNLS").trim().toUpperCase();
+  if (normalized === "QP") {
+    return "quadprog";
+  }
+  if (normalized === "NNLS") {
+    return "nnls";
+  }
+  if (normalized === "SA") {
+    return "GenSA";
+  }
+  return null;
+}
+
+function extractCollectedTextFile(rawRun, path) {
+  const normalizedPath = String(path || "").replace(/\\/g, "/");
+  const file = (rawRun?.files || []).find(
+    (candidate) => String(candidate.path || "").replace(/\\/g, "/") === normalizedPath
+  );
+  if (!file?.text) {
+    throw new Error(`Expected webR output file was not collected: ${normalizedPath}`);
+  }
+  return file.text;
+}
+
+async function checkWebRAdapterAvailability(packages, options = {}) {
+  const requested = uniquePackages(packages);
+  const runtime = detectWebRRuntime();
+  if (!runtime.available) {
+    return {
+      schemaVersion: ADAPTER_SCHEMA_VERSION,
+      runtime: "webr",
+      available: false,
+      status: "runtime unavailable",
+      packages: requested,
+      missing: requested,
+      runtimeStatus: runtime,
+      packageAvailability: null,
+    };
+  }
+
+  const packageAvailability = await checkWebRPackageAvailability(requested, options);
+  return {
+    schemaVersion: ADAPTER_SCHEMA_VERSION,
+    runtime: "webr",
+    available: packageAvailability.available,
+    status: packageAvailability.available ? "available" : "missing package",
+    packages: requested,
+    missing: packageAvailability.missing || [],
+    runtimeStatus: runtime,
+    packageAvailability,
+  };
+}
+
+function assertWebRAdapterAvailable(availability, packageLabel) {
+  if (availability.available) {
+    return;
+  }
+  const error =
+    availability.status === "runtime unavailable"
+      ? new Error(
+          `webR is not available in this browser runtime. Missing: ${availability.runtimeStatus?.missing?.join(", ") || "runtime support"}.`
+        )
+      : new Error(
+          `${packageLabel} is not available from the active webR package repository. Missing: ${availability.missing.join(", ")}.`
+        );
+  error.code =
+    availability.status === "runtime unavailable"
+      ? "WEBR_RUNTIME_UNAVAILABLE"
+      : "WEBR_PACKAGE_UNAVAILABLE";
+  error.availability = availability;
+  throw error;
+}
+
+/**
+ * Checks whether exact deconstructSigs execution can run through webR.
+ *
+ * @async
+ * @function checkDeconstructSigsWebRAvailability
+ * @memberof adapters
+ * @param {Object} [options] - webR package repository options.
+ * @returns {Promise<Object>} Availability status with runtime and package details.
+ */
+async function checkDeconstructSigsWebRAvailability(options = {}) {
+  const { rPackages = DEFAULT_DECONSTRUCTSIGS_WEBR_PACKAGES, ...packageOptions } = options;
+  return await checkWebRAdapterAvailability(rPackages, packageOptions);
+}
+
+/**
+ * Checks whether exact sigminer execution can run through webR.
+ *
+ * @async
+ * @function checkSigminerWebRAvailability
+ * @memberof adapters
+ * @param {Object} [options] - webR package repository and sigminer method options.
+ * @returns {Promise<Object>} Availability status with runtime and package details.
+ */
+async function checkSigminerWebRAvailability(options = {}) {
+  const {
+    method = "NNLS",
+    rPackages = DEFAULT_SIGMINER_WEBR_PACKAGES,
+    ...packageOptions
+  } = options;
+  const solverPackage = sigminerSolverPackage(method);
+  return await checkWebRAdapterAvailability(
+    uniquePackages([...normalizeArray(rPackages), solverPackage]),
+    packageOptions
+  );
+}
+
+/**
+ * Runs the deconstructSigs R package through webR when compatible package
+ * builds are available.
+ *
+ * @async
+ * @function runDeconstructSigsWebR
+ * @memberof adapters
+ * @param {Object} input - Spectra and signature catalog.
+ * @param {Object<string,Object<string,number>>} input.spectra - Sample spectra.
+ * @param {Object<string,Object<string,number>>} input.signatures - Signature catalog.
+ * @param {Object} [options] - Handoff, webR, and package options.
+ * @returns {Promise<Object>} Exact package result with parsed exposures.
+ */
+async function runDeconstructSigsWebR(
+  { spectra, signatures },
+  {
+    contexts = null,
+    signatureCutoff = 0.01,
+    spectraPath = "/input/deconstructsigs_spectra.tsv",
+    signaturePath = "/input/deconstructsigs_signatures.tsv",
+    outputPath = "/output/deconstructsigs_exposures.tsv",
+    rPackages = DEFAULT_DECONSTRUCTSIGS_WEBR_PACKAGES,
+    webRModuleURL,
+    repositoryUrl,
+    binaryRVersion,
+    packageIndexUrls,
+    skipPackageCheck = false,
+    timeoutMs = 300000,
+    runnerOptions = {},
+  } = {}
+) {
+  const prepared = prepareDeconstructSigsInput(
+    { spectra, signatures },
+    {
+      contexts,
+      spectraPath,
+      signaturePath,
+      outputPath,
+      signatureCutoff,
+    }
+  );
+  const packageOptions = { repositoryUrl, binaryRVersion, packageIndexUrls };
+  const availability = skipPackageCheck
+    ? null
+    : await checkDeconstructSigsWebRAvailability({
+        rPackages,
+        ...packageOptions,
+      });
+  if (availability) {
+    assertWebRAdapterAvailable(availability, "deconstructSigs");
+  }
+
+  const rawRun = await runWebR(
+    {
+      r: prepared.rSnippet,
+      rPackages: uniquePackages(rPackages),
+      files: prepared.files,
+      outputFiles: [prepared.manifest.outputPath],
+      timeoutMs,
+      repositoryUrl,
+    },
+    {
+      ...runnerOptions,
+      webRModuleURL,
+      repositoryUrl,
+      timeoutMs,
+    }
+  );
+  const exposures = parseDeconstructSigsOutput(
+    extractCollectedTextFile(rawRun, prepared.manifest.outputPath)
+  );
+
+  return {
+    schemaVersion: ADAPTER_SCHEMA_VERSION,
+    adapter: "deconstructsigs",
+    runtime: "webr",
+    status: "completed",
+    exactPackageExecution: true,
+    packageAvailability: availability,
+    preparedInput: prepared.manifest,
+    exposures,
+    rawRun,
+    provenance: buildAdapterProvenance({
+      tool: "deconstructSigs",
+      runtime: "webr",
+      packageName: "deconstructSigs",
+      parameters: prepared.manifest,
+      notes:
+        "Exact package execution through webR. Availability depends on compatible WebAssembly package builds in the active repository.",
+    }),
+  };
+}
+
+/**
+ * Runs the sigminer R package through webR when compatible package builds are
+ * available.
+ *
+ * @async
+ * @function runSigminerWebR
+ * @memberof adapters
+ * @param {Object} input - Spectra and signature catalog.
+ * @param {Object<string,Object<string,number>>} input.spectra - Sample spectra.
+ * @param {Object<string,Object<string,number>>} input.signatures - Signature catalog.
+ * @param {Object} [options] - Handoff, webR, package, and sigminer options.
+ * @returns {Promise<Object>} Exact package result with parsed exposures.
+ */
+async function runSigminerWebR(
+  { spectra, signatures },
+  {
+    contexts = null,
+    spectraPath = "/input/sigminer_spectra.tsv",
+    signaturePath = "/input/sigminer_signatures.tsv",
+    outputPath = "/output/sigminer_exposures.tsv",
+    method = "NNLS",
+    autoReduce = false,
+    exposureType = "relative",
+    relThreshold = 0,
+    mode = "SBS",
+    rPackages = DEFAULT_SIGMINER_WEBR_PACKAGES,
+    webRModuleURL,
+    repositoryUrl,
+    binaryRVersion,
+    packageIndexUrls,
+    skipPackageCheck = false,
+    timeoutMs = 300000,
+    runnerOptions = {},
+  } = {}
+) {
+  const prepared = prepareSigminerInput(
+    { spectra, signatures },
+    {
+      contexts,
+      spectraPath,
+      signaturePath,
+      outputPath,
+      method,
+      autoReduce,
+      exposureType,
+      relThreshold,
+      mode,
+    }
+  );
+  const solverPackage = sigminerSolverPackage(method);
+  const packages = uniquePackages([...normalizeArray(rPackages), solverPackage]);
+  const packageOptions = { repositoryUrl, binaryRVersion, packageIndexUrls };
+  const availability = skipPackageCheck
+    ? null
+    : await checkSigminerWebRAvailability({
+        method,
+        rPackages,
+        ...packageOptions,
+      });
+  if (availability) {
+    assertWebRAdapterAvailable(availability, "sigminer");
+  }
+
+  const rawRun = await runWebR(
+    {
+      r: prepared.rSnippet,
+      rPackages: packages,
+      files: prepared.files,
+      outputFiles: [prepared.manifest.outputPath],
+      timeoutMs,
+      repositoryUrl,
+    },
+    {
+      ...runnerOptions,
+      webRModuleURL,
+      repositoryUrl,
+      timeoutMs,
+    }
+  );
+  const exposures = parseSigminerOutput(
+    extractCollectedTextFile(rawRun, prepared.manifest.outputPath)
+  );
+
+  return {
+    schemaVersion: ADAPTER_SCHEMA_VERSION,
+    adapter: "sigminer",
+    runtime: "webr",
+    status: "completed",
+    exactPackageExecution: true,
+    packageAvailability: availability,
+    preparedInput: prepared.manifest,
+    exposures,
+    rawRun,
+    provenance: buildAdapterProvenance({
+      tool: "sigminer",
+      runtime: "webr",
+      packageName: "sigminer",
+      parameters: prepared.manifest,
+      notes:
+        "Exact package execution through webR. Availability depends on compatible WebAssembly package builds in the active repository.",
+    }),
+  };
+}
+
 /**
  * Runs SigProfilerAssignment in matrix mode through the Pyodide worker runner.
  *
@@ -1276,6 +1904,7 @@ async function runSigProfilerAssignment(
     runnerOptions
   );
   const parsed = parseExposureTables(rawRun.files, { normalize: true });
+  const reconstructionMetrics = parseReconstructionMetricTables(rawRun.files);
 
   return {
     schemaVersion: ADAPTER_SCHEMA_VERSION,
@@ -1284,6 +1913,8 @@ async function runSigProfilerAssignment(
     status: rawRun.result?.status || "completed",
     exposures: parsed.exposures,
     candidateExposureTables: parsed.candidateTables,
+    packageReconstructionMetrics: reconstructionMetrics.metrics,
+    candidateReconstructionMetricTables: reconstructionMetrics.candidateTables,
     preparedInput: prepared.manifest,
     rawRun,
     provenance: buildAdapterProvenance({
@@ -1299,7 +1930,12 @@ async function runSigProfilerAssignment(
 }
 
 /**
- * Runs SigProfilerExtractor in matrix mode through the Pyodide worker runner.
+ * Runs a browser-compatible SigProfilerExtractor handoff workflow.
+ *
+ * The default runtime uses browser-native NMF against the matrix prepared for
+ * SigProfilerExtractor. Exact package execution can still be requested with
+ * runtime="pyodide", but current SigProfilerExtractor wheels require torch,
+ * which is not installable in Pyodide.
  *
  * @async
  * @function runSigProfilerExtractor
@@ -1311,6 +1947,7 @@ async function runSigProfilerAssignment(
 async function runSigProfilerExtractor(
   { spectra },
   {
+    runtime = "browser_nmf",
     contexts = null,
     pyodidePackages = DEFAULT_PYODIDE_SCIENTIFIC_PACKAGES,
     micropipPackages = [DEFAULT_SPE_PACKAGE],
@@ -1320,10 +1957,39 @@ async function runSigProfilerExtractor(
     maximumSignatures = 5,
     nmfReplicates = 100,
     cpu = 1,
+    maxBrowserRuns = 8,
+    maxIterations = 700,
+    tolerance = 1e-5,
+    seed = 123,
+    signaturePrefix = "SPE_NMF",
+    rankSelectionCriterion = "reconstruction_error",
     timeoutMs = 300000,
     runnerOptions = {},
   } = {}
 ) {
+  if (runtime === "browser" || runtime === "browser_nmf" || runtime === "browser_fallback") {
+    return await runSigProfilerExtractorBrowserNmf(
+      { spectra },
+      {
+        contexts,
+        outputDirectory,
+        referenceGenome,
+        minimumSignatures,
+        maximumSignatures,
+        nmfReplicates,
+        cpu,
+        maxBrowserRuns,
+        maxIterations,
+        tolerance,
+        seed,
+        signaturePrefix,
+        rankSelectionCriterion,
+      }
+    );
+  }
+  if (runtime !== "pyodide") {
+    throw new Error(`Unsupported SigProfilerExtractor runtime "${runtime}". Use "browser_nmf" or "pyodide".`);
+  }
   const prepared = prepareSigProfilerExtractorInput(
     { spectra },
     {
@@ -1336,6 +2002,10 @@ async function runSigProfilerExtractor(
       cpu,
     }
   );
+  const packageSpec = sigProfilerExtractorPackageSpec(micropipPackages);
+  if (packageSpec) {
+    throw createSigProfilerExtractorPyodideError({ prepared, packageSpec });
+  }
   const config = {
     ...prepared.manifest,
     outputDirectory,
@@ -1759,6 +2429,8 @@ export {
   DEFAULT_SPP_PACKAGE,
   DEFAULT_SPS_PACKAGE,
   DEFAULT_SPA_PACKAGE,
+  checkDeconstructSigsWebRAvailability,
+  checkSigminerWebRAvailability,
   createInteroperabilityBundle,
   parseExposureTables,
   parseDeconstructSigsOutput,
@@ -1774,7 +2446,9 @@ export {
   prepareSigProfilerMatrixGeneratorInput,
   prepareSigProfilerPlottingInput,
   prepareSigProfilerSimulatorInput,
+  runDeconstructSigsWebR,
   runMuSiCalRefit,
+  runSigminerWebR,
   runSigProfilerAssignment,
   runSigProfilerExtractor,
   runSparseNnlsRefit,

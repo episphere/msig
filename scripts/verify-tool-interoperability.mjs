@@ -13,6 +13,8 @@ import {
   importSigProfilerMatrix,
 } from "../mSigSDKScripts/io.js";
 import {
+  checkDeconstructSigsWebRAvailability,
+  checkSigminerWebRAvailability,
   createInteroperabilityBundle,
   parseDeconstructSigsOutput,
   parseSigminerOutput,
@@ -26,8 +28,14 @@ import {
   prepareSigProfilerExtractorInput,
   prepareDeconstructSigsInput,
   prepareSigminerInput,
+  runDeconstructSigsWebR,
+  runSigminerWebR,
   runSparseNnlsRefit,
 } from "../mSigSDKScripts/adapters.js";
+import {
+  checkWebRPackageAvailability,
+  detectWebRRuntime,
+} from "../mSigSDKScripts/runners.js";
 import { getExpectedContexts } from "../mSigSDKScripts/validation.js";
 
 const REPO_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -299,6 +307,60 @@ async function runNodeChecks() {
     sigminer.manifest
   );
 
+  record(
+    checks,
+    "Exact WebR R-package adapter run methods are exported",
+    typeof runDeconstructSigsWebR === "function" &&
+      typeof runSigminerWebR === "function",
+    {
+      deconstructSigs: typeof runDeconstructSigsWebR,
+      sigminer: typeof runSigminerWebR,
+    }
+  );
+
+  const mockedWebRPackageIndex = [
+    "Package: sigminer",
+    "Version: 2.3.0",
+    "",
+    "Package: nnls",
+    "Version: 1.5",
+  ].join("\n");
+  const mockedWebRPackages = await checkWebRPackageAvailability(["sigminer", "nnls"], {
+    packageIndexUrls: [`data:text/plain,${encodeURIComponent(mockedWebRPackageIndex)}`],
+    repositoryUrl: "https://example.invalid/webr",
+  });
+  record(
+    checks,
+    "WebR package availability check reads repository indexes",
+    mockedWebRPackages.available === true &&
+      mockedWebRPackages.packages.sigminer?.available === true &&
+      mockedWebRPackages.packages.nnls?.available === true,
+    mockedWebRPackages
+  );
+
+  const webRRuntime = detectWebRRuntime();
+  record(
+    checks,
+    "WebR runtime detection returns capability status",
+    typeof webRRuntime.available === "boolean" && Array.isArray(webRRuntime.missing),
+    webRRuntime
+  );
+
+  const deconstructWebRAvailability = await checkDeconstructSigsWebRAvailability();
+  const sigminerWebRAvailability = await checkSigminerWebRAvailability({ method: "NNLS" });
+  record(
+    checks,
+    "deconstructSigs WebR availability is classified before execution",
+    ["available", "missing package", "runtime unavailable"].includes(deconstructWebRAvailability.status),
+    deconstructWebRAvailability
+  );
+  record(
+    checks,
+    "sigminer WebR availability is classified before execution",
+    ["available", "missing package", "runtime unavailable"].includes(sigminerWebRAvailability.status),
+    sigminerWebRAvailability
+  );
+
   const exampleVcf = [
     "##fileformat=VCFv4.2",
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO",
@@ -465,10 +527,12 @@ try {
   const startedAt = new Date().toISOString();
   const { mSigSDK } = await import("/main.js?interop=" + Date.now());
   record("Public SDK exposes quickstart namespace", !!mSigSDK.quickstart?.runSingleSampleFit && !!mSigSDK.quickstart?.runPanelWorkflow, Object.keys(mSigSDK.quickstart || {}));
-  record("Public SDK exposes runners namespace", !!mSigSDK.runners?.pyodide?.runPython, Object.keys(mSigSDK.runners || {}));
-  record("Public SDK exposes adapters namespace", !!mSigSDK.adapters?.sigProfilerAssignment && !!mSigSDK.adapters?.musical, Object.keys(mSigSDK.adapters || {}));
+  record("Public SDK exposes runners namespace", !!mSigSDK.runners?.pyodide?.runPython && !!mSigSDK.runners?.webr?.run, Object.keys(mSigSDK.runners || {}));
+  record("Public SDK exposes adapters namespace", !!mSigSDK.adapters?.sigProfilerAssignment && !!mSigSDK.adapters?.musical && !!mSigSDK.adapters?.deconstructSigs?.run && !!mSigSDK.adapters?.sigminer?.run, Object.keys(mSigSDK.adapters || {}));
   const runtime = mSigSDK.runners.pyodide.detect();
   record("Browser supports Pyodide worker prerequisites", runtime.available, runtime);
+  const webRRuntime = mSigSDK.runners.webr.detect();
+  record("Browser detects WebR runtime prerequisites", typeof webRRuntime.available === "boolean" && Array.isArray(webRRuntime.missing), webRRuntime);
 
   const pyodide = await mSigSDK.runners.pyodide.runPython("import json\\ninputs = json.loads(MSIG_INPUT_JSON)\\njson.dumps({\\"ok\\": True, \\"value\\": inputs[\\"value\\"]})", {
     inputs: { value: 42 },
@@ -511,6 +575,31 @@ try {
   record("Browser deconstructSigs adapter prepares R handoff input", deconstruct.files.length === 2 && deconstruct.rSnippet.includes("whichSignatures"), deconstruct.manifest);
   const sigminer = mSigSDK.adapters.sigminer.prepareInput({ spectra, signatures }, { contexts, method: "NNLS" });
   record("Browser sigminer adapter prepares R handoff input", sigminer.files.length === 2 && sigminer.rSnippet.includes("sigminer::sig_fit"), sigminer.manifest);
+  const deconstructWebR = await mSigSDK.adapters.deconstructSigs.checkWebRAvailability();
+  record("Browser deconstructSigs WebR availability is classified", ["available", "missing package", "runtime unavailable"].includes(deconstructWebR.status), deconstructWebR);
+  const sigminerWebR = await mSigSDK.adapters.sigminer.checkWebRAvailability({ method: "NNLS" });
+  record("Browser sigminer WebR availability is classified", ["available", "missing package", "runtime unavailable"].includes(sigminerWebR.status), sigminerWebR);
+  if (sigminerWebR.available && webRRuntime.available) {
+    const exactSigminer = await mSigSDK.adapters.sigminer.run(
+      { spectra, signatures },
+      {
+        contexts,
+        method: "NNLS",
+        timeoutMs: ${Math.max(180000, DEFAULT_TIMEOUT_MS)}
+      }
+    );
+    record("Browser exact sigminer WebR package run completes when available", exactSigminer.runtime === "webr" && exactSigminer.exactPackageExecution === true && !!exactSigminer.exposures?.SampleA, {
+      status: exactSigminer.status,
+      runtime: exactSigminer.runtime,
+      packages: exactSigminer.rawRun?.installedWebRPackages,
+    });
+  } else {
+    record("Browser exact sigminer WebR package run is gated when unavailable", true, {
+      runtimeAvailable: webRRuntime.available,
+      packageStatus: sigminerWebR.status,
+      missing: sigminerWebR.missing,
+    });
+  }
   const musical = mSigSDK.adapters.musical.prepareRefitInput({ spectra, signatures }, { contexts });
   record("Browser MuSiCal adapter prepares two input files", musical.files.length === 2 && musical.manifest.contextCount === 96, musical.manifest);
   const bundle = mSigSDK.adapters.createInteroperabilityBundle({ spectra, signatures }, { contexts });

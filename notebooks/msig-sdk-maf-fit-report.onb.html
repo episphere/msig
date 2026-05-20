@@ -1,364 +1,1906 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK variant rows to mutation patterns</title>
+  <title>mSigSDK MAF to SBS96 explainer</title>
 
   <script type="text/markdown">
-    # Variant rows to mutation patterns
+    # MAF to SBS96 explainer
 
-    Raw DNA-change rows must be converted into a mutation pattern that signature tools can read.
-
-    The raw file is a pile of receipts. Each receipt says, "At this DNA position, one letter changed into another." A mutational signature analysis cannot use that pile directly. First, the receipts must be sorted into 96 labeled bins. Each bin says what changed and what the neighboring DNA letters were. That sorted 96-bin table is called an SBS96 spectrum.
-
-    A reviewer can read the first tables like a chain of custody: which rows were usable, how rows were grouped into samples, where the neighboring DNA letters came from, and whether the final 96-bin counts equal the usable input rows.
+    A MAF-like row records where a variant happened and which base changed: chromosome, position, reference allele, alternate allele, and variant type. SBS96 spectra need the neighboring 5' and 3' reference bases too. This notebook follows each row from input MAF to reference context, pyrimidine normalization, and final SBS96 bin counts.
   </script>
 
-  <script type="module" pinned id="1">
-    const mafSdkUrl = new URL("../main.js?v=2026-05-15-cosmic-sbs96", location.href).href;
+  <script type="module" pinned id="maf-to-sbs96-explainer">
+    const mafSdkUrl = new URL("../main.js?v=2026-05-16-maf-guided-flow", location.href).href;
+    const mutationalSpectrumUrl = new URL("../mSigSDKScripts/mutationalSpectrum.js?v=2026-05-16-maf-guided-flow", location.href).href;
     const { mSigSDK } = await import(mafSdkUrl);
     const {
-      loadPublicMafRows,
-      loadPublicSbs96Dataset,
-      sbs96Contexts,
-    } = await import("./msig-notebook-fixtures.js");
-    const {
-      metrics,
-      reconstructionRows,
-      table,
-    } = mSigSDK.presentation;
+      getMutationalContext,
+      normalizeChromosome,
+      normalizeSequenceContext,
+      standardize_substitution,
+      standardize_trinucleotide,
+    } = await import(mutationalSpectrumUrl);
 
-    const mafContexts = sbs96Contexts();
-    const [mafPublicRows, mafReferenceDataset] = await Promise.all([
-      loadPublicMafRows(mSigSDK, { projects: ["TCGA-LUAD"], maxFiles: 1, maxVariants: 80 }),
-      loadPublicSbs96Dataset(mSigSDK, { sampleLimit: 3 }),
+    const { details, metrics, note, table } = mSigSDK.presentation;
+
+    const SBS96_CONTEXTS = mSigSDK.validation.getExpectedContexts({
+      profile: "SBS",
+      matrix: 96,
+    });
+    const STEP_ORDER = [
+      ["load", "Load"],
+      ["fields", "Fields"],
+      ["lookup", "Context"],
+      ["normalize", "Normalize"],
+      ["binning", "Bin"],
+      ["export", "Export"],
+    ];
+    const REQUIRED_FIELDS = [
+      ["sample", "Sample"],
+      ["chromosome", "Chromosome"],
+      ["start_position", "Position"],
+      ["reference_allele", "Reference allele"],
+      ["tumor_seq_allele2", "Alternate allele"],
+      ["variant_type", "Variant type"],
+    ];
+    const FIELD_ALIASES = {
+      sample: [
+        "tumor_sample_barcode",
+        "tumorsamplebarcode",
+        "sample",
+        "sample_id",
+        "sampleid",
+        "case_submitter_id",
+        "project_code",
+        "projectcode",
+        "center",
+        "gdc_file_id",
+      ],
+      chromosome: ["chromosome", "chrom", "chr"],
+      start_position: [
+        "start_position",
+        "startposition",
+        "chromosome_start",
+        "chromosomestart",
+        "position",
+        "pos",
+        "start",
+      ],
+      reference_allele: [
+        "reference_allele",
+        "referenceallele",
+        "reference_genome_allele",
+        "referencegenomeallele",
+        "ref",
+      ],
+      tumor_seq_allele2: [
+        "tumor_seq_allele2",
+        "tumorseqallele2",
+        "alternate_allele",
+        "alternateallele",
+        "mutated_to_allele",
+        "mutatedtoallele",
+        "alt",
+      ],
+      variant_type: [
+        "variant_type",
+        "varianttype",
+        "mutation_type",
+        "mutationtype",
+        "variant_class",
+        "variantclass",
+        "type",
+      ],
+      context: [
+        "context",
+        "context_sequence",
+        "contextsequence",
+        "sequence_context",
+        "sequencecontext",
+        "trinucleotide_context",
+        "trinucleotidecontext",
+        "trinucleotide",
+      ],
+      build: ["ncbi_build", "ncbibuild", "genome_build", "genomebuild", "build"],
+    };
+    const ACCEPTED_VARIANT_TYPES = new Set([
+      "snp",
+      "snv",
+      "single base substitution",
+      "single_base_substitution",
+      "single nucleotide variant",
+      "substitution",
     ]);
-    const mafRows = mafPublicRows.rows;
-    const mafSignatures = mafReferenceDataset.signatures;
-    const mafOptions = {
-      groupBy: "sample",
-      genome: "hg19",
-      offline: false,
-      contextSource: "live UCSC genome sequence lookup for TCGA/GDC MAF rows",
-      exposureThreshold: 0.01,
+    const COMPLEMENT = { A: "T", C: "G", G: "C", T: "A", N: "N" };
+    const MAX_LIVE_LOOKUP = 50;
+    const MAX_GDC_FILES = 5;
+    const MAX_GDC_ROWS = 1000;
+    const DEFAULT_GDC_ROWS = 500;
+    const TCGA_PROJECT_PRESETS = [
+      { label: "Lung adenocarcinoma: TCGA-LUAD", value: "TCGA-LUAD" },
+      { label: "Lung squamous: TCGA-LUSC", value: "TCGA-LUSC" },
+      { label: "Breast: TCGA-BRCA", value: "TCGA-BRCA" },
+      { label: "Melanoma: TCGA-SKCM", value: "TCGA-SKCM" },
+      { label: "Colorectal: TCGA-COAD + TCGA-READ", value: "TCGA-COAD, TCGA-READ" },
+      { label: "Glioma: TCGA-GBM + TCGA-LGG", value: "TCGA-GBM, TCGA-LGG" },
+    ];
+
+    const root = document.createElement("div");
+    root.className = "workflow-panel maf-explainer-app";
+    display(root);
+    installStyles();
+
+    const state = {
+      activeStep: "load",
+      rows: [],
+      pastedText: "",
+      loadedMafText: "",
+      lookupTable: {},
+      selectedIndex: 0,
+      selectedGroup: "",
+      trace: [],
+      spectra: {},
+      audit: null,
+      inputSource: "none",
+      sourceFilename: "",
+      sourceGenome: "hg19",
+      statusTitle: "Load a MAF to begin",
+      status: "Fetch a public TCGA/GDC MAF file or paste/upload your own MAF-like table.",
+      statusType: "ready",
+      progress: [],
+      liveLimit: MAX_LIVE_LOOKUP,
+      tcgaSelection: {
+        preset: "TCGA-LUAD",
+        projects: "TCGA-LUAD",
+        maxFiles: 1,
+        rowCap: DEFAULT_GDC_ROWS,
+      },
+      tcgaMetadata: null,
+      selectedTcgaRows: [],
     };
 
-    function mafLowerRow(row) {
-      return Object.fromEntries(
-        Object.entries(row || {}).map(([key, value]) => [String(key).toLowerCase(), value])
-      );
-    }
-
-    function mafGroupValue(row, groupBy) {
-      const lower = mafLowerRow(row);
-      return String(lower[String(groupBy).toLowerCase()] || row?.[groupBy] || lower.sample || lower.sample_id || "unassigned");
-    }
-
-    function mafIsConvertibleSnv(row) {
-      const lower = mafLowerRow(row);
-      const variantType = String(lower.variant_type || "").toLowerCase();
-      const reference = String(lower.reference_allele || "").toUpperCase();
-      const alternate = String(lower.tumor_seq_allele2 || "").toUpperCase();
-      return (
-        ["snp", "single base substitution", "single_base_substitution"].includes(variantType) &&
-        /^[ACGT]$/.test(reference) &&
-        /^[ACGT]$/.test(alternate)
-      );
-    }
-
-    function mafContextValue(row) {
-      const lower = mafLowerRow(row);
-      return String(
-        lower.trinucleotide_context ||
-        lower.trinucleotide ||
-        lower.sequence_context ||
-        lower.context_sequence ||
-        lower.context ||
-        ""
-      ).toUpperCase();
-    }
-
-    function sumSpectrum(record = {}) {
-      return Object.values(record).reduce((sum, value) => sum + Number(value || 0), 0);
-    }
-
-    function mafAuditRows(rows, { groupBy }) {
-      const groups = new Set();
-      let convertibleSnvs = 0;
-      let rowsWithContext = 0;
-      let nonConvertibleRows = 0;
-      let missingContext = 0;
-      for (const row of rows) {
-        groups.add(mafGroupValue(row, groupBy));
-        if (mafIsConvertibleSnv(row)) {
-          convertibleSnvs += 1;
-          if (/^[ACGT]{3}$/.test(mafContextValue(row))) {
-            rowsWithContext += 1;
-          } else {
-            missingContext += 1;
+    function installStyles() {
+      if (document.getElementById("maf-explainer-styles")) return;
+      const style = document.createElement("style");
+      style.id = "maf-explainer-styles";
+      style.textContent = `
+        .maf-explainer-app {
+          gap: 16px;
+          --maf-surface: #ffffff;
+          --maf-soft: #f6faf8;
+          --maf-line: #d7e3df;
+        }
+        .maf-hero {
+          display: grid;
+          gap: 6px;
+          border: 1px solid var(--maf-line);
+          border-left: 4px solid var(--teal);
+          border-radius: 8px;
+          background: var(--maf-soft);
+          padding: 16px 18px;
+        }
+        .maf-hero h3,
+        .maf-step-panel h3 {
+          margin: 0;
+          color: var(--ink);
+          font-size: 18px;
+        }
+        .maf-hero p,
+        .maf-caption {
+          max-width: 86ch;
+          margin: 0;
+          color: var(--muted);
+          font-size: 14px;
+          line-height: 1.55;
+        }
+        .maf-stepper,
+        .maf-button-row,
+        .maf-pill-row,
+        .maf-action-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+        }
+        .maf-explainer-app .workflow-field {
+          gap: 6px;
+          margin: 0;
+        }
+        .maf-explainer-app .workflow-field span {
+          color: var(--ink);
+          font-size: 13px;
+          font-weight: 850;
+        }
+        .maf-explainer-app .workflow-field small {
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.35;
+        }
+        .maf-explainer-app input,
+        .maf-explainer-app select,
+        .maf-explainer-app textarea {
+          border: 1px solid var(--maf-line);
+          border-radius: 6px;
+          background: #fff;
+          color: var(--ink);
+          font-size: 14px;
+        }
+        .maf-explainer-app input,
+        .maf-explainer-app select {
+          min-height: 42px;
+          padding: 8px 10px;
+        }
+        .maf-explainer-app button {
+          border: 1px solid #aebfbb;
+          border-radius: 6px;
+          background: #fff;
+          color: var(--ink);
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 800;
+          min-height: 40px;
+          padding: 8px 12px;
+        }
+        .maf-explainer-app button.primary {
+          border-color: var(--teal);
+          background: var(--teal);
+          color: #fff;
+        }
+        .maf-explainer-app button:disabled {
+          cursor: not-allowed;
+          opacity: 0.5;
+        }
+        .maf-step-button {
+          display: inline-grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          align-items: center;
+          gap: 8px;
+          min-height: 38px;
+          border: 1px solid var(--maf-line);
+          border-radius: 8px;
+          background: #fff;
+          color: var(--ink);
+          font-weight: 850;
+          padding: 7px 10px;
+        }
+        .maf-step-button.active {
+          border-color: var(--teal);
+          background: var(--teal);
+          color: #fff;
+        }
+        .maf-step-number {
+          display: inline-grid;
+          place-items: center;
+          width: 22px;
+          height: 22px;
+          border-radius: 999px;
+          background: rgba(16, 132, 139, 0.14);
+          color: var(--teal);
+          font-size: 12px;
+        }
+        .maf-step-button.active .maf-step-number {
+          background: #fff;
+          color: var(--teal);
+        }
+        .maf-step-panel,
+        .maf-source-card,
+        .maf-flow-card {
+          display: grid;
+          gap: 14px;
+        }
+        .maf-step-panel {
+          border: 1px solid var(--maf-line);
+          border-radius: 8px;
+          background: #fff;
+          padding: 18px;
+        }
+        .maf-load-grid,
+        .maf-two-column,
+        .maf-three-column {
+          display: grid;
+          gap: 14px;
+        }
+        .maf-load-grid {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+        .maf-two-column {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+        .maf-three-column {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        @media (max-width: 880px) {
+          .maf-load-grid,
+          .maf-two-column,
+          .maf-three-column {
+            grid-template-columns: 1fr;
           }
-        } else {
-          nonConvertibleRows += 1;
         }
-      }
-      return [
-        { checkpoint: "Input rows", value: rows.length, why: "All rows received before filtering." },
-        { checkpoint: "Groups from field", value: `${groups.size} via ${groupBy}`, why: "This identifies which rows belong to the same sample or project." },
-        { checkpoint: "Rows that can become 96-bin counts", value: convertibleSnvs, why: "Only clean one-letter DNA changes belong in this specific mutation-pattern table." },
-        { checkpoint: "Rows with neighborhood already supplied", value: rowsWithContext, why: "Some rows already include the nearby DNA letters needed for sorting." },
-        { checkpoint: "Rows needing neighborhood lookup", value: missingContext, why: "These rows need the genome sequence lookup to find the nearby DNA letters." },
-        { checkpoint: "Rows skipped by this 96-bin pattern", value: nonConvertibleRows, why: "Insertions, deletions, invalid letters, or incomplete rows do not fit this one-letter-change pattern." },
-      ];
+        .maf-source-card,
+        .maf-flow-card {
+          border: 1px solid var(--maf-line);
+          border-radius: 8px;
+          background: #fbfdfc;
+          padding: 16px;
+        }
+        .maf-source-card h4,
+        .maf-flow-card h4 {
+          margin: 0;
+          color: var(--ink);
+          font-size: 15px;
+        }
+        .maf-status {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          gap: 8px 12px;
+          align-items: start;
+          border: 1px solid var(--rule);
+          border-left: 4px solid var(--teal);
+          border-radius: 8px;
+          background: #fbfcfa;
+          padding: 12px;
+        }
+        .maf-status.error {
+          border-left-color: var(--coral);
+          background: #fff3ec;
+        }
+        .maf-status.running .maf-status-dot {
+          box-shadow: 0 0 0 4px rgba(16, 132, 139, 0.12);
+        }
+        .maf-status-dot {
+          width: 14px;
+          height: 14px;
+          margin-top: 3px;
+          border-radius: 999px;
+          background: var(--teal);
+        }
+        .maf-status.error .maf-status-dot { background: var(--coral); }
+        .maf-status strong {
+          display: block;
+          color: var(--ink);
+          font-size: 14px;
+        }
+        .maf-status span {
+          color: var(--muted);
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .maf-lookup-controls {
+          display: grid;
+          grid-template-columns: minmax(150px, 220px) minmax(180px, 260px) auto;
+          gap: 12px;
+          align-items: end;
+        }
+        @media (max-width: 760px) {
+          .maf-lookup-controls {
+            grid-template-columns: 1fr;
+          }
+        }
+        .maf-editor {
+          width: 100%;
+          min-height: 220px;
+          box-sizing: border-box;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 12px;
+          line-height: 1.5;
+          padding: 12px;
+        }
+        .maf-drop-zone {
+          border: 1px dashed var(--teal);
+          border-radius: 8px;
+          background: #f4fbfb;
+          color: var(--muted);
+          padding: 16px;
+          text-align: center;
+          font-size: 13px;
+        }
+        .maf-row-table-wrap {
+          overflow-x: auto;
+          border: 1px solid var(--maf-line);
+          border-radius: 8px;
+        }
+        .maf-row-table {
+          width: 100%;
+          border-collapse: collapse;
+          min-width: 840px;
+        }
+        .maf-row-table th,
+        .maf-row-table td {
+          border-bottom: 1px solid var(--maf-line);
+          padding: 8px 10px;
+          text-align: left;
+          font-size: 12px;
+          vertical-align: top;
+        }
+        .maf-row-table th {
+          background: #f7faf8;
+          color: var(--muted);
+          font-weight: 850;
+        }
+        .maf-row-table tr.selected { background: #edf7f7; }
+        .maf-row-table button {
+          min-height: 30px;
+          border-radius: 7px;
+          padding: 5px 8px;
+          font-size: 12px;
+        }
+        .maf-pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid var(--maf-line);
+          border-radius: 8px;
+          background: #f7faf8;
+          color: var(--ink);
+          min-height: 30px;
+          padding: 4px 8px;
+          font-weight: 850;
+          font-size: 13px;
+        }
+        .maf-pill.highlight {
+          border-color: var(--teal);
+          background: #edf7f7;
+          color: var(--teal);
+        }
+        .maf-pill.warning {
+          border-color: var(--coral);
+          background: #fff3ec;
+          color: #9a3412;
+        }
+        .maf-base-strip {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(56px, 1fr));
+          gap: 8px;
+          align-items: center;
+        }
+        .maf-base {
+          display: grid;
+          gap: 4px;
+          place-items: center;
+          border: 1px solid var(--maf-line);
+          border-radius: 8px;
+          background: #fff;
+          min-height: 58px;
+          padding: 8px;
+        }
+        .maf-base.center {
+          border-color: var(--teal);
+          background: #edf7f7;
+        }
+        .maf-base span {
+          color: var(--ink);
+          font-size: 22px;
+          font-weight: 900;
+        }
+        .maf-base small {
+          color: var(--muted);
+          font-size: 11px;
+        }
+        .maf-arrow {
+          color: var(--muted);
+          font-size: 13px;
+          font-weight: 850;
+        }
+        .maf-code {
+          border: 1px solid var(--maf-line);
+          border-radius: 8px;
+          background: #0f172a;
+          color: #e2e8f0;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 12px;
+          line-height: 1.5;
+          overflow: auto;
+          padding: 12px;
+          white-space: pre-wrap;
+        }
+        .maf-plot-frame {
+          width: 100%;
+          min-height: 520px;
+        }
+        .maf-card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .maf-fact-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 8px;
+        }
+        .maf-fact {
+          display: grid;
+          gap: 4px;
+          border: 1px solid var(--maf-line);
+          border-radius: 7px;
+          background: #fff;
+          padding: 10px 12px;
+        }
+        .maf-fact span {
+          color: var(--muted);
+          font-size: 11px;
+          font-weight: 850;
+          letter-spacing: 0;
+          text-transform: uppercase;
+        }
+        .maf-fact strong {
+          color: var(--ink);
+          font-size: 14px;
+          font-weight: 850;
+        }
+        .maf-source-summary {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+      `;
+      document.head.append(style);
     }
 
-    function mafGroupAuditRows(rows, spectra, groupBy) {
-      const groups = new Map();
-      for (const row of rows) {
-        const group = mafGroupValue(row, groupBy);
-        if (!groups.has(group)) groups.set(group, { group, inputRows: 0, convertibleSnvs: 0, contextRows: 0 });
-        const entry = groups.get(group);
-        entry.inputRows += 1;
-        if (mafIsConvertibleSnv(row)) {
-          entry.convertibleSnvs += 1;
-          if (/^[ACGT]{3}$/.test(mafContextValue(row))) entry.contextRows += 1;
+    function mafButton(label, kind = "") {
+      const control = document.createElement("button");
+      control.type = "button";
+      control.className = kind === "primary" ? "primary" : "";
+      control.textContent = label;
+      return control;
+    }
+
+    function mafField(label, control, help = "") {
+      const wrapper = document.createElement("label");
+      wrapper.className = "workflow-field";
+      const title = document.createElement("span");
+      title.textContent = label;
+      wrapper.append(title, control);
+      if (help) {
+        const helper = document.createElement("small");
+        helper.textContent = help;
+        wrapper.append(helper);
+      }
+      return wrapper;
+    }
+
+    function mafRowsToCsv(rows) {
+      if (!rows.length) return "";
+      const headers = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+      const escapeValue = (value) => {
+        const text = String(value ?? "");
+        return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+      };
+      return [
+        headers.join(","),
+        ...rows.map((row) => headers.map((header) => escapeValue(row[header])).join(",")),
+      ].join("\n");
+    }
+
+    function canonicalHeader(value) {
+      return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function parseDelimitedLine(line, delimiter) {
+      const cells = [];
+      let cell = "";
+      let quoted = false;
+      for (let index = 0; index < line.length; index += 1) {
+        const character = line[index];
+        if (character === '"') {
+          if (quoted && line[index + 1] === '"') {
+            cell += '"';
+            index += 1;
+          } else {
+            quoted = !quoted;
+          }
+        } else if (character === delimiter && !quoted) {
+          cells.push(cell);
+          cell = "";
+        } else {
+          cell += character;
         }
       }
-      return [...groups.values()].map((entry) => {
-        const observedSbs96Counts = sumSpectrum(spectra?.[entry.group] || {});
+      cells.push(cell);
+      return cells.map((value) => value.trim());
+    }
+
+    function parseDelimitedText(text) {
+      const lines = String(text || "")
+        .trim()
+        .split(/\r?\n/)
+        .filter((line) => line.trim() !== "" && !line.startsWith("#"));
+      if (!lines.length) return [];
+      const delimiter =
+        (lines[0].match(/\t/g) || []).length >= (lines[0].match(/,/g) || []).length
+          ? "\t"
+          : ",";
+      const rows = lines.map((line) => parseDelimitedLine(line, delimiter));
+      const headers = rows[0].map((header) => String(header || "").trim());
+      return rows.slice(1).map((values, index) => {
+        const row = { __rowIndex: index };
+        headers.forEach((header, headerIndex) => {
+          row[header] = values[headerIndex] ?? "";
+        });
+        return row;
+      });
+    }
+
+    function findField(row, field) {
+      const normalizedRow = Object.fromEntries(
+        Object.entries(row || {}).map(([key, value]) => [canonicalHeader(key), value])
+      );
+      for (const alias of FIELD_ALIASES[field] || []) {
+        const value = normalizedRow[canonicalHeader(alias)];
+        if (value !== undefined && value !== null && String(value).trim() !== "") {
+          return String(value).trim();
+        }
+      }
+      return "";
+    }
+
+    function normalizeRows(rows) {
+      return (rows || []).map((row, index) => {
+        const chromosome = findField(row, "chromosome");
+        const normalizedChromosome = normalizeChromosome(chromosome) || chromosome;
         return {
-          ...entry,
-          observedSbs96Counts,
-          countCheck: observedSbs96Counts === entry.convertibleSnvs ? "pass" : "review",
+          id: row.id || `maf_row_${index + 1}`,
+          index,
+          sample: findField(row, "sample") || "sample_1",
+          chromosome: normalizedChromosome,
+          start_position: findField(row, "start_position"),
+          reference_allele: findField(row, "reference_allele").toUpperCase(),
+          tumor_seq_allele2: findField(row, "tumor_seq_allele2").toUpperCase(),
+          variant_type: findField(row, "variant_type") || "SNP",
+          build: findField(row, "build") || state?.sourceGenome || "hg19",
+          raw: row,
         };
       });
     }
 
-    display(metrics([
-      { label: "Data source", value: mafPublicRows.source },
-      { label: "Rows", value: mafRows.length },
-      { label: "Neighborhood lookup", value: "live genome lookup" },
-      { label: "Grouping field", value: mafOptions.groupBy },
-      { label: "Signatures", value: Object.keys(mafSignatures).length },
-    ]));
-    display(table(
-      [
-        { term: "Variant row", plainMeaning: "One recorded DNA change, like C becoming T at a specific chromosome position." },
-        { term: "MAF", plainMeaning: "A common spreadsheet-like format for storing many variant rows." },
-        { term: "DNA neighborhood", plainMeaning: "The changed letter plus one nearby letter on each side, like a three-letter word." },
-        { term: "SBS96 spectrum", plainMeaning: "The final 96-bin mutation pattern created after sorting the variant rows." },
-        { term: "Quick sanity check", plainMeaning: "A small follow-up check that the converted pattern can be used by the normal fitting workflow." },
-      ],
-      [
-        { key: "term", label: "Term" },
-        { key: "plainMeaning", label: "Plain meaning" },
-      ]
-    ));
-    display(table(
-      mafAuditRows(mafRows, mafOptions),
-      [
-        { key: "checkpoint", label: "Sorting checkpoint" },
-        { key: "value", label: "Value" },
-        { key: "why", label: "Why it matters" },
-      ]
-    ));
-  </script>
-<script type="text/markdown">
-    ## Step 1. Sort the variant rows into 96 bins
+    function contextFromRow(row) {
+      return normalizeSequenceContext(findField(row?.raw || row, "context"));
+    }
 
-    Each row tells us the chromosome position and the before/after DNA letters. The converter looks up the neighboring DNA letters, then sorts the change into one of 96 possible bins.
+    function lookupKey(row) {
+      const chromosome = normalizeChromosome(row.chromosome) || row.chromosome;
+      return `${chromosome}:${row.start_position}`;
+    }
 
-    The most important check is simple counting. If 80 usable single-letter changes go in, the finished 96-bin table should contain 80 counts. If those numbers do not match, something went wrong before signature analysis even began.
-  </script>
-<script type="module" pinned id="2">
-    const mafAnalysis = await mSigSDK.workflows.analyzeMafFiles(
-      mafRows,
-      mafSignatures,
-      {
-        groupBy: mafOptions.groupBy,
-        genome: mafOptions.genome,
-        offline: mafOptions.offline,
-        contextSource: mafOptions.contextSource,
-        expectedContexts: mafContexts,
-        reportFormat: "object",
-        fitting: {
-          exposureThreshold: mafOptions.exposureThreshold,
-          exposureType: "relative",
-          renormalize: true,
-          mutationBurdenOptions: {
-            lowBurdenThresholdMode: "fixed",
-            lowBurdenThreshold: 50,
-          },
-        },
+    function reverseComplement(sequence) {
+      return String(sequence || "")
+        .toUpperCase()
+        .split("")
+        .reverse()
+        .map((base) => COMPLEMENT[base] || "N")
+        .join("");
+    }
+
+    function zeroSpectrum() {
+      return Object.fromEntries(SBS96_CONTEXTS.map((context) => [context, 0]));
+    }
+
+    function variantTypeIsSnv(value) {
+      return ACCEPTED_VARIANT_TYPES.has(String(value || "").toLowerCase());
+    }
+
+    function lookupContextForRow(row) {
+      const entry = state.lookupTable[lookupKey(row)];
+      if (!entry) return { context: "", source: "" };
+      if (typeof entry === "string") {
+        return { context: normalizeSequenceContext(entry), source: "reference lookup table" };
       }
-    );
-    const mafConversionRows = [
-      { field: "Usable single-letter changes", value: mafAnalysis.mafConversion.expectedConvertibleSnvCount },
-      { field: "Counts after sorting into 96 bins", value: mafAnalysis.mafConversion.observedSbs96Count },
-      { field: "Do the counts match?", value: mafAnalysis.mafConversion.sbs96CountMatchesConvertibleSnvCount ? "yes" : "review" },
-      { field: "DNA neighborhood source", value: mafAnalysis.mafConversion.contextSource },
-      { field: "Lookup mode", value: mafAnalysis.mafConversion.contextLookupMode },
-    ];
+      return {
+        context: normalizeSequenceContext(entry.context),
+        source: entry.source || "reference lookup table",
+      };
+    }
 
-    display(metrics([
-      { label: "Workflow", value: mafAnalysis.workflow },
-      { label: "Samples", value: Object.keys(mafAnalysis.spectra).length },
-      { label: "Counts in 96-bin pattern", value: mafAnalysis.mafConversion.observedSbs96Count },
-      { label: "Warnings", value: mafAnalysis.warnings.length },
-    ]));
-    display(table(
-      mafRows.slice(0, 8),
-      [
-        { key: "project_code", label: "Group" },
-        { key: "chromosome", label: "Chromosome" },
-        { key: "start_position", label: "Position" },
-        { key: "reference_allele", label: "Reference" },
-        { key: "tumor_seq_allele2", label: "New DNA letter" },
-        { key: "context", label: "Three-letter neighborhood" },
-      ],
-      { maxRows: 8 }
-    ));
-    display(table(
-      mafConversionRows,
-      [
-        { key: "field", label: "Check" },
-        { key: "value", label: "Value" },
-      ]
-    ));
-  </script>
+    function contextSourceLabel(row, hasRowContext, lookupSource) {
+      if (hasRowContext) {
+        return state.inputSource === "tcga-gdc" ? "GDC CONTEXT column" : "uploaded context column";
+      }
+      return lookupSource || "missing";
+    }
 
-  <script type="text/markdown">
-    ## Step 2. Check that the converted pattern behaves normally
+    function buildTraceRow(row, index) {
+      const missingFields = REQUIRED_FIELDS
+        .filter(([field]) => field !== "sample" && !row[field])
+        .map(([, label]) => label.toLowerCase());
+      const ref = String(row.reference_allele || "").toUpperCase();
+      const alt = String(row.tumor_seq_allele2 || "").toUpperCase();
+      const variantTypeOk = variantTypeIsSnv(row.variant_type);
+      const alleleOk = /^[ACGT]$/.test(ref) && /^[ACGT]$/.test(alt);
+      const rowSuppliedContext = contextFromRow(row);
+      const lookupContext = lookupContextForRow(row);
+      const referenceContext = rowSuppliedContext || lookupContext.context;
+      const contextSource = contextSourceLabel(row, Boolean(rowSuppliedContext), lookupContext.source);
+      const referenceMatchesContext = Boolean(referenceContext && referenceContext[1] === ref);
+      const purineReference = /^[AG]$/.test(ref);
+      const normalizedContext = referenceContext ? standardize_trinucleotide(referenceContext) : null;
+      const normalizedSubstitution = alleleOk ? standardize_substitution(ref, alt) : null;
+      const finalBin =
+        normalizedContext && normalizedSubstitution
+          ? `${normalizedContext[0]}[${normalizedSubstitution}]${normalizedContext[2]}`.toUpperCase()
+          : null;
+      let skippedReason = "";
 
-    This step is like plugging in a newly assembled lamp just long enough to see whether it turns on. A quick fit checks that the converted 96-bin pattern can enter the normal SDK workflow.
+      if (missingFields.length) {
+        skippedReason = `missing ${missingFields.join(", ")}`;
+      } else if (!variantTypeOk) {
+        skippedReason = "not a single-nucleotide variant";
+      } else if (!alleleOk) {
+        skippedReason = "ref/alt are not single A/C/G/T bases";
+      } else if (!referenceContext) {
+        skippedReason = "missing 5' and 3' reference context";
+      } else if (!referenceMatchesContext) {
+        skippedReason = "reference allele does not match context center";
+      } else if (!finalBin || !SBS96_CONTEXTS.includes(finalBin) || finalBin.includes("N")) {
+        skippedReason = "final SBS96 bin is not valid";
+      }
 
-    Read the tables in order: first confirm the counts still match, then look for warnings, then use the reconstruction numbers as a basic health check.
-  </script>
-<script type="module" pinned id="3">
-    display(table(
-      mafGroupAuditRows(mafRows, mafAnalysis.spectra, mafOptions.groupBy),
-      [
-        { key: "group", label: "Group" },
-        { key: "inputRows", label: "Input rows" },
-        { key: "convertibleSnvs", label: "Usable single-letter changes" },
-        { key: "contextRows", label: "Rows with neighborhood already supplied" },
-        { key: "observedSbs96Counts", label: "Counts after sorting" },
-        { key: "countCheck", label: "Counts match?" },
-      ]
-    ));
-    display(table(
-      reconstructionRows(mafAnalysis.fit.reconstructionError),
-      [
-        { key: "sample", label: "Sample" },
-        { key: "cosineSimilarity", label: "Pattern match score" },
-        { key: "rmse", label: "Average leftover error" },
-      ]
-    ));
-    display(table(
-      warningRows(mafAnalysis.warnings),
-      [
-        { key: "code", label: "Warning code" },
-        { key: "message", label: "Message" },
-        { key: "resolution", label: "Resolution" },
-      ]
-    ));
-  </script>
+      return {
+        index,
+        id: row.id,
+        sample: row.sample,
+        chromosome: row.chromosome,
+        start_position: row.start_position,
+        ref,
+        alt,
+        variantType: row.variant_type,
+        build: row.build || state.sourceGenome,
+        originalSubstitution: alleleOk ? `${ref}>${alt}` : `${ref || "?"}>${alt || "?"}`,
+        lookupKey: lookupKey(row),
+        referenceContext,
+        contextSource,
+        referenceMatchesContext,
+        purineReference,
+        reverseComplementContext: referenceContext ? reverseComplement(referenceContext) : null,
+        normalizedContext,
+        normalizedSubstitution,
+        finalBin,
+        counted: !skippedReason,
+        skippedReason,
+        row,
+      };
+    }
 
-  <script type="text/markdown">
-    ## Step 3. Look at the mutation pattern
+    function recompute() {
+      state.trace = state.rows.map(buildTraceRow);
+      const spectra = {};
+      for (const traceRow of state.trace) {
+        if (!spectra[traceRow.sample]) spectra[traceRow.sample] = zeroSpectrum();
+        if (traceRow.counted) spectra[traceRow.sample][traceRow.finalBin] += 1;
+      }
+      state.spectra = spectra;
+      const groups = Object.keys(spectra);
+      if (!groups.includes(state.selectedGroup)) state.selectedGroup = groups[0] || "";
+      if (state.selectedIndex >= state.rows.length) state.selectedIndex = 0;
+      state.audit = buildAudit();
+    }
 
-    A table of 96 numbers is hard to understand at a glance, so this step turns it into a picture. The burden plot shows how many mutations each group has. The SBS96 profile shows which kinds of DNA-letter changes are most common.
+    function buildAudit() {
+      const inputRows = state.rows.length;
+      const countedRows = state.trace.filter((row) => row.counted).length;
+      const skippedRows = inputRows - countedRows;
+      const rowContexts = state.rows.filter((row) => contextFromRow(row)).length;
+      const missingLookup = state.trace.filter((row) => row.contextSource === "missing").length;
+      const purineRows = state.trace.filter((row) => row.purineReference && row.counted).length;
+      const groupRows = Object.keys(state.spectra).map((sample) => {
+        const inputForGroup = state.trace.filter((row) => row.sample === sample).length;
+        const countedForGroup = state.trace.filter((row) => row.sample === sample && row.counted).length;
+        const observedSbs96Count = Object.values(state.spectra[sample] || {}).reduce(
+          (sum, value) => sum + Number(value || 0),
+          0
+        );
+        return {
+          sample,
+          inputRows: inputForGroup,
+          countedRows: countedForGroup,
+          observedSbs96Count,
+          countCheck: countedForGroup === observedSbs96Count ? "pass" : "review",
+        };
+      });
+      return {
+        rows: [
+          { checkpoint: "Input rows", value: inputRows },
+          { checkpoint: "Rows with row-supplied context", value: rowContexts },
+          { checkpoint: "Rows still missing context", value: missingLookup },
+          { checkpoint: "Rows needing reverse complement", value: purineRows },
+          { checkpoint: "Rows counted into SBS96", value: countedRows },
+          { checkpoint: "Rows skipped", value: skippedRows },
+        ],
+        groupRows,
+      };
+    }
 
-    A good first read is: are the totals plausible, and does the pattern look like a real sorted pattern rather than an empty or scrambled table?
-  </script>
-<script type="module" pinned id="4">
-    const mafBurdenDiv = document.createElement("div");
-    mafBurdenDiv.style.width = "100%";
-    display(mafBurdenDiv);
-    await mSigSDK.qcPlots.plotMutationBurdenSummary(mafBurdenDiv, mafAnalysis.qc.mutationBurden);
+    function selectedTrace() {
+      return state.trace[state.selectedIndex] || state.trace[0] || null;
+    }
 
-    const mafSpectrumSamples = Object.keys(mafAnalysis.spectra || {});
-    const mafSpectrumControls = document.createElement("div");
-    mafSpectrumControls.className = "workflow-plot-controls";
-    const mafSpectrumSelect = document.createElement("select");
-    mafSpectrumSelect.replaceChildren(
-      ...mafSpectrumSamples.map((sample) => {
-        const option = document.createElement("option");
-        option.value = sample;
-        option.textContent = sample;
-        return option;
-      })
-    );
-    const mafSpectrumField = document.createElement("label");
-    mafSpectrumField.className = "workflow-field";
-    const mafSpectrumLabel = document.createElement("span");
-    mafSpectrumLabel.textContent = "Group shown in mutation-pattern plot";
-    const mafSpectrumHelp = document.createElement("small");
-    mafSpectrumHelp.textContent = "Switch groups to redraw the 96-bin pattern. Hover over bars for the exact DNA-neighborhood labels and counts.";
-    mafSpectrumField.append(mafSpectrumLabel, mafSpectrumSelect, mafSpectrumHelp);
-    mafSpectrumControls.append(mafSpectrumField);
-    display(mafSpectrumControls);
-
-    const mafSpectrumDiv = document.createElement("div");
-    mafSpectrumDiv.style.width = "100%";
-    display(mafSpectrumDiv);
-
-    function renderMafCosmicSpectrum() {
-      return mSigSDK.qcPlots.plotCosmicSbs96Profile(
-        mafSpectrumDiv,
-        mafAnalysis.spectra,
-        {
-          sample: mafSpectrumSelect.value,
-          contexts: mafContexts,
-          title: "Converted 96-bin mutation pattern",
-          subtitle:
-            "The converted mutation pattern created from variant rows. Colors group related DNA-letter changes so the 96 bins are easier to scan.",
-        }
+    function normalizationExampleTrace() {
+      const current = selectedTrace();
+      if (current?.purineReference && current.referenceContext && current.normalizedContext) {
+        return current;
+      }
+      return (
+        state.trace.find((row) => row.purineReference && row.counted) ||
+        state.trace.find((row) => row.purineReference && row.referenceContext && row.normalizedContext) ||
+        current
       );
     }
 
-    mafSpectrumSelect.addEventListener("change", renderMafCosmicSpectrum);
-    await renderMafCosmicSpectrum();
-  </script>
+    function selectNormalizationExample() {
+      const example = normalizationExampleTrace();
+      if (example) state.selectedIndex = example.index;
+    }
 
-  <script type="text/markdown">
-    ## Step 4. Save the conversion record
+    function setStatus(title, message, type = "ready") {
+      state.statusTitle = title;
+      state.status = message;
+      state.statusType = type;
+      render();
+    }
 
-    The saved files are the receipt trail. They keep the converted 96-bin table together with the source summary, grouping rule, DNA-neighborhood source, count check, and warnings.
-
-    The next analysis can then start from a checked mutation pattern rather than an unexplained pile of variant rows.
-  </script>
-<script type="module" pinned id="5">
-    display(downloadMany([
-      {
-        filename: "maf_converted_spectra.tsv",
-        text: spectraMatrixToTsv(mafAnalysis.spectra, mafContexts),
-        label: "Download 96-bin pattern TSV",
-      },
-      {
-        filename: "maf_conversion_audit.csv",
-        text: rowsToCsv([
-          ...mafAuditRows(mafRows, mafOptions).map((row) => ({ auditLevel: "input", ...row })),
-          ...mafGroupAuditRows(mafRows, mafAnalysis.spectra, mafOptions.groupBy).map((row) => ({ auditLevel: "group", ...row })),
-        ]),
-        label: "Download conversion audit CSV",
-      },
-      {
-        filename: "maf_conversion_audit.json",
-        type: "json",
-        value: {
-          options: mafOptions,
-          conversionAudit: {
-            input: mafAuditRows(mafRows, mafOptions),
-            groups: mafGroupAuditRows(mafRows, mafAnalysis.spectra, mafOptions.groupBy),
-          },
-          conversion: mafAnalysis.mafConversion,
-          validation: mafAnalysis.validation,
-          qc: mafAnalysis.qc,
-          warnings: mafAnalysis.warnings,
-          smokeTest: {
-            reconstructionError: mafAnalysis.fit.reconstructionError,
-          },
+    function pushProgress(label, message) {
+      state.progress = [
+        ...state.progress,
+        {
+          time: new Date().toLocaleTimeString(),
+          label,
+          message,
         },
-        label: "Download conversion audit JSON",
+      ].slice(-8);
+    }
+
+    function setActiveStep(step) {
+      state.activeStep = step;
+      if (step === "normalize") selectNormalizationExample();
+      render();
+    }
+
+    function setSelectedIndex(index) {
+      state.selectedIndex = Math.max(0, Math.min(state.rows.length - 1, Number(index) || 0));
+      render();
+    }
+
+    function parseProjects(value) {
+      return String(value || "")
+        .split(/[,\s]+/)
+        .map((project) => project.trim())
+        .filter(Boolean);
+    }
+
+    function clamp(value, min, max, fallback) {
+      const parsed = Math.round(Number(value));
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(min, Math.min(max, parsed));
+    }
+
+    function rowsToMafText(rows, delimiter = "\t") {
+      const preferredHeaders = [
+        "Tumor_Sample_Barcode",
+        "Chromosome",
+        "Start_Position",
+        "Reference_Allele",
+        "Tumor_Seq_Allele2",
+        "Variant_Type",
+        "CONTEXT",
+        "NCBI_Build",
+        "Project",
+        "GDC_File_ID",
+      ];
+      const extras = [];
+      rows.forEach((row) => {
+        Object.keys(row.raw || {}).forEach((key) => {
+          if (!preferredHeaders.includes(key) && !key.startsWith("__") && !extras.includes(key)) {
+            extras.push(key);
+          }
+        });
+      });
+      const headers = [...preferredHeaders, ...extras].filter((header) =>
+        rows.some((row) => row.raw?.[header] !== undefined && row.raw?.[header] !== "")
+      );
+      const finalHeaders = headers.length ? headers : preferredHeaders.slice(0, 6);
+      const escapeValue = (value) => {
+        const text = String(value ?? "");
+        if (delimiter === "," && /[",\n]/.test(text)) return `"${text.replaceAll('"', '""')}"`;
+        return text;
+      };
+      return [
+        finalHeaders.join(delimiter),
+        ...rows.map((row) => finalHeaders.map((header) => escapeValue(row.raw?.[header])).join(delimiter)),
+      ].join("\n");
+    }
+
+    function currentSpectraToTsv(spectra) {
+      const samples = Object.keys(spectra || {});
+      return [
+        ["MutationType", ...samples].join("\t"),
+        ...SBS96_CONTEXTS.map((context) =>
+          [context, ...samples.map((sample) => spectra[sample]?.[context] || 0)].join("\t")
+        ),
+      ].join("\n");
+    }
+
+    function mafDownloadText(filename, text, type = "text/plain;charset=utf-8") {
+      const blob = new Blob([text], { type });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function mafDownloadJson(filename, value) {
+      mafDownloadText(filename, JSON.stringify(value, null, 2), "application/json;charset=utf-8");
+    }
+
+    function downloadCurrentMaf(format = "tsv") {
+      const delimiter = format === "csv" ? "," : "\t";
+      const extension = format === "csv" ? "csv" : "tsv";
+      mafDownloadText(`current_maf_rows.${extension}`, rowsToMafText(state.rows, delimiter));
+    }
+
+    function downloadCurrentSpectra() {
+      mafDownloadText("maf_converted_sbs96.tsv", currentSpectraToTsv(state.spectra));
+    }
+
+    function applyRows(rows, {
+      source,
+      filename = "",
+      loadedText = "",
+      metadata = null,
+      selectedTcgaRows = [],
+      preserveProgress = false,
+    } = {}) {
+      state.rows = normalizeRows(rows);
+      state.inputSource = source || "uploaded";
+      state.sourceFilename = filename;
+      state.loadedMafText = loadedText || rowsToMafText(state.rows);
+      state.pastedText = loadedText || rowsToMafText(state.rows);
+      state.tcgaMetadata = metadata;
+      state.selectedTcgaRows = selectedTcgaRows;
+      state.lookupTable = {};
+      state.selectedIndex = 0;
+      state.activeStep = "fields";
+      if (!preserveProgress) state.progress = [];
+      recompute();
+      setStatus(
+        "MAF loaded",
+        `Loaded ${state.rows.length} row(s) from ${source === "tcga-gdc" ? "TCGA/GDC" : filename || "pasted/uploaded text"}.`,
+        "ready"
+      );
+    }
+
+    function applyPastedData(text, filename = "pasted-maf") {
+      const parsed = parseDelimitedText(text);
+      if (!parsed.length) {
+        setStatus("No rows found", "Paste or upload a CSV/TSV file with MAF-like headers.", "error");
+        return;
+      }
+      applyRows(parsed, {
+        source: filename === "pasted-maf" ? "pasted" : "uploaded",
+        filename,
+        loadedText: text,
+      });
+    }
+
+    function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.addEventListener("load", () => resolve(String(reader.result || "")));
+        reader.addEventListener("error", () => reject(reader.error || new Error("File read failed.")));
+        reader.readAsText(file);
+      });
+    }
+
+    function selectGdcFiles(metadata, projects, maxFiles) {
+      const subset = {};
+      const selectedRows = [];
+      for (const project of projects) {
+        const rows = metadata?.[project]?.samples_description || [];
+        for (const row of rows) {
+          if (selectedRows.length >= maxFiles) break;
+          if (!row.file_id) continue;
+          if (!subset[project]) subset[project] = { maf_files: [], samples_description: [] };
+          subset[project].maf_files.push(row.file_id);
+          subset[project].samples_description.push(row);
+          selectedRows.push(row);
+        }
+      }
+      return { subset, selectedRows };
+    }
+
+    function gdcProgressMessage(event) {
+      const total = event.total || state.tcgaSelection.maxFiles || 0;
+      const completed = event.completed || 0;
+      const progress = total ? `${completed}/${total} file(s)` : "selected file(s)";
+      if (event.stage === "download") return `Downloading ${event.project} MAF file ${event.fileIndex}/${event.files}.`;
+      if (event.stage === "parse") return `Parsing ${event.project} MAF file ${event.fileIndex}/${event.files}.`;
+      if (event.stage === "file-complete") return `Loaded ${event.variants} row(s) from ${event.project} file ${event.fileIndex}/${event.files}.`;
+      if (event.stage === "file-error") return `Skipped a ${event.project} file after a load error.`;
+      if (event.stage === "convert") return `Converting ${event.variants} row(s) with row-supplied GDC contexts when available.`;
+      if (event.stage === "project-complete") return `Converted ${event.project}; ${event.samples} sample spectrum/spectra.`;
+      if (event.stage === "complete") return `Finished ${progress}. Preparing the explainer rows.`;
+      return `Preparing ${progress}.`;
+    }
+
+    function mapGdcVariantRow(row, fileMetadata) {
+      const fileId = row.sample || row.file_id || "";
+      const meta = fileMetadata.get(fileId) || {};
+      const sample = meta.case_submitter_id || meta.case_id || fileId || row.project_code || "TCGA_sample";
+      return {
+        Tumor_Sample_Barcode: sample,
+        Chromosome: row.chromosome,
+        Start_Position: row.chromosome_start,
+        Reference_Allele: row.reference_genome_allele,
+        Tumor_Seq_Allele2: row.mutated_to_allele,
+        Variant_Type: row.mutation_type,
+        CONTEXT: row.trinucleotide_context || "",
+        NCBI_Build: row.build || "hg19",
+        Project: row.project_code || meta.project_id || "",
+        GDC_File_ID: fileId,
+      };
+    }
+
+    async function loadTcgaMafSample() {
+      const projects = parseProjects(state.tcgaSelection.projects);
+      const maxFiles = clamp(state.tcgaSelection.maxFiles, 1, MAX_GDC_FILES, 1);
+      const rowCap = clamp(state.tcgaSelection.rowCap, 1, MAX_GDC_ROWS, DEFAULT_GDC_ROWS);
+      if (!projects.length) {
+        setStatus("Choose a TCGA project", "Enter at least one TCGA project ID.", "error");
+        return;
+      }
+
+      try {
+        state.progress = [];
+        pushProgress("metadata", `Querying GDC metadata for ${projects.join(", ")}.`);
+        setStatus("Querying GDC metadata", `Looking for public masked somatic MAF files in ${projects.join(", ")}.`, "running");
+        const metadata = await mSigSDK.TCGA.getMafInformationFromProjects(projects);
+        const { subset, selectedRows } = selectGdcFiles(metadata, projects, maxFiles);
+        if (!selectedRows.length) {
+          throw new Error("No public GDC MAF files were found for the selected project set.");
+        }
+
+        pushProgress("metadata", `Selected ${selectedRows.length} GDC MAF file(s).`);
+        setStatus("Loading TCGA/GDC MAF", `Downloading ${selectedRows.length} file(s) and reading GDC CONTEXT values.`, "running");
+        const variantResult = await mSigSDK.TCGA.getVariantInformationFromMafFiles(subset, {
+          fileConcurrency: 1,
+          includeVariantInformation: true,
+          onProgress: (event) => {
+            pushProgress(event.stage || "gdc", gdcProgressMessage(event));
+            state.statusTitle = "Loading TCGA/GDC MAF";
+            state.status = gdcProgressMessage(event);
+            state.statusType = "running";
+            render();
+          },
+        });
+        const fileMetadata = new Map(selectedRows.map((row) => [row.file_id, row]));
+        const variantRows = Object.values(variantResult || {}).flatMap((payload) => payload.variant_information || []);
+        const cappedRows = variantRows.slice(0, rowCap).map((row) => mapGdcVariantRow(row, fileMetadata));
+        if (!cappedRows.length) {
+          throw new Error("The selected GDC MAF files did not return usable variant rows.");
+        }
+        const text = rowsToMafText(cappedRows.map((raw, index) => ({ raw, index })));
+        applyRows(cappedRows, {
+          source: "tcga-gdc",
+          filename: `${projects.join("_")}_gdc_maf.tsv`,
+          loadedText: text,
+          metadata,
+          selectedTcgaRows: selectedRows,
+          preserveProgress: true,
+        });
+        state.progress = [
+          ...state.progress,
+          {
+            time: new Date().toLocaleTimeString(),
+            label: "ready",
+            message: `Using ${cappedRows.length}/${variantRows.length} variant row(s) from ${selectedRows.length} GDC file(s).`,
+          },
+        ].slice(-8);
+        state.statusTitle = "TCGA/GDC MAF ready";
+        state.status = `Using ${cappedRows.length}/${variantRows.length} row(s), capped at ${rowCap} for the explainer.`;
+        state.statusType = "ready";
+        render();
+      } catch (error) {
+        console.error(error);
+        setStatus("TCGA/GDC load failed", error.message, "error");
+      }
+    }
+
+    async function runLiveLookup() {
+      const limit = Math.max(1, Math.min(MAX_LIVE_LOOKUP, Number(state.liveLimit) || MAX_LIVE_LOOKUP));
+      const candidates = state.trace
+        .filter((row) =>
+          row.contextSource === "missing" &&
+          row.chromosome &&
+          row.start_position &&
+          /^[ACGT]$/.test(row.ref) &&
+          /^[ACGT]$/.test(row.alt) &&
+          variantTypeIsSnv(row.variantType)
+        )
+        .slice(0, limit);
+
+      if (!candidates.length) {
+        setStatus("No live lookup needed", "All convertible rows already have context or are not eligible for lookup.", "ready");
+        return;
+      }
+
+      setStatus("Running live reference lookup", `Looking up reference context for ${candidates.length} row(s).`, "running");
+      for (const candidate of candidates) {
+        try {
+          const context = await getMutationalContext(
+            normalizeChromosome(candidate.chromosome) || candidate.chromosome,
+            candidate.build || state.sourceGenome || "hg19",
+            Number(candidate.start_position),
+            { offline: false }
+          );
+          const normalizedContext = normalizeSequenceContext(context);
+          if (normalizedContext) {
+            state.lookupTable[candidate.lookupKey] = {
+              context: normalizedContext,
+              source: "live reference lookup",
+            };
+          }
+        } catch (error) {
+          console.warn("Live reference lookup failed.", candidate, error);
+        }
+      }
+      recompute();
+      setStatus("Live lookup finished", `Resolved context for up to ${candidates.length} row(s).`, "ready");
+    }
+
+    function statusCard() {
+      const node = document.createElement("div");
+      node.className = `maf-status ${state.statusType || ""}`.trim();
+      const dot = document.createElement("div");
+      dot.className = "maf-status-dot";
+      const copy = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = state.statusTitle || "Ready";
+      const message = document.createElement("span");
+      message.textContent = state.status || "";
+      copy.append(title, message);
+      node.append(dot, copy);
+      return node;
+    }
+
+    function renderHero() {
+      const hero = document.createElement("div");
+      hero.className = "maf-hero";
+      const title = document.createElement("h3");
+      title.textContent = "MAF to SBS96 conversion";
+      const copy = document.createElement("p");
+      copy.textContent =
+        "Load TCGA/GDC or uploaded MAF rows, then review context lookup, pyrimidine normalization, and SBS96 binning.";
+      hero.append(title, copy);
+      return hero;
+    }
+
+    function renderMetrics() {
+      const counted = state.trace.filter((row) => row.counted).length;
+      const skipped = state.trace.length - counted;
+      const missing = state.trace.filter((row) => row.contextSource === "missing").length;
+      return metrics([
+        { label: "Input source", value: state.inputSource === "none" ? "not loaded" : state.inputSource },
+        { label: "Rows", value: state.rows.length },
+        { label: "Samples", value: Object.keys(state.spectra).length },
+        { label: "Rows counted", value: counted },
+        { label: "Rows skipped", value: skipped },
+        { label: "Missing contexts", value: missing },
+      ]);
+    }
+
+    function renderStepper() {
+      const nav = document.createElement("div");
+      nav.className = "maf-stepper";
+      STEP_ORDER.forEach(([id, label], index) => {
+        const control = document.createElement("button");
+        control.type = "button";
+        control.className = `maf-step-button ${state.activeStep === id ? "active" : ""}`.trim();
+        const number = document.createElement("span");
+        number.className = "maf-step-number";
+        number.textContent = String(index + 1);
+        const text = document.createElement("span");
+        text.textContent = label;
+        control.append(number, text);
+        control.addEventListener("click", () => setActiveStep(id));
+        nav.append(control);
+      });
+      return nav;
+    }
+
+    function renderStepFooter() {
+      const current = STEP_ORDER.findIndex(([id]) => id === state.activeStep);
+      const row = document.createElement("div");
+      row.className = "maf-action-row";
+      const previous = mafButton("Previous");
+      previous.disabled = current <= 0;
+      previous.addEventListener("click", () => setActiveStep(STEP_ORDER[Math.max(0, current - 1)][0]));
+      const next = mafButton("Next", "primary");
+      next.disabled = current >= STEP_ORDER.length - 1;
+      next.addEventListener("click", () => setActiveStep(STEP_ORDER[Math.min(STEP_ORDER.length - 1, current + 1)][0]));
+      row.append(previous, next);
+      return row;
+    }
+
+    function renderProgressTable() {
+      if (!state.progress.length) {
+        return note("GDC progress will appear here while metadata, file download, parsing, and conversion run.");
+      }
+      return table(state.progress, [
+        { key: "time", label: "Time" },
+        { key: "label", label: "Stage" },
+        { key: "message", label: "Message" },
+      ], { title: "GDC progress", maxRows: 8 });
+    }
+
+    function renderTcgaLoader() {
+      const card = document.createElement("div");
+      card.className = "maf-source-card";
+      const heading = document.createElement("h4");
+      heading.textContent = "Load public TCGA/GDC MAF";
+      const preset = document.createElement("select");
+      TCGA_PROJECT_PRESETS.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item.value;
+        option.textContent = item.label;
+        preset.append(option);
+      });
+      preset.value = state.tcgaSelection.preset;
+      preset.addEventListener("change", () => {
+        state.tcgaSelection.preset = preset.value;
+        state.tcgaSelection.projects = preset.value;
+        render();
+      });
+      const projects = document.createElement("input");
+      projects.value = state.tcgaSelection.projects;
+      projects.addEventListener("input", () => {
+        state.tcgaSelection.projects = projects.value;
+      });
+      const maxFiles = document.createElement("input");
+      maxFiles.type = "number";
+      maxFiles.min = "1";
+      maxFiles.max = String(MAX_GDC_FILES);
+      maxFiles.step = "1";
+      maxFiles.value = String(state.tcgaSelection.maxFiles);
+      maxFiles.addEventListener("input", () => {
+        state.tcgaSelection.maxFiles = clamp(maxFiles.value, 1, MAX_GDC_FILES, 1);
+        maxFiles.value = String(state.tcgaSelection.maxFiles);
+      });
+      const rowCap = document.createElement("input");
+      rowCap.type = "number";
+      rowCap.min = "1";
+      rowCap.max = String(MAX_GDC_ROWS);
+      rowCap.step = "1";
+      rowCap.value = String(state.tcgaSelection.rowCap);
+      rowCap.addEventListener("input", () => {
+        state.tcgaSelection.rowCap = clamp(rowCap.value, 1, MAX_GDC_ROWS, DEFAULT_GDC_ROWS);
+        rowCap.value = String(state.tcgaSelection.rowCap);
+      });
+      const load = mafButton("Fetch TCGA/GDC MAF", "primary");
+      load.addEventListener("click", loadTcgaMafSample);
+      card.append(
+        heading,
+        mafField("Preset project", preset, "Choose a public TCGA project, then edit the project IDs if needed."),
+        mafField("GDC project IDs", projects, "Comma- or space-separated project IDs."),
+        mafField("GDC MAF files", maxFiles, `Maximum ${MAX_GDC_FILES} file(s) for this explainer.`),
+        mafField("Variant row cap", rowCap, `Maximum ${MAX_GDC_ROWS} parsed rows displayed and converted in this notebook.`),
+        load,
+        renderProgressTable()
+      );
+      return card;
+    }
+
+    function renderUserMafLoader() {
+      const card = document.createElement("div");
+      card.className = "maf-source-card";
+      const heading = document.createElement("h4");
+      heading.textContent = "Upload, drop, or paste MAF";
+      const dropZone = document.createElement("div");
+      dropZone.className = "maf-drop-zone";
+      dropZone.textContent = "Drop a .maf, .tsv, or .csv file here.";
+      dropZone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+      });
+      dropZone.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        const file = event.dataTransfer?.files?.[0];
+        if (!file) return;
+        const text = await readFileAsText(file);
+        state.pastedText = text;
+        applyPastedData(text, file.name);
+      });
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = ".maf,.txt,.tsv,.csv,text/plain,text/tab-separated-values,text/csv";
+      fileInput.addEventListener("change", async () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        const text = await readFileAsText(file);
+        state.pastedText = text;
+        applyPastedData(text, file.name);
+      });
+      const textarea = document.createElement("textarea");
+      textarea.className = "maf-editor";
+      textarea.placeholder = "Paste MAF-like CSV or TSV rows with chromosome, position, ref, alt, and variant type columns.";
+      textarea.value = state.pastedText;
+      textarea.addEventListener("input", () => {
+        state.pastedText = textarea.value;
+      });
+      const parseButton = mafButton("Parse pasted rows", "primary");
+      parseButton.addEventListener("click", () => applyPastedData(textarea.value));
+      card.append(
+        heading,
+        dropZone,
+        mafField("Upload MAF-like file", fileInput),
+        mafField("Paste MAF-like CSV/TSV", textarea, "Context columns are optional; rows without context can use live lookup."),
+        parseButton
+      );
+      return card;
+    }
+
+    function renderCurrentDataDownloads() {
+      const card = document.createElement("div");
+      card.className = "maf-source-card";
+      const heading = document.createElement("h4");
+      heading.textContent = "Current MAF rows";
+      const summary = document.createElement("p");
+      summary.className = "maf-caption";
+      summary.textContent = state.rows.length
+        ? `${state.rows.length} row(s) loaded from ${state.sourceFilename || state.inputSource}.`
+        : "No MAF rows are loaded yet.";
+      const tsv = mafButton("Download current MAF TSV");
+      tsv.disabled = !state.rows.length;
+      tsv.addEventListener("click", () => downloadCurrentMaf("tsv"));
+      const csv = mafButton("Download current MAF CSV");
+      csv.disabled = !state.rows.length;
+      csv.addEventListener("click", () => downloadCurrentMaf("csv"));
+      const metadata = mafButton("Download TCGA metadata JSON");
+      metadata.disabled = !state.tcgaMetadata;
+      metadata.addEventListener("click", () => mafDownloadJson("tcga_gdc_maf_metadata.json", state.tcgaMetadata));
+      const row = document.createElement("div");
+      row.className = "maf-button-row";
+      row.append(tsv, csv, metadata);
+      card.append(heading, summary, row);
+      return card;
+    }
+
+    function renderLoadStep() {
+      const panel = document.createElement("section");
+      panel.className = "maf-step-panel";
+      const heading = document.createElement("h3");
+      heading.textContent = "1. Load MAF";
+      const copy = note("Start with a public TCGA/GDC MAF or bring your own file. The notebook does not preload fake rows.");
+      const grid = document.createElement("div");
+      grid.className = "maf-load-grid";
+      grid.append(renderTcgaLoader(), renderUserMafLoader());
+      panel.append(heading, copy, grid, renderCurrentDataDownloads(), renderStepFooter());
+      return panel;
+    }
+
+    function renderNoRowsMessage() {
+      return note("Load TCGA/GDC data or upload/paste a MAF-like table before using this step.");
+    }
+
+    function columnCoverageRows() {
+      return REQUIRED_FIELDS.map(([field, label]) => {
+        const presentRows = state.rows.filter((row) => findField(row.raw, field)).length;
+        return {
+          field: label,
+          acceptedHeaders: (FIELD_ALIASES[field] || []).slice(0, 5).join(", "),
+          rowsPresent: `${presentRows}/${state.rows.length}`,
+          status: presentRows === state.rows.length ? "present" : presentRows ? "partial" : "missing",
+        };
+      });
+    }
+
+    function renderSelectedMafCard() {
+      const traceRow = selectedTrace();
+      const card = document.createElement("div");
+      card.className = "maf-flow-card";
+      const heading = document.createElement("h4");
+      heading.textContent = "Selected row MAF fields";
+      if (!traceRow) {
+        card.append(heading, renderNoRowsMessage());
+        return card;
+      }
+      const rows = [
+        { field: "Sample", value: traceRow.sample },
+        { field: "Chromosome", value: traceRow.chromosome },
+        { field: "Position", value: traceRow.start_position },
+        { field: "Ref", value: traceRow.ref },
+        { field: "Alt", value: traceRow.alt },
+        { field: "Variant type", value: traceRow.variantType },
+        { field: "Context column", value: contextFromRow(traceRow.row) || "not provided" },
+      ];
+      card.append(
+        heading,
+        table(rows, [
+          { key: "field", label: "Field" },
+          { key: "value", label: "Value" },
+        ], { maxRows: 8 })
+      );
+      return card;
+    }
+
+    function renderRowTable(maxRows = 30) {
+      if (!state.rows.length) return renderNoRowsMessage();
+      const wrapper = document.createElement("div");
+      wrapper.className = "maf-row-table-wrap";
+      const tableElement = document.createElement("table");
+      tableElement.className = "maf-row-table";
+      const head = document.createElement("thead");
+      head.innerHTML = `
+        <tr>
+          <th>Row</th>
+          <th>Sample</th>
+          <th>Chrom</th>
+          <th>Position</th>
+          <th>Ref</th>
+          <th>Alt</th>
+          <th>Type</th>
+          <th>Context source</th>
+          <th>Result</th>
+        </tr>
+      `;
+      const body = document.createElement("tbody");
+      state.trace.slice(0, maxRows).forEach((traceRow) => {
+        const tr = document.createElement("tr");
+        tr.className = traceRow.index === state.selectedIndex ? "selected" : "";
+        const selectButton = mafButton(String(traceRow.index + 1));
+        selectButton.addEventListener("click", () => setSelectedIndex(traceRow.index));
+        [
+          selectButton,
+          traceRow.sample,
+          traceRow.chromosome,
+          traceRow.start_position,
+          traceRow.ref || "-",
+          traceRow.alt || "-",
+          traceRow.variantType || "-",
+          traceRow.contextSource,
+          traceRow.counted ? traceRow.finalBin : traceRow.skippedReason,
+        ].forEach((value) => {
+          const td = document.createElement("td");
+          if (value instanceof Node) td.append(value);
+          else td.textContent = String(value ?? "");
+          tr.append(td);
+        });
+        tr.addEventListener("click", (event) => {
+          if (event.target.tagName !== "BUTTON") setSelectedIndex(traceRow.index);
+        });
+        body.append(tr);
+      });
+      tableElement.append(head, body);
+      wrapper.append(tableElement);
+      return wrapper;
+    }
+
+    function renderInspectStep() {
+      const panel = document.createElement("section");
+      panel.className = "maf-step-panel";
+      const heading = document.createElement("h3");
+      heading.textContent = "2. Inspect MAF fields";
+      if (!state.rows.length) {
+        panel.append(heading, renderNoRowsMessage(), renderStepFooter());
+        return panel;
+      }
+      const grid = document.createElement("div");
+      grid.className = "maf-two-column";
+      grid.append(
+        table(columnCoverageRows(), [
+          { key: "field", label: "Required field" },
+          { key: "acceptedHeaders", label: "Accepted headers" },
+          { key: "rowsPresent", label: "Rows present" },
+          { key: "status", label: "Status" },
+        ], { title: "Column coverage", maxRows: 8 }),
+        renderSelectedMafCard()
+      );
+      panel.append(
+        heading,
+        note("MAF supplies the coordinate and alleles. The context column is optional; most ordinary MAFs do not include it."),
+        grid,
+        renderRowTable(),
+        renderStepFooter()
+      );
+      return panel;
+    }
+
+    function mafCaption(text) {
+      const copy = document.createElement("p");
+      copy.className = "maf-caption";
+      copy.textContent = text;
+      return copy;
+    }
+
+    function renderFactGrid(rows) {
+      const grid = document.createElement("div");
+      grid.className = "maf-fact-grid";
+      rows.forEach(([label, value]) => {
+        const item = document.createElement("div");
+        item.className = "maf-fact";
+        const labelNode = document.createElement("span");
+        labelNode.textContent = label;
+        const valueNode = document.createElement("strong");
+        valueNode.textContent = value == null || value === "" ? "-" : String(value);
+        item.append(labelNode, valueNode);
+        grid.append(item);
+      });
+      return grid;
+    }
+
+    function renderContextSourceSummary(sourceRows) {
+      const row = document.createElement("div");
+      row.className = "maf-source-summary";
+      sourceRows.forEach(({ source, rows }) => {
+        const pill = document.createElement("span");
+        pill.className = source === "missing" ? "maf-pill warning" : "maf-pill";
+        pill.textContent = `${source}: ${rows}`;
+        row.append(pill);
+      });
+      return row;
+    }
+
+    function renderContextStrip(context, ref) {
+      const strip = document.createElement("div");
+      strip.className = "maf-base-strip";
+      const labels = ["5' base", "reference", "3' base"];
+      const bases = context ? context.split("") : ["?", ref || "?", "?"];
+      bases.forEach((base, index) => {
+        const node = document.createElement("div");
+        node.className = `maf-base ${index === 1 ? "center" : ""}`.trim();
+        const big = document.createElement("span");
+        big.textContent = base || "?";
+        const small = document.createElement("small");
+        small.textContent = labels[index];
+        node.append(big, small);
+        strip.append(node);
+      });
+      return strip;
+    }
+
+    function renderLookupStep() {
+      const panel = document.createElement("section");
+      panel.className = "maf-step-panel";
+      const heading = document.createElement("h3");
+      heading.textContent = "3. Resolve reference context";
+      if (!state.rows.length) {
+        panel.append(heading, renderNoRowsMessage(), renderStepFooter());
+        return panel;
+      }
+      const traceRow = selectedTrace();
+      const liveLimit = document.createElement("input");
+      liveLimit.type = "number";
+      liveLimit.min = "1";
+      liveLimit.max = String(MAX_LIVE_LOOKUP);
+      liveLimit.step = "1";
+      liveLimit.value = String(state.liveLimit);
+      liveLimit.addEventListener("input", () => {
+        state.liveLimit = clamp(liveLimit.value, 1, MAX_LIVE_LOOKUP, MAX_LIVE_LOOKUP);
+        liveLimit.value = String(state.liveLimit);
+      });
+      const genome = document.createElement("select");
+      ["hg19", "hg38"].forEach((build) => {
+        const option = document.createElement("option");
+        option.value = build;
+        option.textContent = build;
+        genome.append(option);
+      });
+      genome.value = state.sourceGenome;
+      genome.addEventListener("change", () => {
+        state.sourceGenome = genome.value;
+      });
+      const liveButton = mafButton("Run context lookup", "primary");
+      liveButton.addEventListener("click", runLiveLookup);
+      const controlRow = document.createElement("div");
+      controlRow.className = "maf-lookup-controls";
+      controlRow.append(
+        mafField("Live lookup row cap", liveLimit, `Maximum ${MAX_LIVE_LOOKUP} rows per run.`),
+        mafField("Genome build", genome, "Used only when a row is missing context."),
+        liveButton
+      );
+      const lookupCard = document.createElement("div");
+      lookupCard.className = "maf-flow-card";
+      const lookupHeader = document.createElement("div");
+      lookupHeader.className = "maf-card-header";
+      const lookupHeading = document.createElement("h4");
+      lookupHeading.textContent = `${traceRow.lookupKey}: ${traceRow.ref}>${traceRow.alt}`;
+      const sourceBadge = document.createElement("span");
+      sourceBadge.className = traceRow.contextSource === "missing" ? "maf-pill warning" : "maf-pill highlight";
+      sourceBadge.textContent = traceRow.contextSource;
+      lookupHeader.append(lookupHeading, sourceBadge);
+      lookupCard.append(
+        lookupHeader,
+        renderContextStrip(traceRow.referenceContext, traceRow.ref),
+        renderFactGrid([
+          ["Reference trinucleotide", traceRow.referenceContext || "-"],
+          ["Center matches ref", traceRow.referenceMatchesContext ? "Yes" : "Review"],
+          ["Lookup key", traceRow.lookupKey],
+        ])
+      );
+      const sourceRows = Object.entries(
+        state.trace.reduce((acc, row) => {
+          acc[row.contextSource] = (acc[row.contextSource] || 0) + 1;
+          return acc;
+        }, {})
+      ).map(([source, rows]) => ({ source, rows }));
+      panel.append(
+        heading,
+        mafCaption("SBS96 uses the bases immediately before and after the variant. Run lookup only for rows without a context value."),
+        controlRow,
+        lookupCard,
+        renderContextSourceSummary(sourceRows),
+        renderStepFooter()
+      );
+      return panel;
+    }
+
+    function renderNormalizationStep() {
+      const panel = document.createElement("section");
+      panel.className = "maf-step-panel";
+      const heading = document.createElement("h3");
+      heading.textContent = "4. Pyrimidine-normalize";
+      if (!state.rows.length) {
+        panel.append(heading, renderNoRowsMessage(), renderStepFooter());
+        return panel;
+      }
+      const traceRow = normalizationExampleTrace();
+      const before = document.createElement("div");
+      before.className = "maf-flow-card";
+      before.append(
+        Object.assign(document.createElement("h4"), { textContent: "Original row view" }),
+        renderContextStrip(traceRow.referenceContext, traceRow.ref),
+        pillRow([
+          ["Context", traceRow.referenceContext || "-"],
+          ["Change", traceRow.originalSubstitution || "-"],
+          ["Reference base", traceRow.purineReference ? "purine" : "pyrimidine"],
+        ])
+      );
+      const after = document.createElement("div");
+      after.className = "maf-flow-card";
+      after.append(
+        Object.assign(document.createElement("h4"), { textContent: "COSMIC pyrimidine view" }),
+        renderContextStrip(traceRow.normalizedContext, traceRow.normalizedSubstitution?.[0]),
+        pillRow([
+          ["Normalized context", traceRow.normalizedContext || "-"],
+          ["Normalized change", traceRow.normalizedSubstitution || "-"],
+          ["Action", traceRow.purineReference ? "reverse-complemented" : "already C/T-centered"],
+        ], traceRow.purineReference)
+      );
+      const complement = table([
+        { base: "A", complement: "T" },
+        { base: "C", complement: "G" },
+        { base: "G", complement: "C" },
+        { base: "T", complement: "A" },
+      ], [
+        { key: "base", label: "Base" },
+        { key: "complement", label: "Complement" },
+      ], { title: "Reverse-complement map", maxRows: 4 });
+      const grid = document.createElement("div");
+      grid.className = "maf-three-column";
+      grid.append(before, after, complement);
+      panel.append(
+        heading,
+        note("COSMIC SBS96 records substitutions from the pyrimidine base. A/G-reference rows are reverse-complemented so the changed base is represented as C or T."),
+        grid,
+        traceRow.purineReference
+          ? codeBlock(`${traceRow.referenceContext} ${traceRow.originalSubstitution} -> reverse complement ${traceRow.reverseComplementContext} -> ${traceRow.normalizedContext} ${traceRow.normalizedSubstitution}`)
+          : note("The selected row already uses a C/T reference base, so no reverse complement is needed."),
+        renderStepFooter()
+      );
+      return panel;
+    }
+
+    function pillRow(items, highlight = false) {
+      const row = document.createElement("div");
+      row.className = "maf-pill-row";
+      items.forEach(([label, value]) => {
+        const pill = document.createElement("span");
+        pill.className = `maf-pill ${highlight ? "highlight" : ""}`.trim();
+        pill.textContent = `${label}: ${value}`;
+        row.append(pill);
+      });
+      return row;
+    }
+
+    function codeBlock(text) {
+      const code = document.createElement("pre");
+      code.className = "maf-code";
+      code.textContent = text;
+      return code;
+    }
+
+    function countedBinRows() {
+      const counts = new Map();
+      state.trace.forEach((row) => {
+        if (!row.counted) return;
+        const key = `${row.sample}\t${row.finalBin}`;
+        counts.set(key, {
+          sample: row.sample,
+          sbs96Bin: row.finalBin,
+          count: (counts.get(key)?.count || 0) + 1,
+        });
+      });
+      return [...counts.values()].sort((a, b) => b.count - a.count || a.sample.localeCompare(b.sample)).slice(0, 20);
+    }
+
+    function renderBinningStep() {
+      const panel = document.createElement("section");
+      panel.className = "maf-step-panel";
+      const heading = document.createElement("h3");
+      heading.textContent = "5. Assign SBS96 bins";
+      if (!state.rows.length) {
+        panel.append(heading, renderNoRowsMessage(), renderStepFooter());
+        return panel;
+      }
+      const traceRow = selectedTrace();
+      const binCard = document.createElement("div");
+      binCard.className = "maf-flow-card";
+      binCard.append(
+        Object.assign(document.createElement("h4"), { textContent: "Selected row bin" }),
+        pillRow([
+          ["Sample", traceRow.sample],
+          ["Final bin", traceRow.counted ? traceRow.finalBin : "skipped"],
+          ["Status", traceRow.counted ? "counted" : traceRow.skippedReason],
+        ], traceRow.counted)
+      );
+      const grid = document.createElement("div");
+      grid.className = "maf-two-column";
+      grid.append(
+        binCard,
+        table(countedBinRows(), [
+          { key: "sample", label: "Sample" },
+          { key: "sbs96Bin", label: "SBS96 bin" },
+          { key: "count", label: "Running count" },
+        ], { title: "Current non-zero SBS96 bins", maxRows: 20 })
+      );
+      const traceRows = state.trace.slice(0, 50).map((row) => ({
+        row: row.index + 1,
+        sample: row.sample,
+        originalChange: row.originalSubstitution,
+        normalizedChange: row.normalizedSubstitution || "-",
+        finalBin: row.counted ? row.finalBin : "-",
+        status: row.counted ? "counted" : row.skippedReason,
+      }));
+      panel.append(
+        heading,
+        note("The normalized context and substitution select one SBS96 bin. Counted rows increment that bin for their sample."),
+        grid,
+        table(traceRows, [
+          { key: "row", label: "Row" },
+          { key: "sample", label: "Sample" },
+          { key: "originalChange", label: "Original ref>alt" },
+          { key: "normalizedChange", label: "Pyrimidine change" },
+          { key: "finalBin", label: "SBS96 bin" },
+          { key: "status", label: "Status" },
+        ], { title: "Per-row binning trace", maxRows: 50 }),
+        renderStepFooter()
+      );
+      return panel;
+    }
+
+    function renderExportStep() {
+      const panel = document.createElement("section");
+      panel.className = "maf-step-panel";
+      const heading = document.createElement("h3");
+      heading.textContent = "6. Export spectra";
+      if (!state.rows.length) {
+        panel.append(heading, renderNoRowsMessage(), renderStepFooter());
+        return panel;
+      }
+      const groupSelect = document.createElement("select");
+      Object.keys(state.spectra).forEach((sample) => {
+        const option = document.createElement("option");
+        option.value = sample;
+        option.textContent = sample;
+        groupSelect.append(option);
+      });
+      groupSelect.value = state.selectedGroup;
+      groupSelect.addEventListener("change", () => {
+        state.selectedGroup = groupSelect.value;
+        render();
+      });
+      const plotFrame = document.createElement("div");
+      plotFrame.className = "maf-plot-frame";
+      const traceRow = selectedTrace();
+      const highlightedContext =
+        traceRow?.counted && traceRow.sample === state.selectedGroup
+          ? traceRow.finalBin
+          : null;
+      const downloads = document.createElement("div");
+      downloads.className = "maf-button-row";
+      [
+        ["Current MAF TSV", () => downloadCurrentMaf("tsv")],
+        ["Current MAF CSV", () => downloadCurrentMaf("csv")],
+        ["Trace JSON", () => mafDownloadJson("maf_conversion_trace.json", state.trace)],
+        ["SBS96 TSV", downloadCurrentSpectra],
+        ["Audit CSV", () => mafDownloadText("maf_conversion_audit.csv", mafRowsToCsv([
+          ...(state.audit?.rows || []).map((row) => ({ level: "input", ...row })),
+          ...(state.audit?.groupRows || []).map((row) => ({ level: "group", ...row })),
+        ]))],
+        ["TCGA metadata JSON", () => mafDownloadJson("tcga_gdc_maf_metadata.json", state.tcgaMetadata || {})],
+      ].forEach(([label, handler]) => {
+        const control = mafButton(`Download ${label}`);
+        if (label.startsWith("TCGA") && !state.tcgaMetadata) control.disabled = true;
+        control.addEventListener("click", handler);
+        downloads.append(control);
+      });
+      panel.append(
+        heading,
+        mafField("Sample shown", groupSelect, "The selected row's bin is highlighted when it belongs to this sample."),
+        plotFrame,
+        table(state.audit?.rows || [], [
+          { key: "checkpoint", label: "Checkpoint" },
+          { key: "value", label: "Value" },
+        ], { title: "Conversion audit", maxRows: 10 }),
+        table(state.audit?.groupRows || [], [
+          { key: "sample", label: "Sample" },
+          { key: "inputRows", label: "Input rows" },
+          { key: "countedRows", label: "Counted rows" },
+          { key: "observedSbs96Count", label: "Spectrum total" },
+          { key: "countCheck", label: "Count check" },
+        ], { title: "Group count reconciliation", maxRows: 10 }),
+        downloads,
+        details("Selected row trace JSON", traceRow || {}),
+        renderStepFooter()
+      );
+      requestAnimationFrame(() => {
+        if (!state.selectedGroup) return;
+        mSigSDK.qcPlots.plotCosmicSbs96Profile(plotFrame, state.spectra, {
+          sample: state.selectedGroup,
+          contexts: SBS96_CONTEXTS,
+          title: "Converted SBS96 spectrum",
+          subtitle:
+            "Every x-axis label is a trinucleotide bin. The selected row's bin is outlined when it contributes to this sample.",
+          showContextLabels: true,
+          highlightContexts: highlightedContext ? [highlightedContext] : [],
+        });
+      });
+      return panel;
+    }
+
+    function renderActiveStep() {
+      if (state.activeStep === "fields") return renderInspectStep();
+      if (state.activeStep === "lookup") return renderLookupStep();
+      if (state.activeStep === "normalize") return renderNormalizationStep();
+      if (state.activeStep === "binning") return renderBinningStep();
+      if (state.activeStep === "export") return renderExportStep();
+      return renderLoadStep();
+    }
+
+    function render() {
+      recompute();
+      root.replaceChildren(
+        renderHero(),
+        statusCard(),
+        renderMetrics(),
+        renderStepper(),
+        renderActiveStep()
+      );
+    }
+
+    const app = {
+      state,
+      get inputSource() {
+        return state.inputSource;
       },
-    ]));
+      get sourceFilename() {
+        return state.sourceFilename;
+      },
+      get tcgaSelection() {
+        return state.tcgaSelection;
+      },
+      get loadedMafText() {
+        return state.loadedMafText;
+      },
+      loadTcgaMafSample,
+      parseText: applyPastedData,
+      runLiveLookup,
+      setSelectedRow: setSelectedIndex,
+      setActiveStep,
+      downloadCurrentMaf,
+      downloadCurrentSpectra,
+      render,
+    };
+    window.mafConversionApp = app;
+
+    recompute();
+    render();
   </script>
 </notebook>

@@ -13,7 +13,7 @@
   </script>
 
   <script type="module" pinned id="1">
-    const uncSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-uncertainty", location.href).href;
+    const uncSdkUrl = new URL("../main.js?v=2026-05-15-bootstrap-draw-cloud", location.href).href;
     const { mSigSDK } = await import(uncSdkUrl);
     const {
       loadPublicSbs96Dataset,
@@ -248,7 +248,9 @@
   <script type="text/markdown">
     ## Step 4. Check cutoff stability
 
-    The sensitivity plot compares every cutoff against the baseline cutoff. Large drift means the interpretation depends strongly on the cutoff choice. In your own analyses, this is a useful place to document why you chose a reporting cutoff.
+    The sensitivity plot compares every cutoff against the baseline cutoff. The line chart shows percent change in reconstruction cosine, RMSE, and active-signature count. Lines near 0 mean the fitted recipe is stable across cutoffs; sharp movement means the result depends strongly on the cutoff choice.
+
+    The heatmap repeats those signed changes by metric and cutoff, while the drift bars summarize which cutoffs create the largest overall change. In your own analyses, this is a useful place to document why you chose a reporting cutoff.
 
     If a signature disappears or changes rank across reasonable cutoffs, report the dependence explicitly or revise the reporting cutoff before producing final figures.
   </script>
@@ -265,7 +267,7 @@
   <script type="text/markdown">
     ## Step 5. Convert uncertainty output into reporting decisions
 
-    Confidence intervals, selection frequency, and cutoff drift should be translated into a short decision table before signature contributions are reported. This table is a compact pattern for manuscript supplements, review memos, or application tooltips.
+    Confidence intervals, selection frequency, and cutoff drift should be translated into a short decision table before signature contributions are reported. Cutoff drift is the total absolute change in fitted signature fractions across the tested cutoff range. This table is a compact pattern for manuscript supplements, review memos, or application tooltips.
 
     The final decision table is where uncertainty becomes usable guidance: report, caveat, review manually, or omit from the main interpretation.
   </script>

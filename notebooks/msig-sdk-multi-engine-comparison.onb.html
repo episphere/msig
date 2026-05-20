@@ -6,7 +6,7 @@
 <script type="text/markdown">
 # Multi-tool comparison
 
-Run a single mutational spectrum table through the built-in mSigSDK fit, load package outputs from SigProfilerAssignment, deconstructSigs, MuSiCal, and independent R NNLS, and compare every result on the same samples and the same COSMIC SBS96 reference catalog.
+Run a single mutational spectrum table through the built-in mSigSDK fit, load package outputs from SigProfilerAssignment, deconstructSigs, MuSiCal, and independent R NNLS, prepare sigminer and SigProfilerExtractor handoffs, and compare every result on the same samples and the same COSMIC SBS96 reference catalog.
 
 The workspace uses 38 cached PCAWG lung adenocarcinoma WGS spectra and nine COSMIC SBS96 signatures (`SBS1`, `SBS2`, `SBS4`, `SBS5`, `SBS13`, `SBS17a`, `SBS17b`, `SBS18`, `SBS40`). The same pattern applies to a researcher-owned cohort: replace the spectrum table and package-output CSVs, then rerun the comparison to inspect agreement, disagreement, and tool-specific outputs in one place.
 
@@ -14,7 +14,7 @@ Read this as a reproducibility review rather than a leaderboard. The workflow fi
 </script>
 
 <script type="module" pinned>
-const engineSdkUrl = new URL("../main.js?v=2026-05-14-multi-engine-workspace", location.href).href;
+const engineSdkUrl = new URL("../main.js?v=2026-05-15-multi-engine-tools", location.href).href;
 const { mSigSDK } = await import(engineSdkUrl);
 
 const {
@@ -264,6 +264,13 @@ const engineRegistryRows = [
     comparison_role: "SigProfiler ecosystem refit"
   },
   {
+    engine: "sigminer",
+    task: "Known-signature refit",
+    browser_execution: "R handoff prepared; paste package output when available",
+    package_output: "No cached package output in this notebook",
+    comparison_role: "Additional R supervised fitting adapter"
+  },
+  {
     engine: "MuSiCal SparseNNLS",
     task: "Known-signature refit",
     browser_execution: "Package output imported",
@@ -276,7 +283,8 @@ display(metrics([
   { label: "Samples", value: engineSampleNames.length },
   { label: "Contexts", value: engineContextNames.length },
   { label: "Reference signatures", value: engineSignatureNames.length },
-  { label: "Loaded package outputs", value: 4 }
+  { label: "Loaded package outputs", value: 4 },
+  { label: "Prepared adapters", value: engineRegistryRows.length }
 ]));
 
 display(engineTable(engineRegistryRows, {
@@ -573,9 +581,9 @@ display(engineTable(engineReviewExposureRows, {
 </script>
 
 <script type="text/markdown">
-## Step 6. Prepare refit package run files
+## Step 6. Prepare external tool run files
 
-The bundle records the exact input objects and code snippets needed to rerun the known-signature refit tools outside the browser or in an available Pyodide environment. Package outputs return to the workspace as contribution CSVs with `sample` in the first column and one column per signature.
+The bundle records the exact input objects and code snippets needed to rerun known-signature refit tools, de novo extraction, SigProfiler plotting, and variant-level SigProfiler workflows outside the browser. Compatible Python package adapters can also run in Pyodide. Fitting package outputs return to the workspace as contribution CSVs with `sample` in the first column and one column per signature.
 </script>
 <script type="module">
 const engineInteropBundle = mSigSDK.adapters.createInteroperabilityBundle(
@@ -587,13 +595,34 @@ const engineInteropBundle = mSigSDK.adapters.createInteroperabilityBundle(
     contexts: engineContextNames,
     include: [
       "sigProfilerAssignment",
+      "sigProfilerExtractor",
+      "sigProfilerPlotting",
       "deconstructSigs",
+      "sigminer",
       "musical"
     ]
   }
 );
 
-const engineBundleRows = Object.entries(engineInteropBundle.tools || {}).map(([tool, value]) => {
+const engineStandaloneHandoffs = {
+  sigProfilerMatrixGenerator: mSigSDK.adapters.sigProfilerMatrixGenerator.prepareInput(
+    { files: [] },
+    { project: "multi_engine_matrix_generator", referenceGenome: "GRCh37" }
+  ),
+  sigProfilerSimulator: mSigSDK.adapters.sigProfilerSimulator.prepareInput(
+    { files: [] },
+    { project: "multi_engine_simulator", genome: "GRCh37", simulations: 100 }
+  ),
+  sigProfilerClusters: mSigSDK.adapters.sigProfilerClusters.prepareInput(
+    { files: [] },
+    { project: "multi_engine_clusters", genome: "GRCh37" }
+  )
+};
+
+const engineBundleRows = [
+  ...Object.entries(engineInteropBundle.tools || {}),
+  ...Object.entries(engineStandaloneHandoffs)
+].map(([tool, value]) => {
   const files = value.files || value.input?.files || [];
   const snippets = [
     value.pythonSnippet,
@@ -606,8 +635,18 @@ const engineBundleRows = Object.entries(engineInteropBundle.tools || {}).map(([t
     tool,
     files: files.length,
     code_snippets: snippets.length,
-    output_to_import: "Exposure CSV with sample and signature columns",
-    workflow_stage: "Known-signature refit"
+    output_to_import: tool.includes("MatrixGenerator")
+      ? "Generated SigProfiler matrix table"
+      : tool.includes("Simulator") || tool.includes("Clusters")
+        ? "Package output directory for downstream review"
+        : tool.includes("Plotting")
+          ? "SigProfiler-style plot files"
+          : "Exposure CSV with sample and signature columns",
+    workflow_stage: tool.includes("MatrixGenerator") || tool.includes("Simulator") || tool.includes("Clusters")
+      ? "Variant-level SigProfiler workflow"
+      : tool.includes("Plotting")
+        ? "Plot generation"
+        : "Known-signature refit"
   };
 });
 
@@ -625,6 +664,7 @@ display(engineTable(engineBundleRows, {
 
 display(details("Bundle object keys", [
   `Tools: ${Object.keys(engineInteropBundle.tools || {}).join(", ")}`,
+  `Standalone variant-level tools: ${Object.keys(engineStandaloneHandoffs).join(", ")}`,
   `Samples: ${engineSampleNames.length}`,
   `Contexts: ${engineContextNames.length}`,
   `Signatures: ${engineSignatureNames.join(", ")}`
@@ -681,7 +721,8 @@ const engineArtifacts = [
       pairwiseSimilarity: enginePairwiseRows,
       consensus: engineConsensusRows,
       disagreements: engineDisagreementRows,
-      handoffs: engineBundleRows
+      handoffs: engineBundleRows,
+      standaloneHandoffs: engineStandaloneHandoffs
     },
     label: "Download workspace JSON"
   }

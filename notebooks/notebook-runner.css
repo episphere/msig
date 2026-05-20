@@ -575,6 +575,17 @@ h2 {
   overflow-x: auto;
 }
 
+.output-table-scroll,
+.msigsdk-output-table-scroll,
+.maf-row-table-wrap {
+  max-height: var(--notebook-table-max-height, min(360px, 58vh));
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: #fff;
+}
+
 .output-table-title {
   margin: 0 0 4px;
   color: var(--ink);
@@ -607,10 +618,29 @@ h2 {
 }
 
 .output-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   color: var(--ink);
   font-size: 12px;
   font-weight: 800;
   background: #f4f6f2;
+}
+
+.msigsdk-output-table-scroll th,
+.maf-row-table-wrap th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+@supports selector(:has(*)) {
+  .output-table-wrap:not(:has(.output-table-scroll)),
+  .msigsdk-output-table-wrap:not(:has(.msigsdk-output-table-scroll)) {
+    max-height: var(--notebook-table-max-height, min(360px, 58vh));
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
 }
 
 .output-caption {
@@ -636,6 +666,10 @@ h2 {
 .output-details .inspector {
   margin-top: 10px;
   max-height: 380px;
+}
+
+.workflow-collapsible > .workflow-output-stack {
+  margin-top: 10px;
 }
 
 .output-note {
@@ -1281,6 +1315,32 @@ h2 {
   font-size: 13px;
 }
 
+.workflow-placeholder.loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-style: solid;
+  background: #edf7f7;
+  color: var(--ink);
+}
+
+.workflow-placeholder.loading::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(20, 125, 127, 0.22);
+  border-top-color: var(--teal);
+  border-radius: 999px;
+  animation: workflow-loading-spin 0.7s linear infinite;
+}
+
+@keyframes workflow-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .workflow-plot-section {
   display: grid;
   gap: 9px;
@@ -1303,6 +1363,141 @@ h2 {
   display: grid;
   grid-template-columns: minmax(220px, 340px);
   gap: 8px;
+}
+
+.workflow-plot-parameter-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 72%, white);
+}
+
+.workflow-plot-parameter-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.workflow-plot-parameter-group {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 72%, white);
+}
+
+.workflow-plot-parameter-group h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.workflow-plot-parameter-group p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.workflow-plot-parameter-group-controls {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.workflow-review-settings {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 76%, white);
+}
+
+.workflow-review-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.workflow-review-settings-title {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.workflow-review-settings-status {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.workflow-review-settings-status.applied {
+  background: #dff3ec;
+  color: #047857;
+}
+
+.workflow-review-settings-status.unsaved {
+  background: #fff2cc;
+  color: #9a6700;
+}
+
+.workflow-review-settings-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.workflow-review-setting-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.workflow-review-setting-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.workflow-review-settings-actions {
+  margin-top: 0;
+}
+
+.workflow-methods-basis {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.workflow-methods-basis p,
+.workflow-methods-basis ul {
+  margin: 0;
+}
+
+.workflow-methods-basis ul {
+  padding-left: 18px;
+}
+
+.workflow-methods-basis li + li {
+  margin-top: 5px;
 }
 
 .workflow-plot-sample-status {

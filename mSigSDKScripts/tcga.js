@@ -1,8 +1,8 @@
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-import { fetchURLAndCache, groupBy } from "./utils.js";
+import { fetchURLAndCache } from "./utils.js";
 
-import { convertMatrix } from "./mutationalSpectrum.js";
+import { convertMatrix, normalizeSequenceContext } from "./mutationalSpectrum.js";
 import * as pako from "https://cdn.jsdelivr.net/npm/pako/+esm";
 
 function parseTsvObjects(text) {
@@ -35,6 +35,143 @@ function firstValue(row, candidates, fallback = "") {
 function daysToYears(value) {
   const days = Number(value);
   return Number.isFinite(days) ? Number((days / 365).toPrecision(3)) : null;
+}
+
+function normalizeGdcGenomeBuild(value) {
+  const build = String(value || "").trim().toLowerCase();
+  if (build.includes("37") || build.includes("hg19") || build.includes("grch37")) {
+    return "hg19";
+  }
+  if (build.includes("38") || build.includes("hg38") || build.includes("grch38")) {
+    return "hg38";
+  }
+  return "";
+}
+
+function makeHeaderIndex(header) {
+  const index = new Map();
+  header.forEach((column, columnIndex) => {
+    index.set(String(column || "").trim().toLowerCase(), columnIndex);
+  });
+  return index;
+}
+
+function firstColumnValue(values, headerIndex, candidates, fallback = "") {
+  for (const candidate of candidates) {
+    const index = headerIndex.get(String(candidate).toLowerCase());
+    const value = index === undefined ? undefined : values[index];
+    if (value !== undefined && value !== "") {
+      return value;
+    }
+  }
+  return fallback;
+}
+
+function parseGdcMafRows(text, { project, fileId }) {
+  const lines = String(text || "")
+    .replaceAll("\r", "")
+    .split("\n")
+    .filter((line) => line.trim() !== "" && !line.startsWith("#"));
+  if (lines.length < 2) {
+    return [];
+  }
+
+  const header = lines[0].split("\t");
+  const headerIndex = makeHeaderIndex(header);
+  const rows = [];
+
+  for (const line of lines.slice(1)) {
+    const values = line.split("\t");
+    const build = normalizeGdcGenomeBuild(
+      firstColumnValue(values, headerIndex, ["NCBI_Build", "Genome_Build"])
+    );
+    if (!build) {
+      continue;
+    }
+
+    const chromosome = firstColumnValue(values, headerIndex, ["Chromosome"]);
+    const referenceAllele = String(firstColumnValue(values, headerIndex, [
+      "Reference_Allele",
+    ])).toUpperCase();
+    const alternateAllele = String(firstColumnValue(values, headerIndex, [
+      "Tumor_Seq_Allele2",
+      "Tumor_Seq_Allele1",
+      "Allele",
+    ])).toUpperCase();
+    const position = firstColumnValue(values, headerIndex, [
+      "Start_Position",
+      "Chromosome_Start",
+    ]);
+    const variantType = firstColumnValue(values, headerIndex, [
+      "Variant_Type",
+      "VARIANT_CLASS",
+    ]);
+    const context = normalizeSequenceContext(
+      firstColumnValue(values, headerIndex, [
+        "CONTEXT",
+        "trinucleotide_context",
+        "trinucleotide",
+        "sequence_context",
+        "context_sequence",
+      ])
+    );
+
+    const row = {
+      project_code: project,
+      sample: fileId,
+      build,
+      chromosome: String(chromosome || "").toLowerCase().replace(/^chr/, ""),
+      reference_genome_allele: referenceAllele,
+      mutated_to_allele: alternateAllele,
+      chromosome_start: position,
+      mutation_type: variantType,
+      mutation_classification: firstColumnValue(values, headerIndex, [
+        "Variant_Classification",
+        "One_Consequence",
+        "Consequence",
+      ]),
+    };
+
+    if (context) {
+      row.trinucleotide_context = context;
+    }
+
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+async function mapWithConcurrency(items, mapper, concurrency = 4) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(
+    Math.max(1, Math.round(Number(concurrency) || 1)),
+    items.length
+  );
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (nextIndex < items.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        results[index] = await mapper(items[index], index);
+      }
+    })
+  );
+
+  return results;
+}
+
+function emitProgress(onProgress, payload) {
+  if (typeof onProgress !== "function") {
+    return;
+  }
+  try {
+    onProgress(payload);
+  } catch (error) {
+    console.warn("TCGA progress callback failed.", error);
+  }
 }
 
 /**
@@ -444,98 +581,156 @@ async function getMafInformationFromProjects(projects) {
  * @async
  * @function getVariantInformationFromMafFiles
  * @memberof tcga
- * @param {array} res Object containing the list of maf files and samples demographic information
+ * @param {Object} res Object containing the list of maf files and samples demographic information.
+ * @param {Object} [options={}] Conversion options.
+ * @param {number} [options.fileConcurrency=4] Maximum GDC MAF files to download and parse at once.
+ * @param {boolean} [options.includeVariantInformation=true] Whether to include flat variant rows in the result.
+ * @param {Function} [options.onProgress=null] Optional callback receiving progress events.
  * @returns {Object} Object containing the list of patient mutation information
  * @example
  * let tcga = await import('https://raw.githubusercontent.com/YasCoMa/msig/main/mSigSDKScripts/tcga.js')
  * let res = { 'TCGA-LUSC': { 'maf_files': ['0b3d2db3-8ae3-4d39-bd9b-9d1e7a133b65', '9fed5902-6e95-4526-a119-ec4eade5576b' ] } }
  * var result = await tcga.getVariantInformationFromMafFiles(res)
  */
-async function getVariantInformationFromMafFiles(res) {
+async function getVariantInformationFromMafFiles(res, options = {}) {
+  const settings = options && typeof options === "object" ? options : {};
+  const {
+    fileConcurrency = 4,
+    includeVariantInformation = true,
+    onProgress = null,
+    batchSize = 100,
+    genome = "hg19",
+    contextOptions = {},
+  } = settings;
   var result = {};
-  var projects = Object.keys(res);
+  var projects = Object.keys(res || {});
+  const totalFiles = projects.reduce(
+    (sum, project) => sum + (res?.[project]?.maf_files || []).length,
+    0
+  );
+  let completedFiles = 0;
+
+  emitProgress(onProgress, {
+    stage: "start",
+    projects: projects.length,
+    completed: completedFiles,
+    total: totalFiles,
+  });
 
   for (var p of projects) {
     result[p] = {};
     result[p]["variant_information"] = [];
     result[p]["mutational_spectra"] = null;
 
-    var files = res[p]["maf_files"];
-    var info = [];
-    var gr = [];
-    var i = 0;
-    while (i < files.length) {
-      var end = i + 15 <= files.length ? i + 15 : files.length;
-      var temp = files.slice(i, end);
-      info = info.concat(
-        await Promise.all(
-          temp.map(async (f) => {
-            var url = `https://api.gdc.cancer.gov/data/${f}`;
+    var files = Array.isArray(res[p]?.maf_files) ? res[p]["maf_files"] : [];
+    emitProgress(onProgress, {
+      stage: "project-start",
+      project: p,
+      files: files.length,
+      completed: completedFiles,
+      total: totalFiles,
+    });
 
-            try {
-              var dat = await fetchURLAndCache("TCGA", url);
-              var raw = await dat.arrayBuffer();
-              var data = await pako.default.inflate(raw, { to: "string" });
+    const parsedFiles = await mapWithConcurrency(
+      files,
+      async (f, index) => {
+        var url = `https://api.gdc.cancer.gov/data/${f}`;
+        emitProgress(onProgress, {
+          stage: "download",
+          project: p,
+          fileId: f,
+          fileIndex: index + 1,
+          files: files.length,
+          completed: completedFiles,
+          total: totalFiles,
+        });
 
-              data = data
-                .split("\n")
-                .filter((e) => e.indexOf("#") != 0)
-                .map((e) => {
-                  return e.split("\t");
-                })
-                .filter((e) => e.length > 1);
+        try {
+          var dat = await fetchURLAndCache("TCGA", url);
+          var raw = await dat.arrayBuffer();
+          emitProgress(onProgress, {
+            stage: "parse",
+            project: p,
+            fileId: f,
+            fileIndex: index + 1,
+            files: files.length,
+            completed: completedFiles,
+            total: totalFiles,
+          });
+          var data = await pako.default.inflate(raw, { to: "string" });
+          var rows = parseGdcMafRows(data, { project: p, fileId: f });
+          completedFiles += 1;
 
-              var patients = [];
-              var filter = data.slice(1);
-              filter.forEach((e) => {
-                var build =
-                  e[3].indexOf("37") != -1
-                    ? "hg19"
-                    : e[3].indexOf("38") != -1
-                    ? "hg38"
-                    : "";
-                if (build != "") {
-                  var obj = { project_code: p, sample: f, build: build };
-                  obj["chromosome"] = e[4].toLowerCase().replace("chr", "");
-                  obj["reference_genome_allele"] = e[10];
-                  obj["mutated_to_allele"] = e[12];
-                  obj["chromosome_start"] = e[6];
-                  obj["mutation_type"] = e[9];
-                  obj["mutation_classification"] = e[8];
+          emitProgress(onProgress, {
+            stage: "file-complete",
+            project: p,
+            fileId: f,
+            fileIndex: index + 1,
+            files: files.length,
+            variants: rows.length,
+            completed: completedFiles,
+            total: totalFiles,
+          });
 
-                  result[p]["variant_information"].push(obj);
-                  patients.push(obj);
-                }
-              });
+          return rows;
+        } catch (error) {
+          completedFiles += 1;
+          emitProgress(onProgress, {
+            stage: "file-error",
+            project: p,
+            fileId: f,
+            fileIndex: index + 1,
+            files: files.length,
+            error: error.message,
+            completed: completedFiles,
+            total: totalFiles,
+          });
+          console.warn(`Could not load GDC MAF file ${f}.`, error);
+          return [];
+        }
+      },
+      fileConcurrency
+    );
 
-              await sleep(300);
-
-              info.push(patients);
-              gr.push(i);
-              if (files.length == gr.length) {
-                result[p]["mutational_spectra"] = await convertMatrix(
-                  info,
-                  "sample",
-                  100,
-                  "hg19",
-                  true
-                );
-              }
-            } catch (e) {
-              console.log(e);
-            }
-
-            return url;
-          })
-        )
-      );
-
-      i += 15;
-      if (i >= files.length) {
-        break;
-      }
+    const info = parsedFiles.filter((rows) => rows.length);
+    const variantInformation = includeVariantInformation ? info.flat() : [];
+    if (includeVariantInformation) {
+      result[p]["variant_information"] = variantInformation;
     }
+
+    emitProgress(onProgress, {
+      stage: "convert",
+      project: p,
+      files: files.length,
+      variants: info.reduce((sum, rows) => sum + rows.length, 0),
+      completed: completedFiles,
+      total: totalFiles,
+    });
+    result[p]["mutational_spectra"] = await convertMatrix(
+      info,
+      "sample",
+      batchSize,
+      genome,
+      true,
+      contextOptions
+    );
+
+    emitProgress(onProgress, {
+      stage: "project-complete",
+      project: p,
+      files: files.length,
+      samples: Object.keys(result[p]["mutational_spectra"] || {}).length,
+      completed: completedFiles,
+      total: totalFiles,
+    });
   }
+
+  emitProgress(onProgress, {
+    stage: "complete",
+    projects: projects.length,
+    completed: completedFiles,
+    total: totalFiles,
+  });
 
   return result;
 }

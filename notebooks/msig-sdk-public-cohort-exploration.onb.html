@@ -11,7 +11,7 @@
   </script>
 
   <script type="module" pinned id="setup">
-    const publicSdkUrl = new URL("../main.js?v=2026-05-15-public-cohort-unified", location.href).href;
+    const publicSdkUrl = new URL("../main.js?v=2026-05-15-gdc-context-fast-path", location.href).href;
     const { mSigSDK } = await import(publicSdkUrl);
     const {
       burdenSampleRows,
@@ -23,6 +23,8 @@
     const PUBLIC_API_BASE = "https://analysistools.cancer.gov/mutational-signatures/api/";
     const PANCANCER_VALUE = "__pancancer__";
     const DEFAULT_SIGNATURE_SET = "COSMIC_v3_Signatures_GRCh37_SBS96";
+    const DEFAULT_MSIGPORTAL_SAMPLES = 100;
+    const MAX_MSIGPORTAL_SAMPLES = 100;
 
     const PUBLIC_ENDPOINTS = [
       {
@@ -187,9 +189,51 @@
       return node;
     }
 
+    function gdcProgressMessage(event, selection) {
+      const total = event.total || selection.maxFiles || 0;
+      const completed = event.completed || 0;
+      const progress = total ? `${completed}/${total} file(s)` : "selected file(s)";
+      if (event.stage === "download") {
+        return `Downloading ${event.project} MAF file ${event.fileIndex}/${event.files}. ${progress} complete.`;
+      }
+      if (event.stage === "parse") {
+        return `Parsing ${event.project} MAF file ${event.fileIndex}/${event.files} and reading GDC sequence contexts. ${progress} complete.`;
+      }
+      if (event.stage === "file-complete") {
+        return `Loaded ${event.project} MAF file ${event.fileIndex}/${event.files} with ${event.variants} variant row(s). ${progress} complete.`;
+      }
+      if (event.stage === "file-error") {
+        return `Skipped one ${event.project} MAF file after a load error. ${progress} complete.`;
+      }
+      if (event.stage === "convert") {
+        return `Converting ${event.variants} variant row(s) into SBS96 spectra using row-supplied contexts when available.`;
+      }
+      if (event.stage === "project-complete") {
+        return `Converted ${event.project} into ${event.samples} sample spectrum/spectra. ${progress} complete.`;
+      }
+      if (event.stage === "complete") {
+        return `Converted ${progress}. Rendering the shared visualization workflow next.`;
+      }
+      return `Preparing ${selection.projects.length} TCGA/GDC project(s) and up to ${selection.maxFiles} MAF file(s).`;
+    }
+
     function parseNumber(value, fallback) {
       const parsed = Number(value);
       return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function clampNumberInput(control, { min = 0, max = Infinity, fallback = min } = {}) {
+      const parsed = Math.round(parseNumber(control.value, fallback));
+      const clamped = Math.max(min, Math.min(max, parsed));
+      control.value = String(clamped);
+      return clamped;
+    }
+
+    function clampNumberInputMax(control, max) {
+      const parsed = Number(control.value);
+      if (Number.isFinite(parsed) && parsed > max) {
+        control.value = String(max);
+      }
     }
 
     function parseList(value) {
@@ -337,6 +381,50 @@
       }
     }
 
+    function exposureSignatureNames(exposures) {
+      const firstRow = Object.values(exposures || {}).find((row) => row && typeof row === "object") || {};
+      return Object.keys(firstRow).filter((key) => key !== "rnorm");
+    }
+
+    function readableSignatureTickSpec(labels, maxTickLabels = 24) {
+      const uniqueLabels = Array.from(new Set((labels || []).filter((label) => label != null).map(String)));
+      if (!uniqueLabels.length) return null;
+      const step = Math.max(1, Math.ceil(uniqueLabels.length / maxTickLabels));
+      const selectedLabels = uniqueLabels.filter((_, index) => index % step === 0 || index === uniqueLabels.length - 1);
+      return {
+        tickmode: "array",
+        tickvals: selectedLabels,
+        ticktext: selectedLabels,
+      };
+    }
+
+    async function tuneFittedExposureHeatmap(host, exposures) {
+      const plot = host.querySelector(".js-plotly-plot") || host;
+      const traceLabels = Array.isArray(plot?.data?.[0]?.x) ? plot.data[0].x : [];
+      const plotWidth = host.getBoundingClientRect().width || 760;
+      const maxTickLabels = Math.max(8, Math.min(24, Math.floor(plotWidth / 34)));
+      const tickSpec = readableSignatureTickSpec(
+        traceLabels.length ? traceLabels : exposureSignatureNames(exposures),
+        maxTickLabels
+      );
+      if (!tickSpec || !window.Plotly?.relayout) return;
+
+      const sampleCount = Object.keys(exposures || {}).length;
+      await window.Plotly.relayout(plot, {
+        "xaxis.title.text": "Fitted signatures",
+        "xaxis.tickangle": -45,
+        "xaxis.automargin": true,
+        "xaxis.tickfont.size": 11,
+        "xaxis.tickmode": tickSpec.tickmode,
+        "xaxis.tickvals": tickSpec.tickvals,
+        "xaxis.ticktext": tickSpec.ticktext,
+        "yaxis.title.text": "Samples",
+        "yaxis.automargin": true,
+        "margin.b": 120,
+        height: Math.max(360, Math.min(620, 260 + sampleCount * 36)),
+      });
+    }
+
     const explorerRoot = document.createElement("div");
     explorerRoot.className = "workflow-panel";
 
@@ -370,7 +458,8 @@
     const strategySelect = selectInput([]);
     const profileSelect = selectInput([]);
     const matrixSelect = selectInput([]);
-    const maxSamplesInput = input(12, "number");
+    const maxSamplesInput = input(DEFAULT_MSIGPORTAL_SAMPLES, "number");
+    maxSamplesInput.max = String(MAX_MSIGPORTAL_SAMPLES);
     const endpointSelect = selectInput(PUBLIC_ENDPOINTS.filter((row) => row.endpoint.startsWith("mutational_")).map((row) => row.endpoint));
     const endpointLimitInput = input(25, "number");
     const projectPresetSelect = selectInput(TCGA_PROJECT_PRESETS);
@@ -393,7 +482,7 @@
       field("Experimental strategy", strategySelect),
       field("Mutational profile", profileSelect),
       field("Matrix size", matrixSelect),
-      field("Max mSigPortal samples", maxSamplesInput, "Keep this modest while exploring; increase after the cohort looks right."),
+      field("Max mSigPortal samples", maxSamplesInput, `Maximum ${MAX_MSIGPORTAL_SAMPLES}. Keep this modest while exploring; increase after the cohort looks right.`),
       field("Endpoint preview", endpointSelect),
       field("Preview row limit", endpointLimitInput),
     ];
@@ -445,7 +534,7 @@
         signatureSetName: signatureSetSelect.value,
         projects,
         genes: parseList(geneInput.value),
-        maxFiles: Math.max(1, Math.min(5, Math.round(parseNumber(maxGdcFilesInput.value, 1)))),
+        maxFiles: Math.max(1, Math.min(50, Math.round(parseNumber(maxGdcFilesInput.value, 1)))),
       };
     }
 
@@ -474,7 +563,7 @@
         strategy: strategySelect.value || preferred.strategy || "WES",
         profile: profileSelect.value || preferred.profile || "SBS",
         matrix: matrixSelect.value || preferred.matrix || "96",
-        cancer: cancerSelect.value || preferred.cancer || "Lung-AdenoCa",
+        cancer: cancerSelect.value || preferred.cancer || PANCANCER_VALUE,
         signatureSetName: signatureSetSelect.value || preferred.signatureSetName || DEFAULT_SIGNATURE_SET,
       };
 
@@ -631,7 +720,7 @@
         publicExplorerState.catalogLoaded = true;
         populatePublicMenus({
           study: "TCGA",
-          cancer: "Lung-AdenoCa",
+          cancer: PANCANCER_VALUE,
           strategy: "WES",
           profile: "SBS",
           matrix: "96",
@@ -955,15 +1044,16 @@
       );
 
       if (active.exposures) {
-        await plotCard(plotGrid, "Fitted signature exposure heatmap", (host) =>
-          mSigSDK.signatureFitting.plotDatasetMutationalSignaturesExposure(
+        await plotCard(plotGrid, "Fitted signature exposure heatmap", async (host) => {
+          await mSigSDK.signatureFitting.plotDatasetMutationalSignaturesExposure(
             active.exposures,
             host.id,
             true,
             label,
             true
-          )
-        );
+          );
+          await tuneFittedExposureHeatmap(host, active.exposures);
+        });
       }
 
       const downloads = [
@@ -1010,7 +1100,11 @@
 
     async function loadMSigPortalDataset() {
       if (!publicExplorerState.catalogLoaded) await loadCatalog();
-      const sampleLimit = Math.max(1, Math.min(50, Math.round(parseNumber(maxSamplesInput.value, 12))));
+      const sampleLimit = clampNumberInput(maxSamplesInput, {
+        min: 1,
+        max: MAX_MSIGPORTAL_SAMPLES,
+        fallback: DEFAULT_MSIGPORTAL_SAMPLES,
+      });
       const samples = selectedSamples().slice(0, sampleLimit);
       if (!samples.length) {
         throw new Error("No samples match the selected mSigPortal filters.");
@@ -1072,7 +1166,27 @@
       if (!selectedRows.length) {
         throw new Error("No public GDC MAF files were found for the selected TCGA projects.");
       }
-      const variantResult = await mSigSDK.TCGA.getVariantInformationFromMafFiles(subset);
+      activeOutput.replaceChildren(statusCard(
+        "Loading TCGA/GDC MAF-derived spectra",
+        `Selected ${selectedRows.length} GDC MAF file(s). Downloading and converting with the SDK context fast path.`,
+        "running"
+      ));
+      const variantResult = await mSigSDK.TCGA.getVariantInformationFromMafFiles(subset, {
+        fileConcurrency: Math.min(4, selectedRows.length),
+        includeVariantInformation: true,
+        onProgress: (event) => {
+          activeOutput.replaceChildren(statusCard(
+            "Loading TCGA/GDC MAF-derived spectra",
+            gdcProgressMessage(event, selection),
+            "running"
+          ));
+        },
+      });
+      activeOutput.replaceChildren(statusCard(
+        "Rendering TCGA/GDC visualizations",
+        "Building QC summaries, plots, exposure fits, and exports from the converted spectra.",
+        "running"
+      ));
       const fileMetadata = new Map(selectedRows.map((row) => [row.file_id, row]));
       const spectra = {};
       const metadata = [];
@@ -1157,7 +1271,18 @@
       select.addEventListener("change", () => populatePublicMenus());
     }
     signatureSetSelect.addEventListener("change", updateCatalogStatus);
-    maxSamplesInput.addEventListener("input", updateCatalogStatus);
+    maxSamplesInput.addEventListener("input", () => {
+      clampNumberInputMax(maxSamplesInput, MAX_MSIGPORTAL_SAMPLES);
+      updateCatalogStatus();
+    });
+    maxSamplesInput.addEventListener("change", () => {
+      clampNumberInput(maxSamplesInput, {
+        min: 1,
+        max: MAX_MSIGPORTAL_SAMPLES,
+        fallback: DEFAULT_MSIGPORTAL_SAMPLES,
+      });
+      updateCatalogStatus();
+    });
     refreshCatalog.addEventListener("click", () => loadCatalog());
     previewSource.addEventListener("click", previewSelectedSource);
     loadDataset.addEventListener("click", async () => {

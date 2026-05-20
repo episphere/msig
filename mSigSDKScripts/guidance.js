@@ -76,7 +76,7 @@ const WARNING_RESOLUTIONS = {
   [WARNING_CODES.EXTRACTION_NOT_RECOMMENDED]:
     "Prefer known-signature refitting or collect a larger, higher-burden cohort before treating de novo extraction as interpretable.",
   [WARNING_CODES.FIT_UNSTABLE]:
-    "Increase bootstrap iterations if needed, inspect interval widths, and present fitted exposures with uncertainty context.",
+    "Increase bootstrap iterations if needed, inspect bootstrap confidence intervals, and present fitted exposures with uncertainty context.",
   [WARNING_CODES.FLAT_SIGNATURE_RISK]:
     "Review flat-profile signatures as potentially exchangeable with related signatures; include identifiability context if reporting them.",
   [WARNING_CODES.HETEROGENEOUS_COHORT]:
@@ -113,9 +113,9 @@ const METHOD_BASIS = {
   reconstructionResidual:
     "Known-signature fitting is evaluated by reconstruction error, cosine similarity, and residual structure rather than by exposure values alone.",
   signatureAmbiguity:
-    "Signature identifiability is summarized as continuous, catalog-relative evidence. Similar neighbors, broad/flat profiles, and crowded catalog regions can make fitted exposures exchangeable; review cues are descriptive, not calibrated biological class boundaries.",
+    "Signature identifiability is summarized from similar neighbors, broad/flat profiles, and crowded regions in the selected catalog.",
   catalogSufficiency:
-    "Residual structure can raise a review cue that the supplied catalog may not explain all observed structure; it is not proof of a missing process.",
+    "Residual structure can raise a review cue that the supplied catalog may not explain all observed structure.",
   bootstrapThreshold:
     "Bootstrap resampling and threshold sensitivity summarize stability under resampling and exposure cutoffs.",
   cohortStructure:
@@ -284,7 +284,7 @@ const PANEL_TIER_RULE_DEFINITIONS = {
     rule:
       "Assigned when exposure is at least the configured higherSupportExposureThreshold, the sample is assessable, and fit reporting mode is standard_qc_passed or report_with_caveats.",
     interpretation:
-      "The fitted exposure meets the configured higher-review criteria. This is review support under the current settings, not definitive detection.",
+      "The fitted exposure meets the configured higher-review criteria under the current settings.",
   },
   limited_review_support: {
     rule:
@@ -296,7 +296,7 @@ const PANEL_TIER_RULE_DEFINITIONS = {
     rule:
       "Assigned when the call is assessable and exposure is below limitedSupportExposureThreshold.",
     interpretation:
-      "The fitted signal did not cross the configured review threshold; this is not proof of biological absence.",
+      "The fitted signal did not cross the configured review threshold.",
   },
 };
 
@@ -308,8 +308,7 @@ const LOCALIZED_CONTEXT_PATTERN_DEFINITIONS = {
     fractionField: "apobecLikeFraction",
     definition:
       "Fraction of context-annotated variants in TC[A/T] pyrimidine contexts corresponding to COSMIC SBS2/SBS13 APOBEC-associated substitutions.",
-    interpretation:
-      "Descriptive context enrichment only; not an etiology assignment.",
+    interpretation: "Descriptive context enrichment.",
   },
   "localized mutation cluster": {
     patternClass: "localized mutation cluster",
@@ -317,8 +316,7 @@ const LOCALIZED_CONTEXT_PATTERN_DEFINITIONS = {
     fractionField: null,
     definition:
       "Sequential same-chromosome mutation cluster meeting distance and mutation-count thresholds without crossing the APOBEC-context enrichment threshold.",
-    interpretation:
-      "Descriptive focal clustering only; not an etiology assignment.",
+    interpretation: "Descriptive focal clustering.",
   },
 };
 
@@ -365,6 +363,22 @@ const ADVISOR_DEFAULTS = Object.freeze({
     normalizeMode: "relative",
     lowBurdenThreshold: 100,
     moderateBurdenThreshold: 1000,
+    activeExposureThreshold: 0.05,
+    sampleConfusionCosineThreshold: 0.9,
+    strongSampleConfusionCosineThreshold: 0.95,
+    maxConfusablePairs: 6,
+    catalogReviewCosineThreshold: 0.9,
+    catalogJointCosineThreshold: 0.94,
+    catalogJointUnexplainedThreshold: 0.2,
+    catalogStrongUnexplainedThreshold: 0.3,
+    catalogStructuredResidualUnexplainedThreshold: 0.18,
+    bootstrapReviewConfidenceWidthThreshold: null,
+    bootstrapStrongConfidenceWidthThreshold: null,
+    bootstrapReviewExposureThreshold: 0.05,
+    bootstrapReviewSelectionFrequencyThreshold: null,
+    bootstrapStrongSelectionFrequencyThreshold: null,
+    thresholdReviewCosineDrop: 0.02,
+    thresholdStrongCosineDrop: 0.05,
   }),
   groupComparison: Object.freeze({
     groupKey: "group",
@@ -679,7 +693,7 @@ function computePairwiseSampleSimilarity(spectra, contexts, maxPairs = 5000) {
   };
 }
 
-function summarizeThresholdInstability(thresholdSensitivity, sampleName) {
+function summarizeThresholdInstability(thresholdSensitivity, sampleName, options = {}) {
   if (!thresholdSensitivity?.runs?.length) {
     return {
       measured: false,
@@ -714,96 +728,269 @@ function summarizeThresholdInstability(thresholdSensitivity, sampleName) {
     };
   }
 
+  const testedThresholds = sampleRows
+    .map((row) => row.threshold)
+    .filter(Number.isFinite);
   const signatureNames = uniqueStrings(
     sampleRows.flatMap((row) => Object.keys(row.exposure))
   );
-  const first = sampleRows[0].exposure;
-  const last = sampleRows[sampleRows.length - 1].exposure;
-  const l1Change = sum(
-    signatureNames.map((signature) =>
-      Math.abs((first[signature] || 0) - (last[signature] || 0))
+  const baselineRow =
+    sampleRows.find((row) => row.threshold === thresholdSensitivity.baselineThreshold) ||
+    sampleRows[0];
+  const baselineExposure = baselineRow.exposure || {};
+  const l1Changes = sampleRows.map((row) =>
+    sum(
+      signatureNames.map((signature) =>
+        Math.abs((row.exposure?.[signature] || 0) - (baselineExposure[signature] || 0))
+      )
     )
   );
+  const l1Change = l1Changes.length ? Math.max(...l1Changes) : 0;
   const activeCounts = sampleRows.map(
     (row) => Object.values(row.exposure).filter((value) => value > 0).length
   );
-  const activeSignatureRange =
-    activeCounts.length === 0
-      ? 0
-      : Math.max(...activeCounts) - Math.min(...activeCounts);
-  const cosineDrop =
-    (sampleRows[0].reconstruction?.cosineSimilarity || 0) -
-    (sampleRows[sampleRows.length - 1].reconstruction?.cosineSimilarity || 0);
-  const warningCodes = uniqueStrings(
+  const baselineActiveCount = Object.values(baselineExposure).filter(
+    (value) => value > 0
+  ).length;
+  const activeSignatureRange = activeCounts.length
+    ? Math.max(...activeCounts.map((count) => Math.abs(count - baselineActiveCount)))
+    : 0;
+  const baselineCosine = baselineRow.reconstruction?.cosineSimilarity ?? null;
+  const cosineDrops = sampleRows.map((row) =>
+    Number.isFinite(baselineCosine) && Number.isFinite(row.reconstruction?.cosineSimilarity)
+      ? Math.max(0, baselineCosine - row.reconstruction.cosineSimilarity)
+      : 0
+  );
+  const cosineDrop = cosineDrops.length ? Math.max(...cosineDrops) : 0;
+  const upstreamWarningCodes = uniqueStrings(
     (thresholdSensitivity.warnings || []).map((warning) => warning.code)
   );
-  const reviewFlag = warningCodes.length > 0;
+  const hasReviewCosineDrop = Object.prototype.hasOwnProperty.call(
+    options,
+    "thresholdReviewCosineDrop"
+  );
+  const hasStrongCosineDrop = Object.prototype.hasOwnProperty.call(
+    options,
+    "thresholdStrongCosineDrop"
+  );
+  const reviewCosineDrop = hasReviewCosineDrop
+    ? Number.isFinite(options.thresholdReviewCosineDrop)
+      ? options.thresholdReviewCosineDrop
+      : null
+    : 0.02;
+  const strongCosineDrop = hasStrongCosineDrop
+    ? Number.isFinite(options.thresholdStrongCosineDrop)
+      ? options.thresholdStrongCosineDrop
+      : null
+    : 0.05;
+  const derivedWarningCodes = [];
+  if (Number.isFinite(strongCosineDrop) && cosineDrop >= strongCosineDrop) {
+    derivedWarningCodes.push("CUTOFF_RECONSTRUCTION_DROP_HIGH");
+  } else if (Number.isFinite(reviewCosineDrop) && cosineDrop >= reviewCosineDrop) {
+    derivedWarningCodes.push("CUTOFF_RECONSTRUCTION_DROP");
+  }
+  const warningCodes = uniqueStrings(derivedWarningCodes);
+  const reviewSeverity = derivedWarningCodes.some((code) => code.endsWith("_HIGH"))
+    ? "concern"
+    : derivedWarningCodes.length
+      ? "caution"
+      : "ok";
+  const reviewFlag = derivedWarningCodes.length > 0;
 
   return {
     measured: true,
     reviewFlag,
     warningCodes,
+    upstreamWarningCodes,
+    methodWarningCodes: upstreamWarningCodes,
+    derivedWarningCodes,
+    reviewSeverity,
     l1Change,
     activeSignatureRange,
     cosineDrop,
+    reviewCosineDrop,
+    strongCosineDrop,
+    testedThresholds,
+    thresholdCount: testedThresholds.length,
+    thresholdMin: testedThresholds.length ? Math.min(...testedThresholds) : null,
+    thresholdMax: testedThresholds.length ? Math.max(...testedThresholds) : null,
+    baselineThreshold: baselineRow.threshold ?? null,
     interpretationBoundary:
-      "This summary reports observed drift across tested thresholds. It does not convert drift into a calibrated stability score.",
+      "Cutoff sensitivity reports the biggest drop from the baseline reconstruction cosine across the tested contribution cutoffs on a 0 to 1 scale. Exposure redistribution is retained as percentage-point context. Cutoff review cues are emitted only when finite cutoff warning thresholds are configured.",
     recommendation:
       reviewFlag
         ? "Report threshold-sensitivity results and inspect the configured warning details before interpreting thresholded active signatures."
-        : "Inspect threshold-sensitivity drift values directly; no configured threshold-sensitivity warning was emitted.",
+        : "Inspect cutoff-sensitivity values directly; no cutoff warning threshold is enabled or crossed.",
   };
 }
 
-function summarizeBootstrapStability(bootstrap, exposureFloor = 0.01) {
+function summarizeBootstrapStability(
+  bootstrap,
+  exposureFloor = 0.01,
+  options = {}
+) {
   if (!bootstrap?.signatures?.length) {
     return {
       measured: false,
       reviewFlag: false,
       warningCodes: [],
       maxConfidenceWidth: null,
+      maxContextConfidenceWidth: null,
+      reportableSignatureCount: 0,
       intermediateSelectionFrequencySignatures: [],
       recommendation: "Bootstrap stability was not measured.",
     };
   }
 
-  const activeSummaries = bootstrap.signatures.filter(
+  const fittedExposureRow =
+    options.fittedExposureRow || options.exposureRow || {};
+  const hasFittedExposureRow =
+    isPlainObject(fittedExposureRow) && Object.keys(fittedExposureRow).length > 0;
+  const reviewExposureThreshold =
+    options.bootstrapReviewExposureThreshold ??
+    options.activeExposureThreshold ??
+    exposureFloor;
+  const summariesWithFit = bootstrap.signatures.map((signature) => ({
+    ...signature,
+    fittedExposure: Number(fittedExposureRow?.[signature.signatureName]) || 0,
+  }));
+  const reportableSummaries = summariesWithFit.filter((signature) =>
+    hasFittedExposureRow
+      ? signature.fittedExposure >= reviewExposureThreshold
+      : (signature.mean || 0) >= reviewExposureThreshold ||
+        (signature.median || 0) >= reviewExposureThreshold
+  );
+  const contextSummaries = summariesWithFit.filter(
     (signature) =>
+      reportableSummaries.includes(signature) ||
       (signature.mean || 0) >= exposureFloor ||
       (signature.selectionFrequency || 0) >= 0.05
   );
+  const intervalWidth = (signature) =>
+    Number.isFinite(signature.ciWidth)
+      ? signature.ciWidth
+      : (signature.upper || 0) - (signature.lower || 0);
+  const maxFinite = (values) => {
+    const finiteValues = values.filter(Number.isFinite);
+    return finiteValues.length ? Math.max(...finiteValues) : null;
+  };
   const maxConfidenceWidth =
-    activeSummaries.length === 0
-      ? 0
-      : Math.max(
-          ...activeSummaries.map(
-            (signature) => (signature.upper || 0) - (signature.lower || 0)
-          )
-        );
-  const intermediateSelectionFrequencySignatures = activeSummaries.filter(
-    (signature) =>
-      signature.selectionFrequency > 0.2 &&
-      signature.selectionFrequency < 0.8
-  );
-  const warningCodes = uniqueStrings(
+    reportableSummaries.length === 0
+      ? null
+      : maxFinite(reportableSummaries.map(intervalWidth));
+  const maxContextConfidenceWidth =
+    contextSummaries.length === 0
+      ? null
+      : maxFinite(contextSummaries.map(intervalWidth));
+  const reviewSelectionFrequency = Number.isFinite(
+    options.bootstrapReviewSelectionFrequencyThreshold
+  )
+    ? options.bootstrapReviewSelectionFrequencyThreshold
+    : null;
+  const strongSelectionFrequency = Number.isFinite(
+    options.bootstrapStrongSelectionFrequencyThreshold
+  )
+    ? options.bootstrapStrongSelectionFrequencyThreshold
+    : null;
+  const intermediateSelectionFrequencySignatures = Number.isFinite(
+    reviewSelectionFrequency
+  )
+    ? reportableSummaries.filter(
+        (signature) =>
+          Number.isFinite(signature.selectionFrequency) &&
+          signature.selectionFrequency < reviewSelectionFrequency
+      )
+    : [];
+  const lowSelectionFrequencySignatures = Number.isFinite(strongSelectionFrequency)
+    ? reportableSummaries.filter(
+        (signature) =>
+          Number.isFinite(signature.selectionFrequency) &&
+          signature.selectionFrequency < strongSelectionFrequency
+      )
+    : [];
+  const allWarningCodes = uniqueStrings(
     (bootstrap.warnings || []).map((warning) => warning.code)
   );
+  const methodWarningCodes = allWarningCodes.filter(
+    (code) => code === "LOW_BOOTSTRAP_ITERATIONS" || code === "LOW_BURDEN"
+  );
+  const packageWarningCodes = allWarningCodes.filter(
+    (code) => !methodWarningCodes.includes(code)
+  );
+  const reviewConfidenceWidth = Number.isFinite(
+    options.bootstrapReviewConfidenceWidthThreshold
+  )
+    ? options.bootstrapReviewConfidenceWidthThreshold
+    : null;
+  const strongConfidenceWidth = Number.isFinite(
+    options.bootstrapStrongConfidenceWidthThreshold
+  )
+    ? options.bootstrapStrongConfidenceWidthThreshold
+    : null;
+  const derivedWarningCodes = [];
+  if (
+    Number.isFinite(strongConfidenceWidth) &&
+    Number.isFinite(maxConfidenceWidth) &&
+    maxConfidenceWidth >= strongConfidenceWidth
+  ) {
+    derivedWarningCodes.push("BOOTSTRAP_CI_VERY_BROAD");
+  } else if (
+    Number.isFinite(reviewConfidenceWidth) &&
+    Number.isFinite(maxConfidenceWidth) &&
+    maxConfidenceWidth >= reviewConfidenceWidth
+  ) {
+    derivedWarningCodes.push("BOOTSTRAP_CI_BROAD");
+  }
+  if (lowSelectionFrequencySignatures.length) {
+    derivedWarningCodes.push("BOOTSTRAP_SELECTION_LOW");
+  } else if (intermediateSelectionFrequencySignatures.length) {
+    derivedWarningCodes.push("BOOTSTRAP_INTERMEDIATE_SELECTION");
+  }
+  const warningCodes = uniqueStrings([...packageWarningCodes, ...derivedWarningCodes]);
+  const reviewSeverity =
+    derivedWarningCodes.includes("BOOTSTRAP_SELECTION_LOW") ||
+    derivedWarningCodes.includes("BOOTSTRAP_CI_VERY_BROAD")
+    ? "concern"
+    : warningCodes.length
+      ? "caution"
+      : "ok";
   const reviewFlag = warningCodes.length > 0;
 
   return {
     measured: true,
     reviewFlag,
     warningCodes,
+    packageWarningCodes,
+    derivedWarningCodes,
+    reviewSeverity,
+    methodWarningCodes,
+    iterations: bootstrap.iterations ?? null,
+    confidenceLevel: bootstrap.confidenceLevel ?? null,
     maxConfidenceWidth,
+    maxContextConfidenceWidth,
+    reviewConfidenceWidth,
+    strongConfidenceWidth,
+    reviewExposureThreshold,
+    reportableSignatureCount: reportableSummaries.length,
+    reviewSelectionFrequency,
+    strongSelectionFrequency,
+    confidenceWidthReviewEnabled:
+      Number.isFinite(reviewConfidenceWidth) || Number.isFinite(strongConfidenceWidth),
+    selectionReviewEnabled:
+      Number.isFinite(reviewSelectionFrequency) ||
+      Number.isFinite(strongSelectionFrequency),
     intermediateSelectionFrequencySignatures: intermediateSelectionFrequencySignatures.map(
       (signature) => signature.signatureName
     ),
+    lowSelectionFrequencySignatures: lowSelectionFrequencySignatures.map(
+      (signature) => signature.signatureName
+    ),
     interpretationBoundary:
-      "This summary reports interval width and selection frequency directly. It does not convert bootstrap output into a calibrated stability score.",
+      "This summary reports bootstrap confidence intervals on a 0 to 100 percentage-point scale and selection frequency on a 0 to 1 scale. Bootstrap review cues are emitted only when finite bootstrap warning thresholds are configured.",
     recommendation:
       reviewFlag
-        ? "Report bootstrap warning details with interval widths and selection frequencies."
-        : "Inspect bootstrap interval widths and selection frequencies directly; no configured bootstrap warning was emitted.",
+        ? "Report bootstrap warning details with confidence intervals and selection frequencies for the fitted signatures."
+        : "Inspect bootstrap confidence intervals and selection frequencies directly; no bootstrap warning threshold is enabled or crossed.",
   };
 }
 
@@ -831,6 +1018,200 @@ function classifyFitQcEvidence(flags) {
     return "report_with_caveats";
   }
   return "standard_qc_passed";
+}
+
+function finitePolicyNumber(...values) {
+  for (const value of values) {
+    const parsed = toFiniteNumber(value);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+function normalizeManualFitPolicy(policy = {}, fitQualityOptions = {}) {
+  policy = isPlainObject(policy) ? policy : {};
+  const sourceRules = policy.rules || {};
+  const sourceThresholds = policy.thresholds || {};
+  const sourceWeights = policy.weights || {};
+  const thresholds = {
+    lowBurdenThreshold: finitePolicyNumber(
+      sourceThresholds.lowBurdenThreshold,
+      policy.lowBurdenThreshold,
+      fitQualityOptions.lowBurdenThreshold,
+      ADVISOR_DEFAULTS.fitQualityEvidence.lowBurdenThreshold
+    ),
+    reconstructionCosineThreshold: finitePolicyNumber(
+      sourceThresholds.reconstructionCosineThreshold,
+      policy.reconstructionCosineThreshold,
+      fitQualityOptions.reconstructionCosineThreshold,
+      fitQualityOptions.catalogReviewCosineThreshold,
+      0.9
+    ),
+    residualUnexplainedThreshold: finitePolicyNumber(
+      sourceThresholds.residualUnexplainedThreshold,
+      policy.residualUnexplainedThreshold,
+      fitQualityOptions.weakUnexplainedThreshold,
+      ADVISOR_DEFAULTS.catalogSufficiency.weakUnexplainedThreshold
+    ),
+    residualStructureCosineThreshold: finitePolicyNumber(
+      sourceThresholds.residualStructureCosineThreshold,
+      policy.residualStructureCosineThreshold,
+      fitQualityOptions.residualStructureCosineThreshold,
+      ADVISOR_DEFAULTS.catalogSufficiency.structuredResidualCosineThreshold
+    ),
+    minBurdenForResidualStructure: finitePolicyNumber(
+      sourceThresholds.minBurdenForResidualStructure,
+      policy.minBurdenForResidualStructure,
+      ADVISOR_DEFAULTS.catalogSufficiency.minBurdenForReliableDetection
+    ),
+  };
+  const rules = {
+    lowBurden: sourceRules.lowBurden !== false,
+    reconstruction: sourceRules.reconstruction !== false,
+    residualUnexplained: sourceRules.residualUnexplained !== false,
+    structuredResidual: sourceRules.structuredResidual !== false,
+  };
+  const weights = {
+    lowBurden: finitePolicyNumber(sourceWeights.lowBurden, policy.lowBurdenWeight, 4),
+    reconstruction: finitePolicyNumber(sourceWeights.reconstruction, policy.reconstructionWeight, 2),
+    residualUnexplained: finitePolicyNumber(sourceWeights.residualUnexplained, policy.residualUnexplainedWeight, 1),
+    structuredResidual: finitePolicyNumber(sourceWeights.structuredResidual, policy.structuredResidualWeight, 4),
+  };
+  return {
+    enabled: policy.enabled === true,
+    source: policy.source || "manual_policy",
+    thresholds,
+    rules,
+    weights,
+  };
+}
+
+function makeManualPolicyFlag({
+  code,
+  label,
+  severity,
+  observed,
+  threshold,
+  basis,
+  weight,
+}) {
+  return {
+    code,
+    label,
+    severity,
+    observed,
+    threshold,
+    basis,
+    weight,
+  };
+}
+
+function evaluateManualFitPolicy({
+  policy,
+  totalMutations,
+  cosine,
+  unexplainedFraction,
+  residualSample,
+}) {
+  const flags = [];
+  const { thresholds, rules, weights } = policy;
+  const residualStructure = residualSample?.residualStructure || {};
+  const nearestResidualMatch = residualStructure.nearestResidualMatch || null;
+  const nearestResidualCosine = nearestResidualMatch?.cosineSimilarity ?? null;
+
+  if (
+    rules.lowBurden &&
+    Number.isFinite(totalMutations) &&
+    totalMutations < thresholds.lowBurdenThreshold
+  ) {
+    flags.push(makeManualPolicyFlag({
+      code: "LOW_BURDEN",
+      label: "Low burden",
+      severity: "priority",
+      observed: totalMutations,
+      threshold: thresholds.lowBurdenThreshold,
+      basis: "totalMutations < lowBurdenThreshold",
+      weight: weights.lowBurden,
+    }));
+  }
+
+  if (
+    rules.reconstruction &&
+    Number.isFinite(cosine) &&
+    cosine < thresholds.reconstructionCosineThreshold
+  ) {
+    flags.push(makeManualPolicyFlag({
+      code: "LOW_RECONSTRUCTION_COSINE",
+      label: "Low reconstruction",
+      severity: "review",
+      observed: cosine,
+      threshold: thresholds.reconstructionCosineThreshold,
+      basis: "cosineSimilarity < reconstructionCosineThreshold",
+      weight: weights.reconstruction,
+    }));
+  }
+
+  if (
+    rules.residualUnexplained &&
+    Number.isFinite(unexplainedFraction) &&
+    unexplainedFraction >= thresholds.residualUnexplainedThreshold
+  ) {
+    flags.push(makeManualPolicyFlag({
+      code: "HIGH_UNEXPLAINED_RESIDUAL",
+      label: "High unexplained residual",
+      severity: "review",
+      observed: unexplainedFraction,
+      threshold: thresholds.residualUnexplainedThreshold,
+      basis: "unexplainedFraction >= residualUnexplainedThreshold",
+      weight: weights.residualUnexplained,
+    }));
+  }
+
+  if (
+    rules.structuredResidual &&
+    Number.isFinite(unexplainedFraction) &&
+    unexplainedFraction >= thresholds.residualUnexplainedThreshold &&
+    Number.isFinite(nearestResidualCosine) &&
+    nearestResidualCosine >= thresholds.residualStructureCosineThreshold &&
+    Number.isFinite(totalMutations) &&
+    totalMutations >= thresholds.minBurdenForResidualStructure
+  ) {
+    flags.push(makeManualPolicyFlag({
+      code: "STRUCTURED_RESIDUAL",
+      label: "Structured residual",
+      severity: "priority",
+      observed: {
+        unexplainedFraction,
+        nearestResidualCosine,
+        nearestResidualMatch,
+        totalMutations,
+      },
+      threshold: {
+        residualUnexplainedThreshold: thresholds.residualUnexplainedThreshold,
+        residualStructureCosineThreshold: thresholds.residualStructureCosineThreshold,
+        minBurdenForResidualStructure: thresholds.minBurdenForResidualStructure,
+      },
+      basis:
+        "unexplainedFraction >= residualUnexplainedThreshold and nearest positive-residual cosine >= residualStructureCosineThreshold and totalMutations >= minBurdenForResidualStructure",
+      weight: weights.structuredResidual,
+    }));
+  }
+
+  const status = flags.some((flag) => flag.severity === "priority")
+    ? "priority"
+    : flags.length
+      ? "review"
+      : "pass";
+  return {
+    status,
+    score: flags.reduce((total, flag) => total + (Number(flag.weight) || 0), 0),
+    primaryCue: flags[0]?.label || "No manual policy cue",
+    flags,
+    thresholds: { ...thresholds },
+    rules: { ...rules },
+  };
 }
 
 function summarizeFitQcAction(reportingMode) {
@@ -878,10 +1259,20 @@ function getBurdenSample(burdenSummary, sampleName) {
   return burdenSummary?.samples?.find((sample) => sample.sample === sampleName) || null;
 }
 
-function activeSignatureNames(exposureRow, threshold = 0.05) {
+function activeSignatureExposures(exposureRow, threshold = 0.05) {
   return Object.entries(exposureRow || {})
-    .filter(([, value]) => value >= threshold)
-    .map(([signatureName]) => signatureName);
+    .map(([signatureName, exposure]) => ({
+      signatureName,
+      exposure: Number(exposure) || 0,
+    }))
+    .filter(({ exposure }) => exposure >= threshold)
+    .sort((a, b) => b.exposure - a.exposure);
+}
+
+function activeSignatureNames(exposureRow, threshold = 0.05) {
+  return activeSignatureExposures(exposureRow, threshold).map(
+    ({ signatureName }) => signatureName
+  );
 }
 
 function indexAmbiguityBySignature(ambiguity) {
@@ -891,6 +1282,108 @@ function indexAmbiguityBySignature(ambiguity) {
       signature,
     ])
   );
+}
+
+function activeSignaturePairs(activeExposures, signatures, contexts) {
+  const rows = [];
+  for (let i = 0; i < activeExposures.length; i += 1) {
+    for (let j = i + 1; j < activeExposures.length; j += 1) {
+      const first = activeExposures[i];
+      const second = activeExposures[j];
+      const firstSignature = signatures[first.signatureName];
+      const secondSignature = signatures[second.signatureName];
+      if (!firstSignature || !secondSignature) continue;
+      const pairCosine = cosineSimilarity(
+        vectorFromRecord(firstSignature, contexts),
+        vectorFromRecord(secondSignature, contexts)
+      );
+      rows.push({
+        signatureA: first.signatureName,
+        signatureB: second.signatureName,
+        exposureA: first.exposure,
+        exposureB: second.exposure,
+        minExposure: Math.min(first.exposure, second.exposure),
+        cosineSimilarity: pairCosine,
+      });
+    }
+  }
+  return rows.sort(
+    (a, b) =>
+      b.cosineSimilarity - a.cosineSimilarity ||
+      b.minExposure - a.minExposure
+  );
+}
+
+function selectActiveConfusableSignaturePairs(
+  activePairs,
+  {
+    cosineThreshold = 0.9,
+    strongCosineThreshold = 0.95,
+    maxPairs = 6,
+  } = {}
+) {
+  return activePairs
+    .filter((pair) => pair.cosineSimilarity >= cosineThreshold)
+    .map((pair) => ({
+      ...pair,
+      strength:
+        pair.cosineSimilarity >= strongCosineThreshold
+          ? "strong_active_pair"
+          : "active_pair",
+    }))
+    .slice(0, Math.max(1, Math.floor(maxPairs || 6)));
+}
+
+function activeConfusableSignaturePairs(
+  activeExposures,
+  signatures,
+  contexts,
+  {
+    cosineThreshold = 0.9,
+    strongCosineThreshold = 0.95,
+    maxPairs = 6,
+  } = {}
+) {
+  return selectActiveConfusableSignaturePairs(
+    activeSignaturePairs(activeExposures, signatures, contexts),
+    { cosineThreshold, strongCosineThreshold, maxPairs }
+  );
+}
+
+function catalogFitReviewStatus(catalogSample, options = {}) {
+  if (!catalogSample) return "not_checked";
+  const cosine = Number(catalogSample.cosineSimilarity);
+  const unexplained = Number(catalogSample.unexplainedFraction);
+  const severeCosine =
+    Number.isFinite(cosine) &&
+    cosine < (options.catalogReviewCosineThreshold ?? 0.9);
+  const severeUnexplained =
+    Number.isFinite(unexplained) &&
+    unexplained >= (options.catalogStrongUnexplainedThreshold ?? 0.3);
+  const jointMismatch =
+    Number.isFinite(cosine) &&
+    Number.isFinite(unexplained) &&
+    cosine < (options.catalogJointCosineThreshold ?? 0.94) &&
+    unexplained >= (options.catalogJointUnexplainedThreshold ?? 0.2);
+  const structuredResidual =
+    Boolean(catalogSample.structuredResidual) &&
+    Number.isFinite(unexplained) &&
+    unexplained >=
+      (options.catalogStructuredResidualUnexplainedThreshold ?? 0.18);
+  const reviewSignal =
+    severeCosine || severeUnexplained || jointMismatch || structuredResidual;
+  const residualCriterionFired =
+    catalogSample.status === "suspected_out_of_reference" ||
+    catalogSample.rawStatus === "suspected_out_of_reference" ||
+    reviewSignal;
+
+  if (residualCriterionFired) {
+    if (catalogSample.reliableResidualDetection === false) {
+      return "limited_by_low_burden";
+    }
+    return reviewSignal ? "review" : "ok";
+  }
+  return "ok";
 }
 
 function robustDistribution(values) {
@@ -948,7 +1441,7 @@ function buildPublicationFigureDescriptors(workflowType, fields = {}) {
     {
       id: "fit_quality_evidence_dashboard",
       title: "Fit-quality evidence summary",
-      purpose: "Summarizes burden, reconstruction, residual, bootstrap, threshold, ambiguity, and catalog-sufficiency evidence.",
+      purpose: "Summarizes burden, reconstruction, residual, bootstrap, and threshold evidence.",
       recommendedRenderer: "mSigSDK.qcPlots.plotFitQualityEvidenceDashboard",
     },
   ];
@@ -1537,7 +2030,7 @@ function computeSignatureAmbiguity(signatures, options = {}) {
     methodBasis: {
       signatureAmbiguity: METHOD_BASIS.signatureAmbiguity,
       thresholdBasis:
-        "The primary output is a continuous, catalog-relative identifiability report. Percentile bands and warning rules are configurable review aids, not calibrated biological discontinuities.",
+        "The primary output is a selected-catalog identifiability report with percentile bands and warning rules.",
       scoreBasis:
         "The confusability score combines robustly scaled nearest-neighbor similarity, top-neighbor crowding, flatness/entropy, and low profile specificity within the selected catalog.",
       references: [
@@ -1549,7 +2042,7 @@ function computeSignatureAmbiguity(signatures, options = {}) {
         LITERATURE_REFERENCES.senkin2021,
       ],
       note:
-        "Do not interpret tiny changes around a percentile boundary as scientific class changes. Inspect continuous scores, evidence tags, and sample-level bootstrap or threshold sensitivity where available.",
+        "Inspect score changes near percentile boundaries with evidence tags and sample-level bootstrap or threshold sensitivity where available.",
     },
     catalogVersion,
     thresholds: {
@@ -1564,7 +2057,7 @@ function computeSignatureAmbiguity(signatures, options = {}) {
       nearBoundaryWidth,
       topNeighborCount,
       note:
-        "Cosine/entropy thresholds support descriptive neighbor and flatness evidence; continuous score percentiles are review settings, not calibrated biological discontinuities.",
+        "Cosine/entropy thresholds support neighbor and flatness evidence; score percentiles are configurable review settings.",
     },
     scoreWeights: weights,
     distributionSummary: {
@@ -1594,7 +2087,7 @@ function computeSignatureAmbiguity(signatures, options = {}) {
 }
 
 /**
- * Computes continuous, catalog-relative signature identifiability evidence.
+ * Computes selected-catalog signature identifiability evidence.
  *
  * Alias of `computeSignatureAmbiguity` with clearer terminology for new code.
  *
@@ -1915,7 +2408,16 @@ function computeFitQualityEvidence(input = {}, options = {}) {
   const thresholds = {
     lowBurdenThreshold: fitQualityOptions.lowBurdenThreshold,
     moderateBurdenThreshold: fitQualityOptions.moderateBurdenThreshold,
+    activeExposureThreshold: fitQualityOptions.activeExposureThreshold,
+    sampleConfusionCosineThreshold:
+      fitQualityOptions.sampleConfusionCosineThreshold,
+    strongSampleConfusionCosineThreshold:
+      fitQualityOptions.strongSampleConfusionCosineThreshold,
   };
+  const manualPolicy = normalizeManualFitPolicy(
+    options.manualPolicy || fitQualityOptions.manualPolicy || {},
+    fitQualityOptions
+  );
 
   const samples = Object.keys(normalizedSpectra).map((sampleName) => {
     const burdenSample = getBurdenSample(burdenSummary, sampleName);
@@ -1923,14 +2425,20 @@ function computeFitQualityEvidence(input = {}, options = {}) {
       reconstructionError,
       sampleName
     );
-    const residualSample = getResidualSample(residuals, sampleName);
-    const bootstrapSummary = summarizeBootstrapStability(
-      getBootstrapForSample(input.bootstrap, sampleName)
-    );
-    const thresholdSummary = summarizeThresholdInstability(
-      input.thresholdSensitivity,
-      sampleName
-    );
+	    const residualSample = getResidualSample(residuals, sampleName);
+		    const bootstrapSummary = summarizeBootstrapStability(
+		      getBootstrapForSample(input.bootstrap, sampleName),
+		      0.01,
+		      {
+		        ...fitQualityOptions,
+		        fittedExposureRow: normalizedExposures[sampleName],
+		      }
+		    );
+	    const thresholdSummary = summarizeThresholdInstability(
+	      input.thresholdSensitivity,
+	      sampleName,
+	      fitQualityOptions
+	    );
     const catalogSample = getCatalogCheckForSample(catalogCheck, sampleName);
     const burdenClass = getBurdenClass(burdenSample?.totalMutations || 0, {
       lowBurdenThreshold: thresholds.lowBurdenThreshold,
@@ -1944,7 +2452,44 @@ function computeFitQualityEvidence(input = {}, options = {}) {
     const unexplainedFraction = residualSample
       ? clamp(residualSample.metrics.l1Error / denominator, 0, 1)
       : 1;
-    const activeSignatures = activeSignatureNames(normalizedExposures[sampleName]);
+    const activeExposureRows = activeSignatureExposures(
+      normalizedExposures[sampleName],
+      thresholds.activeExposureThreshold
+    );
+    const activeSignatures = activeExposureRows.map(
+      ({ signatureName }) => signatureName
+    );
+    const activePairRows = activeSignaturePairs(
+      activeExposureRows,
+      normalizedSignatures,
+      contexts
+    );
+    const activeConfusablePairs = selectActiveConfusableSignaturePairs(
+      activePairRows,
+      {
+        cosineThreshold: thresholds.sampleConfusionCosineThreshold,
+        strongCosineThreshold: thresholds.strongSampleConfusionCosineThreshold,
+        maxPairs: fitQualityOptions.maxConfusablePairs,
+      }
+    );
+    const nearestActivePair = activePairRows[0] || null;
+    const maxActivePairCosine = nearestActivePair?.cosineSimilarity ?? null;
+    const activeSignaturePairCount = activePairRows.length;
+    const activeConfusablePairCount = activeConfusablePairs.length;
+    const activeConfusablePairsTruncated =
+      activePairRows.filter(
+        (pair) => pair.cosineSimilarity >= thresholds.sampleConfusionCosineThreshold
+      ).length > activeConfusablePairs.length;
+    const strongActiveConfusablePairs = activeConfusablePairs.filter(
+      (pair) => pair.strength === "strong_active_pair"
+    );
+    const sampleAmbiguityStatus = strongActiveConfusablePairs.length
+      ? "strong_active_confusable_pair"
+      : activeConfusablePairs.length
+        ? "active_confusable_pair"
+        : activeSignatures.length > 1
+          ? "no_active_confusable_pair"
+          : "not_applicable";
     const activeAmbiguityEvidence = activeSignatures.map((signatureName) => {
       const signatureEvidence = ambiguityBySignature[signatureName] || {};
       return {
@@ -1956,6 +2501,7 @@ function computeFitQualityEvidence(input = {}, options = {}) {
         evidenceStrength:
           signatureEvidence.evidenceStrength || "minimal_catalog_signal",
         reviewRecommended: Boolean(signatureEvidence.reviewRecommended),
+        strongReviewRecommended: Boolean(signatureEvidence.strongReviewRecommended),
         nearestNeighbor: signatureEvidence.nearestNeighbor || null,
         nearestCosineSimilarity:
           signatureEvidence.nearestCosineSimilarity ?? null,
@@ -1973,6 +2519,10 @@ function computeFitQualityEvidence(input = {}, options = {}) {
         .map((evidence) => evidence.confusabilityScore)
         .filter(Number.isFinite),
       0
+    );
+    const catalogFitStatus = catalogFitReviewStatus(
+      catalogSample,
+      fitQualityOptions
     );
     const componentEvidence = {
       burden: {
@@ -2002,6 +2552,18 @@ function computeFitQualityEvidence(input = {}, options = {}) {
       },
       ambiguity: {
         activeSignatures,
+        activeExposureThreshold: thresholds.activeExposureThreshold,
+        activeSignaturePairCount,
+        activeConfusablePairs,
+        activeConfusablePairCount,
+        activeConfusablePairsTruncated,
+        nearestActivePair,
+        maxActivePairCosine,
+        strongActiveConfusablePairs,
+        sampleAmbiguityStatus,
+        pairCosineThreshold: thresholds.sampleConfusionCosineThreshold,
+        strongPairCosineThreshold:
+          thresholds.strongSampleConfusionCosineThreshold,
         activeAmbiguityEvidence,
         activeAmbiguityEvidenceTags,
         activeReviewRecommendedSignatures,
@@ -2012,6 +2574,13 @@ function computeFitQualityEvidence(input = {}, options = {}) {
       },
       catalog: {
         status: catalogSample?.status || "not_checked",
+        rawStatus: catalogSample?.rawStatus || null,
+        fitReviewStatus: catalogFitStatus,
+        reliableResidualDetection:
+          catalogSample?.reliableResidualDetection ?? null,
+        unexplainedFraction: catalogSample?.unexplainedFraction ?? null,
+        cosineSimilarity: catalogSample?.cosineSimilarity ?? null,
+        structuredResidual: Boolean(catalogSample?.structuredResidual),
         derivedScoreDeprecated: true,
       },
     };
@@ -2046,28 +2615,19 @@ function computeFitQualityEvidence(input = {}, options = {}) {
         )
       );
     }
-    if (activeReviewRecommendedSignatures.length > 0) {
-      warnings.push(
-        makeWarning(
-          WARNING_CODES.SIGNATURE_AMBIGUITY,
-          `${sampleName} includes active fitted signatures that met catalog-level identifiability review criteria.`,
-          {
-            sample: sampleName,
-            activeSignatures,
-            activeReviewRecommendedSignatures,
-            activeAmbiguityEvidenceTags,
-            maxActiveConfusabilityScore,
-          }
-        )
-      );
-    }
-    if (catalogSample?.status === "suspected_out_of_reference") {
-      warnings.push(...catalogSample.warnings);
-    }
     const reportingMode = classifyFitQcEvidence(warnings);
     const reviewFlagCount = warnings.length;
+    const manualPolicyEvidence = manualPolicy.enabled
+      ? evaluateManualFitPolicy({
+          policy: manualPolicy,
+          totalMutations: burdenSample?.totalMutations ?? null,
+          cosine,
+          unexplainedFraction,
+          residualSample,
+        })
+      : null;
 
-    return {
+    const sampleResult = {
       sample: sampleName,
       reportingMode,
       recommendedReportingMode: reportingMode,
@@ -2082,9 +2642,12 @@ function computeFitQualityEvidence(input = {}, options = {}) {
         rmse: reconstructionSample?.rmse ?? null,
         unexplainedFraction,
         activeSignatures,
+        activeConfusablePairs,
+        sampleAmbiguityStatus,
         activeReviewRecommendedSignatures,
         activeAmbiguityEvidenceTags,
         maxActiveConfusabilityScore,
+        catalogFitReviewStatus: catalogFitStatus,
       },
       bootstrap: bootstrapSummary,
       thresholdSensitivity: thresholdSummary,
@@ -2096,13 +2659,29 @@ function computeFitQualityEvidence(input = {}, options = {}) {
       recommendedActions: uniqueStrings([
         bootstrapSummary.recommendation,
         thresholdSummary.recommendation,
-        catalogSample?.recommendedAction,
         summarizeFitQcAction(reportingMode),
       ]),
     };
+    if (manualPolicyEvidence) {
+      sampleResult.manualPolicy = manualPolicyEvidence;
+    }
+    return sampleResult;
   });
 
-  return {
+  const manualPolicySummary = manualPolicy.enabled
+    ? {
+        enabled: true,
+        source: manualPolicy.source,
+        thresholds: { ...manualPolicy.thresholds },
+        rules: { ...manualPolicy.rules },
+        sampleCount: samples.length,
+        flaggedCount: samples.filter((sample) => sample.manualPolicy?.status !== "pass").length,
+        reviewCount: samples.filter((sample) => sample.manualPolicy?.status === "review").length,
+        priorityCount: samples.filter((sample) => sample.manualPolicy?.status === "priority").length,
+        passCount: samples.filter((sample) => sample.manualPolicy?.status === "pass").length,
+      }
+    : null;
+  const result = {
     schemaVersion: RESULT_SCHEMA_VERSION,
     workflowRole: "fit_quality_evidence",
     scopeStatement: SCOPE_STATEMENTS.fitQualityEvidence,
@@ -2116,9 +2695,9 @@ function computeFitQualityEvidence(input = {}, options = {}) {
         not_assessable:
           "Triggered by insufficient signal or not-assessable panel evidence.",
         restricted_interpretation:
-          "Triggered by low burden, catalog review cues, or structured-residual review cues.",
+          "Triggered by low mutation burden or not-assessable sample evidence.",
         report_with_caveats:
-          "Triggered by configured bootstrap warnings, threshold-sensitivity warnings, identifiability review cues, or flat-profile review cues.",
+          "Triggered by configured bootstrap or threshold-sensitivity warnings.",
         standard_qc_passed:
           "Returned only when none of the configured rule-based review cues are active.",
       },
@@ -2130,7 +2709,7 @@ function computeFitQualityEvidence(input = {}, options = {}) {
         LITERATURE_REFERENCES.huang2018,
       ],
       note:
-        "Reporting modes are rule-based summaries of burden, reconstruction, residual, bootstrap, threshold, ambiguity, and catalog evidence.",
+        "Reporting modes are rule-based summaries of burden, bootstrap, and threshold evidence. Reconstruction, residual, ambiguity, and catalog evidence remain available for review context.",
     },
     contexts,
     primaryInterpretationField: "samples[].reportingMode",
@@ -2155,6 +2734,12 @@ function computeFitQualityEvidence(input = {}, options = {}) {
       samples.flatMap((sample) => sample.recommendedActions)
     ),
   };
+  if (manualPolicySummary) {
+    result.manualPolicy = manualPolicySummary;
+    result.methodBasis.manualPolicy =
+      "Manual policy flags are configurable review cues layered on top of SDK evidence. They do not change legacy reportingMode, warnings, or caveats.";
+  }
+  return result;
 }
 
 /**
@@ -2232,6 +2817,12 @@ async function runSingleSampleFit(input = {}, options = {}) {
       convergenceTolerance: fitOptions.convergenceTolerance,
     }
   );
+  if (
+    thresholdOptions.baselineThreshold === undefined ||
+    thresholdOptions.baselineThreshold === null
+  ) {
+    thresholdOptions.baselineThreshold = fitOptions.exposureThreshold;
+  }
   const bootstrapOptions = mergeDefinedOptions(
     { ...ADVISOR_DEFAULTS.singleSampleFit.bootstrap },
     options.bootstrap,
@@ -2441,7 +3032,7 @@ async function runSingleSampleFit(input = {}, options = {}) {
       pipeline:
         "Single-sample refitting combines NNLS exposures with mutation-burden QC, residual review, reconstruction metrics, bootstrap uncertainty, threshold sensitivity, ambiguity screening, and catalog-sufficiency checks.",
       interpretationBoundary:
-        "The primary interpretation fields are fitQualityEvidence.samples[].reportingMode, catalogCheck.samples[].status, bootstrap signature intervals, and threshold-sensitivity drift. Exposures alone should not be treated as confidence estimates.",
+        "The primary interpretation fields are fitQualityEvidence.samples[].reportingMode, catalogCheck.samples[].status, bootstrap signature intervals, and cutoff-sensitivity values. Exposures alone should not be treated as confidence estimates.",
       validationAnchor: [
         SYNTHETIC_VALIDATION_ANCHORS.burden50,
         SYNTHETIC_VALIDATION_ANCHORS.burden100,
@@ -3281,6 +3872,12 @@ async function runCohortFit(input = {}, options = {}) {
       convergenceTolerance: fitOptions.convergenceTolerance,
     }
   );
+  if (
+    thresholdOptions.baselineThreshold === undefined ||
+    thresholdOptions.baselineThreshold === null
+  ) {
+    thresholdOptions.baselineThreshold = fitOptions.exposureThreshold;
+  }
   const bootstrapOptions = mergeDefinedOptions(
     { ...ADVISOR_DEFAULTS.singleSampleFit.bootstrap },
     options.bootstrap,

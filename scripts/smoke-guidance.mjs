@@ -1,5 +1,6 @@
 import {
   compareSignatureExposures,
+  computeFitQualityEvidence,
   computeSignatureAmbiguity,
   recommendAnalysisStrategy,
   runCohortFit,
@@ -73,6 +74,76 @@ const ambiguity = computeSignatureAmbiguity(signatures, { contexts });
 const restrictedAssayEvidence = summarizeRestrictedAssayEvidence(signatures, {
   contexts,
 });
+const manualPolicyInput = {
+  signatures,
+  spectra,
+  exposures: {
+    sample_1: { SBS_A: 1 },
+    sample_2: { SBS_A: 1 },
+  },
+  burdenSummary: {
+    samples: [
+      { sample: "sample_1", totalMutations: 1000 },
+      { sample: "sample_2", totalMutations: 1000 },
+    ],
+  },
+  reconstructionError: {
+    samples: [
+      { sample: "sample_1", cosineSimilarity: 0.97, rmse: 0.01 },
+      { sample: "sample_2", cosineSimilarity: 0.97, rmse: 0.01 },
+    ],
+  },
+  residuals: {
+    samples: [
+      {
+        sample: "sample_1",
+        normalizationMode: "relative",
+        metrics: { l1Error: 0.24, relativeUnexplainedFraction: 0.12 },
+        residualStructure: {
+          nearestResidualMatch: { signatureName: "SBS_B", cosineSimilarity: 0.4 },
+        },
+      },
+      {
+        sample: "sample_2",
+        normalizationMode: "relative",
+        metrics: { l1Error: 0.24, relativeUnexplainedFraction: 0.12 },
+        residualStructure: {
+          nearestResidualMatch: { signatureName: "SBS_B", cosineSimilarity: 0.9 },
+        },
+      },
+    ],
+  },
+  catalogCheck: {
+    samples: [
+      { sample: "sample_1", status: "catalog_sufficient_for_fit", warnings: [] },
+      { sample: "sample_2", status: "catalog_sufficient_for_fit", warnings: [] },
+    ],
+  },
+};
+const manualPolicyOptions = {
+  enabled: true,
+  source: "smoke",
+  thresholds: {
+    lowBurdenThreshold: 100,
+    reconstructionCosineThreshold: 0.9,
+    residualUnexplainedThreshold: 0.1,
+    residualStructureCosineThreshold: 0.85,
+    minBurdenForResidualStructure: 100,
+  },
+};
+const manualPolicyEvidence = computeFitQualityEvidence(manualPolicyInput, {
+  manualPolicy: manualPolicyOptions,
+});
+const relaxedManualPolicyEvidence = computeFitQualityEvidence(manualPolicyInput, {
+  manualPolicy: {
+    ...manualPolicyOptions,
+    thresholds: {
+      ...manualPolicyOptions.thresholds,
+      residualUnexplainedThreshold: 0.2,
+    },
+  },
+});
+const legacyManualPolicyEvidence = computeFitQualityEvidence(manualPolicyInput);
 const single = await runSingleSampleFit(
   {
     sampleName: "sample_1",
@@ -172,6 +243,27 @@ if (ambiguity.catalogSummary.signatureCount !== 3) {
 }
 if (restrictedAssayEvidence.signatures.length !== 3) {
   throw new Error("Restricted-assay evidence summary did not include all signatures.");
+}
+if (legacyManualPolicyEvidence.samples.some((sample) => sample.manualPolicy)) {
+  throw new Error("Manual policy fields should be absent unless manualPolicy.enabled is true.");
+}
+if (manualPolicyEvidence.samples[0].manualPolicy?.status !== "review") {
+  throw new Error("High unexplained but unstructured residual should be a manual-policy review cue.");
+}
+if (manualPolicyEvidence.samples[1].manualPolicy?.status !== "priority") {
+  throw new Error("Structured residual should be a manual-policy priority cue.");
+}
+if (
+  relaxedManualPolicyEvidence.samples[1].manualPolicy?.status !== "pass" ||
+  relaxedManualPolicyEvidence.samples[1].reportingMode !== manualPolicyEvidence.samples[1].reportingMode
+) {
+  throw new Error("Manual policy thresholds should change manualPolicy without changing legacy reporting mode.");
+}
+if (
+  manualPolicyEvidence.manualPolicy.priorityCount !== 1 ||
+  manualPolicyEvidence.manualPolicy.reviewCount !== 1
+) {
+  throw new Error("Manual policy summary counts did not match sample policy results.");
 }
 if (!single.fitQualityEvidence.samples[0]?.reportingMode) {
   throw new Error("Single-sample workflow did not return a fit-quality reporting mode.");

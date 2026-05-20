@@ -28,6 +28,12 @@ double-stranded DNA.
 :param mut_allele: base in the mutated genome
 :return: substitution string from pyrimidine to any other base.
 */
+  ref_allele = String(ref_allele || "").toUpperCase();
+  mut_allele = String(mut_allele || "").toUpperCase();
+  if (!/^[ACGT]$/.test(ref_allele) || !/^[ACGT]$/.test(mut_allele)) {
+    return `${ref_allele}>${mut_allele}`;
+  }
+
   var complement_seq, purines;
   complement_seq = {
     A: "T",
@@ -65,6 +71,26 @@ initialized to zeros.
   return sbs_mutational_spectra;
 }
 
+function normalizeSequenceContext(value) {
+  const context = lookupContextValue(value);
+  if (context === null || context === undefined) {
+    return null;
+  }
+
+  const sequence = String(context).trim().toUpperCase();
+  if (/^[ACGTN]{3}$/.test(sequence)) {
+    return sequence;
+  }
+  if (/^[ACGTN]{4,}$/.test(sequence)) {
+    const center = Math.floor(sequence.length / 2);
+    const start = Math.max(0, center - 1);
+    const trinucleotide = sequence.slice(start, start + 3);
+    return trinucleotide.length === 3 ? trinucleotide : null;
+  }
+
+  return null;
+}
+
 function standardize_trinucleotide(trinucleotide_ref) {
   // COSMIC signatures define mutations from a pyrimidine allele (C, T) to any
   // other base (C>A, C>G, C>T, T>A, T>C, T>G). If a mutation in the MAF file
@@ -76,8 +102,10 @@ function standardize_trinucleotide(trinucleotide_ref) {
   // :param trinucleotide_ref: trinucleotide sequence seen in the reference genome.
   // :return: a pyrimidine-centric trinucleotide sequence.
 
-  // Ensure trinucleotide_ref is captialized
-  trinucleotide_ref = trinucleotide_ref.toUpperCase();
+  trinucleotide_ref = normalizeSequenceContext(trinucleotide_ref);
+  if (!trinucleotide_ref) {
+    return "NNN";
+  }
 
   let complement_seq = {
     A: "T",
@@ -139,7 +167,7 @@ function lookupContextValue(value) {
 }
 
 function getRowSuppliedContext(row) {
-  return lookupContextValue(
+  return normalizeSequenceContext(
     row.trinucleotide_context ||
       row.trinucleotide ||
       row.sequence_context ||
@@ -388,12 +416,19 @@ async function convertMatrix(
 
           const fivePrime = sequence[0];
           const threePrime = sequence[2];
+          referenceAllele = String(referenceAllele || "").toUpperCase();
+          mutatedTo = String(mutatedTo || "").toUpperCase();
           const standardizedSubstitution = standardize_substitution(referenceAllele, mutatedTo);
           const mutationType = `${fivePrime}[${standardizedSubstitution}]${threePrime}`.toUpperCase();
+          const normalizedVariantType = String(variantType || "").toLowerCase();
 
           // Only count valid single base substitutions
           if (
-            (variantType === "SNP" || variantType === "single base substitution") &&
+            (normalizedVariantType === "snp" ||
+              normalizedVariantType === "single base substitution" ||
+              normalizedVariantType === "single_base_substitution") &&
+            /^[ACGT]$/.test(referenceAllele) &&
+            /^[ACGT]$/.test(mutatedTo) &&
             !mutationType.includes("N") &&
             !mutationType.includes("U")
           ) {
@@ -407,7 +442,7 @@ async function convertMatrix(
       promises.push(promise);
 
       // Batch processing to avoid too many parallel requests
-      if (i % batch_size === 0 || i === patient.length - 1) {
+      if (promises.length >= batch_size || i === patient.length - 1) {
         await Promise.all(promises);
         promises = [];
       }
@@ -461,6 +496,7 @@ export {
   standardize_substitution,
   init_sbs_mutational_spectra,
   standardize_trinucleotide,
+  normalizeSequenceContext,
   normalizeChromosome,
   convertMatrix,
   getMutationalContext,

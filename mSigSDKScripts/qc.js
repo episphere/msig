@@ -77,6 +77,7 @@ const QC_DEFAULTS = Object.freeze({
     minMutationsForBootstrapSummary: 50,
     maxIterations: null,
     convergenceTolerance: 1e-10,
+    yieldEvery: 25,
   }),
 });
 
@@ -1551,6 +1552,8 @@ async function bootstrapSignatureFit(
       QC_DEFAULTS.bootstrap.minMutationsForBootstrapSummary,
     maxIterations = QC_DEFAULTS.bootstrap.maxIterations,
     convergenceTolerance = QC_DEFAULTS.bootstrap.convergenceTolerance,
+    yieldEvery = QC_DEFAULTS.bootstrap.yieldEvery,
+    progressCallback = null,
   } = {}
 ) {
   const normalizedSignatures = normalizeMatrixObject(signatures);
@@ -1571,6 +1574,7 @@ async function bootstrapSignatureFit(
     maxIterations,
     convergenceTolerance,
   };
+  const yieldInterval = Math.max(0, Math.floor(Number(yieldEvery) || 0));
 
   for (let i = 0; i < iterations; i++) {
     const resampledVector = multinomialResample(observedVector, random);
@@ -1601,6 +1605,13 @@ async function bootstrapSignatureFit(
       { contexts: contextList, normalizeMode: exposureType }
     );
     reconstructionRows.push(reconstructionError.samples[0]);
+
+    if (yieldInterval > 0 && (i + 1) % yieldInterval === 0 && i + 1 < iterations) {
+      if (typeof progressCallback === "function") {
+        progressCallback({ iteration: i + 1, iterations });
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
   }
 
   const alpha = 1 - confidenceLevel;

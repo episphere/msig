@@ -1,82 +1,478 @@
 <!doctype html>
 <notebook theme="air">
-  <title>mSigSDK known-signature quality check</title>
+  <title>mSigSDK cohort QC triage</title>
 
   <script type="text/markdown">
-    # Known-signature quality check
+    # Cohort QC triage
 
-    Known-signature fitting needs quality-control objects that decide whether the fit is interpretable.
-
-    The workflow is narrow: choose an SBS96 example, validate spectra and signatures, review mutation counts, calculate reconstruction error, and inspect residual spectra. Reporting, exports, uncertainty, and complete end-to-end packaging belong in separate workflows.
+    Load a public mSigPortal cohort or your own spectra and signature catalog, rank the known-signature fits by QC concern, then drill into one sample to see the evidence behind the review decision.
   </script>
 
   <script type="module" pinned id="1">
-    const qcSdkUrl = new URL("../main.js?v=2026-05-13-count-workflow-qc", location.href).href;
+    const qcSdkUrl = new URL("../main.js?v=2026-05-17-manual-policy-qc", location.href).href;
     const { mSigSDK } = await import(qcSdkUrl);
+    const { loadPublicSbs96Dataset } = await import("./msig-notebook-fixtures.js");
     const {
-      loadPublicSbs96Dataset,
-    } = await import("./msig-notebook-fixtures.js");
-    const {
-      burdenSampleRows,
       formatNumber,
       metrics,
-      reconstructionRows,
       table,
     } = mSigSDK.presentation;
 
-    display(metrics([
-      { label: "SDK", value: mSigSDK.name },
-      { label: "Version", value: mSigSDK.version },
-      { label: "Import target", value: "../main.js" },
-      { label: "Workflow", value: "Known signatures" },
-    ]));
-    display(table(
-      [
-        { namespace: "mSigPortal", role: "Fetch public example spectra and signatures" },
-        { namespace: "validation", role: "Check table shape and missing contexts" },
-        { namespace: "signatureFitting", role: "Estimate relative signature contributions" },
-        { namespace: "qc", role: "Create burden, reconstruction, and residual objects" },
-        { namespace: "qcPlots", role: "Render quality-check figures for reports and browser pages" },
-        { namespace: "presentation", role: "Create reusable metrics, tables, and object summaries" },
-      ],
-      [
-        { key: "namespace", label: "SDK namespace" },
-        { key: "role", label: "Used here for" },
-      ]
-    ));
-  </script>
-<script type="text/markdown">
-    ## Step 1. Choose the profile, example data, and fitting settings
+    const qcStyle = document.createElement("style");
+    qcStyle.textContent = `
+      .qc-layout {
+        display: grid;
+        gap: 1rem;
+      }
 
-    The first analysis decision is the mutation table. Here we use SBS96, so `getExpectedContexts` returns the 96 trinucleotide contexts used to check spectra and signatures. The mSigPortal calls fetch specific PCAWG WGS Lung-AdenoCA samples with real mutation counts, including high-count and low-count examples so the review cues are visible. In your own project, replace `qcExampleSampleNames` with your local sample IDs or replace the fetch with your own spectra object.
+      .qc-layout.compact {
+        gap: 0.75rem;
+      }
 
-    Edit `qcSampleLimit`, `qcMutationBurdenThreshold`, or `qcPreferredSignatureNames` to see how the analysis changes. In a real project, these settings should come from the assay design, expected mutation count, and the reference catalog being tested.
-  </script>
-<script type="module" pinned id="2">
-    const qcContexts = mSigSDK.validation.getExpectedContexts({
-      profile: "SBS",
-      matrix: 96,
-    });
-    const qcStudy = "PCAWG";
-    const qcGenomeDataType = "WGS";
-    const qcCancerType = "Lung-AdenoCA";
-    const qcMutationType = "SBS";
-    const qcMatrixSize = 96;
-    const qcSignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
-    const qcExampleSampleNames = [
-      "SP53810",
-      "SP55142",
-      "SP55235",
-      "SP54113",
-      "SP50611",
-      "SP50592",
-      "SP50406",
-      "SP55004",
-    ];
-    const qcSampleLimit = qcExampleSampleNames.length;
-    const qcMutationBurdenThreshold = 5000;
-    const qcExposureThreshold = 0.01;
-    const qcPreferredSignatureNames = [
+      .qc-two-up,
+      .qc-input-grid,
+      .qc-settings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+        align-items: start;
+      }
+
+      .qc-shell {
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .qc-workbench-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+        gap: 1rem;
+        align-items: stretch;
+      }
+
+      .qc-header-panel {
+        border: 1px solid #b7c6d8;
+        border-radius: 8px;
+        padding: 1rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #eef6ff 48%, #ecfdf5 100%);
+      }
+
+      .qc-header-panel h3 {
+        margin: 0 0 0.35rem;
+        font-size: 1.15rem;
+      }
+
+      .qc-header-panel p {
+        margin: 0;
+        color: #475569;
+      }
+
+      .qc-source-tabs {
+        display: inline-flex;
+        gap: 0.35rem;
+        align-items: center;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 0.25rem;
+        background: #f8fafc;
+        width: fit-content;
+      }
+
+      .qc-source-tabs .qc-button {
+        border-color: transparent;
+        background: transparent;
+        padding: 0.35rem 0.65rem;
+      }
+
+      .qc-source-tabs .qc-button[aria-pressed="true"] {
+        background: #ffffff;
+        border-color: #bfdbfe;
+        color: #1d4ed8;
+      }
+
+      .qc-panel {
+        border: 1px solid #d8e0ea;
+        border-radius: 8px;
+        padding: 1rem;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      }
+
+      .qc-panel h3,
+      .qc-panel h4 {
+        margin: 0 0 0.5rem;
+      }
+
+      .qc-panel p {
+        margin: 0.35rem 0 0.75rem;
+      }
+
+      .qc-controls,
+      .qc-button-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .qc-field {
+        display: grid;
+        gap: 0.3rem;
+        font-weight: 650;
+      }
+
+      .qc-check-field {
+        display: flex;
+        gap: 0.45rem;
+        align-items: start;
+        font-weight: 650;
+        line-height: 1.25;
+      }
+
+      .qc-check-field small {
+        display: block;
+        color: #64748b;
+        font-weight: 400;
+        margin-top: 0.15rem;
+      }
+
+      .qc-field small {
+        color: #64748b;
+        font-weight: 400;
+      }
+
+      .qc-field input,
+      .qc-field select,
+      .qc-field textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 0.42rem 0.5rem;
+        background: #ffffff;
+      }
+
+      .qc-field textarea {
+        min-height: 9rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.85rem;
+      }
+
+      .qc-controls label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-weight: 650;
+      }
+
+      .qc-controls select {
+        min-width: 14rem;
+      }
+
+      .qc-button {
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background: #f8fafc;
+        color: #0f172a;
+        padding: 0.45rem 0.65rem;
+        cursor: pointer;
+      }
+
+      .qc-button.primary {
+        border-color: #2563eb;
+        background: #2563eb;
+        color: #ffffff;
+      }
+
+      .qc-button:hover {
+        background: #e2e8f0;
+      }
+
+      .qc-button.primary:hover {
+        background: #1d4ed8;
+      }
+
+      .qc-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: end;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+      }
+
+      .qc-toolbar-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        align-items: end;
+      }
+
+      .qc-toolbar .qc-field {
+        min-width: 10rem;
+      }
+
+      .qc-toolbar .qc-search-field {
+        min-width: min(100%, 18rem);
+      }
+
+      .qc-switch {
+        display: inline-flex;
+        gap: 0.45rem;
+        align-items: center;
+        min-height: 2.4rem;
+        padding: 0 0.65rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background: #f8fafc;
+        font-weight: 700;
+      }
+
+      .qc-count-note {
+        color: #475569;
+        font-size: 0.9rem;
+        font-weight: 650;
+      }
+
+      .qc-table-frame {
+        border: 1px solid #d8e0ea;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #ffffff;
+      }
+
+      .qc-table-scroll {
+        max-height: 38rem;
+        overflow: auto;
+      }
+
+      .qc-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+      }
+
+      .qc-table caption {
+        caption-side: top;
+        text-align: left;
+        padding-bottom: 0.5rem;
+        color: #475569;
+      }
+
+      .qc-table th,
+      .qc-table td {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 0.5rem 0.55rem;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .qc-table th {
+        color: #334155;
+        background: #f8fafc;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+
+      .qc-table tbody tr {
+        cursor: pointer;
+      }
+
+      .qc-table tbody tr:hover,
+      .qc-table tbody tr[data-selected="true"] {
+        background: #eef6ff;
+      }
+
+      .qc-sample-cell {
+        display: grid;
+        gap: 0.15rem;
+      }
+
+      .qc-sample-cell strong {
+        color: #0f172a;
+      }
+
+      .qc-sample-cell small {
+        color: #64748b;
+      }
+
+      .qc-meter {
+        display: grid;
+        gap: 0.25rem;
+        min-width: 7rem;
+      }
+
+      .qc-meter-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        color: #334155;
+      }
+
+      .qc-meter-track {
+        height: 0.42rem;
+        border-radius: 999px;
+        background: #e2e8f0;
+        overflow: hidden;
+      }
+
+      .qc-meter-fill {
+        height: 100%;
+        width: var(--qc-meter-width, 0%);
+        border-radius: inherit;
+        background: #2563eb;
+      }
+
+      .qc-meter-fill.concern {
+        background: #e11d48;
+      }
+
+      .qc-meter-fill.warning {
+        background: #d97706;
+      }
+
+      .qc-empty-state {
+        display: grid;
+        gap: 0.35rem;
+        padding: 1rem;
+        color: #475569;
+        background: #f8fafc;
+      }
+
+      .qc-status {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.18rem 0.55rem;
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
+      .qc-status.pass {
+        background: #e7f7ed;
+        color: #116329;
+      }
+
+      .qc-status.review {
+        background: #fff3d8;
+        color: #7c4a03;
+      }
+
+      .qc-status.restrict {
+        background: #ffe4e6;
+        color: #9f1239;
+      }
+
+      .qc-flag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        max-width: 18rem;
+      }
+
+      .qc-flag {
+        border: 1px solid #cbd5e1;
+        border-radius: 999px;
+        padding: 0.16rem 0.45rem;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .qc-flag.review {
+        border-color: #fcd34d;
+        background: #fffbeb;
+        color: #92400e;
+      }
+
+      .qc-flag.priority {
+        border-color: #fecdd3;
+        background: #fff1f2;
+        color: #9f1239;
+      }
+
+      .qc-flag.pass {
+        border-color: #bbf7d0;
+        background: #f0fdf4;
+        color: #166534;
+      }
+
+      .qc-placeholder {
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        color: #475569;
+        padding: 0.8rem;
+        background: #f8fafc;
+      }
+
+      .qc-settings-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin: 0.4rem 0 0.75rem;
+      }
+
+      .qc-chip {
+        border: 1px solid #cbd5e1;
+        border-radius: 999px;
+        padding: 0.25rem 0.55rem;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 0.84rem;
+        font-weight: 650;
+      }
+
+      .qc-error {
+        white-space: pre-wrap;
+        color: #9f1239;
+      }
+
+      .qc-plot-host {
+        min-height: 260px;
+      }
+
+      .qc-panel .msigsdk-output-metrics,
+      .qc-header-panel .msigsdk-output-metrics {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      }
+
+      @media (max-width: 760px) {
+        .qc-workbench-header {
+          grid-template-columns: 1fr;
+        }
+
+        .qc-table {
+          font-size: 0.84rem;
+        }
+
+        .qc-table th,
+        .qc-table td {
+          padding: 0.45rem;
+        }
+      }
+    `;
+    document.head.append(qcStyle);
+
+    const qcDefaultStudy = "PCAWG";
+    const qcDefaultGenomeDataType = "WGS";
+    const qcDefaultCancerType = "Lung-AdenoCA";
+    const qcDefaultMutationType = "SBS";
+    const qcDefaultMatrixSize = 96;
+    const qcDefaultSignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
+    const qcDefaultSampleLimit = 100;
+    const qcPublicSampleLimitMax = 500;
+    const qcPublicFetchBatchSize = 20;
+    const qcFallbackMutationBurdenThreshold = 5000;
+    const qcFallbackModerateBurdenThreshold = 1000;
+    const qcFallbackExposureThreshold = 0.01;
+    const qcFallbackReconstructionCosineThreshold = 0.95;
+    const qcFallbackResidualUnexplainedThreshold = 0.07;
+    const qcFallbackResidualStructureCosineThreshold = 0.85;
+    const qcFallbackResidualStructureBurdenThreshold = 100;
+    const qcDefaultSignatureNames = [
       "SBS1",
       "SBS2",
       "SBS4",
@@ -87,202 +483,1672 @@
       "SBS18",
       "SBS40",
     ];
+    const qcPublicApiBase = "https://analysistools.cancer.gov/mutational-signatures/api/";
+    const qcPancancerValue = "__all_cancers__";
 
-    const qcDataset = await loadPublicSbs96Dataset(mSigSDK, {
-      study: qcStudy,
-      genomeDataType: qcGenomeDataType,
-      cancerType: qcCancerType,
-      mutationType: qcMutationType,
-      matrixSize: qcMatrixSize,
-      signatureSetName: qcSignatureSetName,
-      sampleNames: qcExampleSampleNames,
-      sampleLimit: qcSampleLimit,
-      signatureNames: qcPreferredSignatureNames,
-      allowAlternate: false,
-    });
-    const qcDataSourceStatus = qcDataset.status;
-    const qcAllGroupedSpectra = qcDataset.spectra;
-    const qcAllReferenceSignatures = qcDataset.allSignatures;
-
-    const qcAllBurden = mSigSDK.qc.summarizeMutationBurden(qcAllGroupedSpectra, {
-      expectedContexts: qcContexts,
-      lowBurdenThresholdMode: "fixed",
-      lowBurdenThreshold: qcMutationBurdenThreshold,
-    });
-    const qcSelectedBurdenSamples = mSigSDK.qc.selectSamplesByMutationBurden(
-      qcAllBurden,
-      {
-        sampleNames: qcExampleSampleNames.filter((sample) => qcAllGroupedSpectra[sample]).length
-          ? qcExampleSampleNames.filter((sample) => qcAllGroupedSpectra[sample])
-          : Object.keys(qcAllGroupedSpectra),
-        minTotalMutations: 1,
-        limit: qcSampleLimit,
-      }
-    );
-    const qcSelectedSampleNames = qcSelectedBurdenSamples.map(
-      (sample) => sample.sample
-    );
-    const qcGroupedSpectra = Object.fromEntries(
-      qcSelectedSampleNames.map((sample) => [sample, qcAllGroupedSpectra[sample]])
-    );
-
-    const qcAvailablePreferredSignatures = qcPreferredSignatureNames.filter(
-      (signature) => qcAllReferenceSignatures[signature]
-    );
-    const qcSelectedSignatureNames =
-      qcAvailablePreferredSignatures.length > 0
-        ? qcAvailablePreferredSignatures
-        : Object.keys(qcAllReferenceSignatures).slice(0, 8);
-    const qcReferenceSignatures = Object.fromEntries(
-      qcSelectedSignatureNames.map((signature) => [
-        signature,
-        qcAllReferenceSignatures[signature],
-      ])
-    );
-
-    display(metrics([
-      { label: "Data source", value: qcDataSourceStatus },
-      { label: "Study", value: qcStudy },
-      { label: "Cancer type", value: qcCancerType },
-      { label: "Samples selected", value: qcSelectedSampleNames.length },
-      { label: "Reference signatures", value: qcSelectedSignatureNames.length },
-      { label: "Mutation-count cutoff", value: qcMutationBurdenThreshold },
-      {
-        label: "Low mutation-count samples",
-        value: qcSelectedBurdenSamples.filter(
-          (sample) => sample.totalMutations < qcMutationBurdenThreshold
-        ).length,
+    const qcState = {
+      spectra: null,
+      signatures: null,
+      metadata: [],
+      contexts: [],
+      source: "",
+      publicSelection: null,
+      analysis: null,
+      triageRows: [],
+      selectedSample: null,
+      flaggedOnly: true,
+      tableLimit: 50,
+      tableSearch: "",
+      settingsMode: "smart",
+      settings: {
+        exposureThreshold: qcFallbackExposureThreshold,
+        lowBurdenThreshold: qcFallbackMutationBurdenThreshold,
+        moderateBurdenThreshold: qcFallbackModerateBurdenThreshold,
+        reconstructionCosineThreshold: qcFallbackReconstructionCosineThreshold,
+        residualUnexplainedThreshold: qcFallbackResidualUnexplainedThreshold,
+        residualStructureCosineThreshold: qcFallbackResidualStructureCosineThreshold,
+        minBurdenForResidualStructure: qcFallbackResidualStructureBurdenThreshold,
       },
-      { label: "Minimum signature contribution", value: qcExposureThreshold },
-    ]));
-    display(table(
-      burdenSampleRows(qcAllBurden, qcSelectedSampleNames),
+      flagRules: {
+        lowBurden: true,
+        reconstruction: true,
+        residualUnexplained: true,
+        structuredResidual: true,
+      },
+    };
+
+    const qcHosts = {
+      inputSummary: null,
+      triageMetrics: null,
+      plots: null,
+      cohortTable: null,
+      sampleDetail: null,
+      runStatus: null,
+      settingsSummary: null,
+      tableCount: null,
+    };
+
+    let qcSampleSelect = null;
+    let qcFlagToggle = null;
+    let qcTableSearchInput = null;
+    let qcTableLimitSelect = null;
+    const qcSettingControls = {};
+
+    function qcElement(tag, className = "", text = "") {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      if (text) element.textContent = text;
+      return element;
+    }
+
+    function qcYield() {
+      return new Promise((resolve) => setTimeout(resolve, 0));
+    }
+
+    function qcSetRunStatus(message) {
+      if (qcHosts.runStatus) qcHosts.runStatus.replaceChildren(qcPlaceholder(message));
+    }
+
+    function qcButton(label, kind = "") {
+      const button = qcElement("button", `qc-button ${kind}`.trim(), label);
+      button.type = "button";
+      return button;
+    }
+
+    function qcField(label, control, help = "") {
+      const wrapper = qcElement("label", "qc-field");
+      if (!control.getAttribute("aria-label")) control.setAttribute("aria-label", label);
+      wrapper.append(qcElement("span", "", label), control);
+      if (help) wrapper.append(qcElement("small", "", help));
+      return wrapper;
+    }
+
+    function qcCheckField(label, control, help = "") {
+      const wrapper = qcElement("label", "qc-check-field");
+      if (!control.getAttribute("aria-label")) control.setAttribute("aria-label", label);
+      const copy = qcElement("span");
+      copy.append(qcElement("span", "", label));
+      if (help) copy.append(qcElement("small", "", help));
+      wrapper.append(control, copy);
+      return wrapper;
+    }
+
+    function qcNumberInput(value, { min = null, max = null, step = "any" } = {}) {
+      const input = document.createElement("input");
+      input.type = "number";
+      input.value = String(value);
+      input.step = String(step);
+      if (min !== null) input.min = String(min);
+      if (max !== null) input.max = String(max);
+      return input;
+    }
+
+    function qcOption(label, value = label) {
+      const option = document.createElement("option");
+      option.value = String(value);
+      option.textContent = String(label);
+      return option;
+    }
+
+    function qcSetSelectOptions(select, items, preferred = "") {
+      const normalized = items.map((item) =>
+        typeof item === "object" ? item : { label: item, value: item }
+      );
+      select.replaceChildren(...normalized.map((item) => qcOption(item.label, item.value)));
+      const preferredValue = String(preferred || "");
+      if (preferredValue && normalized.some((item) => String(item.value) === preferredValue)) {
+        select.value = preferredValue;
+      } else if (normalized.length) {
+        select.value = String(normalized[0].value);
+      }
+      return select.value;
+    }
+
+    function qcPlaceholder(text) {
+      return qcElement("div", "qc-placeholder", text);
+    }
+
+    function qcCell(content, className = "") {
+      const td = document.createElement("td");
+      if (className) td.className = className;
+      if (content instanceof Node) {
+        td.append(content);
+      } else {
+        td.textContent = String(content);
+      }
+      return td;
+    }
+
+    function qcMetadataForSample(sample) {
+      return qcState.metadata.find((row) => row.sample === sample) || {};
+    }
+
+    function qcMeterCell(label, value, width, tone = "") {
+      const meter = qcElement("div", "qc-meter");
+      const meterLabel = qcElement("div", "qc-meter-label");
+      meterLabel.append(qcElement("span", "", label), qcElement("strong", "", value));
+      const track = qcElement("div", "qc-meter-track");
+      const fill = qcElement("div", `qc-meter-fill ${tone}`.trim());
+      fill.style.setProperty("--qc-meter-width", `${Number.isFinite(width) ? qcBound(width, 0, 100) : 0}%`);
+      track.append(fill);
+      meter.append(meterLabel, track);
+      return meter;
+    }
+
+    function qcPolicyClass(status) {
+      return status === "priority" ? "restrict" : status === "review" ? "review" : "pass";
+    }
+
+    function qcPolicyLabel(status) {
+      return {
+        priority: "Priority",
+        review: "Review",
+        pass: "Pass",
+      }[status] || "Review";
+    }
+
+    function qcRenderPolicyStatus(status) {
+      const badge = qcElement("span", `qc-status ${qcPolicyClass(status)}`);
+      badge.textContent = qcPolicyLabel(status);
+      return badge;
+    }
+
+    function qcRenderFlagList(flags = []) {
+      const list = qcElement("div", "qc-flag-list");
+      if (!flags.length) {
+        list.append(qcElement("span", "qc-flag pass", "No policy flag"));
+        return list;
+      }
+      flags.forEach((flag) => {
+        list.append(qcElement("span", `qc-flag ${flag.severity}`, flag.label || flag.code));
+      });
+      return list;
+    }
+
+    function qcManualPolicyOptions() {
+      return {
+        enabled: true,
+        source: qcState.settingsMode === "smart" ? "cohort_preset" : "manual",
+        thresholds: {
+          lowBurdenThreshold: qcState.settings.lowBurdenThreshold,
+          reconstructionCosineThreshold: qcState.settings.reconstructionCosineThreshold,
+          residualUnexplainedThreshold: qcState.settings.residualUnexplainedThreshold,
+          residualStructureCosineThreshold: qcState.settings.residualStructureCosineThreshold,
+          minBurdenForResidualStructure: qcState.settings.minBurdenForResidualStructure,
+        },
+        rules: {
+          lowBurden: qcState.flagRules.lowBurden,
+          reconstruction: qcState.flagRules.reconstruction,
+          residualUnexplained: qcState.flagRules.residualUnexplained,
+          structuredResidual: qcState.flagRules.structuredResidual,
+        },
+      };
+    }
+
+    function qcFallbackManualPolicy() {
+      return {
+        status: "pass",
+        score: 0,
+        primaryCue: "No manual policy cue",
+        flags: [],
+        thresholds: qcManualPolicyOptions().thresholds,
+        rules: qcManualPolicyOptions().rules,
+      };
+    }
+
+    function qcSearchMatches(row, query) {
+      const normalized = String(query || "").trim().toLowerCase();
+      if (!normalized) return true;
+      const metadata = qcMetadataForSample(row.sample);
+      return [
+        row.sample,
+        qcPolicyLabel(row.policyStatus),
+        row.mainCue,
+        row.burdenClass,
+        ...(row.policyFlags || []).map((flag) => flag.label || flag.code),
+        metadata.cancer,
+        metadata.strategy,
+        metadata.source,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized));
+    }
+
+    function qcFilteredTriageRows() {
+      return qcState.triageRows.filter((row) =>
+        (!qcState.flaggedOnly || row.policyStatus !== "pass") &&
+        qcSearchMatches(row, qcState.tableSearch)
+      );
+    }
+
+    function qcDisplayedTriageRows(rows) {
+      if (qcState.tableLimit === "all") return rows;
+      const limit = Math.max(1, Math.round(Number(qcState.tableLimit) || 50));
+      return rows.slice(0, limit);
+    }
+
+    function qcFormat(value, digits = 3) {
+      return Number.isFinite(value) ? formatNumber(value, digits) : "n/a";
+    }
+
+    function qcPercent(value, digits = 1) {
+      return Number.isFinite(value) ? `${formatNumber(value * 100, digits)}%` : "n/a";
+    }
+
+    function qcPercentPrecise(value, digits = 1) {
+      return Number.isFinite(value) ? `${(value * 100).toFixed(digits)}%` : "n/a";
+    }
+
+    function qcQuantile(values, probability) {
+      const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+      if (!sorted.length) return null;
+      const position = (sorted.length - 1) * Math.min(Math.max(probability, 0), 1);
+      const lower = Math.floor(position);
+      const upper = Math.ceil(position);
+      if (lower === upper) return sorted[lower];
+      return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower);
+    }
+
+    function qcMedian(values) {
+      return qcQuantile(values, 0.5);
+    }
+
+    function qcMad(values, center = qcMedian(values)) {
+      if (!Number.isFinite(center)) return 0;
+      return qcMedian(values.map((value) => Math.abs(value - center)).filter(Number.isFinite)) || 0;
+    }
+
+    function qcRoundBurden(value) {
+      if (!Number.isFinite(value)) return qcFallbackMutationBurdenThreshold;
+      if (value >= 10000) return Math.round(value / 1000) * 1000;
+      if (value >= 1000) return Math.round(value / 100) * 100;
+      if (value >= 100) return Math.round(value / 10) * 10;
+      return Math.max(1, Math.round(value));
+    }
+
+    function qcBound(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function qcParseNumber(value, fallback) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function qcStringify(value) {
+      return JSON.stringify(value, null, 2);
+    }
+
+    function qcParseCsvLike(text) {
+      const lines = String(text || "").trim().split(/\r?\n/).filter(Boolean);
+      if (!lines.length) return [];
+      const delimiter = lines[0].includes("\t") ? "\t" : ",";
+      const headers = lines[0].split(delimiter).map((header) => header.trim());
+      return lines.slice(1).map((line) => {
+        const values = line.split(delimiter);
+        return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+      });
+    }
+
+    function qcParseMetadata(text) {
+      const trimmed = String(text || "").trim();
+      if (!trimmed) return [];
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return qcNormalizeMetadata(parsed);
+        if (parsed && typeof parsed === "object") {
+          return qcNormalizeMetadata(Object.entries(parsed).map(([sample, fields]) => ({
+            sample,
+            ...(fields || {}),
+          })));
+        }
+      } catch (_error) {
+        return qcNormalizeMetadata(qcParseCsvLike(trimmed));
+      }
+      return [];
+    }
+
+    function qcParseMatrix(text, kind) {
+      const trimmed = String(text || "").trim();
+      if (!trimmed) throw new Error(`${kind} input is empty.`);
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+      } catch (_error) {
+        // Fall through to delimited matrix import.
+      }
+      const delimiter = trimmed.split(/\r?\n/)[0]?.includes(",") ? "," : "\t";
+      return kind === "spectra"
+        ? mSigSDK.io.importSigProfilerMatrix(trimmed, { delimiter })
+        : mSigSDK.io.importCOSMICSignatureMatrix(trimmed, { delimiter });
+    }
+
+    function qcReadFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("Unable to read file."));
+        reader.readAsText(file);
+      });
+    }
+
+    function qcFileInput(target) {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json,.txt,.tsv,.csv";
+      input.addEventListener("change", async () => {
+        if (input.files?.[0]) target.value = await qcReadFileAsText(input.files[0]);
+      });
+      return input;
+    }
+
+    function qcNormalizeMetadata(metadata) {
+      return (Array.isArray(metadata) ? metadata : [])
+        .map((row) => ({
+          ...row,
+          sample: row.sample || row.Sample || row.sample_id || row.sampleId || row.id,
+        }))
+        .filter((row) => row.sample);
+    }
+
+    function qcInferContexts(...matrices) {
+      const contexts = [
+        ...new Set(
+          matrices.flatMap((matrix) =>
+            Object.values(matrix || {}).flatMap((record) => Object.keys(record || {}))
+          )
+        ),
+      ];
+      return contexts.length
+        ? contexts
+        : mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 });
+    }
+
+    function qcPublicApiUrl(endpoint, params = {}) {
+      const url = new URL(endpoint, qcPublicApiBase);
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null && value !== "") {
+          url.searchParams.set(key, value);
+        }
+      }
+      return url;
+    }
+
+    async function qcFetchPublicApiRows(endpoint, params = {}, limit = 100000) {
+      const rows = [];
+      let offset = 0;
+      for (let page = 0; page < 10; page += 1) {
+        const response = await fetch(qcPublicApiUrl(endpoint, { ...params, limit, offset }).href);
+        if (!response.ok) throw new Error(`${endpoint} returned ${response.status}`);
+        const pageRows = await response.json();
+        if (!Array.isArray(pageRows)) throw new Error(`${endpoint} response was not an array.`);
+        rows.push(...pageRows);
+        if (pageRows.length < limit) break;
+        offset += limit;
+      }
+      return rows;
+    }
+
+    function qcChunks(items, size) {
+      const chunkSize = Math.max(1, Math.round(Number(size) || 1));
+      const chunks = [];
+      for (let index = 0; index < items.length; index += chunkSize) {
+        chunks.push(items.slice(index, index + chunkSize));
+      }
+      return chunks;
+    }
+
+    function qcUniqueSorted(values) {
+      return [...new Set(values.filter((value) => value !== undefined && value !== null && value !== ""))]
+        .map(String)
+        .sort((a, b) => a.localeCompare(b));
+    }
+
+    function qcStatusLabel(mode) {
+      return {
+        standard_qc_passed: "Pass",
+        report_with_caveats: "Caveat",
+        restricted_interpretation: "Restricted",
+        not_assessable: "Not assessable",
+      }[mode] || mode || "Review";
+    }
+
+    function qcStatusClass(mode) {
+      if (mode === "standard_qc_passed") return "pass";
+      if (mode === "restricted_interpretation" || mode === "not_assessable") return "restrict";
+      return "review";
+    }
+
+    function qcWarningSample(warning) {
+      return warning?.sample || warning?.details?.sample || null;
+    }
+
+    function qcWarningRowsFor(sample) {
+      const analysis = qcState.analysis;
+      if (!analysis) return [];
+      const fitQualitySample = analysis.fitQualityBySample.get(sample);
+      const residualSample = analysis.residualBySample.get(sample);
+      const warnings = [
+        ...(analysis.burden.warnings || []),
+        ...(residualSample?.warnings || []),
+        ...(fitQualitySample?.warnings || []),
+      ]
+        .filter((warning) => !qcWarningSample(warning) || qcWarningSample(warning) === sample)
+        .map((warning) => ({
+          code: warning.code || "review_cue",
+          message: warning.message || "Review this sample before reporting.",
+          action: warning.resolution || warning.recommendedAction || "",
+        }));
+      const seen = new Set();
+      return warnings.filter((warning) => {
+        const key = `${warning.code}|${warning.message}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function qcExposureRowsForSample(sample) {
+      return Object.entries(qcState.analysis?.exposures?.[sample] || {})
+        .filter(([, exposure]) => Number.isFinite(exposure) && exposure > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([signature, exposure]) => ({
+          signature,
+          contribution: qcPercent(exposure, 1),
+        }));
+    }
+
+    function qcRecommendedAction(row) {
+      const analysis = qcState.analysis;
+      const fitQualitySample = analysis?.fitQualityBySample.get(row.sample);
+      const residualSample = analysis?.residualBySample.get(row.sample);
+      if (row.policyStatus === "priority") {
+        return "Prioritize this sample for manual review before reporting fitted contributions.";
+      }
+      if (row.policyStatus === "review") {
+        return "Review the configured manual-policy cue and document the threshold that was crossed.";
+      }
+      return (
+        fitQualitySample?.recommendedActions?.find(Boolean) ||
+        residualSample?.recommendedActions?.find(Boolean) ||
+        "Proceed with interpretation using the attached QC evidence."
+      );
+    }
+
+    function qcSetDataset({ spectra, signatures, metadata = [], source, contexts = null, publicSelection = null }) {
+      qcState.spectra = JSON.parse(JSON.stringify(spectra || {}));
+      qcState.signatures = JSON.parse(JSON.stringify(signatures || {}));
+      qcState.metadata = qcNormalizeMetadata(metadata);
+      qcState.contexts = contexts?.length ? [...contexts] : qcInferContexts(qcState.spectra, qcState.signatures);
+      qcState.source = source || "user supplied";
+      qcState.publicSelection = publicSelection;
+      qcState.analysis = null;
+      qcState.triageRows = [];
+      qcState.selectedSample = Object.keys(qcState.spectra)[0] || null;
+      qcState.tableSearch = "";
+      if (qcTableSearchInput) qcTableSearchInput.value = "";
+      qcRenderInputSummary();
+    }
+
+    function qcMutationTotals() {
+      return Object.values(qcState.spectra || {}).map((record) =>
+        Object.values(record || {}).reduce((sum, value) => sum + (Number(value) || 0), 0)
+      );
+    }
+
+    function qcApplySmartInputDefaults() {
+      const nonZeroTotals = qcMutationTotals().filter((total) => Number.isFinite(total) && total > 0);
+      const q10 = qcQuantile(nonZeroTotals, 0.1);
+      const median = qcMedian(nonZeroTotals);
+      const lowBurden = nonZeroTotals.length
+        ? qcRoundBurden(Math.max(qcFallbackResidualStructureBurdenThreshold, q10 || nonZeroTotals[0] || qcFallbackResidualStructureBurdenThreshold))
+        : qcFallbackMutationBurdenThreshold;
+      qcState.settings.lowBurdenThreshold = lowBurden;
+      qcState.settings.moderateBurdenThreshold = nonZeroTotals.length
+        ? qcRoundBurden(Math.max(lowBurden * 2, median || lowBurden * 2))
+        : qcFallbackModerateBurdenThreshold;
+      qcState.settings.exposureThreshold = qcFallbackExposureThreshold;
+      qcState.settings.residualStructureCosineThreshold = qcFallbackResidualStructureCosineThreshold;
+      qcState.settings.minBurdenForResidualStructure = qcFallbackResidualStructureBurdenThreshold;
+    }
+
+    function qcApplySmartResultDefaults(reconstruction, residuals) {
+      const cosines = (reconstruction?.samples || [])
+        .map((sample) => sample.cosineSimilarity)
+        .filter(Number.isFinite);
+      const residualFractions = (residuals?.samples || [])
+        .map((sample) => sample.metrics?.relativeUnexplainedFraction)
+        .filter(Number.isFinite);
+      const medianCosine = qcMedian(cosines);
+      const cosineMad = qcMad(cosines, medianCosine);
+      const cosineThreshold = Number.isFinite(medianCosine)
+        ? medianCosine - 2 * cosineMad
+        : qcFallbackReconstructionCosineThreshold;
+      const residualThreshold = qcQuantile(residualFractions, 0.75);
+      qcState.settings.reconstructionCosineThreshold = Number.isFinite(cosineThreshold)
+        ? Number(qcBound(cosineThreshold, 0.85, 0.98).toFixed(3))
+        : qcFallbackReconstructionCosineThreshold;
+      qcState.settings.residualUnexplainedThreshold = Number.isFinite(residualThreshold)
+        ? Number(qcBound(residualThreshold, qcFallbackResidualUnexplainedThreshold, 0.25).toFixed(3))
+        : qcFallbackResidualUnexplainedThreshold;
+    }
+
+    function qcReadManualSettingsFromControls() {
+      if (!qcSettingControls.lowBurdenThreshold) return;
+      qcState.settings.exposureThreshold = qcBound(qcParseNumber(qcSettingControls.exposureThreshold.value, qcFallbackExposureThreshold), 0, 0.5);
+      qcState.settings.lowBurdenThreshold = Math.max(0, Math.round(qcParseNumber(qcSettingControls.lowBurdenThreshold.value, qcFallbackMutationBurdenThreshold)));
+      qcState.settings.moderateBurdenThreshold = Math.max(
+        qcState.settings.lowBurdenThreshold,
+        Math.round(qcParseNumber(qcSettingControls.moderateBurdenThreshold.value, qcState.settings.lowBurdenThreshold * 2))
+      );
+      qcState.settings.reconstructionCosineThreshold = qcBound(qcParseNumber(qcSettingControls.reconstructionCosineThreshold.value, qcFallbackReconstructionCosineThreshold), 0, 1);
+      qcState.settings.residualUnexplainedThreshold = qcBound(qcParseNumber(qcSettingControls.residualUnexplainedThreshold.value, qcFallbackResidualUnexplainedThreshold), 0, 1);
+      qcState.settings.residualStructureCosineThreshold = qcBound(qcParseNumber(qcSettingControls.residualStructureCosineThreshold.value, qcFallbackResidualStructureCosineThreshold), 0, 1);
+      qcState.settings.minBurdenForResidualStructure = Math.max(0, Math.round(qcParseNumber(qcSettingControls.minBurdenForResidualStructure.value, qcFallbackResidualStructureBurdenThreshold)));
+      for (const key of Object.keys(qcState.flagRules)) {
+        if (qcSettingControls[key]) qcState.flagRules[key] = qcSettingControls[key].checked;
+      }
+    }
+
+    function qcSyncSettingControls() {
+      if (!qcSettingControls.lowBurdenThreshold) return;
+      qcSettingControls.exposureThreshold.value = String(qcState.settings.exposureThreshold);
+      qcSettingControls.lowBurdenThreshold.value = String(qcState.settings.lowBurdenThreshold);
+      qcSettingControls.moderateBurdenThreshold.value = String(qcState.settings.moderateBurdenThreshold);
+      qcSettingControls.reconstructionCosineThreshold.value = String(qcState.settings.reconstructionCosineThreshold);
+      qcSettingControls.residualUnexplainedThreshold.value = String(qcState.settings.residualUnexplainedThreshold);
+      qcSettingControls.residualStructureCosineThreshold.value = String(qcState.settings.residualStructureCosineThreshold);
+      qcSettingControls.minBurdenForResidualStructure.value = String(qcState.settings.minBurdenForResidualStructure);
+      for (const key of Object.keys(qcState.flagRules)) {
+        if (qcSettingControls[key]) qcSettingControls[key].checked = qcState.flagRules[key];
+      }
+      qcRenderSettingsSummary();
+    }
+
+    function qcRenderSettingsSummary() {
+      if (!qcHosts.settingsSummary) return;
+      const mode = qcState.settingsMode === "smart" ? "Smart defaults" : "Manual flags";
+      qcHosts.settingsSummary.replaceChildren(
+        ...[
+          `Mode: ${mode}`,
+          `Exposure >= ${qcPercentPrecise(qcState.settings.exposureThreshold, 1)}`,
+          `Low burden < ${formatNumber(qcState.settings.lowBurdenThreshold)}`,
+          `Cosine < ${qcFormat(qcState.settings.reconstructionCosineThreshold, 3)}`,
+          `Residual >= ${qcPercentPrecise(qcState.settings.residualUnexplainedThreshold, 1)}`,
+          `Structure cosine >= ${qcFormat(qcState.settings.residualStructureCosineThreshold, 2)}`,
+          `Structure burden >= ${formatNumber(qcState.settings.minBurdenForResidualStructure)}`,
+        ].map((item) => qcElement("span", "qc-chip", item))
+      );
+    }
+
+    function qcRenderInputSummary() {
+      if (!qcHosts.inputSummary) return;
+      qcHosts.inputSummary.replaceChildren();
+      if (!qcState.spectra || !qcState.signatures) {
+        qcHosts.inputSummary.append(qcPlaceholder("No active cohort yet."));
+        return;
+      }
+      const spectraValidation = mSigSDK.validation.validateSpectra(qcState.spectra, {
+        expectedContexts: qcState.contexts,
+        minTotalMutations: qcState.settings.lowBurdenThreshold,
+      });
+      const signatureValidation = mSigSDK.validation.validateSignatureMatrix(qcState.signatures, {
+        expectedContexts: qcState.contexts,
+      });
+      const publicSelection = qcState.publicSelection || {};
+      const publicMetrics = [];
+      if (Number.isFinite(publicSelection.availableSampleCount)) {
+        publicMetrics.push({ label: "Available samples", value: publicSelection.availableSampleCount });
+      }
+      if (Number.isFinite(publicSelection.requestedSampleLimit)) {
+        publicMetrics.push({ label: "Requested max", value: publicSelection.requestedSampleLimit });
+      }
+      if (Number.isFinite(publicSelection.loadedSampleCount)) {
+        publicMetrics.push({ label: "Loaded samples", value: publicSelection.loadedSampleCount });
+      }
+      qcHosts.inputSummary.append(metrics([
+        { label: "Source", value: qcState.source },
+        { label: "Samples", value: Object.keys(qcState.spectra).length },
+        ...publicMetrics,
+        { label: "Signatures", value: Object.keys(qcState.signatures).length },
+        { label: "Contexts", value: qcState.contexts.length },
+        { label: "Spectra validation", value: spectraValidation.valid ? "Pass" : "Review" },
+        { label: "Signature validation", value: signatureValidation.valid ? "Pass" : "Review" },
+        { label: "Low-burden cutoff", value: formatNumber(qcState.settings.lowBurdenThreshold) },
+        { label: "Minimum contribution", value: qcPercent(qcState.settings.exposureThreshold, 1) },
+      ]));
+    }
+
+    function qcPolicyRank(status) {
+      return status === "priority" ? 2 : status === "review" ? 1 : 0;
+    }
+
+    function qcReconstructionFromResiduals(residuals) {
+      return {
+        schemaVersion: residuals.schemaVersion,
+        workflowRole: "reconstruction_error_qc",
+        scopeStatement: residuals.scopeStatement,
+        methodBasis: residuals.methodBasis,
+        contexts: residuals.contexts,
+        samples: (residuals.samples || []).map((sample) => ({
+          sample: sample.sample,
+          normalizationMode: sample.normalizationMode,
+          ...sample.metrics,
+        })),
+        warnings: [],
+        recommendedActions: residuals.recommendedActions || [],
+      };
+    }
+
+    async function qcRunTriage() {
+      if (!qcState.spectra || !qcState.signatures) return;
+      qcSetRunStatus("Preparing cohort QC triage...");
+      await qcYield();
+      if (qcState.settingsMode === "smart") {
+        qcApplySmartInputDefaults();
+        qcSyncSettingControls();
+      }
+      qcSetRunStatus("Fitting exposures...");
+      await qcYield();
+      const exposures = await mSigSDK.signatureFitting.fitMutationalSpectraToSignatures(
+        qcState.signatures,
+        qcState.spectra,
+        {
+          exposureThreshold: qcState.settings.exposureThreshold,
+          exposureType: "relative",
+          renormalize: true,
+        }
+      );
+      qcSetRunStatus("Summarizing mutation burden...");
+      await qcYield();
+      const burden = mSigSDK.qc.summarizeMutationBurden(qcState.spectra, {
+        expectedContexts: qcState.contexts,
+        lowBurdenThresholdMode: "fixed",
+        lowBurdenThreshold: qcState.settings.lowBurdenThreshold,
+        moderateBurdenThreshold: qcState.settings.moderateBurdenThreshold,
+      });
+      qcSetRunStatus("Calculating residuals and reconstruction...");
+      await qcYield();
+      let residuals = mSigSDK.qc.calculateFitResiduals(
+        qcState.signatures,
+        qcState.spectra,
+        exposures,
+        {
+          contexts: qcState.contexts,
+          lowBurdenThreshold: qcState.settings.lowBurdenThreshold,
+          moderateBurdenThreshold: qcState.settings.moderateBurdenThreshold,
+          weakUnexplainedThreshold: qcState.settings.residualUnexplainedThreshold,
+        }
+      );
+      let reconstruction = qcReconstructionFromResiduals(residuals);
+      if (qcState.settingsMode === "smart") {
+        qcApplySmartResultDefaults(reconstruction, residuals);
+        qcSyncSettingControls();
+        qcSetRunStatus("Applying smart defaults...");
+        await qcYield();
+        residuals = mSigSDK.qc.calculateFitResiduals(
+          qcState.signatures,
+          qcState.spectra,
+          exposures,
+          {
+            contexts: qcState.contexts,
+            lowBurdenThreshold: qcState.settings.lowBurdenThreshold,
+            moderateBurdenThreshold: qcState.settings.moderateBurdenThreshold,
+            weakUnexplainedThreshold: qcState.settings.residualUnexplainedThreshold,
+          }
+        );
+        reconstruction = qcReconstructionFromResiduals(residuals);
+      }
+      qcSetRunStatus("Ranking samples with manual policy...");
+      await qcYield();
+      const fitQuality = mSigSDK.advisor.computeFitQualityEvidence(
+        {
+          signatures: qcState.signatures,
+          spectra: qcState.spectra,
+          exposures,
+          burdenSummary: burden,
+          reconstructionError: reconstruction,
+          residuals,
+        },
+        {
+          lowBurdenThreshold: qcState.settings.lowBurdenThreshold,
+          moderateBurdenThreshold: qcState.settings.moderateBurdenThreshold,
+          activeExposureThreshold: qcState.settings.exposureThreshold,
+          manualPolicy: qcManualPolicyOptions(),
+        }
+      );
+      qcSetRunStatus("Rendering cohort results...");
+      await qcYield();
+      qcRenderInputSummary();
+      const analysis = {
+        exposures,
+        burden,
+        reconstruction,
+        residuals,
+        fitQuality,
+        burdenBySample: new Map(burden.samples.map((sample) => [sample.sample, sample])),
+        reconstructionBySample: new Map(reconstruction.samples.map((sample) => [sample.sample, sample])),
+        residualBySample: new Map(residuals.samples.map((sample) => [sample.sample, sample])),
+        fitQualityBySample: new Map(fitQuality.samples.map((sample) => [sample.sample, sample])),
+      };
+      qcState.analysis = analysis;
+      qcState.triageRows = Object.keys(qcState.spectra)
+        .map((sample) => {
+          const burdenSample = analysis.burdenBySample.get(sample) || {};
+          const reconstructionSample = analysis.reconstructionBySample.get(sample) || {};
+          const residualSample = analysis.residualBySample.get(sample) || {};
+          const fitQualitySample = analysis.fitQualityBySample.get(sample) || {};
+          const manualPolicy = fitQualitySample.manualPolicy || qcFallbackManualPolicy();
+          const row = {
+            sample,
+            reportingMode: fitQualitySample.reportingMode || "standard_qc_passed",
+            manualPolicy,
+            policyStatus: manualPolicy.status,
+            totalMutations: burdenSample.totalMutations ?? 0,
+            burdenClass: burdenSample.burdenClass || "n/a",
+            cosineSimilarity: reconstructionSample.cosineSimilarity ?? 0,
+            rmse: reconstructionSample.rmse ?? null,
+            residualUnexplained: residualSample.metrics?.relativeUnexplainedFraction ?? null,
+            residualStructure: residualSample.residualStructure || null,
+            catalogEvidence: fitQualitySample.componentEvidence?.catalog || null,
+            sdkWarningCodes: fitQualitySample.reviewFlagCodes || [],
+            warningCount: qcWarningRowsFor(sample).length,
+          };
+          row.triageScore = manualPolicy.score || 0;
+          row.mainCue = manualPolicy.primaryCue || "No manual policy cue";
+          row.policyFlags = manualPolicy.flags || [];
+          row.nextAction = qcRecommendedAction(row);
+          return row;
+        })
+        .sort(
+          (a, b) =>
+            qcPolicyRank(b.policyStatus) - qcPolicyRank(a.policyStatus) ||
+            b.triageScore - a.triageScore ||
+            a.cosineSimilarity - b.cosineSimilarity ||
+            (b.residualUnexplained || 0) - (a.residualUnexplained || 0) ||
+            a.totalMutations - b.totalMutations
+        );
+      if (!qcState.selectedSample || !qcState.spectra[qcState.selectedSample]) {
+        qcState.selectedSample = qcState.triageRows[0]?.sample || null;
+      }
+      await qcRenderTriage();
+      qcRenderCohortTable(qcState.flaggedOnly);
+      await qcRenderSampleDetail(qcState.selectedSample);
+    }
+
+    async function qcRenderTriage() {
+      if (!qcState.analysis || !qcHosts.triageMetrics || !qcHosts.plots) return;
+      const rows = qcState.triageRows;
+      const flaggedRows = rows.filter((row) => row.policyStatus !== "pass");
+      const priorityRows = rows.filter((row) => row.policyStatus === "priority");
+      const reviewRows = rows.filter((row) => row.policyStatus === "review");
+      const sortedCosines = qcState.analysis.reconstruction.samples
+        .map((sample) => sample.cosineSimilarity)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      const medianCosine = sortedCosines[Math.floor(sortedCosines.length / 2)] ?? null;
+      qcHosts.triageMetrics.replaceChildren(metrics([
+        { label: "Samples triaged", value: rows.length },
+        { label: "Flagged samples", value: flaggedRows.length },
+        { label: "Priority samples", value: priorityRows.length },
+        { label: "Review samples", value: reviewRows.length },
+        { label: "Median cosine", value: qcFormat(medianCosine, 3) },
+        { label: "First sample to inspect", value: rows[0]?.sample || "n/a" },
+      ]));
+      qcHosts.plots.replaceChildren();
+      const plotGrid = qcElement("div", "qc-two-up");
+      const burdenPanel = qcElement("section", "qc-panel");
+      burdenPanel.append(qcElement("h3", "", "Mutation burden"));
+      const burdenDiv = qcElement("div", "qc-plot-host");
+      await mSigSDK.qcPlots.plotMutationBurdenSummary(burdenDiv, qcState.analysis.burden);
+      burdenPanel.append(burdenDiv);
+      const reconstructionPanel = qcElement("section", "qc-panel");
+      reconstructionPanel.append(qcElement("h3", "", "Reconstruction quality"));
+      const reconstructionDiv = qcElement("div", "qc-plot-host");
+      await mSigSDK.qcPlots.plotReconstructionError(reconstructionDiv, qcState.analysis.reconstruction);
+      reconstructionPanel.append(reconstructionDiv);
+      plotGrid.append(burdenPanel, reconstructionPanel);
+      qcHosts.plots.append(plotGrid);
+      if (qcHosts.runStatus) qcHosts.runStatus.replaceChildren();
+    }
+
+    function qcRenderStatus(mode) {
+      const status = qcElement("span", `qc-status ${qcStatusClass(mode)}`);
+      status.textContent = qcStatusLabel(mode);
+      return status;
+    }
+
+    function qcRenderCohortRows(rows) {
+      const tableElement = qcElement("table", "qc-table");
+      const caption = tableElement.createCaption();
+      caption.textContent = "Ranked by manual policy status and score. Select a row to inspect the sample.";
+      const thead = document.createElement("thead");
+      const header = document.createElement("tr");
       [
-        { key: "sample", label: "Selected sample" },
-        { key: "mutations", label: "Total mutations" },
-        { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
-        { key: "lowBurden", label: "Low mutation-count review cue" },
-      ],
-      { maxRows: 8 }
-    ));
+        "Sample",
+        "Policy",
+        "Score",
+        "Main cue",
+        "Mutations",
+        "Cosine",
+        "Residual / threshold",
+        "Policy flags",
+      ].forEach((label) => {
+        const th = document.createElement("th");
+        th.textContent = label;
+        header.append(th);
+      });
+      thead.append(header);
+      tableElement.append(thead);
+
+      const tbody = document.createElement("tbody");
+      const maxScore = Math.max(1, ...qcState.triageRows.map((row) => row.triageScore));
+      rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.dataset.selected = String(row.sample === qcState.selectedSample);
+        tr.addEventListener("click", () => {
+          qcState.selectedSample = row.sample;
+          if (qcSampleSelect) qcSampleSelect.value = row.sample;
+          qcRenderCohortTable(qcState.flaggedOnly);
+          void qcRenderSampleDetail(row.sample);
+        });
+        const metadata = qcMetadataForSample(row.sample);
+        const sampleCell = qcElement("div", "qc-sample-cell");
+        sampleCell.append(qcElement("strong", "", row.sample));
+        sampleCell.append(qcElement("small", "", [metadata.cancer, metadata.strategy].filter(Boolean).join(" · ") || row.burdenClass));
+        const scoreTone = row.policyStatus === "priority" ? "concern" : row.policyStatus === "review" ? "warning" : "";
+        const residualLabel = `${qcPercentPrecise(row.residualUnexplained, 1)} / ${qcPercentPrecise(qcState.settings.residualUnexplainedThreshold, 1)}`;
+        tr.append(
+          qcCell(sampleCell),
+          qcCell(qcRenderPolicyStatus(row.policyStatus)),
+          qcCell(qcMeterCell("Score", String(row.triageScore), (row.triageScore / maxScore) * 100, scoreTone)),
+          qcCell(row.mainCue),
+          qcCell(formatNumber(row.totalMutations)),
+          qcCell(qcMeterCell("Cosine", qcFormat(row.cosineSimilarity, 3), row.cosineSimilarity * 100)),
+          qcCell(qcMeterCell("Residual", residualLabel, (row.residualUnexplained / Math.max(qcState.settings.residualUnexplainedThreshold, 0.01)) * 70)),
+          qcCell(qcRenderFlagList(row.policyFlags))
+        );
+        tbody.append(tr);
+      });
+      tableElement.append(tbody);
+      return tableElement;
+    }
+
+    function qcRenderCohortTable(flaggedOnly = qcState.flaggedOnly) {
+      if (!qcHosts.cohortTable) return;
+      qcState.flaggedOnly = Boolean(flaggedOnly);
+      if (qcFlagToggle) qcFlagToggle.checked = qcState.flaggedOnly;
+      const rows = qcFilteredTriageRows();
+      const visibleRows = qcDisplayedTriageRows(rows);
+      if (qcHosts.tableCount) {
+        const total = qcState.flaggedOnly
+          ? qcState.triageRows.filter((row) => row.policyStatus !== "pass").length
+          : qcState.triageRows.length;
+        const filteredNote = qcState.tableSearch ? ` after search, ${total} before search` : "";
+        qcHosts.tableCount.textContent = `Showing ${visibleRows.length} of ${rows.length}${filteredNote}`;
+      }
+      if (qcTableLimitSelect) qcTableLimitSelect.value = String(qcState.tableLimit);
+      if (qcTableSearchInput && qcTableSearchInput.value !== qcState.tableSearch) {
+        qcTableSearchInput.value = qcState.tableSearch;
+      }
+      if (!visibleRows.length) {
+        const empty = qcElement("div", "qc-empty-state");
+        empty.append(qcElement("strong", "", "No samples match this view."));
+        empty.append(qcElement("span", "", "Clear the search, show all samples, or relax the manual flag rules."));
+        qcHosts.cohortTable.replaceChildren(empty);
+      } else {
+        const frame = qcElement("div", "qc-table-frame");
+        const scroller = qcElement("div", "qc-table-scroll");
+        scroller.append(qcRenderCohortRows(visibleRows));
+        frame.append(scroller);
+        qcHosts.cohortTable.replaceChildren(frame);
+      }
+      if (qcSampleSelect) {
+        qcSampleSelect.replaceChildren(...qcState.triageRows.map((row) => qcOption(`${row.sample} (${qcPolicyLabel(row.policyStatus)}: ${row.mainCue})`, row.sample)));
+        if (qcState.selectedSample) qcSampleSelect.value = qcState.selectedSample;
+      }
+    }
+
+    function qcPolicyValue(flag, field) {
+      const value = flag[field];
+      if (flag.code === "HIGH_UNEXPLAINED_RESIDUAL") return qcPercentPrecise(value, 1);
+      if (flag.code === "LOW_RECONSTRUCTION_COSINE") return qcFormat(value, 3);
+      if (flag.code === "LOW_BURDEN") return formatNumber(value);
+      if (flag.code === "STRUCTURED_RESIDUAL") {
+        const payload = value || {};
+        return [
+          `residual ${qcPercentPrecise(payload.unexplainedFraction, 1)}`,
+          `nearest cosine ${qcFormat(payload.nearestResidualCosine, 3)}`,
+          `mutations ${formatNumber(payload.totalMutations)}`,
+        ].join(", ");
+      }
+      return typeof value === "object" ? qcStringify(value) : String(value ?? "n/a");
+    }
+
+    function qcPolicyThreshold(flag) {
+      const threshold = flag.threshold;
+      if (flag.code === "HIGH_UNEXPLAINED_RESIDUAL") return qcPercentPrecise(threshold, 1);
+      if (flag.code === "LOW_RECONSTRUCTION_COSINE") return qcFormat(threshold, 3);
+      if (flag.code === "LOW_BURDEN") return formatNumber(threshold);
+      if (flag.code === "STRUCTURED_RESIDUAL") {
+        return [
+          `residual ${qcPercentPrecise(threshold?.residualUnexplainedThreshold, 1)}`,
+          `nearest cosine ${qcFormat(threshold?.residualStructureCosineThreshold, 3)}`,
+          `mutations ${formatNumber(threshold?.minBurdenForResidualStructure)}`,
+        ].join(", ");
+      }
+      return typeof threshold === "object" ? qcStringify(threshold) : String(threshold ?? "n/a");
+    }
+
+    function qcManualPolicyRows(row) {
+      if (!row.policyFlags?.length) {
+        return [{
+          cue: "No policy flag",
+          severity: "pass",
+          observed: "Within configured manual policy",
+          threshold: "n/a",
+          basis: "No enabled manual rule crossed its threshold.",
+        }];
+      }
+      return row.policyFlags.map((flag) => ({
+        cue: flag.label || flag.code,
+        severity: qcPolicyLabel(flag.severity),
+        observed: qcPolicyValue(flag, "observed"),
+        threshold: qcPolicyThreshold(flag),
+        basis: flag.basis,
+      }));
+    }
+
+    function qcSdkEvidenceRows(row) {
+      const residualStructure = row.residualStructure || {};
+      const nearestResidualMatch = residualStructure.nearestResidualMatch || null;
+      const catalog = row.catalogEvidence || {};
+      return [
+        {
+          evidence: "SDK reporting mode",
+          value: qcStatusLabel(row.reportingMode),
+          interpretation: "Legacy SDK evidence status; not used as the main cohort-table flag.",
+        },
+        {
+          evidence: "SDK warning codes",
+          value: row.sdkWarningCodes.length ? row.sdkWarningCodes.join(", ") : "none",
+          interpretation: `${row.warningCount} SDK warning row${row.warningCount === 1 ? "" : "s"} available for this sample.`,
+        },
+        {
+          evidence: "Structured residual",
+          value: residualStructure.highResidualStructure ? "yes" : "no",
+          interpretation: "SDK residual structure uses both unexplained fraction and nearest residual-signature cosine.",
+        },
+        {
+          evidence: "Nearest residual match",
+          value: nearestResidualMatch
+            ? `${nearestResidualMatch.signatureName} (${qcFormat(nearestResidualMatch.cosineSimilarity, 3)})`
+            : "n/a",
+          interpretation: "Nearest catalog pattern for the positive residual vector.",
+        },
+        {
+          evidence: "Catalog screen",
+          value: catalog.status || "not_checked",
+          interpretation: catalog.structuredResidual ? "Catalog screen found structured residual evidence." : "No strong catalog residual cue from SDK evidence.",
+        },
+      ];
+    }
+
+    async function qcRenderSampleDetail(sampleName) {
+      if (!qcHosts.sampleDetail || !qcState.analysis) return;
+      const row = qcState.triageRows.find((item) => item.sample === sampleName) || qcState.triageRows[0];
+      if (!row) {
+        qcHosts.sampleDetail.replaceChildren(qcPlaceholder("Run triage to inspect a sample."));
+        return;
+      }
+      qcState.selectedSample = row.sample;
+      qcHosts.sampleDetail.replaceChildren();
+
+      const layout = qcElement("div", "qc-layout");
+      const header = qcElement("section", "qc-panel");
+      header.append(qcElement("h3", "", `Manual policy decision: ${row.sample}`));
+      header.append(metrics([
+        { label: "Policy status", value: qcPolicyLabel(row.policyStatus) },
+        { label: "Primary cue", value: row.mainCue },
+        { label: "Policy score", value: row.triageScore },
+        { label: "Next action", value: row.nextAction },
+      ]));
+
+      const evidenceGrid = qcElement("div", "qc-two-up");
+      const exposurePanel = qcElement("section", "qc-panel");
+      exposurePanel.append(qcElement("h3", "", "Top fitted signatures"));
+      exposurePanel.append(table(
+        qcExposureRowsForSample(row.sample),
+        [
+          { key: "signature", label: "Signature" },
+          { key: "contribution", label: "Contribution" },
+        ],
+        {
+          title: false,
+          caption: `Relative contributions after the configured ${qcPercent(qcState.settings.exposureThreshold, 1)} cutoff.`,
+          maxRows: 8,
+        }
+      ));
+
+      const policyPanel = qcElement("section", "qc-panel");
+      policyPanel.append(qcElement("h3", "", "Manual policy flags"));
+      policyPanel.append(table(
+        qcManualPolicyRows(row),
+        [
+          { key: "cue", label: "Cue" },
+          { key: "severity", label: "Severity" },
+          { key: "observed", label: "Observed" },
+          { key: "threshold", label: "Threshold" },
+          { key: "basis", label: "Basis" },
+        ],
+        {
+          title: false,
+          caption: "These flags come from the visible manual policy controls.",
+          maxRows: 6,
+        }
+      ));
+      evidenceGrid.append(exposurePanel, policyPanel);
+
+      const sdkPanel = qcElement("section", "qc-panel");
+      sdkPanel.append(qcElement("h3", "", "SDK evidence context"));
+      sdkPanel.append(table(
+        qcSdkEvidenceRows(row),
+        [
+          { key: "evidence", label: "Evidence" },
+          { key: "value", label: "Value" },
+          { key: "interpretation", label: "How to read it" },
+        ],
+        {
+          title: false,
+          caption: "Secondary SDK evidence is shown for context and does not drive the main table status.",
+          maxRows: 5,
+        }
+      ));
+
+      const residualPanel = qcElement("section", "qc-panel");
+      residualPanel.append(qcElement("h3", "", "Residual spectrum"));
+      const residualHost = qcElement("div", "qc-plot-host");
+      await mSigSDK.qcPlots.plotFitResiduals(
+        residualHost,
+        qcState.analysis.residuals,
+        row.sample
+      );
+      residualPanel.append(residualHost);
+
+      const warningRows = qcWarningRowsFor(row.sample);
+      const warningPanel = qcElement("section", "qc-panel");
+      warningPanel.append(qcElement("h3", "", "Warnings and next step"));
+      warningPanel.append(table(
+        warningRows.length
+          ? warningRows
+          : [{ code: "none", message: "No SDK warning was raised for this sample.", action: row.nextAction }],
+        [
+          { key: "code", label: "Code" },
+          { key: "message", label: "Message" },
+          { key: "action", label: "Action" },
+        ],
+        {
+          title: false,
+          caption: "Use these rows to decide whether to report, caveat, or rerun.",
+          maxRows: 8,
+        }
+      ));
+
+      layout.append(header, evidenceGrid, sdkPanel, residualPanel, warningPanel);
+      qcHosts.sampleDetail.replaceChildren(layout);
+    }
+
+    async function qcLoadDefaultDataset() {
+      const dataset = await loadPublicSbs96Dataset(mSigSDK, {
+        study: qcDefaultStudy,
+        genomeDataType: qcDefaultGenomeDataType,
+        cancerType: qcDefaultCancerType,
+        mutationType: qcDefaultMutationType,
+        matrixSize: qcDefaultMatrixSize,
+        signatureSetName: qcDefaultSignatureSetName,
+        sampleLimit: qcDefaultSampleLimit,
+        signatureNames: qcDefaultSignatureNames,
+        allowAlternate: false,
+      });
+      const selectedSamples = dataset.sampleNames.filter((sample) => dataset.spectra[sample]);
+      const availableDefaultSamples = [
+        ...new Set(
+          (dataset.optionRows || [])
+            .filter((row) =>
+              row.study === qcDefaultStudy &&
+              row.strategy === qcDefaultGenomeDataType &&
+              row.profile === qcDefaultMutationType &&
+              Number(row.matrix) === Number(qcDefaultMatrixSize) &&
+              row.cancer === qcDefaultCancerType
+            )
+            .map((row) => row.sample)
+            .filter(Boolean)
+        ),
+      ];
+      const spectra = Object.fromEntries(selectedSamples.map((sample) => [sample, dataset.spectra[sample]]));
+      const signatureNames = qcDefaultSignatureNames.filter((signature) => dataset.allSignatures[signature]);
+      const signatures = Object.fromEntries(signatureNames.map((signature) => [signature, dataset.allSignatures[signature]]));
+      qcSetDataset({
+        spectra,
+        signatures,
+        metadata: selectedSamples.map((sample) => ({
+          sample,
+          study: qcDefaultStudy,
+          cancer: qcDefaultCancerType,
+          strategy: qcDefaultGenomeDataType,
+          profile: qcDefaultMutationType,
+          matrix: qcDefaultMatrixSize,
+          source: "mSigPortal API",
+        })),
+        source: `${dataset.status}: ${qcDefaultStudy} ${qcDefaultCancerType} ${qcDefaultGenomeDataType} ${qcDefaultMutationType}${qcDefaultMatrixSize}`,
+        contexts: mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 }),
+        publicSelection: {
+          study: qcDefaultStudy,
+          cancer: qcDefaultCancerType,
+          strategy: qcDefaultGenomeDataType,
+          profile: qcDefaultMutationType,
+          matrix: qcDefaultMatrixSize,
+          signatureSetName: qcDefaultSignatureSetName,
+          requestedSampleLimit: qcDefaultSampleLimit,
+          availableSampleCount: availableDefaultSamples.length || selectedSamples.length,
+          loadedSampleCount: selectedSamples.length,
+        },
+      });
+    }
   </script>
 
   <script type="text/markdown">
-    ## Step 2. Check inputs, fit, and build review objects
+    ## Step 1. Load cohort
 
-    Input checking is not optional boilerplate. It confirms that spectra and signatures share the expected contexts before fitting. The fitting call estimates relative signature contributions, and the quality-check functions return plain result objects that can be inspected, saved, or passed into plotting functions.
-
-    If validation fails, interpretation stops here. A fit produced from mismatched contexts can look numerical and still be biologically meaningless.
+    Start with the default PCAWG Lung-AdenoCA example, choose another public mSigPortal cohort, or paste/upload your own spectra and signature catalog.
   </script>
-<script type="module" pinned id="3">
-    const qcSpectraValidation = mSigSDK.validation.validateSpectra(
-      qcGroupedSpectra,
-      {
-        expectedContexts: qcContexts,
-        minTotalMutations: qcMutationBurdenThreshold,
+
+  <script type="module" pinned id="2">
+    const qcInputRoot = qcElement("div", "qc-shell");
+    const qcWorkbenchHeader = qcElement("div", "qc-workbench-header");
+    const qcLoadHeader = qcElement("section", "qc-header-panel");
+    qcLoadHeader.append(qcElement("h3", "", "Cohort source"));
+    qcLoadHeader.append(qcElement("p", "", "Load public spectra at cohort scale, or bring matching spectra and signatures from your own analysis."));
+    const qcScaleHeader = qcElement("section", "qc-header-panel");
+    qcScaleHeader.append(metrics([
+      { label: "Default request", value: qcDefaultSampleLimit },
+      { label: "Public load cap", value: qcPublicSampleLimitMax },
+      { label: "Initial view", value: "Flagged ranking" },
+    ]));
+    qcWorkbenchHeader.append(qcLoadHeader, qcScaleHeader);
+    const qcSourceTabs = qcElement("div", "qc-source-tabs");
+    const qcPublicTab = qcButton("Public API");
+    const qcOwnTab = qcButton("My cohort");
+    qcSourceTabs.append(qcPublicTab, qcOwnTab);
+    const qcPublicPanel = qcElement("section", "qc-panel");
+    qcPublicPanel.append(qcElement("h3", "", "Public API cohort"));
+    qcPublicPanel.append(qcElement("p", "", "Choose any public mSigPortal spectra option and a compatible reference signature catalog."));
+
+    const qcPublicOptions = {
+      spectra: [],
+      signatures: [],
+      loaded: false,
+    };
+    const qcStudySelect = document.createElement("select");
+    const qcCancerSelect = document.createElement("select");
+    const qcStrategySelect = document.createElement("select");
+    const qcProfileSelect = document.createElement("select");
+    const qcMatrixSelect = document.createElement("select");
+    const qcSignatureSetSelect = document.createElement("select");
+    const qcMaxSamplesInput = document.createElement("input");
+    qcMaxSamplesInput.type = "number";
+    qcMaxSamplesInput.min = "1";
+    qcMaxSamplesInput.max = String(qcPublicSampleLimitMax);
+    qcMaxSamplesInput.step = "1";
+    qcMaxSamplesInput.value = String(qcDefaultSampleLimit);
+    const qcPublicStatus = qcPlaceholder("Loading public dataset options...");
+    const qcRefreshPublic = qcButton("Refresh public menu");
+    const qcLoadPublic = qcButton("Load selected public cohort", "primary");
+
+    function qcSelectedPublicRows() {
+      const matrix = Number(qcMatrixSelect.value);
+      return qcPublicOptions.spectra.filter((row) =>
+        row.study === qcStudySelect.value &&
+        row.strategy === qcStrategySelect.value &&
+        row.profile === qcProfileSelect.value &&
+        Number(row.matrix) === matrix &&
+        (qcCancerSelect.value === qcPancancerValue || row.cancer === qcCancerSelect.value)
+      );
+    }
+
+    function qcPublicSampleOptions() {
+      const bySample = new Map();
+      for (const row of qcSelectedPublicRows()) {
+        if (!bySample.has(row.sample)) bySample.set(row.sample, row);
       }
-    );
-    const qcSignatureValidation = mSigSDK.validation.validateSignatureMatrix(
-      qcReferenceSignatures,
-      { expectedContexts: qcContexts }
-    );
-    const qcExposures = await mSigSDK.signatureFitting.fitMutationalSpectraToSignatures(
-      qcReferenceSignatures,
-      qcGroupedSpectra,
-      {
-        exposureThreshold: qcExposureThreshold,
-        exposureType: "relative",
-        renormalize: true,
+      return [...bySample.values()];
+    }
+
+    function qcUpdatePublicStatus() {
+      const samples = qcPublicSampleOptions();
+      const requested = Math.max(1, Math.min(qcPublicSampleLimitMax, Math.round(qcParseNumber(qcMaxSamplesInput.value, qcDefaultSampleLimit))));
+      const willLoad = Math.min(requested, samples.length);
+      const availabilityNote = requested > samples.length && samples.length
+        ? ` Only ${samples.length} are available for this exact study/cancer/profile/matrix selection.`
+        : "";
+      qcPublicStatus.textContent = qcPublicOptions.loaded
+        ? `${samples.length} public samples match this selection. Requested max ${requested}; loading will fetch ${willLoad}.${availabilityNote}`
+        : "Public API menu has not loaded yet.";
+    }
+
+    function qcPopulateSignatureSets({ strategy, profile, matrix, preferred = qcDefaultSignatureSetName }) {
+      const exactRows = qcPublicOptions.signatures.filter((row) =>
+        row.strategy === strategy &&
+        row.profile === profile &&
+        String(row.matrix) === String(matrix)
+      );
+      const fallbackRows = qcPublicOptions.signatures.filter((row) =>
+        row.profile === profile &&
+        String(row.matrix) === String(matrix)
+      );
+      const rows = exactRows.length ? exactRows : fallbackRows;
+      qcSetSelectOptions(qcSignatureSetSelect, qcUniqueSorted(rows.map((row) => row.signatureSetName)), preferred);
+    }
+
+    function qcPopulatePublicMenus(preferred = {}) {
+      const current = {
+        study: qcStudySelect.value || preferred.study || qcDefaultStudy,
+        strategy: qcStrategySelect.value || preferred.strategy || qcDefaultGenomeDataType,
+        profile: qcProfileSelect.value || preferred.profile || qcDefaultMutationType,
+        matrix: qcMatrixSelect.value || preferred.matrix || String(qcDefaultMatrixSize),
+        cancer: qcCancerSelect.value || preferred.cancer || qcDefaultCancerType,
+        signatureSetName: qcSignatureSetSelect.value || preferred.signatureSetName || qcDefaultSignatureSetName,
+      };
+      const study = qcSetSelectOptions(qcStudySelect, qcUniqueSorted(qcPublicOptions.spectra.map((row) => row.study)), current.study);
+      const studyRows = qcPublicOptions.spectra.filter((row) => row.study === study);
+      const strategy = qcSetSelectOptions(qcStrategySelect, qcUniqueSorted(studyRows.map((row) => row.strategy)), current.strategy);
+      const strategyRows = studyRows.filter((row) => row.strategy === strategy);
+      const profile = qcSetSelectOptions(qcProfileSelect, qcUniqueSorted(strategyRows.map((row) => row.profile)), current.profile);
+      const profileRows = strategyRows.filter((row) => row.profile === profile);
+      const matrix = qcSetSelectOptions(qcMatrixSelect, qcUniqueSorted(profileRows.map((row) => row.matrix)), current.matrix);
+      const matrixRows = profileRows.filter((row) => String(row.matrix) === String(matrix));
+      const cancerItems = qcUniqueSorted(matrixRows.map((row) => row.cancer)).map((value) => ({ label: value, value }));
+      if (study === "PCAWG" || study === "TCGA") {
+        cancerItems.unshift({ label: "PanCancer (all cancer types)", value: qcPancancerValue });
       }
-    );
-    const qcBurden = mSigSDK.qc.summarizeMutationBurden(qcGroupedSpectra, {
-      expectedContexts: qcContexts,
-      lowBurdenThresholdMode: "fixed",
-      lowBurdenThreshold: qcMutationBurdenThreshold,
+      qcSetSelectOptions(qcCancerSelect, cancerItems, current.cancer);
+      qcPopulateSignatureSets({ strategy, profile, matrix, preferred: current.signatureSetName });
+      qcUpdatePublicStatus();
+    }
+
+    async function qcLoadPublicMenus() {
+      qcPublicStatus.textContent = "Loading public dataset options from mSigPortal APIs...";
+      qcRefreshPublic.disabled = true;
+      qcLoadPublic.disabled = true;
+      try {
+        const [spectraOptions, signatureOptions] = await Promise.all([
+          qcFetchPublicApiRows("mutational_spectrum_options"),
+          qcFetchPublicApiRows("mutational_signature_options", { source: "Reference_signatures" }),
+        ]);
+        qcPublicOptions.spectra = spectraOptions;
+        qcPublicOptions.signatures = signatureOptions;
+        qcPublicOptions.loaded = true;
+        qcPopulatePublicMenus({
+          study: qcDefaultStudy,
+          strategy: qcDefaultGenomeDataType,
+          profile: qcDefaultMutationType,
+          matrix: qcDefaultMatrixSize,
+          cancer: qcDefaultCancerType,
+          signatureSetName: qcDefaultSignatureSetName,
+        });
+      } catch (error) {
+        qcPublicStatus.textContent = `Public menu failed: ${error.message}`;
+      } finally {
+        qcRefreshPublic.disabled = false;
+        qcLoadPublic.disabled = false;
+      }
+    }
+
+    async function qcLoadSelectedPublicDataset() {
+      if (!qcPublicOptions.loaded) await qcLoadPublicMenus();
+      const requestedSamples = Math.max(1, Math.min(qcPublicSampleLimitMax, Math.round(qcParseNumber(qcMaxSamplesInput.value, qcDefaultSampleLimit))));
+      qcMaxSamplesInput.value = String(requestedSamples);
+      const availableSamples = qcPublicSampleOptions();
+      const selectedSamples = availableSamples.slice(0, requestedSamples);
+      if (!selectedSamples.length) throw new Error("No public samples match the selected menu values.");
+      const selection = {
+        study: qcStudySelect.value,
+        cancer: qcCancerSelect.value === qcPancancerValue ? "PanCancer" : qcCancerSelect.value,
+        strategy: qcStrategySelect.value,
+        profile: qcProfileSelect.value,
+        matrix: Number(qcMatrixSelect.value),
+        signatureSetName: qcSignatureSetSelect.value,
+      };
+      if (!selection.signatureSetName) {
+        throw new Error("No compatible reference signature set is available for this profile and matrix size.");
+      }
+      qcPublicStatus.textContent = `Fetching ${selectedSamples.length} of ${availableSamples.length} available public spectra in batches of ${qcPublicFetchBatchSize}...`;
+      qcHosts.inputSummary.replaceChildren(qcPlaceholder(`Fetching ${selectedSamples.length} public spectra...`));
+      const sampleGroups = new Map();
+      selectedSamples.forEach((sample) => {
+        const key = [sample.study, sample.cancer, sample.strategy, sample.profile, sample.matrix].join("||");
+        if (!sampleGroups.has(key)) {
+          sampleGroups.set(key, {
+            study: sample.study,
+            cancer: sample.cancer,
+            strategy: sample.strategy,
+            profile: sample.profile,
+            matrix: sample.matrix,
+            samples: [],
+          });
+        }
+        sampleGroups.get(key).samples.push(sample.sample);
+      });
+      const spectrumRows = [];
+      let fetchedSamples = 0;
+      for (const group of sampleGroups.values()) {
+        for (const batch of qcChunks(group.samples, qcPublicFetchBatchSize)) {
+          const rawRows = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumData(
+            group.study,
+            batch,
+            group.strategy,
+            group.cancer,
+            group.profile,
+            group.matrix
+          );
+          spectrumRows.push(...(Array.isArray(rawRows) ? rawRows.flat() : []));
+          fetchedSamples += batch.length;
+          qcHosts.inputSummary.replaceChildren(qcPlaceholder(`Fetched ${fetchedSamples}/${selectedSamples.length} public spectra...`));
+          await qcYield();
+        }
+      }
+      qcHosts.inputSummary.replaceChildren(qcPlaceholder("Fetching reference signatures..."));
+      await qcYield();
+      const signatureRows = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
+        selection.strategy,
+        selection.signatureSetName,
+        selection.profile,
+        selection.matrix,
+        100000
+      );
+      const spectra = mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(spectrumRows);
+      const signatures = mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(signatureRows, "signatureName");
+      const loadedSampleNames = selectedSamples.map((sample) => sample.sample).filter((sample) => spectra[sample]);
+      const loadedSampleSet = new Set(loadedSampleNames);
+      const metadata = selectedSamples.filter((sample) => loadedSampleSet.has(sample.sample)).map((sample) => ({
+        sample: sample.sample,
+        study: sample.study,
+        cancer: sample.cancer,
+        strategy: sample.strategy,
+        profile: sample.profile,
+        matrix: sample.matrix,
+        source: "mSigPortal API",
+      }));
+      const selectedSpectra = Object.fromEntries(loadedSampleNames.map((sample) => [sample, spectra[sample]]));
+      qcSetDataset({
+        spectra: selectedSpectra,
+        signatures,
+        metadata,
+        source: `mSigPortal public API: ${selection.study} ${selection.cancer} ${selection.strategy} ${selection.profile}${selection.matrix} (${loadedSampleNames.length}/${availableSamples.length} available samples)`,
+        contexts: qcInferContexts(selectedSpectra, signatures),
+        publicSelection: {
+          ...selection,
+          requestedSampleLimit: requestedSamples,
+          availableSampleCount: availableSamples.length,
+          loadedSampleCount: loadedSampleNames.length,
+        },
+      });
+      qcPublicStatus.textContent = `Loaded ${loadedSampleNames.length} samples. Requested max ${requestedSamples}; ${availableSamples.length} are available for this selection.`;
+      await qcRunTriage();
+    }
+
+    [qcStudySelect, qcCancerSelect, qcStrategySelect, qcProfileSelect, qcMatrixSelect, qcSignatureSetSelect].forEach((select) => {
+      select.addEventListener("change", () => {
+        if (select !== qcCancerSelect && select !== qcSignatureSetSelect) qcPopulatePublicMenus();
+        qcUpdatePublicStatus();
+      });
     });
-    const qcReconstruction = mSigSDK.qc.calculateReconstructionError(
-      qcReferenceSignatures,
-      qcGroupedSpectra,
-      qcExposures,
-      { contexts: qcContexts }
-    );
-    const qcResiduals = mSigSDK.qc.calculateFitResiduals(
-      qcReferenceSignatures,
-      qcGroupedSpectra,
-      qcExposures,
-      { contexts: qcContexts }
-    );
-    const qcResidualSample =
-      qcReconstruction.samples
-        .slice()
-        .sort((a, b) => a.cosineSimilarity - b.cosineSimilarity)[0]?.sample ||
-      qcSelectedSampleNames[0];
+    qcMaxSamplesInput.addEventListener("input", qcUpdatePublicStatus);
+    qcRefreshPublic.addEventListener("click", () => void qcLoadPublicMenus());
+    qcLoadPublic.addEventListener("click", async () => {
+      qcLoadPublic.disabled = true;
+      qcLoadPublic.textContent = "Loading...";
+      try {
+        await qcLoadSelectedPublicDataset();
+      } catch (error) {
+        qcHosts.inputSummary.replaceChildren(qcElement("pre", "qc-error", error.stack || error.message));
+      } finally {
+        qcLoadPublic.disabled = false;
+        qcLoadPublic.textContent = "Load selected public cohort";
+      }
+    });
 
-    display(metrics([
-      { label: "Spectra validation", value: qcSpectraValidation.valid ? "Pass" : "Review" },
-      { label: "Signature validation", value: qcSignatureValidation.valid ? "Pass" : "Review" },
-      { label: "Total mutations", value: formatNumber(qcBurden.overall.totalMutations) },
-      { label: "Residual sample", value: qcResidualSample },
-    ]));
-    display(table(
-      reconstructionRows(qcReconstruction),
-      [
-        { key: "sample", label: "Sample" },
-        { key: "cosineSimilarity", label: "Cosine similarity" },
-        { key: "rmse", label: "RMSE" },
-        { key: "normalizationMode", label: "Residual scale" },
-      ],
-      { maxRows: 8 }
-    ));
+    const qcPublicGrid = qcElement("div", "qc-input-grid");
+    qcPublicGrid.append(
+      qcField("Study", qcStudySelect),
+      qcField("Cancer type", qcCancerSelect),
+      qcField("Strategy", qcStrategySelect),
+      qcField("Profile", qcProfileSelect),
+      qcField("Matrix size", qcMatrixSelect),
+      qcField("Signature set", qcSignatureSetSelect),
+      qcField("Max samples", qcMaxSamplesInput, `Upper bound for loading; the final count is capped by samples available for the selected cohort.`)
+    );
+    const qcPublicButtons = qcElement("div", "qc-button-row");
+    qcPublicButtons.append(qcLoadPublic, qcRefreshPublic);
+    qcPublicPanel.append(qcPublicGrid, qcPublicButtons, qcPublicStatus);
+
+    const qcOwnPanel = qcElement("section", "qc-panel");
+    qcOwnPanel.append(qcElement("h3", "", "Your cohort"));
+    qcOwnPanel.append(qcElement("p", "", "Paste JSON matrices or SigProfiler/COSMIC-style TSV or CSV files. Spectra should be sample-by-context after import; signatures should be signature-by-context."));
+    const qcSpectraText = document.createElement("textarea");
+    qcSpectraText.placeholder = "Paste spectra JSON or SigProfiler-style MutationType-by-sample TSV";
+    const qcSignaturesText = document.createElement("textarea");
+    qcSignaturesText.placeholder = "Paste signature JSON or COSMIC-style MutationType-by-signature TSV";
+    const qcMetadataText = document.createElement("textarea");
+    qcMetadataText.placeholder = "Optional sample metadata JSON, CSV, or TSV";
+    const qcApplyOwn = qcButton("Apply my cohort", "primary");
+    const qcUseDefault = qcButton("Reload default example");
+    qcApplyOwn.addEventListener("click", async () => {
+      try {
+        const spectra = qcParseMatrix(qcSpectraText.value, "spectra");
+        const signatures = qcParseMatrix(qcSignaturesText.value, "signatures");
+        qcSetDataset({
+          spectra,
+          signatures,
+          metadata: qcParseMetadata(qcMetadataText.value),
+          source: "user supplied browser input",
+          contexts: qcInferContexts(spectra, signatures),
+          publicSelection: null,
+        });
+        await qcRunTriage();
+      } catch (error) {
+        qcHosts.inputSummary.replaceChildren(qcElement("pre", "qc-error", error.stack || error.message));
+      }
+    });
+    qcUseDefault.addEventListener("click", async () => {
+      try {
+        await qcLoadDefaultDataset();
+        await qcRunTriage();
+      } catch (error) {
+        qcHosts.inputSummary.replaceChildren(qcElement("pre", "qc-error", error.stack || error.message));
+      }
+    });
+    const qcOwnGrid = qcElement("div", "qc-input-grid");
+    qcOwnGrid.append(
+      qcField("Spectra", qcSpectraText, "JSON or SigProfiler-style TSV/CSV."),
+      qcField("Signatures", qcSignaturesText, "JSON or COSMIC-style TSV/CSV."),
+      qcField("Metadata", qcMetadataText, "Optional sample details."),
+      qcField("Upload spectra", qcFileInput(qcSpectraText)),
+      qcField("Upload signatures", qcFileInput(qcSignaturesText)),
+      qcField("Upload metadata", qcFileInput(qcMetadataText))
+    );
+    const qcOwnButtons = qcElement("div", "qc-button-row");
+    qcOwnButtons.append(qcApplyOwn, qcUseDefault);
+    qcOwnPanel.append(qcOwnGrid, qcOwnButtons);
+
+    function qcSetSourceTab(source) {
+      const isPublic = source === "public";
+      qcPublicPanel.hidden = !isPublic;
+      qcOwnPanel.hidden = isPublic;
+      qcPublicTab.setAttribute("aria-pressed", String(isPublic));
+      qcOwnTab.setAttribute("aria-pressed", String(!isPublic));
+    }
+
+    qcPublicTab.addEventListener("click", () => qcSetSourceTab("public"));
+    qcOwnTab.addEventListener("click", () => qcSetSourceTab("own"));
+    qcSetSourceTab("public");
+
+    qcHosts.inputSummary = qcElement("div");
+    qcInputRoot.append(qcWorkbenchHeader, qcSourceTabs, qcPublicPanel, qcOwnPanel, qcHosts.inputSummary);
+    display(qcInputRoot);
+
+    await qcLoadDefaultDataset();
+    qcRenderInputSummary();
+    void qcLoadPublicMenus();
   </script>
 
   <script type="text/markdown">
-    ## Step 3. Check mutation counts
+    ## Step 2. Triage cohort
 
-    Mutation count affects how much information is available for fitting. Samples below the cutoff marker should be interpreted cautiously, especially for weak or rare signatures. In your own workflow, set this cutoff from your study design or assay characteristics rather than treating this example value as universal.
-
-    A low-count warning does not always require removing a sample. It does require that downstream signature contribution estimates be reported with more caution.
+    Smart defaults adapt to the loaded cohort. Switch to manual flags when your assay, study design, or reporting policy needs different review cutoffs.
   </script>
-<script type="module" pinned id="4">
-    const qcBurdenDiv = document.createElement("div");
-    qcBurdenDiv.style.width = "100%";
-    await mSigSDK.qcPlots.plotMutationBurdenSummary(qcBurdenDiv, qcBurden);
-    display(qcBurdenDiv);
+
+  <script type="module" pinned id="3">
+    const qcTriageRoot = qcElement("div", "qc-layout");
+    const qcSettingsPanel = qcElement("section", "qc-panel");
+    qcSettingsPanel.append(qcElement("h3", "", "QC flag settings"));
+    qcSettingsPanel.append(qcElement("p", "", "Smart defaults use cohort burden and fit distributions. Manual settings let you choose exactly what gets flagged."));
+    qcHosts.settingsSummary = qcElement("div", "qc-settings-summary");
+
+    qcSettingControls.exposureThreshold = qcNumberInput(qcState.settings.exposureThreshold, { min: 0, max: 0.5, step: 0.001 });
+    qcSettingControls.lowBurdenThreshold = qcNumberInput(qcState.settings.lowBurdenThreshold, { min: 0, step: 1 });
+    qcSettingControls.moderateBurdenThreshold = qcNumberInput(qcState.settings.moderateBurdenThreshold, { min: 0, step: 1 });
+    qcSettingControls.reconstructionCosineThreshold = qcNumberInput(qcState.settings.reconstructionCosineThreshold, { min: 0, max: 1, step: 0.001 });
+    qcSettingControls.residualUnexplainedThreshold = qcNumberInput(qcState.settings.residualUnexplainedThreshold, { min: 0, max: 1, step: 0.001 });
+    qcSettingControls.residualStructureCosineThreshold = qcNumberInput(qcState.settings.residualStructureCosineThreshold, { min: 0, max: 1, step: 0.001 });
+    qcSettingControls.minBurdenForResidualStructure = qcNumberInput(qcState.settings.minBurdenForResidualStructure, { min: 0, step: 1 });
+
+    qcSettingControls.lowBurden = document.createElement("input");
+    qcSettingControls.lowBurden.type = "checkbox";
+    qcSettingControls.reconstruction = document.createElement("input");
+    qcSettingControls.reconstruction.type = "checkbox";
+    qcSettingControls.residualUnexplained = document.createElement("input");
+    qcSettingControls.residualUnexplained.type = "checkbox";
+    qcSettingControls.structuredResidual = document.createElement("input");
+    qcSettingControls.structuredResidual.type = "checkbox";
+
+    const qcThresholdGrid = qcElement("div", "qc-settings-grid");
+    qcThresholdGrid.append(
+      qcField("Minimum contribution", qcSettingControls.exposureThreshold, "Fit contributions below this fraction are dropped before QC."),
+      qcField("Low-burden cutoff", qcSettingControls.lowBurdenThreshold, "Flag samples below this mutation count."),
+      qcField("Moderate-burden reference", qcSettingControls.moderateBurdenThreshold, "Used by burden classes and review context."),
+      qcField("Flag cosine below", qcSettingControls.reconstructionCosineThreshold, "Flag weak reconstruction."),
+      qcField("Flag residual above", qcSettingControls.residualUnexplainedThreshold, "Fraction of unexplained spectrum."),
+      qcField("Structured residual cosine", qcSettingControls.residualStructureCosineThreshold, "Nearest positive-residual catalog cosine needed for priority status."),
+      qcField("Structured residual min burden", qcSettingControls.minBurdenForResidualStructure, "Minimum mutation count for structured-residual priority flags.")
+    );
+
+    const qcRuleGrid = qcElement("div", "qc-settings-grid");
+    qcRuleGrid.append(
+      qcCheckField("Flag low burden", qcSettingControls.lowBurden, "Uses the low-burden mutation cutoff."),
+      qcCheckField("Flag low reconstruction", qcSettingControls.reconstruction, "Uses the reconstruction cosine cutoff."),
+      qcCheckField("Flag high unexplained residual", qcSettingControls.residualUnexplained, "Review cue based on unexplained residual fraction."),
+      qcCheckField("Flag structured residual", qcSettingControls.structuredResidual, "Priority cue based on residual fraction, residual structure, and mutation burden.")
+    );
+
+    const qcSettingsActions = qcElement("div", "qc-button-row");
+    const qcApplySettings = qcButton("Apply manual flags", "primary");
+    const qcUseSmartSettings = qcButton("Use smart defaults");
+    qcApplySettings.addEventListener("click", async () => {
+      qcState.settingsMode = "manual";
+      qcReadManualSettingsFromControls();
+      qcSyncSettingControls();
+      await qcRunTriage();
+    });
+    qcUseSmartSettings.addEventListener("click", async () => {
+      qcState.settingsMode = "smart";
+      await qcRunTriage();
+    });
+    qcSettingsActions.append(qcApplySettings, qcUseSmartSettings);
+    qcSettingsPanel.append(qcHosts.settingsSummary, qcThresholdGrid, qcRuleGrid, qcSettingsActions);
+    qcSyncSettingControls();
+
+    qcHosts.runStatus = qcElement("div");
+    qcHosts.triageMetrics = qcElement("div");
+    qcHosts.plots = qcElement("div");
+    qcTriageRoot.append(qcSettingsPanel, qcHosts.runStatus, qcHosts.triageMetrics, qcHosts.plots);
+    display(qcTriageRoot);
+    await qcRunTriage();
   </script>
 
   <script type="text/markdown">
-    ## Step 4. Inspect reconstruction quality
+    ## Step 3. Inspect sample
 
-    Cosine similarity measures profile-shape agreement; RMSE measures residual magnitude on the relative-profile scale used for fitting. Inspect both because a fit can have good shape agreement while still leaving systematic residuals in specific mutation contexts. Use the mutation-count table above for count totals.
-
-    This is the main checkpoint before reading signature contribution values as evidence. A poor reconstruction usually means the catalog is incomplete, the sample is noisy, or the table needs additional review.
+    Start with the ranked cohort table, then select a sample to see why it was flagged. The table updates instantly when you switch between flagged samples and all samples.
   </script>
-<script type="module" pinned id="5">
-    const qcReconstructionDiv = document.createElement("div");
-    qcReconstructionDiv.style.width = "100%";
-    await mSigSDK.qcPlots.plotReconstructionError(
-      qcReconstructionDiv,
-      qcReconstruction
-    );
-    display(qcReconstructionDiv);
+
+  <script type="module" pinned id="4">
+    const qcInspector = qcElement("section", "qc-panel");
+    qcInspector.append(qcElement("h3", "", "Cohort ranking"));
+    const qcControls = qcElement("div", "qc-toolbar");
+    const qcToolbarLeft = qcElement("div", "qc-toolbar-group");
+    const qcToolbarRight = qcElement("div", "qc-toolbar-group");
+
+    qcTableSearchInput = document.createElement("input");
+    qcTableSearchInput.type = "search";
+    qcTableSearchInput.placeholder = "Sample, cue, status, cancer";
+    qcTableSearchInput.value = qcState.tableSearch;
+    qcTableSearchInput.addEventListener("input", () => {
+      qcState.tableSearch = qcTableSearchInput.value;
+      qcRenderCohortTable(qcState.flaggedOnly);
+    });
+
+    qcTableLimitSelect = document.createElement("select");
+    qcSetSelectOptions(qcTableLimitSelect, [
+      { label: "25 rows", value: "25" },
+      { label: "50 rows", value: "50" },
+      { label: "100 rows", value: "100" },
+      { label: "All rows", value: "all" },
+    ], String(qcState.tableLimit));
+    qcTableLimitSelect.addEventListener("change", () => {
+      qcState.tableLimit = qcTableLimitSelect.value === "all" ? "all" : Number(qcTableLimitSelect.value);
+      qcRenderCohortTable(qcState.flaggedOnly);
+    });
+
+    qcSampleSelect = document.createElement("select");
+    qcSampleSelect.addEventListener("change", () => {
+      qcState.selectedSample = qcSampleSelect.value;
+      qcRenderCohortTable(qcState.flaggedOnly);
+      void qcRenderSampleDetail(qcState.selectedSample);
+    });
+
+    const qcFlagLabel = qcElement("label", "qc-switch");
+    qcFlagToggle = document.createElement("input");
+    qcFlagToggle.type = "checkbox";
+    qcFlagToggle.setAttribute("aria-label", "Flagged only");
+    qcFlagToggle.checked = qcState.flaggedOnly;
+    qcFlagToggle.addEventListener("change", () => {
+      qcRenderCohortTable(qcFlagToggle.checked);
+    });
+    qcFlagLabel.append(qcFlagToggle, document.createTextNode("Flagged only"));
+
+    qcHosts.tableCount = qcElement("div", "qc-count-note");
+    const qcSearchField = qcField("Search table", qcTableSearchInput);
+    qcSearchField.classList.add("qc-search-field");
+    qcToolbarLeft.append(qcSearchField, qcField("Show", qcTableLimitSelect), qcFlagLabel);
+    qcToolbarRight.append(qcField("Inspect sample", qcSampleSelect), qcHosts.tableCount);
+    qcControls.append(qcToolbarLeft, qcToolbarRight);
+    qcHosts.cohortTable = qcElement("div");
+    qcInspector.append(qcControls, qcHosts.cohortTable);
+    display(qcInspector);
+    qcRenderCohortTable(qcState.flaggedOnly);
   </script>
 
   <script type="text/markdown">
-    ## Step 5. Inspect residual spectra
+    ## Step 4. Decide next step
 
-    Residual plots show where the fitted signature mixture does not reconstruct the observed spectrum. Positive residuals are underfit contexts; negative residuals are overfit contexts. This is often where you identify missing reference signatures, context-specific technical effects, or samples that need a different analysis strategy.
-
-    Read residuals as diagnostic evidence, not as a decorative plot. Repeated residual structure across samples may point to a missing signature or a systematic preprocessing issue.
-  </script>
-<script type="module" pinned id="6">
-    const qcResidualDiv = document.createElement("div");
-    qcResidualDiv.style.width = "100%";
-    await mSigSDK.qcPlots.plotFitResiduals(
-      qcResidualDiv,
-      qcResiduals,
-      qcResidualSample
-    );
-    display(qcResidualDiv);
+    The sample detail panel converts the triage row into review evidence: top fitted signatures, burden, reconstruction, residual structure, warnings, and the next action to take.
   </script>
 
+  <script type="module" pinned id="5">
+    qcHosts.sampleDetail = qcElement("div");
+    display(qcHosts.sampleDetail);
+    await qcRenderSampleDetail(qcState.selectedSample);
+  </script>
 </notebook>

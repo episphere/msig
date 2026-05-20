@@ -1,5 +1,9 @@
 const PYODIDE_RUNNER_SCHEMA_VERSION = "msig.runner.pyodide.v0.3";
 const DEFAULT_PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.27.4/full/";
+const WEBR_RUNNER_SCHEMA_VERSION = "msig.runner.webr.v0.3";
+const DEFAULT_WEBR_MODULE_URL = "https://webr.r-wasm.org/latest/webr.mjs";
+const DEFAULT_WEBR_REPOSITORY_URL = "https://repo.r-wasm.org";
+const DEFAULT_WEBR_BINARY_R_VERSION = "4.5";
 
 function now() {
   if (typeof performance !== "undefined" && typeof performance.now === "function") {
@@ -13,6 +17,24 @@ function normalizeArray(value) {
     return [];
   }
   return Array.isArray(value) ? value : [value];
+}
+
+function normalizePath(path) {
+  return String(path || "").replace(/\\/g, "/");
+}
+
+function dirname(path) {
+  const normalized = normalizePath(path);
+  const index = normalized.lastIndexOf("/");
+  return index <= 0 ? "/" : normalized.slice(0, index);
+}
+
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function trimTrailingSlash(value) {
+  return String(value || "").replace(/\/+$/, "");
 }
 
 function createPyodideWorkerSource() {
@@ -179,7 +201,17 @@ async function installMicropipPackages(packages) {
     if (installedMicropipPackages.has(packageName)) {
       continue;
     }
-    await micropip.install(packageName);
+    try {
+      await micropip.install(packageName);
+    } catch (error) {
+      const message = error?.message || String(error);
+      if (/Can't find a pure Python 3 wheel/i.test(message)) {
+        throw new Error(
+          "Unable to install " + packageName + " in browser Python. Pyodide can only install packages with pure-Python or Pyodide-compatible wheels. " + message.split("\\n")[0]
+        );
+      }
+      throw error;
+    }
     installedMicropipPackages.add(packageName);
   }
 }
@@ -480,12 +512,441 @@ async function runPython(
   );
 }
 
+/**
+ * Reports whether the current JavaScript runtime can create and communicate
+ * with a webR runtime.
+ *
+ * @function detectWebRRuntime
+ * @memberof runners
+ * @returns {Object} Runtime availability and missing browser capabilities.
+ */
+function detectWebRRuntime() {
+  const missing = [];
+  if (typeof WebAssembly === "undefined") {
+    missing.push("WebAssembly");
+  }
+  if (typeof Worker === "undefined") {
+    missing.push("Worker");
+  }
+  if (typeof fetch === "undefined") {
+    missing.push("fetch");
+  }
+  if (typeof TextEncoder === "undefined") {
+    missing.push("TextEncoder");
+  }
+  if (typeof TextDecoder === "undefined") {
+    missing.push("TextDecoder");
+  }
+  return {
+    schemaVersion: WEBR_RUNNER_SCHEMA_VERSION,
+    runtime: "webr",
+    available: missing.length === 0,
+    missing,
+    crossOriginIsolated:
+      typeof crossOriginIsolated === "boolean" ? crossOriginIsolated : null,
+    defaultModuleURL: DEFAULT_WEBR_MODULE_URL,
+    defaultRepositoryURL: DEFAULT_WEBR_REPOSITORY_URL,
+    defaultBinaryRVersion: DEFAULT_WEBR_BINARY_R_VERSION,
+  };
+}
+
+function webRPackageIndexUrls({
+  repositoryUrl = DEFAULT_WEBR_REPOSITORY_URL,
+  binaryRVersion = DEFAULT_WEBR_BINARY_R_VERSION,
+  packageIndexUrls = [],
+} = {}) {
+  const base = trimTrailingSlash(repositoryUrl);
+  return unique([
+    ...normalizeArray(packageIndexUrls),
+    `${base}/bin/emscripten/contrib/${binaryRVersion}/PACKAGES`,
+  ]);
+}
+
+function parsePackageIndex(text, repository) {
+  const packages = new Map();
+  String(text || "")
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .forEach((block) => {
+      const record = {};
+      block.split(/\r?\n/).forEach((line) => {
+        const match = line.match(/^([^:]+):\s*(.*)$/);
+        if (match) {
+          record[match[1].trim()] = match[2].trim();
+        }
+      });
+      if (record.Package) {
+        packages.set(record.Package, {
+          package: record.Package,
+          version: record.Version || null,
+          repository,
+          record,
+        });
+      }
+    });
+  return packages;
+}
+
+/**
+ * Checks package availability in public or caller-supplied webR repositories.
+ *
+ * @async
+ * @function checkWebRPackageAvailability
+ * @memberof runners
+ * @param {string|string[]} packages - R packages to check.
+ * @param {Object} [options] - Repository and package-index options.
+ * @returns {Promise<Object>} Package availability by name.
+ */
+async function checkWebRPackageAvailability(packages, options = {}) {
+  const requested = normalizeArray(packages).filter(Boolean);
+  const result = {
+    schemaVersion: WEBR_RUNNER_SCHEMA_VERSION,
+    runtime: "webr",
+    available: false,
+    packages: {},
+    missing: [...requested],
+    checkedIndexes: [],
+    errors: [],
+  };
+
+  if (requested.length === 0) {
+    result.available = true;
+    result.missing = [];
+    return result;
+  }
+
+  if (typeof fetch === "undefined") {
+    result.errors.push("fetch is not available in this runtime.");
+    return result;
+  }
+
+  const pending = new Set(requested);
+  for (const url of webRPackageIndexUrls(options)) {
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      result.checkedIndexes.push({ url, status: response.status });
+      if (!response.ok) {
+        continue;
+      }
+      const index = parsePackageIndex(await response.text(), url);
+      for (const packageName of [...pending]) {
+        const found = index.get(packageName);
+        if (found) {
+          result.packages[packageName] = {
+            available: true,
+            version: found.version,
+            repository: found.repository,
+          };
+          pending.delete(packageName);
+        }
+      }
+      if (pending.size === 0) {
+        break;
+      }
+    } catch (error) {
+      result.checkedIndexes.push({ url, status: "error" });
+      result.errors.push(error?.message || String(error));
+    }
+  }
+
+  for (const packageName of requested) {
+    if (!result.packages[packageName]) {
+      result.packages[packageName] = {
+        available: false,
+        version: null,
+        repository: null,
+      };
+    }
+  }
+  result.missing = [...pending];
+  result.available = result.missing.length === 0;
+  return result;
+}
+
+async function ensureWebRDirectory(webR, path) {
+  const directory = dirname(path);
+  if (!directory || directory === "/") {
+    return;
+  }
+  const parts = directory.split("/").filter(Boolean);
+  let current = "";
+  for (const part of parts) {
+    current += `/${part}`;
+    try {
+      await webR.FS.mkdir(current);
+    } catch (_error) {
+      // mkdir throws when the directory already exists; that is fine here.
+    }
+  }
+}
+
+async function writeWebRInputFile(webR, file) {
+  const path = normalizePath(file.path);
+  if (!path || path === "/") {
+    throw new Error("webR input files require a concrete virtual filesystem path.");
+  }
+  await ensureWebRDirectory(webR, path);
+  let bytes;
+  if (file.bytes instanceof Uint8Array) {
+    bytes = file.bytes;
+  } else if (file.base64 !== undefined && typeof atob === "function") {
+    const binary = atob(file.base64);
+    bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+  } else {
+    bytes = new TextEncoder().encode(String(file.text ?? file.content ?? ""));
+  }
+  await webR.FS.writeFile(path, bytes);
+}
+
+async function readWebROutputFile(webR, path, encoding = "auto") {
+  const normalized = normalizePath(path);
+  const textLike =
+    encoding === "text" ||
+    (encoding === "auto" && /\.(txt|tsv|csv|json|md|html|xml|log|r)$/i.test(normalized));
+  const bytes = await webR.FS.readFile(normalized);
+  if (textLike) {
+    return {
+      path: normalized,
+      encoding: "text",
+      text: new TextDecoder().decode(bytes),
+    };
+  }
+  return {
+    path: normalized,
+    encoding: "bytes",
+    bytes,
+  };
+}
+
+async function listWebRFiles(webR, directory) {
+  const normalized = normalizePath(directory || "/");
+  try {
+    const result = await webR.evalRString(
+      `paste(list.files(${JSON.stringify(normalized)}, recursive = TRUE, full.names = TRUE), collapse = "\\n")`
+    );
+    return String(result || "").split(/\n/).filter(Boolean);
+  } catch (_error) {
+    return [];
+  }
+}
+
+function convertWebRResult(value) {
+  if (value && typeof value.toJs === "function") {
+    try {
+      const converted = value.toJs({ dict_converter: Object.fromEntries });
+      if (typeof value.destroy === "function") {
+        value.destroy();
+      }
+      return converted;
+    } catch (_error) {
+      if (typeof value.destroy === "function") {
+        value.destroy();
+      }
+      return String(value);
+    }
+  }
+  return value;
+}
+
+/**
+ * Creates a reusable webR runner.
+ *
+ * @function createWebRRunner
+ * @memberof runners
+ * @param {Object} [options] - Runner options.
+ * @returns {Object} Runner with run and terminate methods.
+ */
+function createWebRRunner({
+  webRModuleURL = DEFAULT_WEBR_MODULE_URL,
+  repositoryUrl = DEFAULT_WEBR_REPOSITORY_URL,
+  timeoutMs = 120000,
+  webROptions = {},
+} = {}) {
+  const runtime = detectWebRRuntime();
+  if (!runtime.available) {
+    throw new Error(
+      `webR is not available in this runtime. Missing: ${runtime.missing.join(", ")}.`
+    );
+  }
+
+  let webR = null;
+  let webRModule = null;
+  let terminated = false;
+  const installedPackages = new Set();
+
+  async function ensureWebR() {
+    if (terminated) {
+      throw new Error("Cannot run code on a terminated webR runner.");
+    }
+    if (webR) {
+      return webR;
+    }
+    webRModule = await import(webRModuleURL);
+    const options = { ...webROptions };
+    if (
+      options.channelType === undefined &&
+      typeof crossOriginIsolated === "boolean" &&
+      !crossOriginIsolated &&
+      webRModule.ChannelType?.PostMessage !== undefined
+    ) {
+      options.channelType = webRModule.ChannelType.PostMessage;
+    }
+    webR = new webRModule.WebR(options);
+    await webR.init();
+    return webR;
+  }
+
+  async function installPackages(packages, options = {}) {
+    const packageNames = normalizeArray(packages).filter(Boolean);
+    const missing = packageNames.filter((packageName) => !installedPackages.has(packageName));
+    if (missing.length === 0) {
+      return;
+    }
+    const instance = await ensureWebR();
+    await instance.installPackages(missing, {
+      repos: options.repositoryUrl || repositoryUrl,
+      quiet: options.quiet !== false,
+      mount: options.mount !== false,
+    });
+    missing.forEach((packageName) => installedPackages.add(packageName));
+  }
+
+  async function runPayload(payload = {}) {
+    const instance = await ensureWebR();
+    await installPackages(payload.rPackages, payload);
+
+    for (const file of normalizeArray(payload.files)) {
+      await writeWebRInputFile(instance, file);
+    }
+
+    if (payload.inputJson !== undefined) {
+      await instance.evalRVoid(
+        `MSIG_INPUT_JSON <- ${JSON.stringify(JSON.stringify(payload.inputJson))}`
+      );
+    }
+
+    let result = null;
+    if (payload.r) {
+      result = convertWebRResult(await instance.evalR(String(payload.r)));
+    }
+    if (payload.resultR) {
+      result = await instance.evalRString(String(payload.resultR));
+    }
+    let parsedResult = result;
+    if (payload.parseJsonResult !== false && typeof result === "string") {
+      try {
+        parsedResult = JSON.parse(result);
+      } catch (_error) {
+        parsedResult = result;
+      }
+    }
+
+    const outputFiles = [];
+    for (const filePath of normalizeArray(payload.outputFiles)) {
+      outputFiles.push(await readWebROutputFile(instance, filePath, payload.outputEncoding || "auto"));
+    }
+    for (const directory of normalizeArray(payload.outputDirectories)) {
+      for (const filePath of await listWebRFiles(instance, directory)) {
+        outputFiles.push(await readWebROutputFile(instance, filePath, payload.outputEncoding || "auto"));
+      }
+    }
+
+    return {
+      result: parsedResult,
+      files: outputFiles,
+      installedWebRPackages: Array.from(installedPackages),
+      webRVersion: instance.version || null,
+      webRVersionR: instance.versionR || null,
+    };
+  }
+
+  async function run(payload = {}) {
+    const startedAt = now();
+    const effectiveTimeoutMs = payload.timeoutMs || timeoutMs;
+    let timeoutHandle = null;
+    return await Promise.race([
+      runPayload(payload).then((output) => ({
+        schemaVersion: WEBR_RUNNER_SCHEMA_VERSION,
+        runtime: "webr",
+        elapsedMs: now() - startedAt,
+        ...output,
+      })),
+      new Promise((_, reject) => {
+        timeoutHandle = setTimeout(async () => {
+          try {
+            await terminate();
+          } catch (_error) {
+            // Best effort cleanup.
+          }
+          reject(new Error(`webR run exceeded ${effectiveTimeoutMs} ms and the runtime was closed.`));
+        }, effectiveTimeoutMs);
+      }),
+    ]).finally(() => {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+    });
+  }
+
+  async function terminate() {
+    terminated = true;
+    if (webR) {
+      if (typeof webR.close === "function") {
+        await webR.close();
+      } else if (typeof webR.destroy === "function") {
+        await webR.destroy();
+      }
+    }
+    webR = null;
+  }
+
+  return {
+    schemaVersion: WEBR_RUNNER_SCHEMA_VERSION,
+    runtime: "webr",
+    webRModuleURL,
+    repositoryUrl,
+    run,
+    terminate,
+  };
+}
+
+/**
+ * Runs one webR job in a temporary runtime.
+ *
+ * @async
+ * @function runWebR
+ * @memberof runners
+ * @param {Object} payload - R code, packages, files, and output collection options.
+ * @param {Object} [options] - Runner construction options.
+ * @returns {Promise<Object>} Result, collected files, package metadata, and elapsed time.
+ */
+async function runWebR(payload, options = {}) {
+  const runner = createWebRRunner(options);
+  try {
+    return await runner.run(payload);
+  } finally {
+    await runner.terminate();
+  }
+}
+
 export {
   DEFAULT_PYODIDE_INDEX_URL,
+  DEFAULT_WEBR_BINARY_R_VERSION,
+  DEFAULT_WEBR_MODULE_URL,
+  DEFAULT_WEBR_REPOSITORY_URL,
   PYODIDE_RUNNER_SCHEMA_VERSION,
+  WEBR_RUNNER_SCHEMA_VERSION,
+  checkWebRPackageAvailability,
   createPyodideWorkerRunner,
   createPyodideWorkerSource,
+  createWebRRunner,
   detectPyodideRuntime,
+  detectWebRRuntime,
   runPython,
   runPyodide,
+  runWebR,
 };

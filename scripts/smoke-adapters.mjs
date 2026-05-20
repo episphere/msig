@@ -1,8 +1,12 @@
 import {
+  checkDeconstructSigsWebRAvailability,
+  checkSigminerWebRAvailability,
   createInteroperabilityBundle,
   prepareDeconstructSigsInput,
   prepareMuSiCalRefitInput,
   prepareSigminerInput,
+  runDeconstructSigsWebR,
+  runSigminerWebR,
   parseSigminerOutput,
   parseSigProfilerMatrixGeneratorOutput,
   prepareSigProfilerClustersInput,
@@ -11,9 +15,14 @@ import {
   prepareSigProfilerSimulatorInput,
   prepareSigProfilerAssignmentInput,
   prepareSigProfilerExtractorInput,
+  runSigProfilerExtractor,
   runSparseNnlsRefit,
 } from "../mSigSDKScripts/adapters.js";
-import { detectPyodideRuntime } from "../mSigSDKScripts/runners.js";
+import {
+  checkWebRPackageAvailability,
+  detectPyodideRuntime,
+  detectWebRRuntime,
+} from "../mSigSDKScripts/runners.js";
 import { getExpectedContexts } from "../mSigSDKScripts/validation.js";
 
 const contexts = getExpectedContexts({ profile: "SBS", matrix: 96 });
@@ -44,6 +53,24 @@ if (extractorInput.files.length !== 1 || extractorInput.manifest.contextCount !=
   throw new Error("SigProfilerExtractor input preparation failed.");
 }
 
+const extractorRun = await runSigProfilerExtractor(
+  { spectra },
+  {
+    contexts,
+    maximumSignatures: 1,
+    nmfReplicates: 2,
+    maxBrowserRuns: 2,
+    maxIterations: 20,
+  }
+);
+if (
+  extractorRun.runtime !== "browser_nmf" ||
+  !extractorRun.signatures?.SPE_NMF1 ||
+  !extractorRun.exposures?.SampleA
+) {
+  throw new Error("SigProfilerExtractor browser extraction smoke test failed.");
+}
+
 const deconstructInput = prepareDeconstructSigsInput(
   { spectra, signatures },
   { contexts }
@@ -67,6 +94,36 @@ if (
 const sigminerExposures = parseSigminerOutput("sample\tSBS1\tSBS5\nSampleA\t0.25\t0.75");
 if (Math.abs((sigminerExposures.SampleA?.SBS5 || 0) - 0.75) > 1e-12) {
   throw new Error("sigminer output parsing failed.");
+}
+
+if (typeof runDeconstructSigsWebR !== "function" || typeof runSigminerWebR !== "function") {
+  throw new Error("Exact WebR R-package adapter runs are not exported.");
+}
+
+const mockedWebRPackageIndex = [
+  "Package: sigminer",
+  "Version: 2.3.0",
+  "",
+  "Package: nnls",
+  "Version: 1.5",
+].join("\n");
+const mockedWebRPackages = await checkWebRPackageAvailability(["sigminer", "nnls"], {
+  packageIndexUrls: [`data:text/plain,${encodeURIComponent(mockedWebRPackageIndex)}`],
+  repositoryUrl: "https://example.invalid/webr",
+});
+if (!mockedWebRPackages.available) {
+  throw new Error("Mocked WebR package availability check failed.");
+}
+
+const deconstructWebRAvailability = await checkDeconstructSigsWebRAvailability();
+const sigminerWebRAvailability = await checkSigminerWebRAvailability({
+  method: "NNLS",
+});
+if (!["available", "missing package", "runtime unavailable"].includes(deconstructWebRAvailability.status)) {
+  throw new Error("deconstructSigs WebR availability status was not classified.");
+}
+if (!["available", "missing package", "runtime unavailable"].includes(sigminerWebRAvailability.status)) {
+  throw new Error("sigminer WebR availability status was not classified.");
 }
 
 const exampleVcf = [
@@ -150,6 +207,7 @@ if (!sparseRefit.exposures?.SampleA || sparseRefit.status !== "completed") {
 }
 
 const runtime = detectPyodideRuntime();
+const webRRuntime = detectWebRRuntime();
 console.log(
   JSON.stringify(
     {
@@ -157,6 +215,7 @@ console.log(
       sigProfilerAssignmentFiles: spaInput.files.length,
       musicalFiles: musicalInput.files.length,
       sigProfilerExtractorFiles: extractorInput.files.length,
+      sigProfilerExtractorRuntime: extractorRun.runtime,
       deconstructSigsFiles: deconstructInput.files.length,
       sigminerFiles: sigminerInput.files.length,
       sigProfilerMatrixGeneratorFiles: matrixGeneratorInput.files.length,
@@ -167,6 +226,11 @@ console.log(
       sparseRefitRuntime: sparseRefit.runtime,
       pyodideWorkerAvailable: runtime.available,
       missingPyodideCapabilities: runtime.missing,
+      webRRuntimeAvailable: webRRuntime.available,
+      missingWebRCapabilities: webRRuntime.missing,
+      mockedWebRPackagesAvailable: mockedWebRPackages.available,
+      deconstructSigsWebRStatus: deconstructWebRAvailability.status,
+      sigminerWebRStatus: sigminerWebRAvailability.status,
     },
     null,
     2

@@ -5,20 +5,20 @@
   <script type="text/markdown">
     # Resource portability
 
-    A public mutational-signature resource should become stable SDK objects that can be checked, exported, reloaded, and handed to another workflow without changing what the data mean.
-
-    The audit trail is short: source resource -> SDK table shape -> round-trip check -> downloadable handoff package.
+    mSigSDK supports SBS96 handoff files, selected browser/Pyodide/WebR execution paths, common output parsers, and round-trip validation for platform interoperability.
   </script>
 
-  <script type="module" pinned id="setup">
-    const portabilitySdkUrl = new URL("../main.js?v=2026-05-15-resource-portability-redesign", location.href).href;
+  <script type="module" pinned id="sbs96-format-bridge">
+    const portabilitySdkUrl = new URL("../main.js?v=2026-05-17-webr-r-adapters", location.href).href;
     const { mSigSDK } = await import(portabilitySdkUrl);
     const {
+      demoSignatures,
+      demoSpectra,
       loadPublicSbs96Dataset,
+      publicSbs96SignatureNames,
     } = await import("./msig-notebook-fixtures.js");
 
     const {
-      burdenSampleRows,
       details,
       formatNumber,
       metrics,
@@ -26,748 +26,1192 @@
       table,
     } = mSigSDK.presentation;
 
-    const portabilityContexts = mSigSDK.validation.getExpectedContexts({
+    const MAX_SAMPLES = 50;
+    const DEFAULT_SAMPLE_LIMIT = 5;
+    const SIGNATURE_SET = "COSMIC_v3_Signatures_GRCh37_SBS96";
+    const CONTEXTS = mSigSDK.validation.getExpectedContexts({
       profile: "SBS",
       matrix: 96,
     });
-    const portabilityStudy = "PCAWG";
-    const portabilityGenomeDataType = "WGS";
-    const portabilityCancerType = "Lung-AdenoCA";
-    const portabilityMutationType = "SBS";
-    const portabilityMatrixSize = 96;
-    const portabilitySignatureSetName = "COSMIC_v3_Signatures_GRCh37_SBS96";
-    const portabilitySummarySignatureSet = "COSMIC_v3.3_Signatures";
-    const portabilityTcgaProjectOptions = [
-      "TCGA-LUAD",
-      "TCGA-LUSC",
-      "TCGA-BRCA",
-      "TCGA-COAD",
-      "TCGA-SKCM",
-      "TCGA-UCEC",
-    ];
-    const portabilityGeneOptions = [
-      { value: "ENSG00000141510", label: "TP53 - ENSG00000141510" },
-      { value: "ENSG00000133703", label: "KRAS - ENSG00000133703" },
-      { value: "ENSG00000146648", label: "EGFR - ENSG00000146648" },
-      { value: "ENSG00000157764", label: "BRAF - ENSG00000157764" },
-      { value: "ENSG00000121879", label: "PIK3CA - ENSG00000121879" },
-      { value: "ENSG00000138413", label: "IDH1 - ENSG00000138413" },
-    ];
-    const portabilityQueryParams = new URLSearchParams(location.search);
-    const portabilityTcgaProject =
-      portabilityTcgaProjectOptions.includes(portabilityQueryParams.get("tcgaProject"))
-        ? portabilityQueryParams.get("tcgaProject")
-        : "TCGA-LUAD";
-    const portabilityGeneChoice =
-      portabilityGeneOptions.find((option) => option.value === portabilityQueryParams.get("geneId")) ||
-      portabilityGeneOptions[0];
-    const portabilityGeneIds = [portabilityGeneChoice.value];
-    const portabilityGeneLabel = portabilityGeneChoice.label;
-    const portabilityEndpointUrls = [
-      "https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum",
-      "https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature",
-      "https://api.gdc.cancer.gov/files",
+
+    const OUTBOUND_TOOLS = [
+      {
+        id: "sigprofilerassignment",
+        key: "sigProfilerAssignment",
+        label: "SigProfilerAssignment",
+        environment: "Python package",
+        orientation: "MutationType rows x sample columns; optional COSMIC signature catalog",
+        output: "Exposure tables",
+        defaultChecked: true,
+      },
+      {
+        id: "sigprofilerextractor",
+        key: "sigProfilerExtractor",
+        label: "SigProfilerExtractor",
+        environment: "Python package",
+        orientation: "MutationType rows x sample columns",
+        output: "Extracted signatures and activities",
+        defaultChecked: true,
+      },
+      {
+        id: "deconstructsigs",
+        key: "deconstructSigs",
+        label: "deconstructSigs",
+        environment: "R package",
+        orientation: "MutationType rows x sample columns plus COSMIC-style signatures",
+        output: "Exposure table",
+        defaultChecked: true,
+      },
+      {
+        id: "sigminer",
+        key: "sigminer",
+        label: "sigminer",
+        environment: "R package",
+        orientation: "MutationType rows x sample columns plus COSMIC-style signatures",
+        output: "Exposure table",
+        defaultChecked: true,
+      },
+      {
+        id: "musical",
+        key: "musical",
+        label: "MuSiCal-compatible refit",
+        environment: "Python package or TSV workflow",
+        orientation: "MutationType rows x sample columns plus signature rows",
+        output: "Exposure table",
+        defaultChecked: true,
+      },
     ];
 
-    function pass(condition) {
-      return condition ? "Pass" : "Review";
+    const INBOUND_TOOLS = [
+      {
+        id: "sigprofilerassignment",
+        label: "SigProfilerAssignment",
+        outputKind: "exposures",
+      },
+      {
+        id: "deconstructsigs",
+        label: "deconstructSigs",
+        outputKind: "exposures",
+      },
+      {
+        id: "sigminer",
+        label: "sigminer",
+        outputKind: "exposures",
+      },
+      {
+        id: "musical",
+        label: "MuSiCal-compatible refit",
+        outputKind: "exposures",
+      },
+      {
+        id: "sigprofilerextractor",
+        label: "SigProfilerExtractor",
+        outputKind: "signatures and exposures",
+      },
+      {
+        id: "sigprofilermatrixgenerator",
+        label: "SigProfilerMatrixGenerator output",
+        outputKind: "spectra",
+      },
+    ];
+
+    const SUPPORTED_TOOL_ROWS = [
+      {
+        platform: "SigProfilerAssignment",
+        sdkExports: "SBS96 sample matrix and optional COSMIC signature catalog",
+        directSdkRun: "Runs matrix-mode assignment through Pyodide when the target browser can install SigProfilerAssignment",
+        sdkImports: "Activity and exposure tables",
+        generatedArtifacts: "Sample TSV, signature TSV",
+      },
+      {
+        platform: "SigProfilerExtractor",
+        sdkExports: "SBS96 sample matrix",
+        directSdkRun: "Runs mSigSDK browser-native NMF and exports SigProfilerExtractor handoff files; exact package execution requires a compatible Pyodide environment because current dependencies include torch",
+        sdkImports: "Suggested signatures and activities",
+        generatedArtifacts: "Matrix TSV",
+      },
+      {
+        platform: "deconstructSigs",
+        sdkExports: "SBS96 spectra and COSMIC-style signatures",
+        directSdkRun: "Runs exact deconstructSigs through WebR when a compatible package build is available",
+        sdkImports: "Sample-by-signature exposure tables",
+        generatedArtifacts: "Spectra TSV, signatures TSV",
+      },
+      {
+        platform: "sigminer",
+        sdkExports: "SBS96 spectra and signatures for sig_fit",
+        directSdkRun: "Runs exact sigminer through WebR when sigminer and the selected solver package are available",
+        sdkImports: "Sample-by-signature exposure tables",
+        generatedArtifacts: "Spectra TSV, signatures TSV",
+      },
+      {
+        platform: "MuSiCal-compatible refit",
+        sdkExports: "SBS96 spectra and signature TSVs",
+        directSdkRun: "Runs the MuSiCal package through Pyodide when compatible package assets are supplied",
+        sdkImports: "Sample-row or signature-row exposure tables",
+        generatedArtifacts: "Spectra TSV, signatures TSV",
+      },
+    ];
+
+    const root = document.createElement("div");
+    root.className = "workflow-panel resource-portability-app";
+    display(root);
+
+    installNotebookStyles();
+
+    const state = {
+      activeTab: "outbound",
+      selectedInboundPlatform: "sigprofilerassignment",
+      selectedPreviewKey: "",
+      status: "idle",
+      statusDetail: "Ready.",
+      dataset: null,
+      contexts: CONTEXTS,
+      spectra: null,
+      signatures: null,
+      generatedBundle: null,
+      generatedFiles: [],
+      parsedExternalOutput: null,
+      roundTripReport: null,
+      error: null,
+    };
+
+    function installNotebookStyles() {
+      if (document.getElementById("resource-portability-styles")) return;
+      const style = document.createElement("style");
+      style.id = "resource-portability-styles";
+      style.textContent = `
+        .resource-portability-app {
+          gap: 18px;
+        }
+
+        .resource-app-header {
+          display: grid;
+          gap: 10px;
+          border-left: 4px solid var(--teal);
+          background: #edf7f7;
+          padding: 16px;
+        }
+
+        .resource-app-header h3,
+        .resource-tab-panel h3 {
+          margin: 0;
+          color: var(--ink);
+          font-size: 18px;
+        }
+
+        .resource-app-header p,
+        .resource-compact-note {
+          max-width: 82ch;
+          margin: 0;
+          color: var(--muted);
+          font-size: 14px;
+          line-height: 1.55;
+        }
+
+        .resource-tabs,
+        .resource-checkbox-grid,
+        .resource-preview-controls {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .resource-tab {
+          border: 1px solid var(--rule);
+          border-radius: 8px;
+          background: #fff;
+          color: var(--ink);
+          cursor: pointer;
+          font-weight: 850;
+          min-height: 38px;
+          padding: 8px 12px;
+        }
+
+        .resource-tab.active {
+          border-color: var(--teal);
+          background: var(--teal);
+          color: #fff;
+        }
+
+        .resource-tab-panel {
+          display: grid;
+          gap: 14px;
+        }
+
+        .resource-status {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          gap: 8px 12px;
+          align-items: start;
+          border: 1px solid var(--rule);
+          border-left: 4px solid var(--teal);
+          border-radius: 8px;
+          background: #fbfcfa;
+          padding: 12px;
+        }
+
+        .resource-status.error {
+          border-left-color: var(--coral);
+          background: #fff3ec;
+        }
+
+        .resource-status.running {
+          border-left-color: var(--gold);
+          background: #fff8e6;
+        }
+
+        .resource-status-dot {
+          width: 14px;
+          height: 14px;
+          margin-top: 3px;
+          border-radius: 999px;
+          background: var(--teal);
+        }
+
+        .resource-status.running .resource-status-dot {
+          background: var(--gold);
+        }
+
+        .resource-status.error .resource-status-dot {
+          background: var(--coral);
+        }
+
+        .resource-status strong {
+          display: block;
+          color: var(--ink);
+          font-size: 14px;
+        }
+
+        .resource-status span {
+          color: var(--muted);
+          font-size: 13px;
+          line-height: 1.45;
+        }
+
+        .resource-checkbox {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          border: 1px solid var(--rule);
+          border-radius: 8px;
+          background: #fff;
+          color: var(--ink);
+          font-size: 13px;
+          font-weight: 800;
+          min-height: 38px;
+          padding: 8px 10px;
+        }
+
+        .resource-preview {
+          width: 100%;
+          min-height: 260px;
+          box-sizing: border-box;
+          border: 1px solid var(--rule);
+          border-radius: 8px;
+          background: #0f172a;
+          color: #e2e8f0;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 12px;
+          line-height: 1.5;
+          overflow: auto;
+          padding: 12px;
+          white-space: pre;
+        }
+
+        .resource-editor {
+          width: 100%;
+          min-height: 220px;
+          box-sizing: border-box;
+          border: 1px solid var(--rule);
+          border-radius: 8px;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 12px;
+          line-height: 1.5;
+          padding: 12px;
+        }
+      `;
+      document.head.append(style);
     }
 
-    function asArray(value) {
-      return Array.isArray(value) ? value : [];
+    function clampSampleLimit(value) {
+      const numeric = Math.round(Number(value));
+      if (!Number.isFinite(numeric)) return DEFAULT_SAMPLE_LIMIT;
+      return Math.max(1, Math.min(MAX_SAMPLES, numeric));
     }
 
-    function matrixTotal(matrix = {}, contexts = portabilityContexts) {
+    function createButton(label, variant = "") {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `workflow-button ${variant}`.trim();
+      button.textContent = label;
+      return button;
+    }
+
+    function createField(label, control, helper = "") {
+      const wrapper = document.createElement("label");
+      wrapper.className = "workflow-field";
+      const title = document.createElement("span");
+      title.textContent = label;
+      wrapper.append(title, control);
+      if (helper) {
+        const small = document.createElement("small");
+        small.textContent = helper;
+        wrapper.append(small);
+      }
+      return wrapper;
+    }
+
+    function statusCard(title, detail, tone = "ready") {
+      const node = document.createElement("div");
+      node.className = `resource-status ${tone === "ready" ? "" : tone}`.trim();
+      const dot = document.createElement("span");
+      dot.className = "resource-status-dot";
+      const copy = document.createElement("div");
+      const strong = document.createElement("strong");
+      strong.textContent = title;
+      const span = document.createElement("span");
+      span.textContent = detail;
+      copy.append(strong, span);
+      node.append(dot, copy);
+      return node;
+    }
+
+    function setStatus(status, detail, error = null) {
+      state.status = status;
+      state.statusDetail = detail;
+      state.error = error;
+      render();
+    }
+
+    function matrixNames(matrix = {}) {
+      return Object.keys(matrix || {});
+    }
+
+    function matrixTotal(matrix = {}, contexts = CONTEXTS) {
       return Object.values(matrix || {}).reduce((sum, record) => {
         const contextList = contexts?.length ? contexts : Object.keys(record || {});
-        return sum + contextList.reduce((recordSum, context) => recordSum + Number(record?.[context] || 0), 0);
+        return sum + contextList.reduce(
+          (recordSum, context) => recordSum + Number(record?.[context] || 0),
+          0
+        );
       }, 0);
-    }
-
-    function nonZeroContextCount(matrix = {}, contexts = portabilityContexts) {
-      const seen = new Set();
-      Object.values(matrix || {}).forEach((record) => {
-        (contexts?.length ? contexts : Object.keys(record || {})).forEach((context) => {
-          if (Number(record?.[context] || 0) > 0) seen.add(context);
-        });
-      });
-      return seen.size;
     }
 
     function sameSet(left = [], right = []) {
       return left.length === right.length && left.every((value) => right.includes(value));
     }
 
-    function maxAbsMatrixDelta(left = {}, right = {}, contexts = portabilityContexts) {
+    function maxAbsMatrixDelta(left = {}, right = {}, contexts = CONTEXTS) {
       let maxDelta = 0;
       for (const name of Object.keys(left || {})) {
         const contextList = contexts?.length ? contexts : Object.keys(left[name] || {});
         for (const context of contextList) {
-          const delta = Math.abs(Number(left?.[name]?.[context] || 0) - Number(right?.[name]?.[context] || 0));
+          const delta = Math.abs(
+            Number(left?.[name]?.[context] || 0) - Number(right?.[name]?.[context] || 0)
+          );
           if (delta > maxDelta) maxDelta = delta;
         }
       }
       return maxDelta;
     }
 
-    function tsvRowCount(text) {
-      return String(text || "").trim().split(/\r?\n/).filter(Boolean).length;
+    function pass(condition) {
+      return condition ? "Pass" : "Review";
     }
 
-    function previewText(text, rows = 8) {
-      return String(text || "").split(/\r?\n/).slice(0, rows).join("\n");
+    function basename(path) {
+      return String(path || "file.txt").split("/").filter(Boolean).pop() || "file.txt";
     }
 
-    function optionLabel(option) {
-      return typeof option === "string" ? option : option.label;
+    function selectedToolIds() {
+      const selected = [...root.querySelectorAll("input[name='resource-tool']:checked")]
+        .map((input) => input.value);
+      return selected.length ? selected : OUTBOUND_TOOLS.filter((tool) => tool.defaultChecked).map((tool) => tool.id);
     }
 
-    function optionValue(option) {
-      return typeof option === "string" ? option : option.value;
+    function generatedFileRows(files = state.generatedFiles) {
+      return files.map((file) => ({
+        tool: file.tool,
+        file: file.filename,
+        purpose: file.purpose,
+      }));
     }
 
-    function selectorField(label, control, helper = "") {
-      const field = document.createElement("label");
-      field.className = "workflow-field";
-      const title = document.createElement("span");
-      title.textContent = label;
-      field.append(title, control);
-      if (helper) {
-        const small = document.createElement("small");
-        small.textContent = helper;
-        field.append(small);
+    function generatedFilePurpose(tool, file) {
+      const filename = basename(file?.path || "").toLowerCase();
+      if (filename.includes("signature")) return "Signature catalog input";
+      if (
+        filename.includes("spectra") ||
+        filename.includes("sample") ||
+        filename.includes("matrix")
+      ) {
+        return "SBS96 sample matrix input";
       }
-      return field;
+      return `${tool.label} input`;
     }
 
-    function dropdown(options, selectedValue) {
-      const select = document.createElement("select");
-      options.forEach((option) => {
-        const choice = document.createElement("option");
-        choice.value = optionValue(option);
-        choice.textContent = optionLabel(option);
-        select.append(choice);
+    function removeSampleScripts(bundle) {
+      return {
+        ...bundle,
+        tools: Object.fromEntries(
+          Object.entries(bundle?.tools || {}).map(([key, prepared]) => {
+            const { pythonSnippet, rSnippet, ...withoutSnippets } = prepared || {};
+            const manifest = withoutSnippets.manifest && typeof withoutSnippets.manifest === "object"
+              ? { ...withoutSnippets.manifest }
+              : withoutSnippets.manifest;
+            if (manifest && typeof manifest === "object") {
+              delete manifest.pythonSnippet;
+              delete manifest.rSnippet;
+              delete manifest.script;
+              delete manifest.scripts;
+            }
+            return [key, { ...withoutSnippets, manifest }];
+          })
+        ),
+      };
+    }
+
+    function flattenGeneratedFiles(bundle) {
+      const files = [];
+      for (const tool of OUTBOUND_TOOLS) {
+        const prepared = bundle?.tools?.[tool.key];
+        if (!prepared) continue;
+        for (const file of prepared.files || []) {
+          files.push({
+            key: `${tool.key}:${file.path}`,
+            tool: tool.label,
+            filename: `${tool.key}_${basename(file.path)}`,
+            path: file.path,
+            kind: "input file",
+            environment: tool.environment,
+            orientation: tool.orientation,
+            purpose: generatedFilePurpose(tool, file),
+            text: file.text || "",
+          });
+        }
+      }
+      return files;
+    }
+
+    function previewText(text, rowLimit = 80) {
+      return String(text || "").split(/\r?\n/).slice(0, rowLimit).join("\n");
+    }
+
+    function exposureExampleText({ signatureRows = false } = {}) {
+      const samples = matrixNames(state.spectra).slice(0, 3);
+      const signatures = matrixNames(state.signatures).slice(0, 4);
+      const values = [
+        [0.62, 0.2, 0.13, 0.05],
+        [0.1, 0.56, 0.22, 0.12],
+        [0.18, 0.12, 0.58, 0.12],
+      ];
+      if (signatureRows) {
+        return [
+          ["Signature", ...samples].join("\t"),
+          ...signatures.map((signature, signatureIndex) => [
+            signature,
+            ...samples.map((_, sampleIndex) => values[sampleIndex]?.[signatureIndex] ?? 0),
+          ].join("\t")),
+        ].join("\n");
+      }
+      return [
+        ["sample", ...signatures].join("\t"),
+        ...samples.map((sample, sampleIndex) => [
+          sample,
+          ...signatures.map((_, signatureIndex) => values[sampleIndex]?.[signatureIndex] ?? 0),
+        ].join("\t")),
+      ].join("\n");
+    }
+
+    function sigProfilerExtractorExample() {
+      const signatures = takeMatrixColumns(state.signatures, matrixNames(state.signatures).slice(0, 3));
+      const signatureText = mSigSDK.io.exportCOSMICSignatureMatrix(signatures, {
+        contexts: state.contexts,
       });
-      select.value = selectedValue;
-      return select;
+      return JSON.stringify(
+        [
+          {
+            path: "/output/SBS96/Suggested_Solution/Signatures/SBS96_Signatures.txt",
+            text: signatureText,
+          },
+          {
+            path: "/output/SBS96/Suggested_Solution/Activities/SBS96_Activities.txt",
+            text: exposureExampleText(),
+          },
+        ],
+        null,
+        2
+      );
     }
 
-    function renderResourceSelectors() {
-      const wrapper = document.createElement("div");
-      wrapper.className = "workflow-output-stack";
+    function matrixGeneratorExample() {
+      return JSON.stringify(
+        [
+          {
+            path: "/output/SBS96/SBS96.all",
+            text: mSigSDK.io.exportSigProfilerMatrix(state.spectra, {
+              contexts: state.contexts,
+            }),
+          },
+        ],
+        null,
+        2
+      );
+    }
+
+    function exampleTextForPlatform(platformId = state.selectedInboundPlatform) {
+      if (!state.spectra || !state.signatures) return "";
+      switch (platformId) {
+        case "sigprofilerextractor":
+          return sigProfilerExtractorExample();
+        case "sigprofilermatrixgenerator":
+          return matrixGeneratorExample();
+        case "musical":
+          return exposureExampleText({ signatureRows: true });
+        default:
+          return exposureExampleText();
+      }
+    }
+
+    function takeMatrixColumns(matrix, names) {
+      return Object.fromEntries(
+        names.filter((name) => matrix?.[name]).map((name) => [name, matrix[name]])
+      );
+    }
+
+    function parseJsonFiles(text) {
+      const files = JSON.parse(text);
+      if (!Array.isArray(files)) {
+        throw new Error("Paste a JSON array of { path, text } objects.");
+      }
+      return files;
+    }
+
+    function summarizeParsedResult(platformId, parsed) {
+      if (platformId === "sigprofilerextractor") {
+        const signatureValidation = mSigSDK.validation.validateSignatureMatrix(
+          parsed.signatures || {},
+          { expectedContexts: state.contexts }
+        );
+        const exposureValidation = mSigSDK.validation.validateExposureMatrix(
+          parsed.exposures || {}
+        );
+        return {
+          type: "signatures_and_exposures",
+          rows: [
+            {
+              object: "Extracted signatures",
+              count: matrixNames(parsed.signatures).length,
+              dimensions: `${matrixNames(parsed.signatures).length} x ${signatureValidation.contexts.length}`,
+              validation: pass(signatureValidation.valid),
+            },
+            {
+              object: "Activities",
+              count: matrixNames(parsed.exposures).length,
+              dimensions: `${matrixNames(parsed.exposures).length} x ${exposureValidation.signatures.length}`,
+              validation: pass(exposureValidation.valid),
+            },
+          ],
+          validation: { signatureValidation, exposureValidation },
+        };
+      }
+      if (platformId === "sigprofilermatrixgenerator") {
+        const key = Object.keys(parsed.matrices || {})[0] || "matrix";
+        const matrix = parsed.matrices?.[key] || {};
+        const validation = mSigSDK.validation.validateSpectra(matrix, {
+          expectedContexts: state.contexts,
+        });
+        return {
+          type: "spectra",
+          rows: [
+            {
+              object: key,
+              count: matrixNames(matrix).length,
+              dimensions: `${matrixNames(matrix).length} x ${validation.contexts.length}`,
+              validation: pass(validation.valid),
+            },
+          ],
+          validation,
+        };
+      }
+      const validation = mSigSDK.validation.validateExposureMatrix(parsed || {});
+      return {
+        type: "exposures",
+        rows: [
+          {
+            object: "Exposure matrix",
+            count: matrixNames(parsed).length,
+            dimensions: `${matrixNames(parsed).length} x ${validation.signatures.length}`,
+            validation: pass(validation.valid),
+          },
+        ],
+        validation,
+      };
+    }
+
+    function parseExternalText(platformId, text) {
+      switch (platformId) {
+        case "sigprofilerassignment":
+          return mSigSDK.adapters.parseExposureTables(
+            [{ path: "sigprofilerassignment_activities.tsv", text }],
+            { normalize: true }
+          ).exposures;
+        case "deconstructsigs":
+          return mSigSDK.adapters.parseDeconstructSigsOutput(text, { normalize: true });
+        case "sigminer":
+          return mSigSDK.adapters.parseSigminerOutput(text, { normalize: true });
+        case "musical":
+          return mSigSDK.io.importMuSiCalOutput(text, { normalize: true });
+        case "sigprofilerextractor":
+          return mSigSDK.adapters.parseSigProfilerExtractorOutput(
+            parseJsonFiles(text),
+            { normalize: true }
+          );
+        case "sigprofilermatrixgenerator":
+          return mSigSDK.adapters.parseSigProfilerMatrixGeneratorOutput(parseJsonFiles(text));
+        default:
+          throw new Error(`Unsupported platform: ${platformId}`);
+      }
+    }
+
+    function exposureLongRows(exposures = {}) {
+      return Object.entries(exposures).flatMap(([sample, row]) =>
+        Object.entries(row || {}).map(([signature, exposure]) => ({
+          sample,
+          signature,
+          exposure,
+        }))
+      );
+    }
+
+    function buildRoundTripReport() {
+      const spectraTsv = mSigSDK.io.exportSigProfilerMatrix(state.spectra, {
+        contexts: state.contexts,
+      });
+      const signatureTsv = mSigSDK.io.exportCOSMICSignatureMatrix(state.signatures, {
+        contexts: state.contexts,
+      });
+      const importedSpectra = mSigSDK.io.importSigProfilerMatrix(spectraTsv);
+      const importedSignatures = mSigSDK.io.importCOSMICSignatureMatrix(signatureTsv);
+      const externalExposures = mSigSDK.io.importMuSiCalOutput(exposureExampleText(), {
+        normalize: true,
+      });
+      const exposureRows = exposureLongRows(externalExposures);
+      const spectraDelta = maxAbsMatrixDelta(state.spectra, importedSpectra, state.contexts);
+      const signatureDelta = maxAbsMatrixDelta(state.signatures, importedSignatures, state.contexts);
+      const exposureValidation = mSigSDK.validation.validateExposureMatrix(externalExposures);
+
+      const checks = [
+        {
+          check: "Sample names preserved",
+          status: pass(sameSet(matrixNames(state.spectra), matrixNames(importedSpectra))),
+          observed: `${matrixNames(importedSpectra).length} samples`,
+        },
+        {
+          check: "SBS96 contexts preserved",
+          status: pass(Object.values(importedSpectra).every((row) => Object.keys(row || {}).length === state.contexts.length)),
+          observed: `${state.contexts.length} contexts`,
+        },
+        {
+          check: "Spectra counts preserved",
+          status: pass(Math.abs(matrixTotal(state.spectra, state.contexts) - matrixTotal(importedSpectra, state.contexts)) < 1e-9),
+          observed: formatNumber(matrixTotal(importedSpectra, state.contexts)),
+        },
+        {
+          check: "Spectra cells match",
+          status: pass(spectraDelta === 0),
+          observed: String(spectraDelta),
+        },
+        {
+          check: "Signature names preserved",
+          status: pass(sameSet(matrixNames(state.signatures), matrixNames(importedSignatures))),
+          observed: `${matrixNames(importedSignatures).length} signatures`,
+        },
+        {
+          check: "Signature probabilities match",
+          status: pass(signatureDelta === 0),
+          observed: String(signatureDelta),
+        },
+        {
+          check: "External exposure parser works",
+          status: pass(exposureValidation.valid && exposureRows.length > 0),
+          observed: `${exposureRows.length} long-form rows`,
+        },
+      ];
+
+      return {
+        generatedAt: new Date().toISOString(),
+        source: state.dataset?.source || "mSigPortal public API",
+        spectraTsv,
+        signatureTsv,
+        importedSpectra,
+        importedSignatures,
+        externalExposures,
+        exposureRows,
+        checks,
+      };
+    }
+
+    function coreDownloadFiles() {
+      const spectraTsv = state.roundTripReport?.spectraTsv ||
+        (state.spectra ? mSigSDK.io.exportSigProfilerMatrix(state.spectra, { contexts: state.contexts }) : "");
+      const signatureTsv = state.roundTripReport?.signatureTsv ||
+        (state.signatures ? mSigSDK.io.exportCOSMICSignatureMatrix(state.signatures, { contexts: state.contexts }) : "");
+
+      return [
+        {
+          filename: "msigportal_external_tool_bundle.json",
+          type: "json",
+          value: state.generatedBundle || {},
+          label: "Bundle JSON",
+        },
+        {
+          filename: "msigportal_sigprofiler_spectra.tsv",
+          text: spectraTsv,
+          label: "SigProfiler spectra TSV",
+        },
+        {
+          filename: "msigportal_cosmic_signatures.tsv",
+          text: signatureTsv,
+          label: "COSMIC signatures TSV",
+        },
+        {
+          filename: "external_output_parsed_as_msig.json",
+          type: "json",
+          value: state.parsedExternalOutput || {},
+          label: "Parsed external JSON",
+        },
+        {
+          filename: "interoperability_roundtrip_report.json",
+          type: "json",
+          value: state.roundTripReport || {},
+          label: "Round-trip report JSON",
+        },
+      ];
+    }
+
+    function fallbackDataset(sampleLimit) {
+      const spectraNames = matrixNames(demoSpectra()).slice(0, sampleLimit);
+      const signatureNames = matrixNames(demoSignatures());
+      const spectra = takeMatrixColumns(demoSpectra(), spectraNames);
+      const signatures = takeMatrixColumns(demoSignatures(), signatureNames);
+      return {
+        contexts: CONTEXTS,
+        spectra,
+        signatures,
+        sampleNames: spectraNames,
+        signatureNames,
+        source: "Local SBS96 portability fixture",
+        status: "Local fallback fixture",
+      };
+    }
+
+    async function loadDefaultDataset(sampleLimit) {
+      try {
+        return await loadPublicSbs96Dataset(mSigSDK, {
+          study: "PCAWG",
+          genomeDataType: "WGS",
+          cancerType: "Lung-AdenoCA",
+          mutationType: "SBS",
+          matrixSize: 96,
+          signatureSetName: SIGNATURE_SET,
+          sampleLimit,
+          signatureNames: publicSbs96SignatureNames,
+          allowAlternate: true,
+        });
+      } catch (error) {
+        console.warn("Using local resource portability fixture.", error);
+        return fallbackDataset(sampleLimit);
+      }
+    }
+
+    async function buildInteroperability(options = {}) {
+      const sampleInput = root.querySelector("#resource-sample-count");
+      const sampleLimit = clampSampleLimit(sampleInput?.value || DEFAULT_SAMPLE_LIMIT);
+      const include = options.include || selectedToolIds();
+      if (sampleInput) sampleInput.value = String(sampleLimit);
+      setStatus("running", "Loading a small public SBS96 cohort and COSMIC signature catalog.");
+
+      try {
+        const dataset = await loadDefaultDataset(sampleLimit);
+        state.dataset = dataset;
+        state.contexts = dataset.contexts || CONTEXTS;
+        state.spectra = dataset.spectra;
+        state.signatures = dataset.signatures;
+
+        const bundle = removeSampleScripts(mSigSDK.adapters.createInteroperabilityBundle(
+          {
+            spectra: state.spectra,
+            signatures: state.signatures,
+          },
+          {
+            contexts: state.contexts,
+            include,
+          }
+        ));
+        state.generatedBundle = bundle;
+        state.generatedFiles = flattenGeneratedFiles(bundle);
+        state.selectedPreviewKey = state.generatedFiles[0]?.key || "";
+        state.roundTripReport = buildRoundTripReport();
+        if (!state.parsedExternalOutput) {
+          const platform = state.selectedInboundPlatform;
+          const parsed = parseExternalText(platform, exampleTextForPlatform(platform));
+          state.parsedExternalOutput = {
+            platform,
+            label: INBOUND_TOOLS.find((tool) => tool.id === platform)?.label || platform,
+            parsed,
+            summary: summarizeParsedResult(platform, parsed),
+            inputText: exampleTextForPlatform(platform),
+          };
+        }
+        setStatus(
+          "ready",
+          `Loaded ${matrixNames(state.spectra).length} sample spectra, ${matrixNames(state.signatures).length} signatures, and ${state.generatedFiles.length} handoff data files.`
+        );
+      } catch (error) {
+        setStatus("error", error.message || "Interoperability build failed.", error);
+      }
+    }
+
+    async function parseExternalInput(platformId = state.selectedInboundPlatform, text = null) {
+      if (!state.spectra || !state.signatures) {
+        await buildInteroperability();
+      }
+      const editor = root.querySelector("#resource-external-editor");
+      const inputText = text ?? editor?.value ?? exampleTextForPlatform(platformId);
+      const platform = INBOUND_TOOLS.find((tool) => tool.id === platformId);
+      try {
+        const parsed = parseExternalText(platformId, inputText);
+        state.selectedInboundPlatform = platformId;
+        state.parsedExternalOutput = {
+          platform: platformId,
+          label: platform?.label || platformId,
+          parsed,
+          summary: summarizeParsedResult(platformId, parsed),
+          inputText,
+        };
+        setStatus("ready", `${platform?.label || platformId} output parsed into mSigSDK objects.`);
+        return state.parsedExternalOutput;
+      } catch (error) {
+        state.parsedExternalOutput = {
+          platform: platformId,
+          label: platform?.label || platformId,
+          parsed: null,
+          summary: null,
+          inputText,
+          error: error.message,
+        };
+        setStatus("error", error.message || "External output parsing failed.", error);
+        return state.parsedExternalOutput;
+      }
+    }
+
+    function renderHeader() {
+      const header = document.createElement("div");
+      header.className = "resource-app-header";
+      const title = document.createElement("h3");
+      title.textContent = "mSigSDK platform support";
+      const copy = document.createElement("p");
+      copy.textContent = "mSigSDK supports SBS96 handoff files, selected browser/Pyodide/WebR execution paths, common output parsers, and round-trip validation.";
+      header.append(title, copy);
+      return header;
+    }
+
+    function renderControls() {
       const grid = document.createElement("div");
       grid.className = "workflow-control-grid compact";
-      const projectSelect = dropdown(portabilityTcgaProjectOptions, portabilityTcgaProject);
-      const geneSelect = dropdown(portabilityGeneOptions, portabilityGeneChoice.value);
+      const sampleInput = document.createElement("input");
+      sampleInput.id = "resource-sample-count";
+      sampleInput.type = "number";
+      sampleInput.min = "1";
+      sampleInput.max = String(MAX_SAMPLES);
+      sampleInput.step = "1";
+      sampleInput.value = String(state.dataset?.sampleNames?.length || DEFAULT_SAMPLE_LIMIT);
+      sampleInput.addEventListener("input", () => {
+        sampleInput.value = String(clampSampleLimit(sampleInput.value));
+      });
+      grid.append(
+        createField(
+          "Public mSigPortal samples",
+          sampleInput,
+          `Capped at ${MAX_SAMPLES} samples for this notebook.`
+        )
+      );
+
       const buttonRow = document.createElement("div");
       buttonRow.className = "workflow-button-row";
-      const applyButton = document.createElement("button");
-      applyButton.type = "button";
-      applyButton.className = "workflow-button primary";
-      applyButton.textContent = "Apply selections";
+      const buildButton = createButton("Build SBS96 handoff files", "primary");
+      buildButton.addEventListener("click", () => buildInteroperability());
+      buttonRow.append(buildButton);
 
-      function syncSelection() {
-        const nextParams = new URLSearchParams(location.search);
-        nextParams.set("tcgaProject", projectSelect.value);
-        nextParams.set("geneId", geneSelect.value);
-        history.replaceState(null, "", `${location.pathname}?${nextParams.toString()}`);
-      }
-
-      projectSelect.addEventListener("change", syncSelection);
-      geneSelect.addEventListener("change", syncSelection);
-      applyButton.addEventListener("click", () => {
-        syncSelection();
-        const runButton = document.getElementById("run-button");
-        if (runButton && !runButton.disabled) runButton.click();
-      });
-
-      grid.append(
-        selectorField("TCGA project", projectSelect, "Controls the GDC MAF index lookup."),
-        selectorField("Gene lookup", geneSelect, "Controls the GDC project-by-gene discovery call.")
-      );
-      buttonRow.append(applyButton);
+      const wrapper = document.createElement("div");
+      wrapper.className = "workflow-output-stack";
       wrapper.append(grid, buttonRow);
       return wrapper;
     }
 
-    display(note(
-      "Portability succeeds only if the resource identity is recorded, the SDK table shape validates, exported files reload to the same samples and counts, and the handoff package carries provenance."
-    ));
-    display(renderResourceSelectors());
-    display(metrics([
-      { label: "SDK", value: mSigSDK.name },
-      { label: "Version", value: mSigSDK.version },
-      { label: "TCGA project", value: portabilityTcgaProject },
-      { label: "Gene lookup", value: portabilityGeneLabel },
-    ]));
-    display(table(
+    function renderTabs() {
+      const tabs = document.createElement("div");
+      tabs.className = "resource-tabs";
       [
-        {
-          checkpoint: "Source",
-          passCondition: "Public resource IDs, query settings, and live source status are visible.",
-          whyItMatters: "A collaborator can tell which resource was used.",
-        },
-        {
-          checkpoint: "Shape",
-          passCondition: "Spectra validate as sample x SBS96 counts; signatures validate as signature x SBS96 weights.",
-          whyItMatters: "Downstream analysis does not care whether data came from mSigPortal or a local file.",
-        },
-        {
-          checkpoint: "Round trip",
-          passCondition: "Exported TSV files reload with the same names, contexts, and totals.",
-          whyItMatters: "The data can move between notebooks, scripts, and external tools.",
-        },
-        {
-          checkpoint: "Handoff",
-          passCondition: "Downloads include spectra, signatures, an interoperability bundle, and provenance.",
-          whyItMatters: "The run can be reviewed or rerun outside this browser session.",
-        },
-      ],
-      [
-        { key: "checkpoint", label: "Checkpoint" },
-        { key: "passCondition", label: "Pass condition" },
-        { key: "whyItMatters", label: "Why it matters" },
-      ],
-      {
-        title: "Portability success criteria",
-        caption: "These checks define a portable resource handoff.",
+        ["outbound", "Export to tools"],
+        ["inbound", "Import outputs"],
+        ["roundtrip", "Round-trip checks"],
+      ].forEach(([id, label]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `resource-tab ${state.activeTab === id ? "active" : ""}`.trim();
+        button.textContent = label;
+        button.addEventListener("click", () => {
+          state.activeTab = id;
+          render();
+        });
+        tabs.append(button);
+      });
+      return tabs;
+    }
+
+    function renderToolCheckboxes() {
+      const wrapper = document.createElement("div");
+      wrapper.className = "resource-checkbox-grid";
+      OUTBOUND_TOOLS.forEach((tool) => {
+        const label = document.createElement("label");
+        label.className = "resource-checkbox";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.name = "resource-tool";
+        checkbox.value = tool.id;
+        checkbox.checked = state.generatedBundle
+          ? Boolean(state.generatedBundle.tools?.[tool.key])
+          : tool.defaultChecked;
+        label.append(checkbox, document.createTextNode(tool.label));
+        wrapper.append(label);
+      });
+      return wrapper;
+    }
+
+    function renderOutboundTab() {
+      const panel = document.createElement("section");
+      panel.className = "resource-tab-panel";
+      const heading = document.createElement("h3");
+      heading.textContent = "Export to tools";
+
+      const buildButton = createButton("Build SBS96 handoff files", "primary");
+      buildButton.addEventListener("click", () => buildInteroperability());
+
+      const previewControls = document.createElement("div");
+      previewControls.className = "resource-preview-controls";
+      const previewSelect = document.createElement("select");
+      state.generatedFiles.forEach((file) => {
+        const option = document.createElement("option");
+        option.value = file.key;
+        option.textContent = `${file.tool}: ${file.filename}`;
+        previewSelect.append(option);
+      });
+      previewSelect.value = state.selectedPreviewKey;
+      previewSelect.addEventListener("change", () => {
+        state.selectedPreviewKey = previewSelect.value;
+        render();
+      });
+      previewControls.append(createField("Preview file", previewSelect));
+
+      const selectedFile =
+        state.generatedFiles.find((file) => file.key === state.selectedPreviewKey) ||
+        state.generatedFiles[0];
+      const preview = document.createElement("pre");
+      preview.className = "resource-preview";
+      preview.textContent = selectedFile
+        ? previewText(selectedFile.text)
+        : "Build handoff files to preview generated TSV content.";
+
+      panel.append(
+        heading,
+        renderToolCheckboxes(),
+        buildButton,
+        table(SUPPORTED_TOOL_ROWS, [
+          { key: "platform", label: "Platform" },
+          { key: "sdkExports", label: "mSigSDK exports" },
+          { key: "directSdkRun", label: "Direct SDK run" },
+          { key: "sdkImports", label: "mSigSDK imports" },
+          { key: "generatedArtifacts", label: "Generated artifacts" },
+        ], { title: "Supported platform features", maxRows: 12 }),
+        table(generatedFileRows(), [
+          { key: "tool", label: "Tool" },
+          { key: "file", label: "File" },
+          { key: "purpose", label: "Purpose" },
+        ], { title: "Generated file manifest", maxRows: 30 }),
+        previewControls,
+        preview,
+        downloadMany([
+          ...coreDownloadFiles(),
+          ...state.generatedFiles.map((file) => ({
+            filename: file.filename,
+            text: file.text,
+            label: file.filename,
+          })),
+        ])
+      );
+      return panel;
+    }
+
+    function renderInboundTab() {
+      const panel = document.createElement("section");
+      panel.className = "resource-tab-panel";
+      const heading = document.createElement("h3");
+      heading.textContent = "Import outputs";
+
+      const select = document.createElement("select");
+      INBOUND_TOOLS.forEach((tool) => {
+        const option = document.createElement("option");
+        option.value = tool.id;
+        option.textContent = tool.label;
+        select.append(option);
+      });
+      select.value = state.selectedInboundPlatform;
+
+      const editor = document.createElement("textarea");
+      editor.id = "resource-external-editor";
+      editor.className = "resource-editor";
+      editor.value =
+        state.parsedExternalOutput?.platform === state.selectedInboundPlatform
+          ? state.parsedExternalOutput.inputText
+          : exampleTextForPlatform(state.selectedInboundPlatform);
+
+      select.addEventListener("change", () => {
+        state.selectedInboundPlatform = select.value;
+        editor.value = exampleTextForPlatform(select.value);
+        render();
+      });
+
+      const controls = document.createElement("div");
+      controls.className = "workflow-control-grid compact";
+      controls.append(
+        createField("Source platform", select, "Example outputs are editable before parsing."),
+      );
+
+      const buttonRow = document.createElement("div");
+      buttonRow.className = "workflow-button-row";
+      const loadButton = createButton("Load example");
+      loadButton.addEventListener("click", () => {
+        editor.value = exampleTextForPlatform(state.selectedInboundPlatform);
+      });
+      const parseButton = createButton("Parse into mSigSDK", "primary");
+      parseButton.addEventListener("click", () => parseExternalInput(state.selectedInboundPlatform, editor.value));
+      buttonRow.append(loadButton, parseButton);
+
+      const parsed = state.parsedExternalOutput;
+      const summaryRows = parsed?.summary?.rows || [];
+      const errorNode = parsed?.error ? note(parsed.error, "warning") : null;
+
+      panel.append(
+        heading,
+        controls,
+        editor,
+        buttonRow,
+        table(summaryRows, [
+          { key: "object", label: "mSigSDK object" },
+          { key: "count", label: "Rows" },
+          { key: "dimensions", label: "Dimensions" },
+          { key: "validation", label: "Validation" },
+        ], { title: "Parsed external output summary", maxRows: 8 })
+      );
+      if (errorNode) panel.append(errorNode);
+      panel.append(
+        details("Parsed object JSON", parsed?.parsed || {}),
+        downloadMany(coreDownloadFiles())
+      );
+      return panel;
+    }
+
+    function renderRoundTripTab() {
+      const panel = document.createElement("section");
+      panel.className = "resource-tab-panel";
+      const heading = document.createElement("h3");
+      heading.textContent = "Round-trip checks";
+      const report = state.roundTripReport;
+
+      panel.append(
+        heading,
+        table(report?.checks || [], [
+          { key: "check", label: "Check" },
+          { key: "status", label: "Status" },
+          { key: "observed", label: "Observed" },
+        ], { title: "Round-trip checks", maxRows: 12 }),
+        table(report?.exposureRows || [], [
+          { key: "sample", label: "Sample" },
+          { key: "signature", label: "Signature" },
+          { key: "exposure", label: "Exposure", format: (value) => formatNumber(value) },
+        ], { title: "External exposure long-form export", maxRows: 16 }),
+        downloadMany(coreDownloadFiles())
+      );
+      return panel;
+    }
+
+    function renderDatasetMetrics() {
+      return metrics([
+        { label: "Source", value: state.dataset?.source || "Pending" },
+        { label: "Samples", value: matrixNames(state.spectra).length || "-" },
+        { label: "Signatures", value: matrixNames(state.signatures).length || "-" },
+        { label: "Contexts", value: state.contexts?.length || "-" },
+        { label: "Generated files", value: state.generatedFiles.length || "-" },
+      ]);
+    }
+
+    function render() {
+      root.replaceChildren();
+      const tone =
+        state.status === "error" ? "error" :
+          state.status === "running" ? "running" :
+            "ready";
+      root.append(
+        renderHeader(),
+        renderControls(),
+        statusCard(
+          state.status === "running" ? "Working" : state.status === "error" ? "Review needed" : "Ready",
+          state.statusDetail,
+          tone
+        ),
+        renderDatasetMetrics(),
+        renderTabs()
+      );
+
+      if (state.activeTab === "inbound") {
+        root.append(renderInboundTab());
+      } else if (state.activeTab === "roundtrip") {
+        root.append(renderRoundTripTab());
+      } else {
+        root.append(renderOutboundTab());
       }
-    ));
-  </script>
+    }
 
-  <script type="text/markdown">
-    ## 1. Snapshot the public resources
-
-    Before fetching full matrices, record the resource index. This is the reproducibility checkpoint: what was discoverable, which query parameters were used, and which live public APIs responded.
-  </script>
-
-  <script type="module" pinned id="resource-snapshot">
-    const portabilityDiscoveryStatus = "live public APIs";
-    let [
-      portabilitySpectrumOptions,
-      portabilitySignatureSummary,
-      portabilityTcgaGeneProjects,
-      portabilityTcgaMafIndex,
-    ] = await Promise.all([
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSpectrumOptions(
-        portabilityStudy,
-        portabilityGenomeDataType,
-        portabilityCancerType,
-        10
-      ),
-      mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesSummary(
-        10,
-        portabilitySummarySignatureSet
-      ),
-      mSigSDK.TCGA.getProjectsByGene(portabilityGeneIds),
-      mSigSDK.TCGA.getMafInformationFromProjects([portabilityTcgaProject]),
-    ]);
-
-    portabilitySpectrumOptions = asArray(portabilitySpectrumOptions);
-    portabilitySignatureSummary = asArray(portabilitySignatureSummary);
-    const portabilityTcgaProjects = asArray(portabilityTcgaGeneProjects?.projects);
-    const portabilityTcgaMafFiles =
-      asArray(portabilityTcgaMafIndex?.[portabilityTcgaProject]?.maf_files);
-    const portabilityTcgaSampleDescriptions =
-      asArray(portabilityTcgaMafIndex?.[portabilityTcgaProject]?.samples_description);
-
-    const portabilitySourceManifest = {
-      status: portabilityDiscoveryStatus,
-      parameters: {
-        study: portabilityStudy,
-        genomeDataType: portabilityGenomeDataType,
-        cancerType: portabilityCancerType,
-        mutationType: portabilityMutationType,
-        matrixSize: portabilityMatrixSize,
-        signatureSetName: portabilitySignatureSetName,
-        tcgaProject: portabilityTcgaProject,
-        geneIds: portabilityGeneIds,
-        geneLabel: portabilityGeneLabel,
+    window.resourcePortabilityApp = {
+      state,
+      get selectedTool() {
+        return state.selectedPreviewKey;
       },
-      endpointUrls: portabilityEndpointUrls,
-      observedCounts: {
-        spectrumOptions: portabilitySpectrumOptions.length,
-        signatureSummaries: portabilitySignatureSummary.length,
-        tcgaProjectsForGene: portabilityTcgaProjects.length,
-        tcgaMafFiles: portabilityTcgaMafFiles.length,
+      get spectra() {
+        return state.spectra;
       },
+      get signatures() {
+        return state.signatures;
+      },
+      get generatedBundle() {
+        return state.generatedBundle;
+      },
+      get parsedExternalOutput() {
+        return state.parsedExternalOutput;
+      },
+      get roundTripReport() {
+        return state.roundTripReport;
+      },
+      buildInteroperability,
+      parseExternalInput,
+      exampleTextForPlatform,
+      render,
     };
 
-    display(metrics([
-      { label: "Discovery source", value: portabilityDiscoveryStatus },
-      { label: "mSigPortal spectra", value: portabilitySpectrumOptions.length },
-      { label: "Signature summaries", value: portabilitySignatureSummary.length },
-      { label: "TCGA projects for gene", value: portabilityTcgaProjects.length },
-      { label: "TCGA/GDC MAF files", value: portabilityTcgaMafFiles.length },
-    ]));
-    display(table(
-      [
-        {
-          resource: "mSigPortal spectra",
-          query: `${portabilityStudy} ${portabilityCancerType} ${portabilityGenomeDataType} ${portabilityMutationType}${portabilityMatrixSize}`,
-          found: portabilitySpectrumOptions.length,
-          nextObject: "sample spectra table",
-        },
-        {
-          resource: "mSigPortal signatures",
-          query: portabilitySignatureSetName,
-          found: portabilitySignatureSummary.length,
-          nextObject: "reference signature table",
-        },
-        {
-          resource: "GDC projects by gene",
-          query: portabilityGeneLabel,
-          found: portabilityTcgaProjects.length,
-          nextObject: "project candidates for MAF lookup",
-        },
-        {
-          resource: "TCGA/GDC MAF index",
-          query: portabilityTcgaProject,
-          found: portabilityTcgaMafFiles.length,
-          nextObject: "variant files that can be converted to spectra",
-        },
-      ],
-      [
-        { key: "resource", label: "Resource" },
-        { key: "query", label: "Query snapshot" },
-        { key: "found", label: "Found" },
-        { key: "nextObject", label: "Portable object" },
-      ],
-      {
-        title: "Resource manifest",
-        caption: "Resource identity is recorded before converting any data.",
-      }
-    ));
-    display(table(
-      portabilitySpectrumOptions.slice(0, 5),
-      [
-        { key: "study", label: "Study" },
-        { key: "cancer", label: "Cancer" },
-        { key: "sample", label: "Sample" },
-        { key: "profile", label: "Profile" },
-        { key: "matrix", label: "Matrix" },
-      ],
-      {
-        maxRows: 5,
-        title: "mSigPortal spectra preview",
-        caption: "A small index preview is enough to confirm the resource before fetching full matrices.",
-      }
-    ));
-    display(details("Source manifest JSON", portabilitySourceManifest));
-  </script>
-
-  <script type="text/markdown">
-    ## 2. Normalize resources into SDK table shapes
-
-    The central move is small: public API rows become ordinary JavaScript objects. Spectra are keyed by sample, signatures are keyed by signature name, and both share the same ordered SBS96 context list.
-  </script>
-
-  <script type="module" pinned id="normalize-resources">
-    let portabilityMatrixStatus = "live mSigPortal data";
-    let portabilitySampleNames = ["SP50611", "SP50406", "SP55004"];
-    const portabilityPreferredSignatureNames = [
-      "SBS1",
-      "SBS2",
-      "SBS4",
-      "SBS5",
-      "SBS13",
-      "SBS17a",
-      "SBS17b",
-      "SBS18",
-      "SBS40",
-    ];
-
-    const portabilityDataset = await loadPublicSbs96Dataset(mSigSDK, {
-      study: portabilityStudy,
-      genomeDataType: portabilityGenomeDataType,
-      cancerType: portabilityCancerType,
-      mutationType: portabilityMutationType,
-      matrixSize: portabilityMatrixSize,
-      signatureSetName: portabilitySignatureSetName,
-      sampleNames: portabilitySampleNames,
-      sampleLimit: portabilitySampleNames.length,
-      signatureNames: portabilityPreferredSignatureNames,
-      allowAlternate: false,
-    });
-    portabilityMatrixStatus = portabilityDataset.status;
-    const portabilityGroupedSpectra = portabilityDataset.spectra;
-    const portabilityReferenceSignatures = portabilityDataset.signatures;
-    portabilitySampleNames = portabilityDataset.sampleNames;
-    const portabilitySelectedSignatureNames = portabilityDataset.signatureNames;
-
-    const portabilitySpectraValidation = mSigSDK.validation.validateSpectra(
-      portabilityGroupedSpectra,
-      { expectedContexts: portabilityContexts, minTotalMutations: 500 }
-    );
-    const portabilitySignatureValidation = mSigSDK.validation.validateSignatureMatrix(
-      portabilityReferenceSignatures,
-      { expectedContexts: portabilityContexts }
-    );
-    const portabilityBurden = mSigSDK.qc.summarizeMutationBurden(
-      portabilityGroupedSpectra,
-      {
-        expectedContexts: portabilityContexts,
-        lowBurdenThresholdMode: "fixed",
-        lowBurdenThreshold: 5000,
-      }
-    );
-    const portabilityLongRows = mSigSDK.io.spectraToRows(portabilityGroupedSpectra);
-
-    display(metrics([
-      { label: "Matrix source", value: portabilityMatrixStatus },
-      { label: "Samples", value: Object.keys(portabilityGroupedSpectra).length },
-      { label: "Reference signatures", value: Object.keys(portabilityReferenceSignatures).length },
-      { label: "Total mutations", value: formatNumber(matrixTotal(portabilityGroupedSpectra)) },
-    ]));
-    display(table(
-      [
-        {
-          object: "portabilityGroupedSpectra",
-          shape: "sample -> SBS96 context -> count",
-          count: Object.keys(portabilityGroupedSpectra).length,
-          validation: pass(portabilitySpectraValidation.valid),
-        },
-        {
-          object: "portabilityReferenceSignatures",
-          shape: "signature -> SBS96 context -> weight",
-          count: Object.keys(portabilityReferenceSignatures).length,
-          validation: pass(portabilitySignatureValidation.valid),
-        },
-        {
-          object: "portabilityLongRows",
-          shape: "sample, mutationType, mutations",
-          count: portabilityLongRows.length,
-          validation: `${nonZeroContextCount(portabilityGroupedSpectra)} non-zero contexts`,
-        },
-      ],
-      [
-        { key: "object", label: "SDK object" },
-        { key: "shape", label: "Shape" },
-        { key: "count", label: "Count" },
-        { key: "validation", label: "Check" },
-      ],
-      {
-        title: "Portable SDK objects",
-        caption: "Once data have these shapes, downstream SDK calls do not need to know the original resource.",
-      }
-    ));
-    display(table(
-      burdenSampleRows(portabilityBurden, portabilitySampleNames),
-      [
-        { key: "sample", label: "Sample" },
-        { key: "mutations", label: "Total mutations" },
-        { key: "nonZeroContexts", label: "Nonzero SBS96 contexts" },
-        { key: "lowBurden", label: "Low mutation-count review cue" },
-      ],
-      {
-        maxRows: 8,
-        title: "Spectra sanity check",
-        caption: "Mutation counts are the quickest way to notice an unexpected conversion.",
-      }
-    ));
-    display(note(
-      "Resource-specific rows have been reduced to two stable table contracts."
-    ));
-  </script>
-
-  <script type="text/markdown">
-    ## 3. Prove the tables can leave and come back
-
-    Portability is not an idea until the files round trip. This cell exports spectra and signatures, imports them again, and checks the names and values that should survive the move.
-  </script>
-
-  <script type="module" pinned id="round-trip">
-    const portabilitySpectraTsv = mSigSDK.io.exportSigProfilerMatrix(
-      portabilityGroupedSpectra,
-      { contexts: portabilityContexts }
-    );
-    const portabilitySignaturesTsv = mSigSDK.io.exportCOSMICSignatureMatrix(
-      portabilityReferenceSignatures,
-      { contexts: portabilityContexts }
-    );
-    const portabilityRoundTripSpectra =
-      mSigSDK.io.importSigProfilerMatrix(portabilitySpectraTsv);
-    const portabilityRoundTripSignatures =
-      mSigSDK.io.importCOSMICSignatureMatrix(portabilitySignaturesTsv);
-
-    const spectraNames = Object.keys(portabilityGroupedSpectra);
-    const spectraRoundTripNames = Object.keys(portabilityRoundTripSpectra);
-    const signatureNames = Object.keys(portabilityReferenceSignatures);
-    const signatureRoundTripNames = Object.keys(portabilityRoundTripSignatures);
-    const spectraMaxDelta = maxAbsMatrixDelta(
-      portabilityGroupedSpectra,
-      portabilityRoundTripSpectra
-    );
-    const signatureMaxDelta = maxAbsMatrixDelta(
-      portabilityReferenceSignatures,
-      portabilityRoundTripSignatures
-    );
-    const portabilityRoundTripChecks = [
-      {
-        check: "Sample names preserved",
-        result: pass(sameSet(spectraNames, spectraRoundTripNames)),
-        evidence: `${spectraNames.length} original, ${spectraRoundTripNames.length} reloaded`,
-      },
-      {
-        check: "Signature names preserved",
-        result: pass(sameSet(signatureNames, signatureRoundTripNames)),
-        evidence: `${signatureNames.length} original, ${signatureRoundTripNames.length} reloaded`,
-      },
-      {
-        check: "Spectra counts preserved",
-        result: pass(spectraMaxDelta === 0),
-        evidence: `maximum cell delta ${formatNumber(spectraMaxDelta)}`,
-      },
-      {
-        check: "Signature weights preserved",
-        result: pass(signatureMaxDelta < 1e-12),
-        evidence: `maximum cell delta ${formatNumber(signatureMaxDelta)}`,
-      },
-      {
-        check: "Context order explicit",
-        result: pass(tsvRowCount(portabilitySpectraTsv) === portabilityContexts.length + 1),
-        evidence: `${portabilityContexts.length} SBS96 contexts plus header`,
-      },
-    ];
-    const portabilityRoundTripPassed =
-      portabilityRoundTripChecks.every((row) => row.result === "Pass");
-
-    display(metrics([
-      { label: "Round-trip verdict", value: pass(portabilityRoundTripPassed) },
-      { label: "Spectra TSV rows", value: tsvRowCount(portabilitySpectraTsv) },
-      { label: "Signature TSV rows", value: tsvRowCount(portabilitySignaturesTsv) },
-      { label: "Reloaded mutations", value: formatNumber(matrixTotal(portabilityRoundTripSpectra)) },
-    ]));
-    display(table(
-      portabilityRoundTripChecks,
-      [
-        { key: "check", label: "Check" },
-        { key: "result", label: "Result" },
-        { key: "evidence", label: "Evidence" },
-      ],
-      {
-        title: "Round-trip audit",
-        caption: "Every row should pass before treating the exported data as portable.",
-      }
-    ));
-    display(details(
-      "SigProfiler-style spectra TSV preview",
-      previewText(portabilitySpectraTsv),
-      { open: true }
-    ));
-    display(details(
-      "COSMIC-style signature TSV preview",
-      previewText(portabilitySignaturesTsv)
-    ));
-  </script>
-
-  <script type="text/markdown">
-    ## 4. Build the handoff package
-
-    A portable run needs more than TSV text. The bundle should include the exported tables, tool-specific file manifests, a provenance record, and a minimal downstream smoke test showing that the reloaded objects remain analysis-ready.
-  </script>
-
-  <script type="module" pinned id="handoff-package">
-    const portabilityExposures =
-      await mSigSDK.signatureFitting.fitMutationalSpectraToSignatures(
-        portabilityRoundTripSignatures,
-        portabilityRoundTripSpectra,
-        {
-          exposureThreshold: 0.01,
-          exposureType: "relative",
-          renormalize: true,
-        }
-      );
-    const portabilityInteroperabilityBundle =
-      mSigSDK.adapters.createInteroperabilityBundle(
-        {
-          spectra: portabilityRoundTripSpectra,
-          signatures: portabilityRoundTripSignatures,
-        },
-        {
-          contexts: portabilityContexts,
-          include: [
-            "sigProfilerAssignment",
-            "sigProfilerExtractor",
-            "deconstructSigs",
-            "musical",
-          ],
-        }
-      );
-    const portabilityProvenance = mSigSDK.provenance.createProvenance({
-      analysis: "mSigSDK resource portability workflow",
-      parameters: portabilitySourceManifest.parameters,
-      sourceUrls: portabilityEndpointUrls,
-      dataSources: [
-        {
-          source: "mSigPortal mutational spectrum API",
-          status: portabilityMatrixStatus,
-          samples: Object.keys(portabilityGroupedSpectra).length,
-        },
-        {
-          source: "mSigPortal mutational signature API",
-          signatureSetName: portabilitySignatureSetName,
-          signatures: Object.keys(portabilityReferenceSignatures).length,
-        },
-        {
-          source: "TCGA/GDC MAF index",
-          project: portabilityTcgaProject,
-          geneLookup: portabilityGeneLabel,
-          mafFiles: portabilityTcgaMafFiles.length,
-        },
-      ],
-      notes: [
-        "Spectra and signatures were exported, reloaded, and checked before package creation.",
-      ],
-    });
-    const portabilityToolRows = Object.entries(portabilityInteroperabilityBundle.tools || {})
-      .map(([tool, value]) => ({
-        tool,
-        files: asArray(value.files || value.input?.files).length,
-        manifestFields: Object.keys(value.manifest || {}).length,
-      }));
-
-    display(metrics([
-      { label: "Fit smoke test", value: `${Object.keys(portabilityExposures).length} samples fit` },
-      { label: "External tool targets", value: portabilityToolRows.length },
-      { label: "Download files", value: 4 },
-      { label: "Run record", value: portabilityProvenance.generatedAt ? "Created" : "Missing" },
-    ]));
-    display(table(
-      portabilityToolRows,
-      [
-        { key: "tool", label: "Tool target" },
-        { key: "files", label: "Files prepared" },
-        { key: "manifestFields", label: "Manifest fields" },
-      ],
-      {
-        title: "Interoperability bundle targets",
-        caption: "The same reloaded tables are packaged for common external tool inputs.",
-      }
-    ));
-    display(details("Run record", portabilityProvenance));
-    display(downloadMany([
-      {
-        filename: "resource_portability_spectra.tsv",
-        text: portabilitySpectraTsv,
-        label: "Download spectra TSV",
-      },
-      {
-        filename: "resource_portability_signatures.tsv",
-        text: portabilitySignaturesTsv,
-        label: "Download signatures TSV",
-      },
-      {
-        filename: "resource_portability_bundle.json",
-        type: "json",
-        value: portabilityInteroperabilityBundle,
-        label: "Download interoperability bundle JSON",
-      },
-      {
-        filename: "resource_portability_provenance.json",
-        type: "json",
-        value: {
-          sourceManifest: portabilitySourceManifest,
-          roundTripChecks: portabilityRoundTripChecks,
-          provenance: portabilityProvenance,
-          validation: {
-            spectra: portabilitySpectraValidation,
-            signatures: portabilitySignatureValidation,
-          },
-        },
-        label: "Download provenance JSON",
-      },
-    ]));
-  </script>
-
-  <script type="text/markdown">
-    ## 5. Where TCGA/GDC enters the same path
-
-    TCGA/GDC begins with MAF files instead of mSigPortal spectra. The portable destination is still the same: variant files are converted into sample x SBS96 spectra, then the same validation, export, round-trip, and handoff checks apply.
-  </script>
-
-  <script type="module" pinned id="tcga-bridge">
-    const portabilityTcgaMafRows = portabilityTcgaMafFiles.slice(0, 6).map((fileId, index) => {
-      const description = portabilityTcgaSampleDescriptions[index] || {};
-      return {
-        project: portabilityTcgaProject,
-        fileId,
-        case: description.case_submitter_id || description.case_id || "n/a",
-        gender: description.gender || "n/a",
-        race: description.race || "n/a",
-        ageAtDiagnosisYears: description.age_at_diagnosis,
-      };
-    });
-    const portabilityTcgaStyleRows = mSigSDK.TCGA.convertTCGAProjectIntoJSON(
-      portabilityTcgaSampleDescriptions,
-      portabilityGroupedSpectra,
-      "schema-preview"
-    ).flat();
-    const portabilityTcgaStyleSpectra =
-      mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(
-        portabilityTcgaStyleRows
-      );
-    const portabilityTcgaStyleBurden = mSigSDK.qc.summarizeMutationBurden(
-      portabilityTcgaStyleSpectra,
-      { expectedContexts: portabilityContexts }
-    );
-    const portabilityFullTcgaPattern = `const tcgaMafIndex = await mSigSDK.TCGA.getMafInformationFromProjects(["${portabilityTcgaProject}"]);
-const tcgaVariants = await mSigSDK.TCGA.getVariantInformationFromMafFiles({
-  "${portabilityTcgaProject}": {
-    maf_files: tcgaMafIndex["${portabilityTcgaProject}"].maf_files.slice(0, 2)
-  }
-});
-const tcgaRows = mSigSDK.TCGA.convertTCGAProjectIntoJSON(
-  tcgaMafIndex["${portabilityTcgaProject}"].samples_description,
-  tcgaVariants["${portabilityTcgaProject}"].mutational_spectra,
-  "WXS"
-).flat();
-const tcgaSpectra =
-  mSigSDK.mSigPortal.mSigPortalData.extractMutationalSpectra(tcgaRows);`;
-
-    display(metrics([
-      { label: "Indexed TCGA project", value: portabilityTcgaProject },
-      { label: "MAF file IDs", value: portabilityTcgaMafFiles.length },
-      { label: "Schema preview rows", value: portabilityTcgaStyleRows.length },
-      { label: "Reloaded mutations", value: formatNumber(portabilityTcgaStyleBurden.overall.totalMutations) },
-    ]));
-    display(table(
-      portabilityTcgaMafRows,
-      [
-        { key: "project", label: "Project" },
-        { key: "fileId", label: "GDC MAF file ID" },
-        { key: "case", label: "Case" },
-        { key: "gender", label: "Gender" },
-        { key: "race", label: "Race" },
-        { key: "ageAtDiagnosisYears", label: "Age at diagnosis (years)" },
-      ],
-      {
-        maxRows: 6,
-        title: "TCGA/GDC MAF index preview",
-        caption: "The index is recorded, but full MAF download is not run automatically in this browser page.",
-      }
-    ));
-    display(table(
-      portabilityTcgaStyleRows.slice(0, 8),
-      [
-        { key: "sample", label: "Sample" },
-        { key: "strategy", label: "Strategy/source" },
-        { key: "profile", label: "Profile" },
-        { key: "matrix", label: "Matrix" },
-        { key: "mutationType", label: "Mutation type" },
-        { key: "mutations", label: "Mutations" },
-      ],
-      {
-        maxRows: 8,
-        title: "TCGA-style row shape",
-        caption: "After conversion, TCGA/GDC-derived rows collapse into the same SDK spectra object used above.",
-      }
-    ));
-    display(details("Full TCGA conversion pattern", portabilityFullTcgaPattern, {
-      open: true,
-    }));
-    display(note(
-      "The concise rule is: every source is allowed to be different at the fetch layer, but it must converge to the same checked SDK table shape before analysis or export."
-    ));
+    render();
+    await buildInteroperability();
   </script>
 </notebook>

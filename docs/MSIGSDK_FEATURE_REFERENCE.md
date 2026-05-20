@@ -27,7 +27,7 @@ The top-level object returned by the SDK contains:
 | `signatureExtraction` | Browser-native NMF extraction, rank selection by reconstruction error, cophenetic correlation, or silhouette, reference matching, and worker execution. |
 | `signatureExtractionPlots` | D3/Plotly renderers for NMF signatures, exposures, and rank diagnostics. |
 | `io` | TSV, SigProfiler-style, COSMIC-style, MuSiCal-compatible, and long-form row import/export helpers. |
-| `runners` | Optional browser execution runtimes, including the Pyodide Web Worker runner. |
+| `runners` | Optional browser execution runtimes, including Pyodide for Python packages and WebR for compatible R package builds. |
 | `adapters` | External-tool adapters for SigProfilerAssignment, SigProfilerExtractor, SigProfilerMatrixGenerator, SigProfilerSimulator, SigProfilerClusters, sigProfilerPlotting, deconstructSigs, sigminer, and MuSiCal-compatible refit workflows. |
 | `reports` | Structured, JSON, and standalone HTML report generation. |
 | `advisor` | Validated manuscript advisor functions plus experimental descriptive helpers that warn on use. |
@@ -605,7 +605,7 @@ Outputs:
 - `schemaVersion`.
 - `workflowRole = "signature_ambiguity"`.
 - `scopeStatement`.
-- `methodBasis`: continuous catalog-relative identifiability scoring, pairwise cosine reporting, entropy/flatness, confounding-neighbor logic, references, catalog provenance fields where supplied.
+- `methodBasis`: selected-catalog identifiability scoring, pairwise cosine reporting, entropy/flatness, confounding-neighbor logic, references, catalog provenance fields where supplied.
 - `contexts`.
 - `catalogVersion` when supplied.
 - `signatures[]`: signature name, nearest neighbor, nearest cosine similarity, top neighbors, flatness score, entropy, continuous `confusabilityScore`, empirical `confusabilityPercentile`, component scores/percentiles, `evidenceTags`, `reviewRecommended`, `strongReviewRecommended`, and neighbors above configured thresholds.
@@ -680,6 +680,10 @@ Inputs:
 - `lowBurdenThreshold = 100`.
 - `moderateBurdenThreshold = 1000`.
 - `normalizeMode = "relative"` by default for internally computed residuals and reconstruction.
+- `bootstrapReviewExposureThreshold = 0.05`: fitted signatures at or above this fraction are summarized as reportable bootstrap entries.
+- `bootstrapReviewConfidenceWidthThreshold = null`, `bootstrapStrongConfidenceWidthThreshold = null`, `bootstrapReviewSelectionFrequencyThreshold = null`, and `bootstrapStrongSelectionFrequencyThreshold = null`: bootstrap warning thresholds are disabled by default; finite caller-provided values opt in to bootstrap review cues.
+- `thresholdReviewCosineDrop = 0.02` and `thresholdStrongCosineDrop = 0.05`: fit-quality cutoff review cues based on reconstruction cosine loss from the baseline cutoff.
+- Interactive notebooks expose the review flag thresholds as run settings so users can choose burden, residual, bootstrap CI, cutoff cosine-drop, and nearest-neighbor cosine criteria for the cohort and analysis question.
 - Options may be supplied flatly or under `fitQualityEvidence` or `qcEvidence`.
 
 Outputs:
@@ -705,9 +709,19 @@ Outputs:
   - `flags`, `evidenceFlags`, `warnings`.
   - `caveats`.
   - `recommendedActions`.
-- `summary`: sample count, mean review-cue count, and counts for each reporting mode.
+- `summary`: sample count, mean active-caveat count, and counts for each reporting mode.
 - `warnings`.
 - `recommendedActions`.
+
+Bootstrap interpretation:
+
+- `componentEvidence.bootstrap.maxConfidenceWidth` is the largest bootstrap confidence interval among fitted signatures at or above the reportable exposure threshold, displayed as 0 to 100 percentage points.
+- Bootstrap uncertainty is reported as measured context by default. Fit-quality review cues for bootstrap uncertainty are emitted only when finite bootstrap warning thresholds are configured and crossed.
+
+Cutoff interpretation:
+
+- `componentEvidence.threshold.l1Change` is total exposure redistribution from the baseline cutoff, reported on a 0 to 2 relative scale before display as 0 to 200 percentage points.
+- Fit-quality review cues for cutoff sensitivity are emitted when reconstruction cosine falls from the baseline cutoff by the configured review or priority threshold. Exposure redistribution alone is reported as context.
 
 Reporting modes:
 
@@ -1063,9 +1077,9 @@ Tier rules:
 | Tier | Rule |
 |---|---|
 | `not_assessable` | Total mutations are below `minAssessableMutations`, upstream fit quality is not assessable, or supplied callable opportunities contain no positive-opportunity contexts for the signature. |
-| `higher_review_support` | Exposure is at least `higherSupportExposureThreshold`, the call is assessable, and fit reporting mode is `standard_qc_passed` or `report_with_caveats`; this is a review tier, not definitive detection. |
+| `higher_review_support` | Exposure is at least `higherSupportExposureThreshold`, the call is assessable, and fit reporting mode is `standard_qc_passed` or `report_with_caveats`. |
 | `limited_review_support` | Call is assessable and exposure is at least `limitedSupportExposureThreshold`, but higher-review criteria are not met. |
-| `not_detected_within_review_settings` | Call is assessable and exposure is below `limitedSupportExposureThreshold`. This is not proof of biological absence. |
+| `not_detected_within_review_settings` | Call is assessable and exposure is below `limitedSupportExposureThreshold`. |
 
 Opportunity-normalization formula:
 
@@ -1269,7 +1283,7 @@ The spectra-only `validation` object contains `maf`, `spectra`, and `mafToSbs96C
 
 ## Optional external runtimes: `runners`
 
-The `runners` namespace contains optional execution helpers for browser deployments that need to run compatible Python packages without a backend server. These helpers are not required for the validated JavaScript QC, fitting, reporting, or visualization workflows.
+The `runners` namespace contains optional execution helpers for browser deployments that need to run compatible Python or R packages without a backend server. These helpers are not required for the validated JavaScript QC, fitting, reporting, or visualization workflows.
 
 | Feature | Inputs and parameters | Output | Runtime boundary |
 |---|---|---|---|
@@ -1277,12 +1291,18 @@ The `runners` namespace contains optional execution helpers for browser deployme
 | `runners.pyodide.createRunner({ workerUrl = null, pyodideIndexURL, pyodideScriptURL, timeoutMs = 120000 })` / `createPyodideWorkerRunner(...)` | Optional worker and Pyodide URLs. | Reusable runner with `run(payload)` and `terminate()` methods. | Runs Python in a Web Worker so long jobs do not block the UI thread. |
 | `runners.pyodide.runPython(code, { inputs, ...options })` / `runPython(code, options)` | Python code, optional JSON-serializable `inputs`, packages, virtual input files, and output collection settings. | One-shot run result with parsed Python return value, collected files, loaded package names, installed package names, and elapsed time. | Small browser-notebook API; `inputs` is exposed as `MSIG_INPUT_JSON` in Python. |
 | `runners.pyodide.run(payload, options)` / `runPyodide(...)` | Python code, Pyodide packages, micropip packages, virtual input files, JSON input, and output collection settings. | One-shot run result with parsed Python return value, collected files, loaded package names, installed package names, and elapsed time. | Requires browser worker support. Node smoke tests verify preparation paths but do not execute Pyodide. |
+| `runners.webr.detect()` / `detectWebRRuntime()` | No arguments. | Availability object with missing browser capabilities, default WebR module URL, default package repository, and default R binary repository version. | Reports whether WebAssembly, workers, fetch, and text encoders are available. |
+| `runners.webr.checkPackages(packages, options)` / `checkWebRPackageAvailability(...)` | R package names plus optional `repositoryUrl`, `binaryRVersion`, and `packageIndexUrls`. | Package availability object with found versions, missing packages, checked repository indexes, and fetch errors. | Checks repository indexes before exact WebR package execution. Package availability is runtime- and repository-dependent. |
+| `runners.webr.createRunner({ webRModuleURL, repositoryUrl, timeoutMs = 120000, webROptions })` / `createWebRRunner(...)` | Optional WebR module URL, package repository, timeout, and WebR constructor options. | Reusable runner with `run(payload)` and `terminate()` methods. | Runs R through WebR. Uses PostMessage mode when cross-origin isolation is not available and the loaded WebR module supports it. |
+| `runners.webr.run(payload, options)` / `runWebR(...)` | R code, R packages, virtual input files, optional JSON input, and output collection settings. | One-shot run result with parsed return value, collected files, installed R package names, WebR version metadata, and elapsed time. | Requires WebR-compatible package builds. Exact R-package adapters fail with `WEBR_RUNTIME_UNAVAILABLE` or `WEBR_PACKAGE_UNAVAILABLE` instead of silently using JavaScript fallbacks. |
 
 Pyodide payloads accept `pyodidePackages`, `micropipPackages`, `files`, `inputJson`, `globals`, `outputFiles`, and `outputDirectories`. The runner sets `MSIG_INPUT_JSON` inside Python when `inputJson` or `runPython(..., { inputs })` is supplied.
 
+WebR payloads accept `rPackages`, `files`, `inputJson`, `outputFiles`, and `outputDirectories`. R packages must be precompiled for WebAssembly in the active WebR package repository or supplied through a compatible configured repository/library image.
+
 ## External tool adapters: `adapters`
 
-Adapters prepare stable file formats for established tools and return provenance-rich results. They separate package execution from the validated JavaScript core so browser apps can choose between pure SDK review, Pyodide execution, or local/server execution.
+Adapters prepare stable file formats for established tools and return provenance-rich results. They separate package execution from the validated JavaScript core so browser apps can choose between pure SDK review, Pyodide/WebR execution, or local/server execution.
 
 | Feature | Inputs and parameters | Output | Method and interpretation |
 |---|---|---|---|
@@ -1290,7 +1310,7 @@ Adapters prepare stable file formats for established tools and return provenance
 | `adapters.sigProfilerAssignment.prepareInput({ spectra, signatures }, { contexts = null })` / `prepareSigProfilerAssignmentInput(...)` | Sample spectra and optional custom signature catalog. | Virtual TSV files and manifest metadata in SigProfiler matrix orientation. | Produces `MutationType`-by-sample spectra and optional `MutationType`-by-signature catalog files. |
 | `adapters.sigProfilerAssignment.run({ spectra, signatures }, options)` / `runSigProfilerAssignment(...)` | Spectra, optional signatures, context order, Pyodide packages, `SigProfilerAssignment` package spec, genome build, COSMIC version, and runtime options. | Pyodide run result, collected output files, parsed exposure matrix when an exposure table is detected, candidate table list, and provenance. | Runs SigProfilerAssignment in matrix mode with plotting disabled, mutation-level probability export disabled, and `cpu = 1` by default for browser compatibility. |
 | `adapters.sigProfilerExtractor.prepareInput({ spectra }, options)` / `prepareSigProfilerExtractorInput(...)` | Sample spectra, context order, reference genome, rank range, NMF replicates, and CPU count. | Matrix-mode input file, manifest metadata, and Python snippet for `SigProfilerExtractor.sigpro.sigProfilerExtractor`. | Handoff adapter for production de novo extraction. Browser execution is not the default path. |
-| `adapters.sigProfilerExtractor.run({ spectra }, options)` / `runSigProfilerExtractor(...)` | Sample spectra, context order, Pyodide package options, output directory, reference genome, signature-rank range, NMF replicates, and CPU count. | Pyodide run result, collected output files, parsed signatures and exposures when detected, and provenance. | Optional browser worker execution path. Successful use depends on package installation and browser memory/runtime limits. |
+| `adapters.sigProfilerExtractor.run({ spectra }, options)` / `runSigProfilerExtractor(...)` | Sample spectra, context order, runtime, output directory, reference genome, signature-rank range, NMF replicates, and CPU count. | Browser NMF signatures and exposures by default, plus the prepared SigProfilerExtractor handoff manifest. With `runtime: "pyodide"`, returns collected package files and parsed signatures/exposures when a compatible environment is provided. | Default browser path avoids installing SigProfilerExtractor in Pyodide because the current package depends on `torch`. Use `prepareInput(...)` or the export bundle for local/server package execution. |
 | `adapters.sigProfilerExtractor.parseOutput(files, options)` / `parseSigProfilerExtractorOutput(...)` | Collected output files from SigProfilerExtractor. | Parsed signature matrix, exposure matrix when detected, and candidate table metadata. | Reimports common signature and activity tables into SDK matrix objects. |
 | `adapters.sigProfilerMatrixGenerator.prepareInput({ files }, options)` / `prepareSigProfilerMatrixGeneratorInput(...)` | VCF/MAF/CNV/SV-like virtual files, project name, reference genome, input directory, and MatrixGenerator options. | Virtual files, manifest metadata, and Python snippet using `SigProfilerMatrixGeneratorFunc`. | Standalone variant-to-matrix handoff adapter. Reference-genome installation remains an external package/runtime concern. |
 | `adapters.sigProfilerMatrixGenerator.parseOutput(files, options)` / `parseSigProfilerMatrixGeneratorOutput(...)` | Collected MatrixGenerator text files. | Candidate SigProfiler matrices imported into sample-by-context SDK matrix objects. | Scans text outputs whose first column looks like mutation context/channel labels. |
@@ -1298,14 +1318,18 @@ Adapters prepare stable file formats for established tools and return provenance
 | `adapters.sigProfilerClusters.prepareInput({ files }, options)` / `prepareSigProfilerClustersInput(...)` | VCF-like virtual files, project, genome, contexts, simulation context, input path, and cluster-analysis options. | Virtual files, manifest metadata, and Python snippet using `SigProfilerClusters.analysis`. | Standalone localized-mutagenesis/clustering handoff adapter. |
 | `adapters.sigProfilerPlotting.prepareInput({ spectra, matrixText, files }, options)` / `prepareSigProfilerPlottingInput(...)` | SDK spectra or a pre-rendered SigProfiler matrix, project, output directory, matrix type, plot type, and plotting options. | Matrix input file, manifest metadata, and Python snippet calling the matching `sigProfilerPlotting` plot function. | Handoff adapter for exact SigProfiler-style plot generation when the Python plotting package is available. |
 | `adapters.deconstructSigs.prepareInput({ spectra, signatures }, options)` / `prepareDeconstructSigsInput(...)` | Sample spectra, signature catalog, context order, output path, and signature cutoff. | Spectra TSV, signature TSV, manifest metadata, and R snippet using `deconstructSigs::whichSignatures`. | Handoff adapter for R execution with a shared context basis. |
+| `adapters.deconstructSigs.checkWebRAvailability(options)` / `checkDeconstructSigsWebRAvailability(...)` | Optional WebR package repository settings and package list. | Availability object with `available`, `status`, runtime status, package availability, and missing package names. | Reports `available`, `missing package`, or `runtime unavailable` before exact WebR execution. |
+| `adapters.deconstructSigs.run({ spectra, signatures }, options)` / `runDeconstructSigsWebR(...)` | Sample spectra, signature catalog, context order, signature cutoff, WebR module URL, WebR repository settings, timeout, and optional package-check override. | Exact WebR package result with parsed exposure matrix, prepared input manifest, collected files, package availability, raw run metadata, and provenance. | Executes the deconstructSigs R package through WebR only when compatible package builds are available. It does not fall back to the SDK NNLS comparator under the same label. |
 | `adapters.deconstructSigs.parseOutput(text, options)` / `parseDeconstructSigsOutput(...)` | Sample-by-signature deconstructSigs exposure table. | Sample-by-signature exposure matrix, optionally normalized. | Uses the same exposure parser semantics as other sample-by-signature outputs. |
 | `adapters.sigminer.prepareInput({ spectra, signatures }, options)` / `prepareSigminerInput(...)` | Sample spectra, signature catalog, context order, output path, sigminer method, exposure type, relative threshold, and mutation mode. | Spectra TSV, signature TSV, manifest metadata, and R snippet using `sigminer::sig_fit`. | Handoff adapter for supervised sigminer fitting. Solver packages such as `quadprog`, `nnls`, or `GenSA` are checked by the generated R snippet according to the selected method. |
+| `adapters.sigminer.checkWebRAvailability(options)` / `checkSigminerWebRAvailability(...)` | Optional WebR package repository settings, package list, and sigminer method. | Availability object with `available`, `status`, runtime status, package availability, and missing package names. | Checks `sigminer` plus the solver package required by the selected method (`quadprog`, `nnls`, or `GenSA`). |
+| `adapters.sigminer.run({ spectra, signatures }, options)` / `runSigminerWebR(...)` | Sample spectra, signature catalog, context order, sigminer method, exposure type, thresholds, WebR module URL, WebR repository settings, timeout, and optional package-check override. | Exact WebR package result with parsed exposure matrix, prepared input manifest, collected files, package availability, raw run metadata, and provenance. | Executes the sigminer R package through WebR only when compatible package builds are available. The run default is `method = "NNLS"` because current public WebR repositories commonly provide `sigminer` with `nnls`; callers can choose `QP` or `SA` when the corresponding solver package is available. |
 | `adapters.sigminer.parseOutput(text, options)` / `parseSigminerOutput(...)` | Sample-by-signature sigminer exposure table. | Sample-by-signature exposure matrix, optionally normalized. | Reuses the common SDK exposure-table parser so results can be compared with JavaScript, Python, and other R adapters. |
 | `adapters.musical.prepareRefitInput({ spectra, signatures }, { contexts = null })` / `prepareMuSiCalRefitInput(...)` | Sample spectra and signature catalog. | MuSiCal-compatible spectra and signature TSV files plus manifest metadata. | Uses mutation-type rows with sample or signature columns. |
 | `adapters.musical.runSparseNnlsRefit({ spectra, signatures }, options)` / `runSparseNnlsRefit(...)` | Spectra, signatures, context order, sparsity threshold, and NNLS controls. | Browser-native sparse NNLS comparator with exposures, active sets, reconstruction metrics, and provenance. | Uses MuSiCal-compatible matrices but does not execute the MuSiCal Python package. |
 | `adapters.musical.runRefit({ spectra, signatures }, options)` / `runMuSiCalRefit(...)` | `runtime = "js_sparse_nnls"` by default, or `runtime = "pyodide"` with supplied Pyodide-compatible MuSiCal package assets. | Sparse comparator result or Pyodide MuSiCal refit result. | True MuSiCal package execution requires a compatible wheel or preloaded worker environment; the default path is explicitly labeled `js_sparse_nnls`. |
 
-Adapter provenance records the tool name, runtime, package metadata when available, parameters, notes, and generation timestamp. SigProfilerAssignment and MuSiCal package execution should be validated in the target browser before being used in a production browser application because package dependencies, wheel availability, and browser memory limits are runtime-specific.
+Adapter provenance records the tool name, runtime, package metadata when available, parameters, notes, and generation timestamp. SigProfilerAssignment, MuSiCal, deconstructSigs, and sigminer package execution should be validated in the target browser before being used in a production browser application because package dependencies, wheel/package availability, and browser memory limits are runtime-specific.
 
 ## Reports: `reports`
 

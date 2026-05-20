@@ -2,20 +2,22 @@
 <notebook theme="air">
   <title>mSigSDK end-to-end workflow</title>
 
-  <script type="text/markdown">
-    # End-to-end workflow
+<script type="text/markdown">
+# End-to-end workflow
 
-    Each tumor has a pattern of mutation types, and the workflow asks which known signature patterns could be mixed together to explain that observed pattern.
+Each tumor has a pattern of mutation types, and the workflow asks which known signature patterns could be mixed together to explain that observed pattern.
 
-    One way to think about it is a mystery-drink problem. The observed mutation spectrum is the drink you taste. The reference signatures are possible ingredients. The fitting method guesses a recipe, such as "40% apple, 30% cherry, 30% banana." The reconstruction check then asks: if we mix the ingredients using that guessed recipe, does it recreate the original drink? If the reconstruction is close, the guess is more plausible; if it is not close, the result needs review.
+One way to think about it is a mystery-drink problem. The observed mutation spectrum is the drink you taste. The reference signatures are possible ingredients. The fitting method guesses a recipe, such as "40% apple, 30% cherry, 30% banana." The reconstruction check then asks: if we mix the ingredients using that guessed recipe, does it recreate the original drink? If the reconstruction is close, the guess is more plausible; if it is not close, the result needs review.
 
-    Start by loading a real public cohort through the mSigPortal APIs. The default selection is TCGA WES Lung-AdenoCa SBS96, but the menu lets you choose the public study, cancer type, sequencing strategy, mutation-pattern table, table size, and compatible reference signature catalog. You can also paste or upload your own spectra and signature catalog when adapting the workflow.
+Start by loading a real public cohort through the mSigPortal APIs. The default selection is TCGA WES Lung-AdenoCa SBS96, but the menu lets you choose the public study, cancer type, sequencing strategy, mutation-pattern table, table size, and compatible reference signature catalog. You can also paste or upload your own spectra and signature catalog when adapting the workflow.
 
-    A close reconstruction is useful, but it is not the whole analysis. Some reference signatures look similar to each other, like two ingredients with similar flavor. The workflow also checks mutation counts, leftover pattern after fitting, uncertainty, cutoff sensitivity, and reference-signature similarity. These are review cues: they tell you what deserves inspection before making a claim.
-  </script>
+The fitting method menu can run the built-in SDK fit, package adapters for SigProfilerAssignment and MuSiCal when Pyodide can install them, package adapters for deconstructSigs and sigminer when WebR can install them, and mSigSDK de novo extraction with SigProfilerExtractor handoff files. The downstream mSigSDK checks, plots, reports, and exports stay the same around whichever fitting method produced the contribution table.
+
+A close reconstruction is useful, but it is not the whole analysis. Some reference signatures look similar to each other, like two ingredients with similar flavor. The workflow also checks mutation counts, leftover pattern after fitting, uncertainty, cutoff sensitivity, and reference-signature similarity. These are review diagnostics: they tell you what deserves inspection before making a claim.
+</script>
 
   <script type="module" pinned id="1">
-    const workflowSdkUrl = new URL("../main.js?v=2026-05-15-workflow", location.href).href;
+	    const workflowSdkUrl = new URL("../main.js?v=2026-05-17-webr-r-adapters", location.href).href;
     const { mSigSDK } = await import(workflowSdkUrl);
     const {
       crossToolSummary,
@@ -47,18 +49,33 @@
         exposureThreshold: 0.01,
         lowBurdenThreshold: 100,
         moderateBurdenThreshold: 1000,
-        thresholdGrid: [0, 0.01, 0.03, 0.05, 0.1],
-        bootstrapIterations: 100,
-        bootstrapSeed: 14,
-        groupKey: "group",
+	        thresholdGrid: [0, 0.01, 0.03, 0.05, 0.1],
+	        bootstrapIterations: 100,
+	        bootstrapSeed: 14,
+	        activeSignaturePercent: 5,
+	        residualUnexplainedCheckPercent: 20,
+	        residualUnexplainedPriorityPercent: 30,
+	        bootstrapCiCheckPercent: "",
+	        bootstrapCiPriorityPercent: "",
+	        cutoffCosineDropCheck: "",
+	        cutoffCosineDropPriority: "",
+	        nnCosineCheck: 0.9,
+	        nnCosinePriority: 0.95,
+	        groupKey: "group",
         pyodideTimeoutMs: 300000,
+        webrTimeoutMs: 300000,
+        webrModuleUrl: "https://webr.r-wasm.org/latest/webr.mjs",
+        webrRepositoryUrl: "https://repo.r-wasm.org",
+        webrBinaryRVersion: "4.5",
         sigProfilerAssignmentPackage: "SigProfilerAssignment==1.1.3",
+        sigProfilerExtractorPackage: "SigProfilerExtractor==1.2.6",
         sigProfilerGenomeBuild: "GRCh37",
         sigProfilerCosmicVersion: 3.5,
         sigProfilerExome: false,
         musicalPackage: "",
         musicalMethod: "likelihood_bidirectional",
         musicalThreshold: 0.001,
+        sigminerMethod: "NNLS",
       },
       selectedSample: null,
       visualSamples: {
@@ -69,10 +86,29 @@
       analysis: null,
       bootstrap: null,
       bootstrapBySample: {},
+      bootstrapNeedsRerun: false,
+      reviewParameterDraft: null,
+      adaptiveReviewDefaults: null,
       interoperability: null,
       provenance: null,
       exposureEngineResult: null,
     };
+
+    const REVIEW_PARAMETER_KEYS = Object.freeze([
+      "lowBurdenThreshold",
+      "moderateBurdenThreshold",
+      "thresholdGrid",
+      "bootstrapIterations",
+      "activeSignaturePercent",
+      "residualUnexplainedCheckPercent",
+      "residualUnexplainedPriorityPercent",
+      "bootstrapCiCheckPercent",
+      "bootstrapCiPriorityPercent",
+      "cutoffCosineDropCheck",
+      "cutoffCosineDropPriority",
+      "nnCosineCheck",
+      "nnCosinePriority",
+    ]);
 
     const FIT_ENGINE_DEFINITIONS = Object.freeze({
       sdk_nnls: {
@@ -83,48 +119,109 @@
 	        exposureSource: "mSigSDK built-in non-negative least squares fit",
 	        supportsThresholdSensitivity: true,
 	        supportsBootstrap: true,
+	        uncertaintyBasis:
+	          "mSigSDK parametric bootstrap of the built-in NNLS refit.",
+	        cutoffSensitivityBasis:
+	          "mSigSDK threshold sweep of the built-in NNLS fit.",
 	        description:
 	          "Fast built-in recipe guess for interactive review. Use this when you want mSigSDK to estimate which reference signatures are mixed into each sample and then run the full checking, plotting, and reporting workflow.",
       },
       sigprofilerassignment_pyodide: {
-        label: "SigProfilerAssignment package (runs in browser)",
+        label: "SigProfilerAssignment",
         shortLabel: "SigProfilerAssignment",
         runtime: "Python package in the browser with Pyodide",
         command: "adapters.sigProfilerAssignment.run",
         exposureSource: "SigProfilerAssignment Python package",
-	        supportsThresholdSensitivity: false,
-	        supportsBootstrap: false,
+	        supportsThresholdSensitivity: true,
+	        supportsBootstrap: true,
+	        uncertaintyBasis:
+	          "mSigSDK review bootstrap using the active spectra and reference signature catalog; this is not a package-native SigProfilerAssignment uncertainty rerun.",
+	        cutoffSensitivityBasis:
+	          "mSigSDK cutoff review applied around the selected contribution table; package-native cutoffs may differ.",
 	        description:
 	          "Runs the established SigProfilerAssignment package in the browser when Pyodide and the package are available. SigProfilerAssignment estimates the signature recipe; mSigSDK then checks, plots, and reports those results.",
       },
+      sigprofilerextractor_pyodide: {
+        label: "mSigSDK de novo extraction",
+        shortLabel: "mSigSDK extraction",
+        runtime: "Browser-native NMF; SigProfilerExtractor handoff files exported",
+        command: "adapters.sigProfilerExtractor.run",
+        exposureSource: "mSigSDK browser-native NMF extraction",
+        supportsThresholdSensitivity: true,
+        supportsBootstrap: true,
+        uncertaintyBasis:
+          "mSigSDK review bootstrap using the extracted signature catalog from the browser run.",
+        cutoffSensitivityBasis:
+          "mSigSDK cutoff review applied to the selected contribution table and extracted signatures.",
+        description:
+          "Runs mSigSDK browser-native NMF to extract candidate signatures from the loaded spectra. This is not execution of the SigProfilerExtractor Python package; the export bundle includes the Python snippet and input table for an exact local or server SigProfilerExtractor run.",
+      },
       musical_pyodide: {
-        label: "MuSiCal package (runs in browser)",
-        shortLabel: "MuSiCal package",
+        label: "MuSiCal",
+        shortLabel: "MuSiCal",
         runtime: "Python package in the browser with Pyodide",
         command: "adapters.musical.runRefit({ runtime: 'pyodide' })",
         exposureSource: "MuSiCal Python package",
-	        supportsThresholdSensitivity: false,
-	        supportsBootstrap: false,
+	        supportsThresholdSensitivity: true,
+	        supportsBootstrap: true,
+	        uncertaintyBasis:
+	          "mSigSDK review bootstrap using the active spectra and signature catalog; this is not a package-native MuSiCal uncertainty rerun.",
+	        cutoffSensitivityBasis:
+	          "mSigSDK cutoff review applied around the selected contribution table; package-native cutoffs may differ.",
 	        description:
 	          "Runs a Pyodide-compatible MuSiCal package or wheel supplied by the user. MuSiCal estimates the signature recipe; mSigSDK then checks, plots, and reports those results.",
       },
-      musical_sparse_nnls: {
-        label: "MuSiCal-style comparison fit (browser fallback)",
-        shortLabel: "MuSiCal-style comparison",
-        runtime: "Runs in this browser",
-        command: "adapters.musical.runSparseNnlsRefit",
-        exposureSource: "Browser comparison fit with MuSiCal-style inputs and outputs",
-	        supportsThresholdSensitivity: false,
-	        supportsBootstrap: false,
-	        description:
-	          "Uses MuSiCal-style input and output tables for a browser comparison fit. This is useful for comparison, but it is not execution of the official MuSiCal Python package.",
+      deconstructsigs_webr: {
+        label: "deconstructSigs",
+        shortLabel: "deconstructSigs",
+        runtime: "R package in the browser with WebR",
+        command: "adapters.deconstructSigs.run",
+        exposureSource: "deconstructSigs R package through WebR",
+        supportsThresholdSensitivity: true,
+        supportsBootstrap: true,
+        uncertaintyBasis:
+          "mSigSDK review bootstrap using the active spectra and reference signature catalog; this is not a package-native deconstructSigs uncertainty rerun.",
+        cutoffSensitivityBasis:
+          "mSigSDK cutoff review applied around the deconstructSigs contribution table.",
+        description:
+          "Runs the deconstructSigs R package in the browser through WebR when compatible WebAssembly package builds are available in the selected repository. mSigSDK parses the package exposure table and runs the same review outputs around it.",
+      },
+      sigminer_webr: {
+        label: "sigminer",
+        shortLabel: "sigminer",
+        runtime: "R package in the browser with WebR",
+        command: "adapters.sigminer.run",
+        exposureSource: "sigminer R package through WebR",
+        supportsThresholdSensitivity: true,
+        supportsBootstrap: true,
+        uncertaintyBasis:
+          "mSigSDK review bootstrap using the active spectra and reference signature catalog; this is not a package-native sigminer uncertainty rerun.",
+        cutoffSensitivityBasis:
+          "mSigSDK cutoff review applied around the sigminer contribution table.",
+        description:
+          "Runs sigminer supervised signature fitting in the browser through WebR when sigminer and the selected solver package are available from the selected repository. The default method is NNLS because current WebR repositories commonly provide sigminer with nnls.",
       },
     });
 
-    function parseNumber(value, fallback) {
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : fallback;
-    }
+	    function parseNumber(value, fallback) {
+	      const parsed = Number(value);
+	      return Number.isFinite(parsed) ? parsed : fallback;
+	    }
+
+	    function parseOptionalNumber(value) {
+	      const text = String(value ?? "").trim();
+	      if (!text) return null;
+	      const parsed = Number(text);
+	      return Number.isFinite(parsed) ? parsed : null;
+	    }
+
+	    function parsePercentFraction(value, fallbackPercent = null) {
+	      const parsed = parseOptionalNumber(value);
+	      if (parsed === null) {
+	        return fallbackPercent === null ? null : fallbackPercent / 100;
+	      }
+	      return parsed / 100;
+	    }
 
     function parseThresholdGrid(value) {
       const parsed = String(value || "")
@@ -143,11 +240,218 @@
       return packages.length ? packages : fallback;
     }
 
-    function currentFitEngine() {
-      return FIT_ENGINE_DEFINITIONS[workflowState.parameters.fitEngine] || FIT_ENGINE_DEFINITIONS.sdk_nnls;
-    }
+	    function currentFitEngine() {
+	      return FIT_ENGINE_DEFINITIONS[workflowState.parameters.fitEngine] || FIT_ENGINE_DEFINITIONS.sdk_nnls;
+	    }
 
-    function stringify(value) {
+	    function reviewThresholdOptions() {
+	      const activeExposureThreshold = parsePercentFraction(
+	        workflowState.parameters.activeSignaturePercent,
+	        5
+	      );
+	      const residualCheck = parsePercentFraction(
+	        workflowState.parameters.residualUnexplainedCheckPercent,
+	        20
+	      );
+	      const residualPriority = parsePercentFraction(
+	        workflowState.parameters.residualUnexplainedPriorityPercent,
+	        30
+	      );
+	      return {
+	        contexts: workflowState.contexts,
+	        normalizeMode: "relative",
+	        lowBurdenThreshold: workflowState.parameters.lowBurdenThreshold,
+	        moderateBurdenThreshold: workflowState.parameters.moderateBurdenThreshold,
+	        activeExposureThreshold,
+	        bootstrapReviewExposureThreshold: activeExposureThreshold,
+	        bootstrapReviewConfidenceWidthThreshold: parsePercentFraction(
+	          workflowState.parameters.bootstrapCiCheckPercent
+	        ),
+	        bootstrapStrongConfidenceWidthThreshold: parsePercentFraction(
+	          workflowState.parameters.bootstrapCiPriorityPercent
+	        ),
+	        thresholdReviewCosineDrop: parseOptionalNumber(
+	          workflowState.parameters.cutoffCosineDropCheck
+	        ),
+	        thresholdStrongCosineDrop: parseOptionalNumber(
+	          workflowState.parameters.cutoffCosineDropPriority
+	        ),
+	        sampleConfusionCosineThreshold: parseNumber(
+	          workflowState.parameters.nnCosineCheck,
+	          0.9
+	        ),
+	        strongSampleConfusionCosineThreshold: parseNumber(
+	          workflowState.parameters.nnCosinePriority,
+	          0.95
+	        ),
+	        unexplainedThreshold: residualPriority,
+	        weakUnexplainedThreshold: residualCheck,
+	        catalogJointUnexplainedThreshold: residualCheck,
+	        catalogStrongUnexplainedThreshold: residualPriority,
+	        catalogStructuredResidualUnexplainedThreshold: residualCheck,
+	      };
+	    }
+
+	    function reviewParameterSnapshot(source = workflowState.parameters) {
+	      return Object.fromEntries(REVIEW_PARAMETER_KEYS.map((key) => [
+	        key,
+	        Array.isArray(source?.[key]) ? [...source[key]] : source?.[key],
+	      ]));
+	    }
+
+	    function ensureReviewParameterDraft() {
+	      if (!workflowState.reviewParameterDraft) {
+	        workflowState.reviewParameterDraft = reviewParameterSnapshot();
+	      }
+	      return workflowState.reviewParameterDraft;
+	    }
+
+	    function setReviewParameterDraftValues(values = {}) {
+	      const draft = ensureReviewParameterDraft();
+	      REVIEW_PARAMETER_KEYS.forEach((key) => {
+	        if (Object.prototype.hasOwnProperty.call(values, key)) {
+	          draft[key] = Array.isArray(values[key]) ? [...values[key]] : values[key];
+	        }
+	      });
+	      if (typeof syncWorkflowParameterControls === "function") {
+	        REVIEW_PARAMETER_KEYS.forEach((key) => syncWorkflowParameterControls(key, null, "reviewDraft"));
+	      }
+	      document.dispatchEvent(new CustomEvent("msig:endToEndReviewDraftChange"));
+	      return draft;
+	    }
+
+	    function reviewParameterDraftDiffers() {
+	      const draft = ensureReviewParameterDraft();
+	      return REVIEW_PARAMETER_KEYS.some((key) => JSON.stringify(draft[key]) !== JSON.stringify(workflowState.parameters[key]));
+	    }
+
+	    function commitReviewParameterDraftToParameters() {
+	      const draft = ensureReviewParameterDraft();
+	      const changedKeys = [];
+	      REVIEW_PARAMETER_KEYS.forEach((key) => {
+	        const nextValue = Array.isArray(draft[key]) ? [...draft[key]] : draft[key];
+	        if (JSON.stringify(workflowState.parameters[key]) !== JSON.stringify(nextValue)) {
+	          workflowState.parameters[key] = nextValue;
+	          changedKeys.push(key);
+	        }
+	      });
+	      if (typeof syncWorkflowParameterControls === "function") {
+	        REVIEW_PARAMETER_KEYS.forEach((key) => syncWorkflowParameterControls(key));
+	      }
+	      document.dispatchEvent(new CustomEvent("msig:endToEndReviewDraftChange"));
+	      return changedKeys;
+	    }
+
+	    function sortedFiniteValues(values = []) {
+	      return values
+	        .map(Number)
+	        .filter(Number.isFinite)
+	        .sort((a, b) => a - b);
+	    }
+
+	    function quantile(values = [], probability = 0.5) {
+	      const sorted = sortedFiniteValues(values);
+	      if (!sorted.length) return null;
+	      const index = Math.min(sorted.length - 1, Math.max(0, (sorted.length - 1) * probability));
+	      const lower = Math.floor(index);
+	      const upper = Math.ceil(index);
+	      if (lower === upper) return sorted[lower];
+	      return sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower);
+	    }
+
+	    function clampNumber(value, min, max) {
+	      return Math.min(max, Math.max(min, value));
+	    }
+
+	    function niceRound(value, step = 1) {
+	      if (!Number.isFinite(value)) return value;
+	      return Math.round(value / step) * step;
+	    }
+
+	    function spectraMutationTotals() {
+	      return Object.values(workflowState.spectra || {}).map((spectrum) =>
+	        Object.values(spectrum || {}).reduce((sum, value) => sum + parseNumber(value, 0), 0)
+	      );
+	    }
+
+	    function burdenGuardrails(totals = spectraMutationTotals()) {
+	      const median = quantile(totals, 0.5) || 0;
+	      const contextCount = workflowState.contexts?.length || 96;
+	      const selectionText = JSON.stringify(workflowState.publicSelection || {}).toLowerCase();
+	      if (contextCount < 96 || median < 250 || selectionText.includes("panel")) {
+	        return { lowMin: 10, lowMax: 75, moderateMin: 50, moderateMax: 250, step: 5 };
+	      }
+	      if (median > 5000 || selectionText.includes("wgs") || selectionText.includes("whole genome")) {
+	        return { lowMin: 500, lowMax: 5000, moderateMin: 2000, moderateMax: 15000, step: 100 };
+	      }
+	      return { lowMin: 50, lowMax: 300, moderateMin: 200, moderateMax: 1500, step: 25 };
+	    }
+
+	    function fitQualityComponentValues(component, field) {
+	      return (workflowState.analysis?.fitQualityEvidence?.samples || [])
+	        .map((sample) => sample.componentEvidence?.[component]?.[field])
+	        .filter(Number.isFinite);
+	    }
+
+	    function computeAdaptiveReviewDefaults() {
+	      const current = reviewParameterSnapshot();
+	      const totals = spectraMutationTotals();
+	      const guard = burdenGuardrails(totals);
+	      const lowQuantile = quantile(totals, 0.1);
+	      const moderateQuantile = quantile(totals, 0.3);
+	      const lowBurdenThreshold = Number.isFinite(lowQuantile)
+	        ? niceRound(clampNumber(lowQuantile, guard.lowMin, guard.lowMax), guard.step)
+	        : current.lowBurdenThreshold;
+	      const moderateBurdenThreshold = Number.isFinite(moderateQuantile)
+	        ? niceRound(
+	          clampNumber(
+	            Math.max(moderateQuantile, lowBurdenThreshold + guard.step),
+	            guard.moderateMin,
+	            guard.moderateMax
+	          ),
+	          guard.step
+	        )
+	        : current.moderateBurdenThreshold;
+	      const residualValues = fitQualityComponentValues("residual", "unexplainedFraction").map((value) => value * 100);
+	      const residualCheck = Number.isFinite(quantile(residualValues, 0.75))
+	        ? niceRound(clampNumber(quantile(residualValues, 0.75), 15, 35), 1)
+	        : current.residualUnexplainedCheckPercent;
+	      const residualPriority = Number.isFinite(quantile(residualValues, 0.9))
+	        ? niceRound(clampNumber(Math.max(quantile(residualValues, 0.9), residualCheck + 5), 25, 60), 1)
+	        : current.residualUnexplainedPriorityPercent;
+	      const nnValues = fitQualityComponentValues("ambiguity", "maxActivePairCosine");
+	      const nnCheck = Number.isFinite(quantile(nnValues, 0.9))
+	        ? Number(clampNumber(quantile(nnValues, 0.9), 0.9, 0.99).toFixed(3))
+	        : current.nnCosineCheck;
+	      const nnPriority = Number.isFinite(quantile(nnValues, 0.97))
+	        ? Number(clampNumber(Math.max(quantile(nnValues, 0.97), nnCheck + 0.01), 0.93, 0.995).toFixed(3))
+	        : current.nnCosinePriority;
+	      return {
+	        ...current,
+	        lowBurdenThreshold,
+	        moderateBurdenThreshold,
+	        residualUnexplainedCheckPercent: residualCheck,
+	        residualUnexplainedPriorityPercent: residualPriority,
+	        bootstrapCiCheckPercent: "",
+	        bootstrapCiPriorityPercent: "",
+	        cutoffCosineDropCheck: "",
+	        cutoffCosineDropPriority: "",
+	        nnCosineCheck: nnCheck,
+	        nnCosinePriority: nnPriority,
+	      };
+	    }
+
+	    function resetReviewDraftToAdaptive({ commit = false } = {}) {
+	      const adaptive = computeAdaptiveReviewDefaults();
+	      workflowState.adaptiveReviewDefaults = reviewParameterSnapshot(adaptive);
+	      setReviewParameterDraftValues(adaptive);
+	      if (commit) {
+	        commitReviewParameterDraftToParameters();
+	      }
+	      return adaptive;
+	    }
+
+	    function stringify(value) {
       return JSON.stringify(value, null, 2);
     }
 
@@ -232,9 +536,11 @@
       workflowState.analysis = null;
       workflowState.bootstrap = null;
       workflowState.bootstrapBySample = {};
+      workflowState.bootstrapNeedsRerun = false;
       workflowState.interoperability = null;
       workflowState.provenance = null;
       workflowState.exposureEngineResult = null;
+      resetReviewDraftToAdaptive({ commit: true });
       validateCurrentInputs();
       document.dispatchEvent(new CustomEvent("msig:endToEndInputs"));
     }
@@ -328,20 +634,20 @@
           {
             key: "similarity cues",
             label: "Similarity cues",
-            tooltip: "Reference-catalog review cues from continuous scoring. They explain why a fitted signature should be inspected, not that a specific biological process has been proven.",
+            tooltip: "Reference-catalog review cues from similarity and profile-shape scoring.",
             tooltipTerms: {
-              "nearest-neighbor similarity cue": "Assigned because this reference signature is unusually similar to its nearest catalog neighbor under the configured rule. Treat fitted contribution as potentially exchangeable with nearby signatures.",
-              "crowded-catalog-region cue": "Assigned because several nearby reference signatures have similar profiles under the configured rule. This is a review cue, not a distinct biological conclusion.",
-              "broad-profile cue": "Assigned because this reference signature is broad or flat relative to the selected catalog.",
-              "low-specificity-profile cue": "Assigned because this reference signature meets the low-specificity criterion under the configured summary statistic.",
-              "near-review-boundary cue": "Assigned because the continuous score is close to the configured review boundary. Do not treat the boundary as a scientific cliff.",
-              "no similarity cue": "No configured catalog-relative similarity cue was active for this table entry.",
+              "nearest-neighbor similarity cue": "Nearest catalog neighbor is unusually similar under the configured rule.",
+              "crowded-catalog-region cue": "Several nearby reference signatures have similar profiles under the configured rule.",
+              "broad-profile cue": "Reference signature is broad or flat relative to the selected catalog.",
+              "low-specificity-profile cue": "Reference signature meets the low-specificity criterion under the configured summary statistic.",
+              "near-review-boundary cue": "Similarity score is close to the configured review boundary.",
+              "no similarity cue": "No similarity cue was active for this table entry.",
             },
           },
           {
             key: "similarity risk score",
             label: "Score",
-            tooltip: "Continuous catalog-relative score combining nearest-neighbor similarity, nearby-signature crowding, broadness, and low specificity. Higher values indicate more reason to review exchangeability; they are not cause-of-mutation claims.",
+            tooltip: "Similarity-risk score combining nearest-neighbor similarity, nearby-signature crowding, broadness, and low specificity.",
           },
           {
             key: "catalog percentile",
@@ -413,10 +719,34 @@
       return section;
     }
 
+    function paragraphNode(text, className = "") {
+      const paragraph = document.createElement("p");
+      if (className) paragraph.className = className;
+      paragraph.textContent = text;
+      return paragraph;
+    }
+
+    function collapsibleOutput(label, content = [], options = {}) {
+      const detail = document.createElement("details");
+      detail.className = "output-details workflow-collapsible";
+      detail.open = Boolean(options.open);
+      const summary = document.createElement("summary");
+      summary.textContent = label;
+      const stack = document.createElement("div");
+      stack.className = "workflow-output-stack";
+      const nodes = Array.isArray(content) ? content : [content];
+      for (const node of nodes) {
+        if (!node) continue;
+        stack.append(node instanceof Node ? node : document.createTextNode(String(node)));
+      }
+      detail.append(summary, stack);
+      return detail;
+    }
+
 	    function fitQualityMethodGuide() {
 	      return workflowOutputGuide(
 	        "Hover to read definitions",
-	        "Hover or keyboard-focus table labels, review cues, similarity scores, and status words to see short definitions in place. The tables keep the page readable, while the tooltips explain the exact SDK meaning when you need it."
+	        "Hover or keyboard-focus table labels, review cues, similarity scores, and status words to see short definitions in place."
 	      );
 	    }
 
@@ -432,7 +762,12 @@
       };
     }
 
-    async function getBootstrapForSample(sample, statusElement = null) {
+    function bootstrapReviewSamples(selectedSample) {
+      const sampleNames = Object.keys(workflowState.spectra || {});
+      return uniqueValues([selectedSample, ...sampleNames]);
+    }
+
+    async function getBootstrapForSample(sample, statusElement = null, analysis = workflowState.analysis) {
       if (!sample) {
         throw new Error("Choose a sample before rendering uncertainty intervals.");
       }
@@ -445,23 +780,159 @@
       if (statusElement) {
         statusElement.textContent = `Running ${workflowState.parameters.bootstrapIterations} uncertainty refits for ${sample}...`;
       }
+      const activeSignatures = activeAnalysisSignatures(analysis);
       const bootstrap = await mSigSDK.qc.bootstrapSignatureFit(
-        workflowState.signatures,
+        activeSignatures,
         workflowState.spectra[sample],
         {
           contexts: workflowState.contexts,
           iterations: workflowState.parameters.bootstrapIterations,
           seed: workflowState.parameters.bootstrapSeed,
           exposureThreshold: workflowState.parameters.exposureThreshold,
+          yieldEvery: 10,
+          progressCallback: ({ iteration, iterations }) => {
+            if (statusElement) {
+              statusElement.textContent = `Running uncertainty refit ${iteration}/${iterations} for ${sample}...`;
+            }
+          },
         }
       );
-      const annotated = bootstrapResultForSample(bootstrap, sample);
+      const annotated = {
+        ...bootstrapResultForSample(bootstrap, sample),
+        reviewBoundary:
+          workflowState.analysis?.exposureEngine?.uncertaintyBasis ||
+          "mSigSDK review bootstrap using the active spectra and signature catalog.",
+      };
       workflowState.bootstrapBySample = {
         ...(workflowState.bootstrapBySample || {}),
         [sample]: annotated,
       };
       workflowState.bootstrap = annotated;
       return annotated;
+    }
+
+    async function runBootstrapReviewSet(analysis, selectedSample) {
+      if (!analysis?.exposureEngine?.supportsBootstrap) return null;
+      let selectedBootstrap = null;
+      const samples = bootstrapReviewSamples(selectedSample);
+      for (let index = 0; index < samples.length; index += 1) {
+        const sample = samples[index];
+        document.dispatchEvent(new CustomEvent("msig:endToEndProgress", {
+          detail: {
+            title: "Uncertainty review running",
+            message: `Running uncertainty review ${index + 1}/${samples.length} after fitting ${Object.keys(analysis.fit?.exposures || {}).length || Object.keys(workflowState.spectra || {}).length} sample(s).`,
+            details: `Current sample: ${sample}`,
+          },
+        }));
+        await waitForWorkflowPaint();
+        const bootstrap = await getBootstrapForSample(sample, null, analysis);
+        if (sample === selectedSample) {
+          selectedBootstrap = bootstrap;
+        }
+        await waitForWorkflowPaint();
+      }
+      return selectedBootstrap || workflowState.bootstrapBySample?.[selectedSample] || null;
+    }
+
+	    function refreshFitQualityEvidenceWithBootstrap(analysis) {
+	      if (!analysis?.fit?.exposures || !workflowState.spectra) return analysis;
+	      const activeSignatures = activeAnalysisSignatures(analysis);
+	      const reviewOptions = reviewThresholdOptions();
+	      const advisor = mSigSDK.advisor.recommendAnalysisStrategy(workflowState.spectra, {
+	        expectedContexts: workflowState.contexts,
+	        lowBurdenThreshold: workflowState.parameters.lowBurdenThreshold,
+	        moderateBurdenThreshold: workflowState.parameters.moderateBurdenThreshold,
+	      });
+	      const residuals = mSigSDK.qc.calculateFitResiduals(
+	        activeSignatures,
+	        workflowState.spectra,
+	        analysis.fit.exposures,
+	        reviewOptions
+	      );
+	      const reconstructionError = mSigSDK.qc.calculateReconstructionError(
+	        activeSignatures,
+	        workflowState.spectra,
+	        analysis.fit.exposures,
+	        reviewOptions
+	      );
+	      const ambiguity = mSigSDK.advisor.computeSignatureIdentifiability(
+	        activeSignatures,
+	        { contexts: workflowState.contexts }
+	      );
+	      const catalogCheck = mSigSDK.advisor.detectOutOfReferenceSignal(
+	        {
+	          signatures: activeSignatures,
+	          spectra: workflowState.spectra,
+	          exposures: analysis.fit.exposures,
+	          residuals,
+	          reconstructionError,
+	          contexts: workflowState.contexts,
+	        },
+	        reviewOptions
+	      );
+      const bootstrap = workflowState.bootstrapBySample || {};
+      const fitQualityEvidence = mSigSDK.advisor.computeFitQualityEvidence(
+        {
+          signatures: activeSignatures,
+          spectra: workflowState.spectra,
+          exposures: analysis.fit.exposures,
+          burdenSummary: advisor.mutationBurden,
+          residuals,
+          reconstructionError,
+          bootstrap,
+          thresholdSensitivity: analysis.thresholdSensitivity || analysis.qc?.thresholdSensitivity || null,
+          ambiguity,
+          catalogCheck,
+          contexts: workflowState.contexts,
+        },
+        reviewOptions
+      );
+      const bootstrapWarnings = Object.values(bootstrap).flatMap((entry) => entry?.warnings || []);
+      const thresholdWarnings = analysis.thresholdSensitivity?.warnings || analysis.qc?.thresholdSensitivity?.warnings || [];
+      const advisorActions = Array.isArray(advisor.recommendedActions) ? advisor.recommendedActions : [];
+      const catalogActions = Array.isArray(catalogCheck.recommendedActions) ? catalogCheck.recommendedActions : [];
+      const fitQualityActions = Array.isArray(fitQualityEvidence.recommendedActions) ? fitQualityEvidence.recommendedActions : [];
+      analysis.advisor = advisor;
+      analysis.residuals = residuals;
+      analysis.ambiguity = ambiguity;
+      analysis.catalogCheck = catalogCheck;
+      analysis.bootstrap = bootstrap;
+      analysis.fitQualityEvidence = fitQualityEvidence;
+      analysis.fit = {
+        ...(analysis.fit || {}),
+        signatures: activeSignatures,
+        reconstructionError,
+      };
+      analysis.qc = {
+        ...(analysis.qc || {}),
+        mutationBurden: advisor.mutationBurden,
+        reconstructionError,
+        residuals,
+        bootstrap,
+        fitQualityEvidence: fitQualityEvidence.summary,
+        catalogCheck: catalogCheck.summary,
+      };
+      if (analysis.report?.qc) {
+        analysis.report.qc.mutationBurden = advisor.mutationBurden;
+        analysis.report.qc.reconstructionError = reconstructionError;
+        analysis.report.qc.residuals = residuals;
+        analysis.report.qc.bootstrap = bootstrap;
+        analysis.report.qc.fitQualityEvidence = fitQualityEvidence.summary;
+      }
+      analysis.warnings = dedupeWarnings([
+        ...(advisor.warnings || []),
+        ...(catalogCheck.warnings || []),
+        ...thresholdWarnings,
+        ...fitQualityEvidence.warnings,
+        ...bootstrapWarnings,
+      ]);
+      analysis.primaryWarnings = analysis.warnings;
+      analysis.recommendedActions = uniqueValues([
+        ...advisorActions,
+        ...catalogActions,
+        ...fitQualityActions,
+      ]);
+      return analysis;
     }
 
     function uniqueValues(values = []) {
@@ -482,9 +953,9 @@
       return Object.fromEntries((workflowState.metadata || []).map((row) => [row.sample, row]));
     }
 
-    function completeExposureMatrix(exposures, { relative = true } = {}) {
+    function completeExposureMatrix(exposures, { relative = true, signatures = workflowState.signatures } = {}) {
       const sampleNames = Object.keys(workflowState.spectra || {});
-      const signatureNames = Object.keys(workflowState.signatures || {});
+      const signatureNames = Object.keys(signatures || {});
       const source = exposures || {};
       const completed = Object.fromEntries(sampleNames.map((sample) => {
         const row = source[sample] || {};
@@ -501,6 +972,166 @@
         : completed;
     }
 
+    function activeAnalysisSignatures(analysis = workflowState.analysis) {
+      return analysis?.fit?.signatures || workflowState.signatures || {};
+    }
+
+    function thresholdExposureMatrix(exposures, signatures, threshold) {
+      const signatureNames = Object.keys(signatures || {});
+      const completed = completeExposureMatrix(exposures, {
+        relative: false,
+        signatures,
+      });
+      return Object.fromEntries(Object.entries(completed).map(([sample, row]) => {
+        const thresholded = Object.fromEntries(signatureNames.map((signature) => [
+          signature,
+          parseNumber(row?.[signature], 0) >= threshold
+            ? parseNumber(row?.[signature], 0)
+            : 0,
+        ]));
+        const total = Object.values(thresholded).reduce((sum, value) => sum + value, 0);
+        return [
+          sample,
+          total > 0
+            ? Object.fromEntries(signatureNames.map((signature) => [
+              signature,
+              thresholded[signature] / total,
+            ]))
+            : thresholded,
+        ];
+      }));
+    }
+
+    function summarizeCutoffDrift(exposures, baselineExposures, signatureNames) {
+      const sampleNames = Object.keys(exposures || {}).filter((sample) => baselineExposures?.[sample]);
+      if (!sampleNames.length) {
+        return {
+          sampleCount: 0,
+          meanL1ExposureDrift: null,
+          medianL1ExposureDrift: null,
+          meanActiveSetJaccard: null,
+        };
+      }
+      const l1Drifts = [];
+      const activeSetJaccards = [];
+      for (const sample of sampleNames) {
+        const row = exposures[sample] || {};
+        const baselineRow = baselineExposures[sample] || {};
+        const l1 = signatureNames.reduce(
+          (sum, signature) => sum + Math.abs((row[signature] || 0) - (baselineRow[signature] || 0)),
+          0
+        );
+        const active = new Set(signatureNames.filter((signature) => (row[signature] || 0) > 0));
+        const baselineActive = new Set(signatureNames.filter((signature) => (baselineRow[signature] || 0) > 0));
+        const union = new Set([...active, ...baselineActive]);
+        const intersection = [...active].filter((signature) => baselineActive.has(signature));
+        l1Drifts.push(l1);
+        activeSetJaccards.push(union.size === 0 ? 1 : intersection.length / union.size);
+      }
+      const sortedDrifts = [...l1Drifts].sort((a, b) => a - b);
+      return {
+        sampleCount: sampleNames.length,
+        meanL1ExposureDrift: l1Drifts.reduce((sum, value) => sum + value, 0) / l1Drifts.length,
+        medianL1ExposureDrift: sortedDrifts[Math.floor(sortedDrifts.length / 2)],
+        meanActiveSetJaccard: activeSetJaccards.reduce((sum, value) => sum + value, 0) / activeSetJaccards.length,
+      };
+    }
+
+    function calculateSelectedExposureCutoffSensitivity({
+      signatures,
+      spectra,
+      exposures,
+      engine,
+      thresholds = workflowState.parameters.thresholdGrid,
+    }) {
+      const signatureNames = Object.keys(signatures || {});
+      const normalizedThresholds = parseThresholdGrid(
+        Array.isArray(thresholds) ? thresholds.join(", ") : thresholds
+      );
+      const runs = normalizedThresholds.map((threshold) => {
+        const thresholdedExposures = thresholdExposureMatrix(exposures, signatures, threshold);
+        const reconstructionError = mSigSDK.qc.calculateReconstructionError(
+          signatures,
+          spectra,
+          thresholdedExposures,
+          {
+            contexts: workflowState.contexts,
+            normalizeMode: "relative",
+          }
+        );
+        const activeSignatureCounts = Object.values(thresholdedExposures).map((row) =>
+          Object.values(row || {}).filter((value) => Number(value) > 0).length
+        );
+        return {
+          threshold,
+          exposures: thresholdedExposures,
+          reconstructionError,
+          averageActiveSignatures: activeSignatureCounts.length
+            ? activeSignatureCounts.reduce((sum, value) => sum + value, 0) / activeSignatureCounts.length
+            : 0,
+          averageCosineSimilarity: reconstructionError.samples.length
+            ? reconstructionError.samples.reduce((sum, sample) => sum + sample.cosineSimilarity, 0) / reconstructionError.samples.length
+            : 0,
+          averageRmse: reconstructionError.samples.length
+            ? reconstructionError.samples.reduce((sum, sample) => sum + sample.rmse, 0) / reconstructionError.samples.length
+            : 0,
+        };
+      });
+      const baselineRun =
+        runs.find((run) => run.threshold === workflowState.parameters.exposureThreshold) ||
+        runs[0] ||
+        null;
+      for (const run of runs) {
+        run.driftFromBaseline = baselineRun
+          ? summarizeCutoffDrift(run.exposures, baselineRun.exposures, signatureNames)
+          : null;
+      }
+      const driftValues = runs
+        .map((run) => run.driftFromBaseline?.meanL1ExposureDrift)
+        .filter(Number.isFinite);
+      const activeSetValues = runs
+        .map((run) => run.driftFromBaseline?.meanActiveSetJaccard)
+        .filter(Number.isFinite);
+      const activeCounts = runs
+        .map((run) => run.averageActiveSignatures)
+        .filter(Number.isFinite);
+      return {
+        schemaVersion: "msig.notebook.cutoffSensitivity.v0.3",
+        workflowRole: "selected_exposure_cutoff_sensitivity",
+        scopeStatement:
+          "Applies configured exposure cutoffs to the selected fitting method's contribution table and recomputes reconstruction metrics. This is a workflow review check, not a package-native rerun.",
+        methodBasis: {
+          description: engine.cutoffSensitivityBasis,
+          thresholdBasis:
+            "The tested cutoffs are user-specified review settings. They summarize how the selected contribution table changes when small fitted ingredients are retained or removed.",
+        },
+        parameters: {
+          thresholds: normalizedThresholds,
+          baselineThreshold: baselineRun?.threshold ?? null,
+          sourceFitEngine: engine.label,
+          exposureType: "relative",
+          renormalize: true,
+        },
+        thresholds: normalizedThresholds,
+        baselineThreshold: baselineRun?.threshold ?? null,
+        driftUnits: "relative_exposure_l1_units",
+        runs,
+        summary: {
+          thresholdCount: runs.length,
+          maxMeanL1ExposureDrift: driftValues.length ? Math.max(...driftValues) : null,
+          minMeanActiveSetJaccard: activeSetValues.length ? Math.min(...activeSetValues) : null,
+          meanActiveSignatureRange: {
+            min: activeCounts.length ? Math.min(...activeCounts) : null,
+            max: activeCounts.length ? Math.max(...activeCounts) : null,
+          },
+        },
+        warnings: normalizedThresholds.length < 3
+          ? [{ code: "threshold_grid_too_small", message: "Use at least three cutoff values to characterize cutoff sensitivity." }]
+          : [],
+        reportingMode: "standard_qc_review",
+      };
+    }
+
     function pyodideRuntimeRows() {
       const runtime = mSigSDK.runners?.pyodide?.detect
         ? mSigSDK.runners.pyodide.detect()
@@ -513,26 +1144,57 @@
       ];
     }
 
+    function webRRuntimeRows() {
+      const runtime = mSigSDK.runners?.webr?.detect
+        ? mSigSDK.runners.webr.detect()
+        : { available: false, missing: ["mSigSDK.runners.webr.detect"] };
+      return [
+        { item: "Can run WebAssembly R", value: runtime.missing?.includes("WebAssembly") ? "missing" : "available" },
+        { item: "Can run WebR worker", value: runtime.missing?.includes("Worker") ? "missing" : "available" },
+        { item: "Can fetch package repository", value: runtime.missing?.includes("fetch") ? "missing" : "available" },
+        { item: "Cross-origin isolation", value: runtime.crossOriginIsolated === true ? "available" : "PostMessage fallback" },
+        { item: "WebR module", value: workflowState.parameters.webrModuleUrl || runtime.defaultModuleURL || "configured by runner" },
+        { item: "Package repository", value: workflowState.parameters.webrRepositoryUrl },
+        { item: "R binary repository version", value: workflowState.parameters.webrBinaryRVersion },
+      ];
+    }
+
     function engineRows(analysis = workflowState.analysis) {
       const engine = analysis?.exposureEngine || currentFitEngine();
       const result = analysis?.exposureEngineResult || workflowState.exposureEngineResult;
-	      return [
+      const loadedSampleCount = Object.keys(workflowState.spectra || {}).length;
+      const fittedSampleCount = Object.keys(analysis?.fit?.exposures || result?.exposures || {}).length;
+      const uncertaintySampleCount = Object.keys(workflowState.bootstrapBySample || {}).length;
+	      const packageMetricRows = result?.packageReconstructionMetrics || [];
+	      const packageMetricSource = result?.candidateReconstructionMetricTables?.[0]?.path || "package output";
+	      const rows = [
 	        { field: "Selected fitting method", value: engine.label || engine.shortLabel },
 	        { field: "Where it runs", value: engine.runtime },
 	        { field: "Reusable SDK command", value: engine.command },
 	        { field: "Who guessed the signature recipe", value: engine.exposureSource },
 	        { field: "Run status", value: result?.status || analysis?.status || "completed" },
+	        { field: "Loaded samples", value: loadedSampleCount || "n/a" },
+	        { field: "Samples fitted", value: fittedSampleCount || "n/a" },
+	        { field: "Uncertainty samples", value: uncertaintySampleCount || "not run yet" },
 	        { field: "Contribution table", value: result?.exposures ? "available" : engine.command === "workflows.runCohortFit" ? "created by mSigSDK workflow" : "not available" },
-        { field: "Cutoff sensitivity", value: engine.supportsThresholdSensitivity ? "available here" : "not available for this selected package" },
-        { field: "Uncertainty intervals", value: engine.supportsBootstrap ? "shown for selected sample" : "use the package's own uncertainty workflow or switch to mSigSDK quick fit" },
+        { field: "Cutoff sensitivity", value: engine.supportsThresholdSensitivity ? engine.cutoffSensitivityBasis : "not available for this selected package" },
+        { field: "Uncertainty intervals", value: engine.supportsBootstrap ? engine.uncertaintyBasis : "not available for this selected package" },
       ];
+	      if (packageMetricRows.length) {
+	        rows.push({
+	          field: "Package reconstruction metrics",
+	          value: `${packageMetricRows.length} sample rows parsed from ${packageMetricSource}`,
+	        });
+	      }
+	      return rows;
     }
 
-    async function runSelectedExposureEngine() {
-      const engineKey = workflowState.parameters.fitEngine;
-      const engine = currentFitEngine();
-      if (engineKey === "sdk_nnls") {
-        const analysis = await mSigSDK.workflows.runCohortFit(
+	    async function runSelectedExposureEngine() {
+	      const engineKey = workflowState.parameters.fitEngine;
+	      const engine = currentFitEngine();
+	      const reviewOptions = reviewThresholdOptions();
+	      if (engineKey === "sdk_nnls") {
+	        const analysis = await mSigSDK.workflows.runCohortFit(
           {
             spectra: workflowState.spectra,
             signatures: workflowState.signatures,
@@ -544,8 +1206,11 @@
             exposureThreshold: workflowState.parameters.exposureThreshold,
             lowBurdenThreshold: workflowState.parameters.lowBurdenThreshold,
             moderateBurdenThreshold: workflowState.parameters.moderateBurdenThreshold,
-            thresholds: workflowState.parameters.thresholdGrid,
-            runThresholdSensitivity: true,
+	            thresholds: workflowState.parameters.thresholdGrid,
+	            baselineThreshold: workflowState.parameters.exposureThreshold,
+	            fitQualityEvidence: reviewOptions,
+	            catalogSufficiency: reviewOptions,
+	            runThresholdSensitivity: true,
             runBootstrap: false,
             reportFormat: "object",
           }
@@ -564,11 +1229,18 @@
         return analysis;
       }
 
-      const pyodideEngine = engineKey.includes("pyodide");
+      const pyodideEngine = engine.runtime.includes("Pyodide");
       if (pyodideEngine) {
         const runtime = mSigSDK.runners?.pyodide?.detect?.();
         if (runtime && runtime.available === false) {
           throw new Error(`Browser Python workers are not available in this browser. Missing: ${(runtime.missing || []).join(", ")}`);
+        }
+      }
+      const webREngine = engine.runtime.includes("WebR");
+      if (webREngine) {
+        const runtime = mSigSDK.runners?.webr?.detect?.();
+        if (runtime && runtime.available === false) {
+          throw new Error(`Browser R workers are not available in this browser. Missing: ${(runtime.missing || []).join(", ")}`);
         }
       }
 
@@ -592,6 +1264,25 @@
         );
       }
 
+      if (engineKey === "sigprofilerextractor_pyodide") {
+        return await mSigSDK.adapters.sigProfilerExtractor.run(
+          {
+            spectra: workflowState.spectra,
+          },
+          {
+            runtime: "browser_nmf",
+            contexts: workflowState.contexts,
+            referenceGenome: workflowState.parameters.sigProfilerGenomeBuild,
+            minimumSignatures: 1,
+            maximumSignatures: Math.min(5, Math.max(1, Object.keys(workflowState.spectra || {}).length)),
+            nmfReplicates: 8,
+            maxBrowserRuns: 8,
+            maxIterations: 700,
+            signaturePrefix: "SPE_NMF",
+          }
+        );
+      }
+
       if (engineKey === "musical_pyodide") {
         return await mSigSDK.adapters.musical.runRefit(
           {
@@ -609,15 +1300,36 @@
         );
       }
 
-      if (engineKey === "musical_sparse_nnls") {
-        return await mSigSDK.adapters.musical.runSparseNnlsRefit(
+      if (engineKey === "deconstructsigs_webr") {
+        return await mSigSDK.adapters.deconstructSigs.run(
           {
             spectra: workflowState.spectra,
             signatures: workflowState.signatures,
           },
           {
             contexts: workflowState.contexts,
-            threshold: workflowState.parameters.musicalThreshold,
+            signatureCutoff: workflowState.parameters.exposureThreshold,
+            webRModuleURL: workflowState.parameters.webrModuleUrl,
+            repositoryUrl: workflowState.parameters.webrRepositoryUrl,
+            binaryRVersion: workflowState.parameters.webrBinaryRVersion,
+            timeoutMs: workflowState.parameters.webrTimeoutMs,
+          }
+        );
+      }
+
+      if (engineKey === "sigminer_webr") {
+        return await mSigSDK.adapters.sigminer.run(
+          {
+            spectra: workflowState.spectra,
+            signatures: workflowState.signatures,
+          },
+          {
+            contexts: workflowState.contexts,
+            method: workflowState.parameters.sigminerMethod,
+            webRModuleURL: workflowState.parameters.webrModuleUrl,
+            repositoryUrl: workflowState.parameters.webrRepositoryUrl,
+            binaryRVersion: workflowState.parameters.webrBinaryRVersion,
+            timeoutMs: workflowState.parameters.webrTimeoutMs,
           }
         );
       }
@@ -630,61 +1342,68 @@
       if (!engineResult?.exposures) {
 	        throw new Error(`${engine.label} completed without a parsed sample-by-signature recipe table. Inspect the collected output files or use the tool export bundle to review the package output manually.`);
       }
-      const exposures = completeExposureMatrix(engineResult.exposures);
+      const activeSignatures = engineResult.signatures || workflowState.signatures;
+      const exposures = completeExposureMatrix(engineResult.exposures, { signatures: activeSignatures });
       const positiveExposureCount = Object.values(exposures)
         .flatMap((row) => Object.values(row || {}))
         .filter((value) => Number(value) > 0).length;
       if (positiveExposureCount === 0) {
 	        throw new Error(`${engine.label} returned signature contribution values, but none matched the active sample/signature names after import. Check sample IDs, signature names, and table orientation before reviewing fit evidence.`);
       }
-      const advisor = mSigSDK.advisor.recommendAnalysisStrategy(workflowState.spectra, {
-        expectedContexts: workflowState.contexts,
-        lowBurdenThreshold: workflowState.parameters.lowBurdenThreshold,
-        moderateBurdenThreshold: workflowState.parameters.moderateBurdenThreshold,
-      });
-      const residualOptions = {
-        contexts: workflowState.contexts,
-        normalizeMode: "relative",
-        lowBurdenThreshold: workflowState.parameters.lowBurdenThreshold,
-        moderateBurdenThreshold: workflowState.parameters.moderateBurdenThreshold,
-      };
+	      const advisor = mSigSDK.advisor.recommendAnalysisStrategy(workflowState.spectra, {
+	        expectedContexts: workflowState.contexts,
+	        lowBurdenThreshold: workflowState.parameters.lowBurdenThreshold,
+	        moderateBurdenThreshold: workflowState.parameters.moderateBurdenThreshold,
+	      });
+	      const reviewOptions = reviewThresholdOptions();
+	      const residualOptions = {
+	        ...reviewOptions,
+	      };
       const residuals = mSigSDK.qc.calculateFitResiduals(
-        workflowState.signatures,
+        activeSignatures,
         workflowState.spectra,
         exposures,
-        residualOptions
-      );
+	        reviewOptions
+	      );
       const reconstructionError = mSigSDK.qc.calculateReconstructionError(
-        workflowState.signatures,
+        activeSignatures,
         workflowState.spectra,
         exposures,
-        residualOptions
-      );
+	        reviewOptions
+	      );
       const ambiguity = mSigSDK.advisor.computeSignatureIdentifiability(
-        workflowState.signatures,
+        activeSignatures,
         { contexts: workflowState.contexts }
       );
       const catalogCheck = mSigSDK.advisor.detectOutOfReferenceSignal(
         {
-          signatures: workflowState.signatures,
+          signatures: activeSignatures,
           spectra: workflowState.spectra,
           exposures,
           residuals,
           reconstructionError,
           contexts: workflowState.contexts,
         },
-        residualOptions
-      );
+	        reviewOptions
+	      );
+      const thresholdSensitivity = engine.supportsThresholdSensitivity
+        ? calculateSelectedExposureCutoffSensitivity({
+          signatures: activeSignatures,
+          spectra: workflowState.spectra,
+          exposures,
+          engine,
+        })
+        : null;
       const fitQualityEvidence = mSigSDK.advisor.computeFitQualityEvidence(
         {
-          signatures: workflowState.signatures,
+          signatures: activeSignatures,
           spectra: workflowState.spectra,
           exposures,
           burdenSummary: advisor.mutationBurden,
           residuals,
           reconstructionError,
           bootstrap: {},
-          thresholdSensitivity: null,
+          thresholdSensitivity,
           ambiguity,
           catalogCheck,
           contexts: workflowState.contexts,
@@ -702,6 +1421,7 @@
         ...(advisor.warnings || []),
         ...(fitQualityEvidence.warnings || []),
         ...(catalogCheck.warnings || []),
+        ...(thresholdSensitivity?.warnings || []),
         ...(groupComparison?.warnings || []),
       ]);
       const recommendedActions = uniqueValues([
@@ -710,9 +1430,8 @@
         ...(catalogCheck.recommendedActions || []),
         ...(groupComparison?.recommendedActions || []),
         `Signature recipe estimates in this run came from ${engine.label}. mSigSDK is being used here to check inputs, review reconstruction quality, make plots, and prepare reports around that contribution table.`,
-        engine.supportsBootstrap
-          ? null
-          : "For uncertainty intervals with this selected fitting method, use that package's own uncertainty workflow or switch to mSigSDK quick fit.",
+        engine.uncertaintyBasis,
+        engine.cutoffSensitivityBasis,
       ]);
       const report = mSigSDK.reports.createAnalysisReport(
         {
@@ -739,13 +1458,20 @@
             lowBurdenThreshold: workflowState.parameters.lowBurdenThreshold,
             moderateBurdenThreshold: workflowState.parameters.moderateBurdenThreshold,
             pyodideTimeoutMs: workflowState.parameters.pyodideTimeoutMs,
+            webrTimeoutMs: workflowState.parameters.webrTimeoutMs,
+            webrModuleUrl: workflowState.parameters.webrModuleUrl,
+            webrRepositoryUrl: workflowState.parameters.webrRepositoryUrl,
+            webrBinaryRVersion: workflowState.parameters.webrBinaryRVersion,
+            sigminerMethod: workflowState.parameters.sigminerMethod,
           },
           validation: workflowState.validation,
-          qc: {
-            mutationBurden: advisor.mutationBurden,
-            contextCoverage: advisor.contextCoverage || workflowState.validation?.contextCoverage,
-            reconstructionError,
-            residuals,
+	          qc: {
+	            mutationBurden: advisor.mutationBurden,
+	            contextCoverage: advisor.contextCoverage || workflowState.validation?.contextCoverage,
+	            reconstructionError,
+	            packageReconstructionMetrics: engineResult.packageReconstructionMetrics || null,
+	            residuals,
+	            thresholdSensitivity,
             fitQualityEvidence: fitQualityEvidence.summary,
             catalogCheck: catalogCheck.summary,
             groupComparison:
@@ -781,13 +1507,14 @@
           fitEngine: workflowState.parameters.fitEngine,
           thresholdOptions: null,
         },
-        validation: workflowState.validation,
-        qc: {
-          mutationBurden: advisor.mutationBurden,
-          contextCoverage: advisor.contextCoverage || workflowState.validation?.contextCoverage,
-          reconstructionError,
-          residuals,
-          thresholdSensitivity: null,
+          validation: workflowState.validation,
+          qc: {
+            mutationBurden: advisor.mutationBurden,
+            contextCoverage: advisor.contextCoverage || workflowState.validation?.contextCoverage,
+            reconstructionError,
+            packageReconstructionMetrics: engineResult.packageReconstructionMetrics || null,
+            residuals,
+          thresholdSensitivity,
           bootstrap: {},
           fitQualityEvidence: fitQualityEvidence.summary,
           catalogCheck: catalogCheck.summary,
@@ -807,12 +1534,14 @@
         fit: {
           method: engine.shortLabel,
           solverVariant: engine.command,
+          signatures: activeSignatures,
           exposures,
           parameters: {
             fitEngine: workflowState.parameters.fitEngine,
             exposureThreshold: workflowState.parameters.exposureThreshold,
           },
           reconstructionError,
+          packageReconstructionMetrics: engineResult.packageReconstructionMetrics || null,
         },
         exposureEngine: engine,
         exposureEngineResult: engineResult,
@@ -820,18 +1549,49 @@
         ambiguity,
         residuals,
         catalogCheck,
-        thresholdSensitivity: null,
+        thresholdSensitivity,
         bootstrap: {},
         recommendedActions,
         publicationFigures: [
           { id: "mutation_burden", title: "Mutation count", recommendedRenderer: "mSigSDK.qcPlots.plotMutationBurdenSummary" },
 	          { id: "reconstruction_error", title: "Reconstruction quality", recommendedRenderer: "mSigSDK.qcPlots.plotReconstructionError" },
-	          { id: "fit_quality_evidence", title: "Review evidence", recommendedRenderer: "mSigSDK.qcPlots.plotFitQualityEvidenceDashboard" },
+	          { id: "fit_quality_evidence", title: "Review diagnostics", recommendedRenderer: "mSigSDK.qcPlots.plotFitQualityEvidenceDashboard" },
           { id: "residual_spectrum", title: "Residual spectrum", recommendedRenderer: "mSigSDK.qcPlots.plotFitResiduals" },
+          { id: "uncertainty_intervals", title: "Uncertainty intervals", recommendedRenderer: "mSigSDK.qcPlots.plotBootstrapConfidenceIntervals" },
+          { id: "cutoff_sensitivity", title: "Cutoff sensitivity", recommendedRenderer: "mSigSDK.qcPlots.plotThresholdSensitivity" },
           { id: "catalog_identifiability", title: "Reference-signature similarity evidence", recommendedRenderer: "mSigSDK.presentation.fitQualityEvidenceTable" },
         ],
         report,
       };
+    }
+
+    function createWorkflowInteroperabilityBundle() {
+      if (!workflowState.spectra || !workflowState.signatures) return null;
+      const interoperability = mSigSDK.adapters.createInteroperabilityBundle(
+        {
+          spectra: workflowState.spectra,
+          signatures: workflowState.signatures,
+        },
+        {
+          contexts: workflowState.contexts,
+          include: ["sigProfilerAssignment", "sigProfilerExtractor", "sigProfilerPlotting", "deconstructSigs", "sigminer", "musical"],
+        }
+      );
+      interoperability.standaloneTools = {
+        sigProfilerMatrixGenerator: mSigSDK.adapters.sigProfilerMatrixGenerator.prepareInput(
+          { files: [] },
+          { project: "end_to_end_matrix_generator", referenceGenome: workflowState.parameters.sigProfilerGenomeBuild }
+        ),
+        sigProfilerSimulator: mSigSDK.adapters.sigProfilerSimulator.prepareInput(
+          { files: [] },
+          { project: "end_to_end_simulator", genome: workflowState.parameters.sigProfilerGenomeBuild, simulations: 100 }
+        ),
+        sigProfilerClusters: mSigSDK.adapters.sigProfilerClusters.prepareInput(
+          { files: [] },
+          { project: "end_to_end_clusters", genome: workflowState.parameters.sigProfilerGenomeBuild }
+        ),
+      };
+      return interoperability;
     }
 
     async function runWorkflow() {
@@ -840,30 +1600,31 @@
       }
       validateCurrentInputs();
       workflowState.bootstrapBySample = {};
+      workflowState.bootstrapNeedsRerun = false;
       workflowState.exposureEngineResult = null;
       const started = performance.now();
       const engineResult = await runSelectedExposureEngine();
       const analysis = workflowState.parameters.fitEngine === "sdk_nnls"
         ? engineResult
         : buildAnalysisFromExposureEngine(engineResult);
+      document.dispatchEvent(new CustomEvent("msig:endToEndProgress", {
+        detail: {
+          title: "Signature fitting complete",
+          message: `Fitted ${Object.keys(analysis.fit?.exposures || {}).length} sample(s).`,
+          details: `Running uncertainty review for all fitted samples next.`,
+        },
+      }));
+      await waitForWorkflowPaint();
       const sample = workflowState.selectedSample || Object.keys(workflowState.spectra)[0];
       workflowState.visualSamples = {
         residual: sample,
         bootstrap: sample,
       };
-      const bootstrap = analysis.exposureEngine?.supportsBootstrap
-        ? await getBootstrapForSample(sample)
-        : null;
-      const interoperability = mSigSDK.adapters.createInteroperabilityBundle(
-        {
-          spectra: workflowState.spectra,
-          signatures: workflowState.signatures,
-        },
-        {
-          contexts: workflowState.contexts,
-          include: ["sigProfilerAssignment", "sigProfilerExtractor", "deconstructSigs", "musical"],
-        }
-      );
+      const bootstrap = await runBootstrapReviewSet(analysis, sample);
+      const reviewedAnalysis = bootstrap
+        ? refreshFitQualityEvidenceWithBootstrap(analysis)
+        : analysis;
+      const interoperability = createWorkflowInteroperabilityBundle();
       const provenance = mSigSDK.provenance.createProvenance({
         analysis: "interactive end-to-end workflow",
         parameters: workflowState.parameters,
@@ -876,26 +1637,27 @@
         ],
         notes: [
           `Fitting method: ${analysis.exposureEngine?.label || currentFitEngine().label}.`,
-	          "Known-signature recipe estimates depend on the supplied spectra, signature catalog, mutation context type, fitting settings, and cutoffs.",
+	          "Signature contribution estimates depend on the supplied spectra, active signature catalog, mutation context type, fitting settings, and cutoffs.",
         ],
       });
-      workflowState.analysis = analysis;
+      workflowState.analysis = reviewedAnalysis;
       workflowState.bootstrap = bootstrap;
+      workflowState.adaptiveReviewDefaults = reviewParameterSnapshot(computeAdaptiveReviewDefaults());
       workflowState.interoperability = interoperability;
       workflowState.provenance = provenance;
-      workflowState.exposureEngineResult = analysis.exposureEngineResult || engineResult;
+      workflowState.exposureEngineResult = reviewedAnalysis.exposureEngineResult || engineResult;
       workflowState.runtimeMs = performance.now() - started;
       document.dispatchEvent(new CustomEvent("msig:endToEndRun"));
-      return analysis;
+      return reviewedAnalysis;
     }
 
 	    display(metrics([
 	      { label: "SDK", value: mSigSDK.version, note: "Imported from ../main.js" },
 	      { label: "Mutation context type", value: "Selected by data", note: "Defaults to TCGA WES Lung-AdenoCa SBS96" },
-	      { label: "Fitting method", value: "Selectable", note: "Built-in mSigSDK, SigProfilerAssignment, MuSiCal, or comparison fit" },
+	      { label: "Fitting method", value: "Selectable", note: "Built-in mSigSDK, SigProfilerAssignment, SigProfilerExtractor, MuSiCal, deconstructSigs, or sigminer" },
 	      { label: "Status", value: "Waiting for data", note: "Use the next cell" },
 	    ]));
-	    display(workflowOutputGuide(
+	    display(collapsibleOutput("Concept map", workflowOutputGuide(
 	      "Concept map",
 	      "Signature fitting is a recipe problem. Start with an observed mutation pattern, choose possible reference ingredients, let a fitting method guess the mixture, and then check whether that mixture recreates the observed pattern well enough to report cautiously.",
 	      [
@@ -903,18 +1665,18 @@
 	        { term: "Reference signature", meaning: "A known mutation pattern that might explain part of a sample. In the analogy, this is a possible ingredient." },
 	        { term: "Signature contribution", meaning: "The fitted amount of each reference signature in a sample. In the analogy, this is the guessed recipe." },
 	        { term: "Reconstruction", meaning: "The pattern created by mixing reference signatures using the guessed recipe. It is compared back to the original sample." },
-	        { term: "Review cue", meaning: "A conservative flag that says to inspect a result more carefully. It is not a final biological claim." },
+	        { term: "Review cue", meaning: "A flag that says to inspect a result more carefully." },
 	      ]
-	    ));
+	    )));
   </script>
 
-	  <script type="text/markdown">
-	    ## Step 1. Load or replace data
+<script type="text/markdown">
+## Step 1. Load or replace data
 
-	    Use **Load selected public dataset** to retrieve real public mutation-pattern tables and a compatible reference signature catalog through the mSigPortal APIs. The default is TCGA WES Lung-AdenoCa SBS96 with a small sample cap for responsive browser execution; change the menu to load another public study, cancer type, sequencing strategy, mutation-pattern type, table size, or signature catalog.
+Use **Load selected public dataset** to retrieve real public mutation-pattern tables and a compatible reference signature catalog through the mSigPortal APIs. The default is TCGA WES Lung-AdenoCa SBS96 with a small sample cap for responsive browser execution; change the menu to load another public study, cancer type, sequencing strategy, mutation-pattern type, table size, or signature catalog.
 
-	    Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 12 } }` or a SigProfiler-style TSV table. Each row or object records how many mutations of each type were seen in each sample. Your signatures can be a JSON object keyed by signature name or a COSMIC-style TSV table. Sample details are optional CSV, TSV, or JSON, but if supplied they should include a `sample` column that matches the spectra sample names.
-  </script>
+Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 12 } }` or a SigProfiler-style TSV table. Each row or object records how many mutations of each type were seen in each sample. Your signatures can be a JSON object keyed by signature name or a COSMIC-style TSV table. Sample details are optional CSV, TSV, or JSON, but if supplied they should include a `sample` column that matches the spectra sample names.
+</script>
 
   <script type="module" pinned id="2">
     const inputPanel = document.createElement("div");
@@ -973,6 +1735,19 @@
       return node;
     }
 
+    function loadingPlaceholder(text) {
+      const node = placeholder(text);
+      node.classList.add("loading");
+      node.setAttribute("role", "status");
+      return node;
+    }
+
+    function waitForWorkflowPaint() {
+      return new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      });
+    }
+
     function optionNode(label, value = label) {
       const option = document.createElement("option");
       option.value = String(value);
@@ -996,7 +1771,7 @@
     const maxSamplesInput = document.createElement("input");
     maxSamplesInput.type = "number";
     maxSamplesInput.min = "1";
-    maxSamplesInput.max = "50";
+    maxSamplesInput.max = "500";
     maxSamplesInput.step = "1";
     maxSamplesInput.value = "8";
 
@@ -1053,6 +1828,24 @@
         offset += limit;
       }
       return rows;
+    }
+
+    async function mapPublicFetches(items, mapper, { concurrency = 12, onProgress = null } = {}) {
+      const results = new Array(items.length);
+      let nextIndex = 0;
+      let completed = 0;
+      const workerCount = Math.min(Math.max(1, concurrency), items.length);
+      await Promise.all(Array.from({ length: workerCount }, async () => {
+        while (nextIndex < items.length) {
+          const index = nextIndex;
+          nextIndex += 1;
+          results[index] = await mapper(items[index], index);
+          completed += 1;
+          if (onProgress) onProgress({ completed, total: items.length, item: items[index] });
+          await waitForWorkflowPaint();
+        }
+      }));
+      return results;
     }
 
     function uniqueSorted(values) {
@@ -1179,7 +1972,7 @@
       if (!publicOptionsState.loaded) await loadPublicMenus();
       const selectedSamples = publicSampleOptions().slice(
         0,
-        Math.max(1, Math.min(50, Math.round(parseNumber(maxSamplesInput.value, 8))))
+        Math.max(1, Math.min(500, Math.round(parseNumber(maxSamplesInput.value, 8))))
       );
       if (!selectedSamples.length) throw new Error("No public samples match the selected menu values.");
       const selection = {
@@ -1195,8 +1988,9 @@
         throw new Error("No compatible reference signature set is available for the selected profile and table size.");
       }
       inputSummary.replaceChildren(placeholder(`Fetching ${selection.sampleCount} public spectra and ${selection.signatureSetName} from the API...`));
-      const spectrumRowGroups = await Promise.all(
-        selectedSamples.map((sample) =>
+      const spectrumRowGroups = await mapPublicFetches(
+        selectedSamples,
+        (sample) =>
           fetchPublicApiRows("mutational_spectrum", {
             study: sample.study,
             sample: sample.sample,
@@ -1204,8 +1998,13 @@
             strategy: sample.strategy,
             profile: sample.profile,
             matrix: sample.matrix,
-          }, 100000)
-        )
+          }, 100000),
+        {
+          concurrency: 12,
+          onProgress: ({ completed, total }) => {
+            inputSummary.replaceChildren(placeholder(`Fetched ${completed}/${total} public spectra. Loading ${selection.signatureSetName} next...`));
+          },
+        }
       );
       const spectrumRows = spectrumRowGroups.flat();
       const signatureRows = await mSigSDK.mSigPortal.mSigPortalData.getMutationalSignaturesData(
@@ -1253,46 +2052,27 @@
         { label: "Sample detail rows", value: workflowState.metadata.length },
         { label: "Spectra table valid", value: validation.spectra.valid ? "Yes" : "Review" },
       ]));
-	      inputSummary.append(workflowOutputGuide(
-	        "What this input summary means",
-	        "This confirms what data are now active before any recipe guessing happens. A valid spectra table means the selected mutation channels are present, counts are finite numbers, and the object is shaped correctly for the SDK.",
-	        [
-	          { output: "Samples", meaning: "Number of tumors or spectra that will be fitted." },
-	          { output: "Signatures", meaning: "Number of possible reference ingredients available to explain each sample." },
-	          { output: "Contexts", meaning: "Mutation channels in the selected pattern table, such as 96 channels for SBS96." },
-	          { output: "Spectra table valid", meaning: "Yes means the table passed structural checks. Review means fix the input before trusting downstream fitting." },
-	        ]
-	      ));
-      inputSummary.append(table([
-        { field: "Data source", value: workflowState.source || "user supplied" },
-        { field: "Selected public study", value: workflowState.publicSelection ? `${workflowState.publicSelection.study} ${workflowState.publicSelection.cancer}` : "not public API data" },
-        { field: "Profile and table size", value: workflowState.publicSelection ? `${workflowState.publicSelection.profile}${workflowState.publicSelection.matrix}` : `${workflowState.contexts.length} contexts` },
-        { field: "Signature catalog", value: workflowState.publicSelection?.signatureSetName || "user supplied" },
-      ], null, {
-        title: "Active data source",
-        caption: "Records where the current data came from and which public dataset or user-supplied tables will be analyzed.",
-      }));
-      inputSummary.append(note("Read the source table as the run record: it records whether this run came from mSigPortal public APIs or pasted/uploaded local data.", "info"));
-	      inputSummary.append(table([
-	        { check: "Spectra issues", value: validation.spectra.issues.length },
-        { check: "Signature issues", value: validation.signatures.issues.length },
-        { check: "Low mutation-count samples", value: validation.burden.overall.lowBurdenSampleCount },
-        { check: "Context coverage complete", value: validation.contextCoverage.complete ? "Yes" : "Review" },
-	      ], null, {
-	        title: "Input check counts",
-	        caption: "Summarizes structural input checks before fitting. Any nonzero issue count should be resolved or explained before interpreting the fitted recipe.",
-	      }));
-	      inputSummary.append(workflowOutputGuide(
-	        "Input checks",
-	        "These checks decide whether the loaded sample patterns and reference signatures can be compared. They do not prove that the fitted biology is correct; they only confirm the inputs are coherent enough to analyze.",
-	        [
-	          { check: "Spectra issues", meaning: "Structural problems in the sample-by-context table." },
-	          { check: "Signature issues", meaning: "Structural problems in the reference signature catalog." },
-          { check: "Low mutation-count samples", meaning: "Samples below the configured mutation-count cutoff; these often require caveats." },
-          { check: "Context coverage complete", meaning: "Whether every expected context appears in the table." },
-        ]
-      ));
-      inputSummary.append(details("Current spectra object", workflowState.spectra));
+      inputSummary.append(collapsibleOutput("Input details and checks", [
+        table([
+          { field: "Data source", value: workflowState.source || "user supplied" },
+          { field: "Selected public study", value: workflowState.publicSelection ? `${workflowState.publicSelection.study} ${workflowState.publicSelection.cancer}` : "not public API data" },
+          { field: "Profile and table size", value: workflowState.publicSelection ? `${workflowState.publicSelection.profile}${workflowState.publicSelection.matrix}` : `${workflowState.contexts.length} contexts` },
+          { field: "Signature catalog", value: workflowState.publicSelection?.signatureSetName || "user supplied" },
+        ], null, {
+          title: "Active data source",
+          caption: false,
+        }),
+        table([
+          { check: "Spectra issues", value: validation.spectra.issues.length },
+          { check: "Signature issues", value: validation.signatures.issues.length },
+          { check: "Low mutation-count samples", value: validation.burden.overall.lowBurdenSampleCount },
+          { check: "Context coverage complete", value: validation.contextCoverage.complete ? "Yes" : "Review" },
+        ], null, {
+          title: "Input check counts",
+          caption: false,
+        }),
+        details("Current spectra object", workflowState.spectra),
+      ]));
     }
 
     for (const select of [studySelect, cancerSelect, strategySelect, profileSelect, matrixSelect, signatureSetSelect]) {
@@ -1357,6 +2137,9 @@
       };
       workflowState.bootstrap = null;
       workflowState.bootstrapBySample = {};
+      workflowState.bootstrapNeedsRerun = false;
+      workflowState.reviewParameterDraft = reviewParameterSnapshot();
+      workflowState.adaptiveReviewDefaults = reviewParameterSnapshot();
       inputSummary.replaceChildren(placeholder("Inputs cleared."));
       document.dispatchEvent(new CustomEvent("msig:endToEndInputs"));
     });
@@ -1387,11 +2170,11 @@
     loadPublicMenus();
   </script>
 
-	  <script type="text/markdown">
-	    ## Step 2. Choose settings and run
+<script type="text/markdown">
+## Step 2. Choose settings and run
 
-	    These controls update the real analysis. Check the input first, then choose which method should guess the signature recipe. You can use mSigSDK's built-in fit, or you can choose established packages such as SigProfilerAssignment and MuSiCal when the browser Python setup is available. Keep uncertainty iterations small while exploring, then increase them for final review when using the mSigSDK quick fit.
-  </script>
+These controls choose the fitting engine and package settings. Check the input first, then choose which method should guess the signature recipe. You can use mSigSDK's built-in fit, package adapters such as SigProfilerAssignment and MuSiCal where Pyodide is available, exact deconstructSigs and sigminer package runs where WebR package builds are available, or mSigSDK de novo extraction with exact SigProfilerExtractor handoff files.
+</script>
 
   <script type="module" pinned id="3">
     const runPanel = document.createElement("div");
@@ -1433,6 +2216,46 @@
       runFeedbackDetails.hidden = !details;
     }
 
+    function primaryReviewWarnings(analysis) {
+      return analysis?.fitQualityEvidence?.warnings || [];
+    }
+
+    function sampleActiveCaveatCount(sample) {
+      const evidence = sample?.componentEvidence || {};
+      let count = 0;
+      if (["low", "insufficient"].includes(evidence.burden?.burdenClass)) count += 1;
+      if (
+        evidence.catalog?.fitReviewStatus === "review" ||
+        evidence.catalog?.fitReviewStatus === "limited_by_low_burden"
+      ) count += 1;
+      if (
+        evidence.bootstrap?.reviewSeverity === "concern" ||
+        evidence.bootstrap?.reviewSeverity === "caution" ||
+        (evidence.bootstrap?.warningCodes || []).length
+      ) count += 1;
+      if (
+        evidence.threshold?.reviewSeverity === "concern" ||
+        evidence.threshold?.reviewSeverity === "caution" ||
+        (evidence.threshold?.warningCodes || []).length
+      ) count += 1;
+      if (
+        evidence.ambiguity?.sampleAmbiguityStatus === "strong_active_confusable_pair" ||
+        evidence.ambiguity?.sampleAmbiguityStatus === "active_confusable_pair"
+      ) count += 1;
+      return count;
+    }
+
+    function activeCaveatTotal(analysis) {
+      return (analysis?.fitQualityEvidence?.samples || []).reduce(
+        (total, sample) => total + sampleActiveCaveatCount(sample),
+        0
+      );
+    }
+
+    function primaryReviewActions(analysis) {
+      return analysis?.fitQualityEvidence?.recommendedActions || [];
+    }
+
     function markWorkflowUpdated(element) {
       if (!element) return;
       element.classList.remove("workflow-updated");
@@ -1452,7 +2275,7 @@
       [
 	        {
 	          title: "Choose the fitting method",
-	          body: "Select which method guesses the signature recipe: the built-in mSigSDK fit, SigProfilerAssignment, MuSiCal, or a browser comparison fit that uses MuSiCal-style inputs and outputs.",
+	          body: "Select which method guesses the signature recipe: the built-in mSigSDK fit, SigProfilerAssignment, mSigSDK de novo extraction, MuSiCal, deconstructSigs, or sigminer.",
 	        },
 	        {
 	          title: "Check the input tables",
@@ -1471,8 +2294,8 @@
 	          body: "Looks for reference signatures that are similar, broad, or hard to separate, then marks samples where the fitted mixture should be inspected more carefully.",
 	        },
 	        {
-	          title: "Estimate uncertainty for one sample",
-	          body: "Repeats the fit on resampled data for the selected sample so users can see whether the guessed recipe is stable or wobbly.",
+	          title: "Estimate uncertainty for all fitted samples",
+	          body: "Repeats the fit on resampled data for each fitted sample so users can see how stable the fitted signature contributions are.",
 	        },
 	        {
 	          title: "Prepare review and export outputs",
@@ -1502,20 +2325,244 @@
       return input;
     }
 
-    const exposureThresholdInput = numberInput(workflowState.parameters.exposureThreshold, 0.005);
-    const lowBurdenInput = numberInput(workflowState.parameters.lowBurdenThreshold, 10);
-    const moderateBurdenInput = numberInput(workflowState.parameters.moderateBurdenThreshold, 50);
-    const thresholdGridInput = document.createElement("input");
-    thresholdGridInput.value = workflowState.parameters.thresholdGrid.join(", ");
-    const bootstrapInput = numberInput(workflowState.parameters.bootstrapIterations, 10);
-    const groupKeyInput = document.createElement("input");
-    groupKeyInput.value = workflowState.parameters.groupKey;
-    const sampleSelect = document.createElement("select");
+	    const workflowParameterControls = new Map();
+	    const PARAMETER_DEFINITIONS = Object.freeze({
+	      exposureThreshold: {
+	        label: "Minimum signature contribution (0-1)",
+	        help: "Ignore fitted ingredients below this relative amount when summarizing the recipe.",
+	        type: "number",
+	        step: 0.005,
+	        fallback: 0.01,
+	        parse: (value) => parseNumber(value, 0.01),
+	      },
+	      lowBurdenThreshold: {
+	        label: "Low mutation-count cutoff",
+	        help: "Samples below this mutation count are flagged as low-burden fits.",
+	        type: "number",
+	        step: 10,
+	        fallback: 100,
+	        parse: (value) => parseNumber(value, 100),
+	      },
+	      moderateBurdenThreshold: {
+	        label: "Moderate mutation-count cutoff",
+	        help: "Samples below this count are treated as moderate-burden fits.",
+	        type: "number",
+	        step: 50,
+	        fallback: 1000,
+	        parse: (value) => parseNumber(value, 1000),
+	      },
+	      thresholdGrid: {
+	        label: "Contribution cutoffs to test (0-1)",
+	        help: "Comma-separated contribution cutoffs used to recheck reconstruction after small fitted contributions are removed.",
+	        type: "text",
+	        parse: parseThresholdGrid,
+	        format: (value) => (Array.isArray(value) ? value.join(", ") : String(value || "")),
+	      },
+	      bootstrapIterations: {
+	        label: "Uncertainty iterations",
+	        help: "Repeat-fit count for bootstrap intervals. Changing this marks existing intervals for rerun.",
+	        type: "number",
+	        step: 10,
+	        fallback: 100,
+	        parse: (value) => Math.max(1, Math.round(parseNumber(value, 100))),
+	      },
+	      activeSignaturePercent: {
+	        label: "Active signature cutoff (%)",
+	        help: "Signatures at or above this contribution are included in bootstrap CI summaries and nearest-neighbor cosine checks.",
+	        type: "number",
+	        step: 1,
+	        fallback: 5,
+	        parse: (value) => parseNumber(value, 5),
+	      },
+	      residualUnexplainedCheckPercent: {
+	        label: "Residual check (%)",
+	        help: "Unexplained residual fraction that starts a residual caveat when the reconstruction rule is met.",
+	        type: "number",
+	        step: 1,
+	        fallback: 20,
+	        parse: (value) => parseNumber(value, 20),
+	      },
+	      residualUnexplainedPriorityPercent: {
+	        label: "Residual priority (%)",
+	        help: "Unexplained residual fraction that raises the residual caveat to priority review.",
+	        type: "number",
+	        step: 1,
+	        fallback: 30,
+	        parse: (value) => parseNumber(value, 30),
+	      },
+	      bootstrapCiCheckPercent: {
+	        label: "Bootstrap CI check (pp)",
+	        help: "Optional. Enter the bootstrap CI threshold in percentage points. Leave blank to keep bootstrap CI as a blue measured value.",
+	        type: "number",
+	        step: 1,
+	        placeholder: "off",
+	        parse: (value) => String(value ?? "").trim(),
+	      },
+	      bootstrapCiPriorityPercent: {
+	        label: "Bootstrap CI priority (pp)",
+	        help: "Optional. Enter the priority CI threshold in percentage points. Leave blank to keep bootstrap CI as a blue measured value.",
+	        type: "number",
+	        step: 1,
+	        placeholder: "off",
+	        parse: (value) => String(value ?? "").trim(),
+	      },
+	      cutoffCosineDropCheck: {
+	        label: "Cutoff cosine-drop check (0-1)",
+	        help: "Optional. Enter a reconstruction cosine-drop threshold to mark cutoff sensitivity as a check. Leave blank to keep it as a blue measured value.",
+	        type: "number",
+	        step: 0.005,
+	        max: 1,
+	        placeholder: "off",
+	        parse: (value) => String(value ?? "").trim(),
+	      },
+	      cutoffCosineDropPriority: {
+	        label: "Cutoff cosine-drop priority (0-1)",
+	        help: "Optional. Enter a larger reconstruction cosine-drop threshold for priority review. Leave blank to keep it as a blue measured value.",
+	        type: "number",
+	        step: 0.005,
+	        max: 1,
+	        placeholder: "off",
+	        parse: (value) => String(value ?? "").trim(),
+	      },
+	      nnCosineCheck: {
+	        label: "NN cosine sim check (0-1)",
+	        help: "Nearest-neighbor signature cosine similarity that starts a fitted-signature confusion caveat.",
+	        type: "number",
+	        step: 0.01,
+	        max: 1,
+	        fallback: 0.9,
+	        parse: (value) => parseNumber(value, 0.9),
+	      },
+	      nnCosinePriority: {
+	        label: "NN cosine sim priority (0-1)",
+	        help: "Nearest-neighbor signature cosine similarity that raises the confusion caveat to priority review.",
+	        type: "number",
+	        step: 0.01,
+	        max: 1,
+	        fallback: 0.95,
+	        parse: (value) => parseNumber(value, 0.95),
+	      },
+	      groupKey: {
+	        label: "Sample group column",
+	        help: "Metadata column used for optional group comparisons when sample details include groups.",
+	        type: "text",
+	        parse: (value) => String(value || "").trim() || "group",
+	      },
+	    });
+
+	    function workflowParameterTargetObject(target = "parameters") {
+	      return target === "reviewDraft"
+	        ? ensureReviewParameterDraft()
+	        : workflowState.parameters;
+	    }
+
+	    function formatWorkflowParameter(key, target = "parameters") {
+	      const definition = PARAMETER_DEFINITIONS[key] || {};
+	      const value = workflowParameterTargetObject(target)[key];
+	      if (definition.format) return definition.format(value);
+	      if (value === undefined || value === null) return "";
+	      return String(value);
+	    }
+
+	    function workflowParameterEquals(left, right) {
+	      return JSON.stringify(left) === JSON.stringify(right);
+	    }
+
+	    function workflowParameterControlId(key, target = "parameters") {
+	      return `${target}:${key}`;
+	    }
+
+	    function registerWorkflowParameterControl(key, input, target = "parameters") {
+	      input.dataset.workflowParameterKey = key;
+	      input.dataset.workflowParameterTarget = target;
+	      const controlId = workflowParameterControlId(key, target);
+	      const controls = workflowParameterControls.get(controlId) || new Set();
+	      controls.add(input);
+	      workflowParameterControls.set(controlId, controls);
+	    }
+
+	    function syncWorkflowParameterControls(key, source = null, target = "parameters") {
+	      const keys = key ? [key] : Object.keys(PARAMETER_DEFINITIONS);
+	      for (const currentKey of keys) {
+	        const controls = workflowParameterControls.get(workflowParameterControlId(currentKey, target));
+	        if (!controls) continue;
+	        const value = formatWorkflowParameter(currentKey, target);
+	        for (const input of [...controls]) {
+	          if (!input.isConnected) {
+	            controls.delete(input);
+	            continue;
+	          }
+	          if (input !== source) {
+	            input.value = value;
+	          }
+	        }
+	      }
+	    }
+
+	    function setWorkflowParameterFromInput(key, input, { trigger = true, source = input, target = "parameters" } = {}) {
+	      const definition = PARAMETER_DEFINITIONS[key];
+	      if (!definition) return;
+	      const nextValue = definition.parse
+	        ? definition.parse(input.value)
+	        : input.value;
+	      const targetObject = workflowParameterTargetObject(target);
+	      if (workflowParameterEquals(targetObject[key], nextValue)) return;
+	      targetObject[key] = nextValue;
+	      syncWorkflowParameterControls(key, source, target);
+	      if (target === "reviewDraft") {
+	        document.dispatchEvent(new CustomEvent("msig:endToEndReviewDraftChange"));
+	        return;
+	      }
+	      if (trigger) refreshAfterParameterChange(key);
+	    }
+
+	    function syncParametersFromControls({ target = "parameters" } = {}) {
+	      for (const [key, controls] of workflowParameterControls.entries()) {
+	        if (!key.startsWith(`${target}:`)) continue;
+	        const parameterKey = key.slice(target.length + 1);
+	        const input = [...controls].find((candidate) => candidate.isConnected);
+	        if (input) setWorkflowParameterFromInput(parameterKey, input, { trigger: false, source: input, target });
+	      }
+	    }
+
+	    function refreshAfterParameterChange(key) {
+	      document.dispatchEvent(new CustomEvent("msig:endToEndParameterChange", {
+	        detail: { key },
+	      }));
+	    }
+
+	    function parameterControl(key, overrides = {}) {
+	      const definition = PARAMETER_DEFINITIONS[key];
+	      if (!definition) {
+	        throw new Error(`Unknown workflow parameter: ${key}`);
+	      }
+	      const target = overrides.target || "parameters";
+	      const input = document.createElement("input");
+	      input.type = definition.type || "text";
+	      input.value = formatWorkflowParameter(key, target);
+	      if (definition.step !== undefined) input.step = String(definition.step);
+	      if (definition.min !== undefined) input.min = String(definition.min);
+	      if (definition.max !== undefined) input.max = String(definition.max);
+	      if (definition.placeholder) input.placeholder = definition.placeholder;
+	      registerWorkflowParameterControl(key, input, target);
+	      const autoRefresh = overrides.autoRefresh !== false;
+	      const update = () => setWorkflowParameterFromInput(key, input, { trigger: autoRefresh, source: input, target });
+	      input.addEventListener("input", update);
+	      input.addEventListener("change", update);
+	      return field(
+	        overrides.label || definition.label,
+	        input,
+	        overrides.help || definition.help || ""
+	      );
+	    }
+
     const engineSelect = document.createElement("select");
     engineSelect.replaceChildren(...Object.entries(FIT_ENGINE_DEFINITIONS).map(([value, engine]) => optionNode(engine.label, value)));
     engineSelect.value = workflowState.parameters.fitEngine;
     const spaPackageInput = document.createElement("input");
     spaPackageInput.value = workflowState.parameters.sigProfilerAssignmentPackage;
+    const spePackageInput = document.createElement("input");
+    spePackageInput.value = workflowState.parameters.sigProfilerExtractorPackage;
     const spaGenomeInput = document.createElement("input");
     spaGenomeInput.value = workflowState.parameters.sigProfilerGenomeBuild;
     const spaCosmicInput = numberInput(workflowState.parameters.sigProfilerCosmicVersion, 0.1);
@@ -1523,12 +2570,26 @@
     spaExomeInput.type = "checkbox";
     spaExomeInput.checked = workflowState.parameters.sigProfilerExome;
     const pyodideTimeoutInput = numberInput(workflowState.parameters.pyodideTimeoutMs, 30000);
+    const webRTimeoutInput = numberInput(workflowState.parameters.webrTimeoutMs, 30000);
+    const webRModuleInput = document.createElement("input");
+    webRModuleInput.value = workflowState.parameters.webrModuleUrl;
+    const webRRepositoryInput = document.createElement("input");
+    webRRepositoryInput.value = workflowState.parameters.webrRepositoryUrl;
+    const webRBinaryVersionInput = document.createElement("input");
+    webRBinaryVersionInput.value = workflowState.parameters.webrBinaryRVersion;
     const musicalPackageInput = document.createElement("textarea");
     musicalPackageInput.placeholder = "Optional wheel URL/package spec, one per line. Leave blank only if MuSiCal is preloaded in the worker.";
     musicalPackageInput.value = workflowState.parameters.musicalPackage;
     const musicalMethodInput = document.createElement("input");
     musicalMethodInput.value = workflowState.parameters.musicalMethod;
     const musicalThresholdInput = numberInput(workflowState.parameters.musicalThreshold, 0.001);
+    const sigminerMethodInput = document.createElement("select");
+    sigminerMethodInput.replaceChildren(
+      optionNode("NNLS", "NNLS"),
+      optionNode("QP", "QP"),
+      optionNode("SA", "SA")
+    );
+    sigminerMethodInput.value = workflowState.parameters.sigminerMethod;
     const engineSummary = document.createElement("div");
     engineSummary.className = "workflow-output-stack";
 
@@ -1537,69 +2598,93 @@
 	      engineSelect,
 	      "Choose which method guesses the signature recipe. mSigSDK still checks inputs, makes plots, builds reports, and prepares exports around the selected method."
 	    );
+	    const exposureThresholdField = parameterControl("exposureThreshold", { autoRefresh: false });
+	    const groupKeyField = parameterControl("groupKey", { autoRefresh: false });
     const spaPackageField = field(
       "SigProfilerAssignment package name",
       spaPackageInput,
       "Package name or wheel URL used by browser Python. Default: SigProfilerAssignment==1.1.3."
     );
+    const spePackageField = field(
+      "SigProfilerExtractor package name",
+      spePackageInput,
+      "Used only when requesting an exact non-browser package run from the SDK."
+    );
     const spaGenomeField = field("SigProfiler genome build", spaGenomeInput);
     const spaCosmicField = field("COSMIC version", spaCosmicInput);
     const spaExomeField = field("SigProfiler exome/WES mode", spaExomeInput, "Check this for exome/WES-style SigProfilerAssignment settings.");
     const pyodideTimeoutField = field("Browser Python time limit (ms)", pyodideTimeoutInput);
+    const webRTimeoutField = field("Browser R time limit (ms)", webRTimeoutInput);
+    const webRModuleField = field(
+      "WebR module URL",
+      webRModuleInput,
+      "Use a WebR module version compatible with the selected R binary package repository."
+    );
+    const webRRepositoryField = field(
+      "WebR package repository",
+      webRRepositoryInput,
+      "Exact R-package execution installs packages from this WebAssembly package repository."
+    );
+    const webRBinaryVersionField = field(
+      "WebR R binary version",
+      webRBinaryVersionInput,
+      "Package availability depends on the WebR/R version used by the repository."
+    );
     const musicalPackageField = field(
       "MuSiCal package name or wheel URL",
       musicalPackageInput,
-      "Running the official MuSiCal package requires a Pyodide-compatible package or wheel. The browser comparison fit does not need this."
+      "Running the official MuSiCal package requires a Pyodide-compatible package or wheel."
     );
-    const musicalMethodField = field("MuSiCal method", musicalMethodInput);
-    const musicalThresholdField = field("MuSiCal-style minimum contribution", musicalThresholdInput);
+	    const musicalMethodField = field("MuSiCal method", musicalMethodInput);
+	    const musicalThresholdField = field("MuSiCal minimum contribution (0-1)", musicalThresholdInput);
+    const sigminerMethodField = field(
+      "sigminer method",
+      sigminerMethodInput,
+      "The selected sigminer method controls which WebR solver package is required."
+    );
 
-    function refreshSamples() {
-      const samples = Object.keys(workflowState.spectra || {});
-      sampleSelect.replaceChildren(...samples.map((sample) => {
-        const option = document.createElement("option");
-        option.value = sample;
-        option.textContent = sample;
-        return option;
-      }));
-      if (workflowState.selectedSample && samples.includes(workflowState.selectedSample)) {
-        sampleSelect.value = workflowState.selectedSample;
-      }
-    }
-
-    function readParameters() {
+	    function readParameters() {
+	      syncParametersFromControls();
       workflowState.parameters.fitEngine = engineSelect.value;
-      workflowState.parameters.exposureThreshold = parseNumber(exposureThresholdInput.value, 0.01);
-      workflowState.parameters.lowBurdenThreshold = parseNumber(lowBurdenInput.value, 100);
-      workflowState.parameters.moderateBurdenThreshold = parseNumber(moderateBurdenInput.value, 1000);
-      workflowState.parameters.thresholdGrid = parseThresholdGrid(thresholdGridInput.value);
-      workflowState.parameters.bootstrapIterations = parseNumber(bootstrapInput.value, 100);
-      workflowState.parameters.groupKey = groupKeyInput.value.trim() || "group";
-      workflowState.selectedSample = sampleSelect.value || workflowState.selectedSample;
       workflowState.parameters.sigProfilerAssignmentPackage = spaPackageInput.value.trim() || "SigProfilerAssignment==1.1.3";
+      workflowState.parameters.sigProfilerExtractorPackage = spePackageInput.value.trim() || "SigProfilerExtractor==1.2.6";
       workflowState.parameters.sigProfilerGenomeBuild = spaGenomeInput.value.trim() || "GRCh37";
       workflowState.parameters.sigProfilerCosmicVersion = parseNumber(spaCosmicInput.value, 3.5);
       workflowState.parameters.sigProfilerExome = Boolean(spaExomeInput.checked);
       workflowState.parameters.pyodideTimeoutMs = parseNumber(pyodideTimeoutInput.value, 300000);
+      workflowState.parameters.webrTimeoutMs = parseNumber(webRTimeoutInput.value, 300000);
+      workflowState.parameters.webrModuleUrl = webRModuleInput.value.trim() || "https://webr.r-wasm.org/latest/webr.mjs";
+      workflowState.parameters.webrRepositoryUrl = webRRepositoryInput.value.trim() || "https://repo.r-wasm.org";
+      workflowState.parameters.webrBinaryRVersion = webRBinaryVersionInput.value.trim() || "4.5";
       workflowState.parameters.musicalPackage = musicalPackageInput.value.trim();
       workflowState.parameters.musicalMethod = musicalMethodInput.value.trim() || "likelihood_bidirectional";
       workflowState.parameters.musicalThreshold = parseNumber(musicalThresholdInput.value, 0.001);
+      workflowState.parameters.sigminerMethod = sigminerMethodInput.value || "NNLS";
     }
 
     function renderEngineSummary() {
       readParameters();
       const engine = currentFitEngine();
       const isSpa = workflowState.parameters.fitEngine === "sigprofilerassignment_pyodide";
+      const isSpe = workflowState.parameters.fitEngine === "sigprofilerextractor_pyodide";
       const isMusical = workflowState.parameters.fitEngine === "musical_pyodide";
-      const isPyodide = workflowState.parameters.fitEngine.includes("pyodide");
+      const isPyodide = engine.runtime.includes("Pyodide");
+      const isWebR = engine.runtime.includes("WebR");
+      const isSigminerWebR = workflowState.parameters.fitEngine === "sigminer_webr";
       spaPackageField.hidden = !isSpa;
-      spaGenomeField.hidden = !isSpa;
+      spePackageField.hidden = true;
+      spaGenomeField.hidden = !isSpa && !isSpe;
       spaCosmicField.hidden = !isSpa;
       spaExomeField.hidden = !isSpa;
       pyodideTimeoutField.hidden = !isPyodide;
+      webRTimeoutField.hidden = !isWebR;
+      webRModuleField.hidden = !isWebR;
+      webRRepositoryField.hidden = !isWebR;
+      webRBinaryVersionField.hidden = !isWebR;
       musicalPackageField.hidden = !isMusical;
       musicalMethodField.hidden = !isMusical;
-      musicalThresholdField.hidden = !isMusical && workflowState.parameters.fitEngine !== "musical_sparse_nnls";
+      musicalThresholdField.hidden = !isMusical;
+      sigminerMethodField.hidden = !isSigminerWebR;
       engineSummary.replaceChildren(workflowOutputGuide(
         "Selected fitting method",
         engine.description,
@@ -1608,7 +2693,8 @@
 	          { field: "Where it runs", value: engine.runtime },
 	          { field: "Reusable SDK command", value: engine.command },
 	          { field: "Who guesses the signature recipe", value: engine.exposureSource },
-	          { field: "Uncertainty intervals", value: engine.supportsBootstrap ? "available here" : "use that package's uncertainty workflow or switch to mSigSDK quick fit" },
+	          { field: "Uncertainty intervals", value: engine.uncertaintyBasis },
+	          { field: "Cutoff sensitivity", value: engine.cutoffSensitivityBasis },
         ]
       ));
       if (isPyodide) {
@@ -1616,6 +2702,13 @@
           "Browser Python check",
           "Pyodide runs Python packages inside the browser. Package installation and memory limits depend on the browser, so this table is shown before launching an external package.",
           pyodideRuntimeRows()
+        ));
+      }
+      if (isWebR) {
+        engineSummary.append(workflowOutputGuide(
+          "Browser R check",
+          "WebR runs compatible R package builds inside the browser. Exact deconstructSigs and sigminer package runs check package availability before installing or running anything.",
+          webRRuntimeRows()
         ));
       }
     }
@@ -1657,24 +2750,16 @@
         { label: "Low mutation-count samples", value: validation.burden.overall.lowBurdenSampleCount },
         { label: "Low-count cutoff", value: workflowState.parameters.lowBurdenThreshold },
       ]));
-      runOutput.append(workflowOutputGuide(
-        "How to read the input check",
-        "This check answers whether the current tables are suitable for fitting. If spectra or signatures show Review, fix that before interpreting any signature recipe estimates.",
-        [
-          { output: "Spectra table valid", meaning: "The sample table has the expected context shape and numeric counts." },
-          { output: "Signature catalog valid", meaning: "The reference signatures have compatible contexts and numeric weights." },
-          { output: "Low mutation-count samples", meaning: "Samples below the mutation-count cutoff; their fitted recipe estimates are noisier." },
-          { output: "Low-count cutoff", meaning: "The mutation-count value currently used to raise low-count review cues." },
-        ]
-      ));
-      runOutput.append(table(burdenSampleRows(validation.burden), null, {
-        title: "Mutation-count review table",
-        caption: "Shows each sample's mutation count and whether it falls below the current low-count cutoff. Low-count samples usually need more cautious interpretation.",
-      }));
-      runOutput.append(note("In the mutation-count table, Low-count review cue = Yes means the sample can still be analyzed, but later signature recipe estimates should be read with more caution.", "warning"));
+      runOutput.append(collapsibleOutput("Input check details", [
+        table(burdenSampleRows(validation.burden), null, {
+          title: "Mutation-count review table",
+          caption: false,
+        }),
+      ]));
     });
 
     runButton.addEventListener("click", async () => {
+      commitReviewParameterDraftToParameters();
       readParameters();
       runButton.disabled = true;
       runButton.textContent = "Running...";
@@ -1685,55 +2770,57 @@
 	        "running",
 	        "Workflow running",
 	        `Running ${engine.label}.`,
-	        "The workflow is checking inputs, estimating the signature recipe, rebuilding each sample, and refreshing plots, tables, and export files."
+	        `The workflow is checking inputs, estimating the signature recipe for ${Object.keys(workflowState.spectra || {}).length || "all loaded"} sample(s), rebuilding each sample, and refreshing plots, tables, and export files.`
 	      );
-	      runOutput.replaceChildren(placeholder(`Running ${engine.label}: estimating the signature recipe, checking the reconstruction, and preparing review outputs.`));
-      try {
-        const analysis = await runWorkflow();
+	      runOutput.replaceChildren(loadingPlaceholder(`Running ${engine.label}: estimating the signature recipe for every loaded sample, checking the reconstruction, and preparing review outputs.`));
+      document.dispatchEvent(new CustomEvent("msig:endToEndStart", {
+        detail: { engine: engine.label },
+      }));
+      await waitForWorkflowPaint();
+	    try {
+	      const analysis = await runWorkflow();
+	      const reviewWarnings = primaryReviewWarnings(analysis);
+	      const reviewActions = primaryReviewActions(analysis);
+	      const caveatTotal = activeCaveatTotal(analysis);
         runOutput.dataset.state = "complete";
         const finishedAt = runTimestamp();
+        const loadedSampleCount = Object.keys(workflowState.spectra || {}).length;
+        const fittedSampleCount = Object.keys(analysis.fit?.exposures || {}).length;
+        const uncertaintySampleCount = Object.keys(workflowState.bootstrapBySample || {}).length;
         runOutput.replaceChildren();
         runOutput.append(note(`Results updated at ${finishedAt}. Review the plots, interpretation tables, and export bundle below.`));
         runOutput.append(metrics([
           { label: "Fitting method", value: analysis.exposureEngine?.shortLabel || currentFitEngine().shortLabel },
+          { label: "Samples loaded", value: loadedSampleCount },
+          { label: "Samples fitted", value: fittedSampleCount },
+          { label: "Uncertainty samples", value: uncertaintySampleCount },
           { label: "Run time", value: `${workflowState.runtimeMs.toFixed(1)} ms` },
-          { label: "Warnings", value: analysis.warnings.length },
-          { label: "Actions", value: analysis.recommendedActions.length },
+	          { label: "Active caveats", value: caveatTotal },
+          { label: "Review steps", value: reviewActions.length },
           { label: "Figures", value: analysis.publicationFigures.length },
         ]));
-	        runOutput.append(workflowOutputGuide(
-	          "Fitting method used",
-	          "This table separates the method that guessed the signature recipe from the mSigSDK layer that checks inputs, checks reconstruction quality, renders plots, prepares export files, and builds reports.",
-	          engineRows(analysis)
-	        ));
-	        runOutput.append(workflowOutputGuide(
-	          "What the run summary means",
-	          "The workflow summary tells you whether computation finished and how much review is needed. Warnings and suggested steps are expected with real public cohorts; they are prompts to inspect the recipe, not proof that the run failed.",
-          [
-            { output: "Run time", meaning: "Browser-local computation time after data are loaded." },
-            { output: "Warnings", meaning: "Count of review cautions emitted by the SDK." },
-            { output: "Actions", meaning: "Suggested next steps generated from those cautions." },
-            { output: "Figures", meaning: "Plot/report descriptors produced by the workflow." },
-          ]
-        ));
-        runOutput.append(fitQualityMethodGuide());
-        runOutput.append(fitQualityEvidenceTable(analysis.fitQualityEvidence, {
-          includeActiveSignatures: true,
-          maxRows: 12,
-	          title: "Review evidence after fitting",
-	          caption: "Shows the reporting mode and review cues assigned after the selected fitting method runs. Use this table before interpreting the fitted signature recipe.",
-	        }));
-        runOutput.append(workflowOutputGuide(
-          "Reference-signature similarity evidence",
-          "This table is computed from the selected signature catalog before interpreting any sample. COSMIC SBS96 includes similar and broad signatures, so this table explains which reference signatures can trigger sample-level similarity review cues when they are fitted as active.",
-          catalogAmbiguityTable(analysis)
-        ));
-        runOutput.append(note("Hover over reporting modes, warning cues, similarity cues, continuous scores, and catalog statuses for definitions. A sample can receive a similarity review cue even when reconstruction cosine is high because the cue is driven by similarities among active reference signatures, not by observed-vs-reconstructed sample similarity. Treat it as a reason to inspect whether similar signatures could be exchanged, not as a conclusion that the fitted contribution is wrong.", "warning"));
+        runOutput.append(collapsibleOutput("Run summary details", [
+          workflowOutputGuide(
+            "Fitting method used",
+            "The contribution table comes from the selected fitting method. mSigSDK adds checks, plots, exports, and reports around that table.",
+            engineRows(analysis)
+          ),
+          fitQualityEvidenceTable(analysis.fitQualityEvidence, {
+            includeActiveSignatures: true,
+            includeInterpretationEvidence: true,
+            maxRows: 12,
+            title: "Review diagnostics preview after fitting",
+            caption: false,
+          }),
+          catalogAmbiguityTable(analysis, 12, {
+            caption: false,
+          }),
+        ]));
         setRunFeedback(
           "success",
           "Results updated",
           `Finished ${analysis.exposureEngine?.shortLabel || currentFitEngine().shortLabel} at ${finishedAt}.`,
-          `${analysis.warnings.length} warning(s), ${analysis.recommendedActions.length} suggested review step(s), ${analysis.publicationFigures.length} figure descriptor(s).`
+	          `${caveatTotal} active caveat(s), ${reviewActions.length} suggested review step(s), ${analysis.publicationFigures.length} figure descriptor(s).`
         );
         markWorkflowUpdated(runOutput);
         runButton.textContent = "Results updated";
@@ -1764,39 +2851,55 @@
       }
     });
 
+    document.addEventListener("msig:endToEndProgress", (event) => {
+      const detail = event.detail || {};
+      setRunFeedback(
+        "running",
+        detail.title || "Workflow running",
+        detail.message || `Running ${currentFitEngine().label}.`,
+        detail.details || "The workflow is still working."
+      );
+    });
+
 	    parameterGrid.append(
 	      engineField,
-	      field("Minimum signature contribution", exposureThresholdInput, "Ignore fitted ingredients below this relative amount when summarizing the recipe."),
-	      field("Low mutation-count cutoff", lowBurdenInput, "Samples below this mutation count get extra caution because small samples are noisier."),
-	      field("Moderate mutation-count cutoff", moderateBurdenInput, "Samples below this count are still reviewed carefully, even if they are not extremely low."),
-	      field("Contribution cutoffs to test", thresholdGridInput, "Comma-separated relative cutoffs used to check whether small recipe changes alter the conclusions."),
-	      field("Uncertainty iterations", bootstrapInput, "Number of repeat fits used to see whether the selected sample's recipe is stable."),
-	      field("Sample group column", groupKeyInput, "Metadata column used for optional group comparisons when sample details include groups."),
-	      field("Sample for one-sample plots", sampleSelect, "Choose which sample appears in residual and uncertainty plots."),
+	      exposureThresholdField,
+	      groupKeyField,
       spaPackageField,
+      spePackageField,
       spaGenomeField,
       spaCosmicField,
       spaExomeField,
       musicalPackageField,
       musicalMethodField,
       musicalThresholdField,
-      pyodideTimeoutField
+      sigminerMethodField,
+      pyodideTimeoutField,
+      webRTimeoutField,
+      webRModuleField,
+      webRRepositoryField,
+      webRBinaryVersionField
     );
     runButtons.append(validateButton, runButton);
-    document.addEventListener("msig:endToEndInputs", refreshSamples);
     engineSelect.addEventListener("change", renderEngineSummary);
-    refreshSamples();
     renderEngineSummary();
     runOutput.append(placeholder("Load a public API dataset or apply your own data, check inputs, then run the workflow stages described above."));
-    runPanel.append(workflowRunGuide(), parameterGrid, engineSummary, runButtons, runFeedback, runOutput);
+		    runPanel.append(
+		      collapsibleOutput("Run guide", workflowRunGuide()),
+		      parameterGrid,
+		      engineSummary,
+		      runButtons,
+		      runFeedback,
+	      runOutput
+	    );
     display(runPanel);
   </script>
 
-	  <script type="text/markdown">
-	    ## Step 3. Inspect visual checks and interpretation tables
+<script type="text/markdown">
+## Step 3. Inspect visual checks and interpretation tables
 
-	    Read these before using the fitted signature recipe as evidence. The plots answer practical questions: did the sample have enough mutations to fit, did the guessed recipe recreate the observed pattern, what was left over, how stable was the recipe, and did small cutoff changes alter the result?
-  </script>
+Read these before using the fitted signature recipe as evidence. The plots answer practical questions: did the sample have enough mutations to fit, did the guessed recipe recreate the observed pattern, what was left over, how stable was the recipe, and did small cutoff changes alter the result? Review settings are study-specific diagnostics and refresh the cached analysis only after you apply them or rerun the workflow.
+</script>
 
   <script type="module" pinned id="4">
     const reviewPanel = document.createElement("div");
@@ -1806,10 +2909,317 @@
     plotGrid.className = "workflow-plot-grid";
     const tableStack = document.createElement("div");
     tableStack.className = "workflow-output-stack";
+	    const REVIEW_SUMMARY_PARAMETER_KEYS = [
+	      "lowBurdenThreshold",
+	      "moderateBurdenThreshold",
+	      "activeSignaturePercent",
+	      "residualUnexplainedCheckPercent",
+	      "residualUnexplainedPriorityPercent",
+	      "bootstrapCiCheckPercent",
+	      "bootstrapCiPriorityPercent",
+	      "cutoffCosineDropCheck",
+	      "cutoffCosineDropPriority",
+	      "nnCosineCheck",
+	      "nnCosinePriority",
+	    ];
+	    const MUTATION_COUNT_PARAMETER_KEYS = ["lowBurdenThreshold", "moderateBurdenThreshold"];
+	    const RESIDUAL_PARAMETER_KEYS = ["residualUnexplainedCheckPercent", "residualUnexplainedPriorityPercent"];
+	    const UNCERTAINTY_PARAMETER_KEYS = ["bootstrapCiCheckPercent", "bootstrapCiPriorityPercent", "activeSignaturePercent", "bootstrapIterations"];
+	    const CUTOFF_PARAMETER_KEYS = ["thresholdGrid", "cutoffCosineDropCheck", "cutoffCosineDropPriority"];
+	    const REVIEW_SUMMARY_PARAMETER_GROUPS = [
+	      {
+	        title: "Burden (mut)",
+	        description: "Plot value and thresholds use mutation counts.",
+	        keys: ["lowBurdenThreshold", "moderateBurdenThreshold"],
+	      },
+	      {
+	        title: "Residual (%)",
+	        description: "Plot value and thresholds use percent unexplained spectrum.",
+	        keys: ["residualUnexplainedCheckPercent", "residualUnexplainedPriorityPercent"],
+	      },
+	      {
+	        title: "Bootstrap CI (pp)",
+	        description: "Plot value is the largest confidence interval among reportable signatures, in percentage points.",
+	        keys: ["bootstrapCiCheckPercent", "bootstrapCiPriorityPercent"],
+	      },
+	      {
+	        title: "Cutoff cosine drop (0-1)",
+	        description: "Plot value is the biggest drop from the baseline reconstruction cosine across the configured cutoffs.",
+	        keys: ["cutoffCosineDropCheck", "cutoffCosineDropPriority"],
+	      },
+	      {
+	        title: "NN cosine sim (0-1)",
+	        description: "Plot value and thresholds use the highest cosine similarity between fitted active signatures.",
+	        keys: ["nnCosineCheck", "nnCosinePriority"],
+	      },
+	      {
+	        title: "Shared active-signature filter (%)",
+	        description: "Used by Bootstrap CI and NN cosine sim to decide which fitted signatures are reportable.",
+	        keys: ["activeSignaturePercent"],
+	      },
+	    ];
+	    const REVIEW_SUMMARY_CHIP_KEYS = [
+	      "lowBurdenThreshold",
+	      "residualUnexplainedCheckPercent",
+	      "bootstrapCiCheckPercent",
+	      "cutoffCosineDropCheck",
+	      "nnCosineCheck",
+	      "activeSignaturePercent",
+	    ];
+	    const PLOT_REFRESH_PARAMETER_KEYS = new Set([
+	      ...REVIEW_SUMMARY_PARAMETER_KEYS,
+	      ...MUTATION_COUNT_PARAMETER_KEYS,
+	      ...RESIDUAL_PARAMETER_KEYS,
+	      ...UNCERTAINTY_PARAMETER_KEYS,
+	      ...CUTOFF_PARAMETER_KEYS,
+	    ]);
+	    const BURDEN_REFRESH_PARAMETER_KEYS = new Set(["lowBurdenThreshold", "moderateBurdenThreshold"]);
 
     function sampleOptions() {
       return Object.keys(workflowState.spectra || {});
     }
+
+	    function reviewParameterChipLabel(key) {
+	      const labels = {
+	        lowBurdenThreshold: "Low burden",
+	        moderateBurdenThreshold: "Moderate burden",
+	        residualUnexplainedCheckPercent: "Residual check",
+	        residualUnexplainedPriorityPercent: "Residual priority",
+	        bootstrapCiCheckPercent: "Bootstrap max CI check",
+	        bootstrapCiPriorityPercent: "Bootstrap max CI priority",
+	        cutoffCosineDropCheck: "Cutoff max drop check",
+	        cutoffCosineDropPriority: "Cutoff max drop priority",
+	        nnCosineCheck: "NN cosine check",
+	        nnCosinePriority: "NN cosine priority",
+	        activeSignaturePercent: "Active signature",
+	        thresholdGrid: "Cutoffs",
+	        bootstrapIterations: "Iterations",
+	      };
+	      return labels[key] || PARAMETER_DEFINITIONS[key]?.label || key;
+	    }
+
+	    function reviewParameterChipValue(key, target = "parameters") {
+	      const value = formatWorkflowParameter(key, target);
+	      return value === "" ? "off" : value;
+	    }
+
+	    function reviewSettingChips(keys = [], target = "parameters") {
+	      const wrapper = document.createElement("div");
+	      wrapper.className = "workflow-review-setting-chips";
+	      keys.forEach((key) => {
+	        const chip = document.createElement("span");
+	        chip.className = "workflow-review-setting-chip";
+	        chip.textContent = `${reviewParameterChipLabel(key)}: ${reviewParameterChipValue(key, target)}`;
+	        wrapper.append(chip);
+	      });
+	      return wrapper;
+	    }
+
+	    function plotParameterGrid(keys = []) {
+	      const grid = document.createElement("div");
+	      grid.className = "workflow-control-grid compact workflow-plot-parameter-grid";
+	      keys.forEach((key) => {
+	        grid.append(parameterControl(key, { target: "reviewDraft", autoRefresh: false }));
+	      });
+	      return grid;
+	    }
+
+	    function plotParameterGroups(groups = []) {
+	      const wrapper = document.createElement("div");
+	      wrapper.className = "workflow-plot-parameter-groups";
+	      groups.forEach((group) => {
+	        const card = document.createElement("div");
+	        card.className = "workflow-plot-parameter-group";
+	        const title = document.createElement("h4");
+	        title.textContent = group.title;
+	        const description = document.createElement("p");
+	        description.textContent = group.description;
+	        const controls = document.createElement("div");
+	        controls.className = "workflow-control-grid compact workflow-plot-parameter-group-controls";
+	        group.keys.forEach((key) => {
+	          controls.append(parameterControl(key, { target: "reviewDraft", autoRefresh: false }));
+	        });
+	        card.append(title, description, controls);
+	        wrapper.append(card);
+	      });
+	      return wrapper;
+	    }
+
+	    function appendPlotParameters(section, options = {}) {
+	      if (options.parameterPanel) {
+	        section.append(options.parameterPanel);
+	        return;
+	      }
+	      if (Array.isArray(options.parameterGroups) && options.parameterGroups.length) {
+	        section.append(plotParameterGroups(options.parameterGroups));
+	        return;
+	      }
+	      if (Array.isArray(options.settingKeys) && options.settingKeys.length) {
+	        section.append(reviewSettingChips(options.settingKeys));
+	        return;
+	      }
+	      if (Array.isArray(options.parameterKeys) && options.parameterKeys.length) {
+	        section.append(plotParameterGrid(options.parameterKeys));
+	      }
+	    }
+
+	    function placeholderPlotSection(label, parameterKeys = [], message = "Run the workflow to see this plot.", parameterGroups = [], parameterPanel = null) {
+	      const section = document.createElement("section");
+	      section.className = "workflow-plot-section";
+	      const heading = document.createElement("h3");
+	      heading.textContent = label;
+	      section.append(heading);
+	      appendPlotParameters(section, { parameterKeys, parameterGroups, parameterPanel });
+	      section.append(placeholder(message));
+	      return section;
+	    }
+
+	    function reviewAppliedCaveatSummary() {
+	      const samples = workflowState.analysis?.fitQualityEvidence?.samples || [];
+	      if (!samples.length) return "Run the workflow to count active caveats under the applied settings.";
+	      const counts = samples.map((sample) => sample.reviewFlagCount ?? sample.reviewFlagCodes?.length ?? 0);
+	      const sampleCount = counts.filter((count) => count > 0).length;
+	      const total = counts.reduce((sum, count) => sum + count, 0);
+	      return `${sampleCount}/${samples.length} samples have active caveats under the applied settings; ${total} total caveat(s).`;
+	    }
+
+	    function citationLink(label, href) {
+	      const anchor = document.createElement("a");
+	      anchor.href = href;
+	      anchor.target = "_blank";
+	      anchor.rel = "noopener noreferrer";
+	      anchor.textContent = label;
+	      return anchor;
+	    }
+
+	    function reviewMethodsBasis() {
+	      const wrapper = document.createElement("div");
+	      wrapper.className = "workflow-methods-basis";
+	      wrapper.append(
+	        paragraphNode(
+	          "These are review diagnostics, not universal pass/fail rules. Reconstruction metrics, mutation burden, uncertainty, cutoff sensitivity, and signature similarity should be interpreted with the fitted data, assay, catalog, and study question."
+	        ),
+	        paragraphNode(
+	          "Bootstrap max CI is the largest confidence interval among reportable signatures. Cutoff max cosine drop is the biggest baseline-to-cutoff reconstruction change across the tested cutoffs. They stay measured unless you enable thresholds in Advanced review thresholds."
+	        )
+	      );
+	      const list = document.createElement("ul");
+	      [
+	        [
+	          "COSMIC/SigProfilerAssignment reports reconstruction metrics such as cosine similarity, KL divergence, Pearson correlation, L1 error, and L2 error.",
+	          "COSMIC assignment tool",
+	          "https://cancer.sanger.ac.uk/signatures/assignment/",
+	        ],
+	        [
+	          "Benchmark work shows reconstruction cosine depends strongly on mutation count, so fixed universal cutoffs are not a sufficient accuracy test.",
+	          "Nature Communications benchmark",
+	          "https://www.nature.com/articles/s41467-024-53711-6",
+	        ],
+	        [
+	          "Resampling intervals support uncertainty review; the largest interval is a compact summary, not a field-standard endpoint.",
+	          "MSA paper",
+	          "https://pmc.ncbi.nlm.nih.gov/articles/PMC8567580/",
+	        ],
+	        [
+	          "Contribution cutoffs are tool settings; deconstructSigs used an empirical 6% cutoff in its validation.",
+	          "deconstructSigs validation",
+	          "https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0893-4",
+	        ],
+	        [
+	          "Similar or broad reference signatures are known sources of assignment uncertainty.",
+	          "MuSiCal",
+	          "https://www.nature.com/articles/s41588-024-01659-0",
+	        ],
+	      ].forEach(([text, label, href]) => {
+	        const item = document.createElement("li");
+	        item.append(document.createTextNode(`${text} `), citationLink(label, href));
+	        list.append(item);
+	      });
+	      wrapper.append(list);
+	      return collapsibleOutput("Methods basis", wrapper, { open: false });
+	    }
+
+	    function renderReviewSettingsStatus(root = document) {
+	      const unsaved = reviewParameterDraftDiffers();
+	      root.querySelectorAll("[data-review-settings-status]").forEach((node) => {
+	        node.className = `workflow-review-settings-status ${unsaved ? "unsaved" : "applied"}`;
+	        node.textContent = unsaved ? "Unsaved review settings" : "Applied review settings";
+	      });
+	      root.querySelectorAll("[data-review-settings-caveats]").forEach((node) => {
+	        node.textContent = reviewAppliedCaveatSummary();
+	      });
+	      root.querySelectorAll("[data-review-settings-chips]").forEach((node) => {
+	        node.replaceChildren(reviewSettingChips(REVIEW_SUMMARY_CHIP_KEYS, "reviewDraft"));
+	      });
+	      root.querySelectorAll("[data-review-apply]").forEach((buttonNode) => {
+	        buttonNode.disabled = !unsaved;
+	      });
+	    }
+
+	    function reviewSettingsPanel() {
+	      ensureReviewParameterDraft();
+	      const panel = document.createElement("div");
+	      panel.className = "workflow-review-settings";
+	      const header = document.createElement("div");
+	      header.className = "workflow-review-settings-header";
+	      const title = document.createElement("div");
+	      title.className = "workflow-review-settings-title";
+	      title.textContent = "Review settings";
+	      const status = document.createElement("span");
+	      status.dataset.reviewSettingsStatus = "true";
+	      header.append(title, status);
+	      const caveats = document.createElement("p");
+	      caveats.className = "workflow-review-settings-note";
+	      caveats.dataset.reviewSettingsCaveats = "true";
+	      const chipHost = document.createElement("div");
+	      chipHost.dataset.reviewSettingsChips = "true";
+	      const actions = document.createElement("div");
+	      actions.className = "workflow-button-row workflow-review-settings-actions";
+	      const applyButton = button("Apply review settings", "primary");
+	      applyButton.dataset.reviewApply = "true";
+	      applyButton.addEventListener("click", async () => {
+	        applyButton.disabled = true;
+	        applyButton.textContent = "Applying...";
+	        try {
+	          await applyReviewSettings();
+	        } finally {
+	          applyButton.textContent = "Apply review settings";
+	        }
+	      });
+	      const resetButton = button("Reset to adaptive defaults");
+	      resetButton.addEventListener("click", () => {
+	        resetReviewDraftToAdaptive({ commit: false });
+	        renderReviewSettingsStatus(panel);
+	      });
+	      const restoreButton = button("Restore applied settings");
+	      restoreButton.addEventListener("click", () => {
+	        setReviewParameterDraftValues(reviewParameterSnapshot(workflowState.parameters));
+	        renderReviewSettingsStatus(panel);
+	      });
+	      actions.append(applyButton, resetButton, restoreButton);
+	      const methods = reviewMethodsBasis();
+	      const advanced = collapsibleOutput(
+	        "Advanced review thresholds",
+	        plotParameterGroups(REVIEW_SUMMARY_PARAMETER_GROUPS),
+	        { open: false }
+	      );
+	      panel.append(header, caveats, chipHost, actions, methods, advanced);
+	      renderReviewSettingsStatus(panel);
+	      return panel;
+	    }
+
+	    function renderEmptyReview() {
+	      plotGrid.replaceChildren(
+	        placeholderPlotSection("Review summary", [], "Run the workflow to see this plot.", [], reviewSettingsPanel()),
+	        placeholderPlotSection("Mutation count", [], "Run the workflow to see this plot."),
+	        placeholderPlotSection("Reconstruction quality", []),
+	        placeholderPlotSection("Residual spectrum", [], "Run the workflow to see this plot."),
+	        placeholderPlotSection("Uncertainty intervals", [], "Run the workflow to see this plot."),
+	        placeholderPlotSection("Cutoff sensitivity", [], "Run the workflow to see this plot.")
+	      );
+	      tableStack.replaceChildren(placeholder("Review tables will refresh after the workflow runs."));
+	      markWorkflowUpdated(reviewPanel);
+	    }
 
     async function plotSection(label, renderer, fallback, explanation = "", options = {}) {
       const section = document.createElement("section");
@@ -1823,11 +3233,9 @@
       status.className = "workflow-plot-sample-status";
       section.append(heading);
       if (explanation) {
-        const paragraph = document.createElement("p");
-        paragraph.className = "workflow-plot-explanation";
-        paragraph.textContent = explanation;
-        section.append(paragraph);
+        section.append(collapsibleOutput("How to interpret this plot", paragraphNode(explanation, "workflow-plot-explanation")));
       }
+	      appendPlotParameters(section, options);
       let selectedSample = options.sample || null;
       let sampleSelect = null;
       if (options.sampleControl) {
@@ -1889,17 +3297,35 @@
       tableStack.replaceChildren();
       const analysis = workflowState.analysis;
       if (!analysis) {
-        plotGrid.append(placeholder("Run the workflow to see plots."));
+        renderEmptyReview();
         return;
       }
-	      await plotSection(
-	        "Mutation count",
-        (id) => mSigSDK.qcPlots.plotMutationBurdenSummary(id, analysis.qc.mutationBurden),
+      plotGrid.append(loadingPlaceholder("Rendering updated visual checks..."));
+      tableStack.append(placeholder("Review tables will refresh after the plots finish."));
+	      await waitForWorkflowPaint();
+	      plotGrid.replaceChildren();
+	      tableStack.replaceChildren();
+		      await plotSection(
+		        "Review summary",
+		        (id) => mSigSDK.qcPlots.plotFitQualityEvidenceDashboard(id, analysis.fitQualityEvidence),
+		        fitQualityEvidenceTable(analysis.fitQualityEvidence, {
+		          includeInterpretationEvidence: true,
+		          maxRows: 8,
+		          title: "Review-diagnostics values behind the plot",
+		          caption: "Lists the reporting mode and review cues shown in the review-diagnostics figure.",
+		        }),
+		        "Shows which samples need caveats and which metric triggered them."
+		        , { parameterPanel: reviewSettingsPanel() }
+		      );
+		      await plotSection(
+		        "Mutation count",
+	        (id) => mSigSDK.qcPlots.plotMutationBurdenSummary(id, analysis.qc.mutationBurden),
         table(burdenSampleRows(analysis.qc.mutationBurden), null, {
           title: "Mutation-count values behind the plot",
           caption: "Lists the same sample-level mutation-count evidence used in the mutation-count figure.",
-        }),
-	        "Shows how many mutations were available for each sample. A very small sample is like tasting only a drop of the drink: the recipe guess can still be useful, but small random differences matter more."
+	        }),
+	        "Shows per-sample mutation counts. Lower counts make fitted contributions less stable."
+	        , { settingKeys: MUTATION_COUNT_PARAMETER_KEYS }
 	      );
 	      await plotSection(
 	        "Reconstruction quality",
@@ -1908,55 +3334,45 @@
 	          title: "Reconstruction values behind the plot",
 	          caption: "Lists cosine similarity and RMSE for each sample. These values ask whether the guessed signature recipe can recreate the original mutation pattern.",
 	        }),
-	        "After the fitting method estimates a signature recipe, the selected reference signatures are mixed back together and compared with the original sample. Cosine similarity is a shape match score, where values closer to 1 mean the reconstructed pattern points in the same direction as the observed pattern. RMSE is the average leftover mismatch across mutation channels after profiles are normalized, where values closer to 0 are better. For SBS96 relative profiles, an RMSE such as 0.003 is usually small, but it is not a universal pass/fail cutoff. Read reconstruction quality with residual shape, mutation count, catalog choice, and review cues."
+	        "Compares the observed spectrum with the fitted reconstruction. Cosine is 0 to 1; higher is better. RMSE is average leftover mismatch; lower is better."
 	      );
-	      await plotSection(
-	        "Review summary",
-	        (id) => mSigSDK.qcPlots.plotFitQualityEvidenceDashboard(id, analysis.fitQualityEvidence),
-	        fitQualityEvidenceTable(analysis.fitQualityEvidence, {
-	          maxRows: 8,
-	          title: "Review-summary values behind the plot",
-	          caption: "Lists the reporting mode and review cues shown in the review-summary figure.",
-	        }),
-	        "Summarizes how cautiously each sample should be discussed. This is the main place to decide whether the fitted recipe can be reported plainly or only with extra caveats."
-	      );
-	      await plotSection(
+		      await plotSection(
 	        "Residual spectrum",
-        (id, sample) => mSigSDK.qcPlots.plotFitResiduals(id, analysis.residuals, sample),
-        details("Residual object", analysis.residuals),
-	        "Shows what is left over after the reconstructed pattern is subtracted from the observed sample. If the leftovers form a clear pattern, the chosen reference ingredients, input data, or fitted recipe may not fully explain the sample.",
-        {
-          sampleControl: true,
-          sample: workflowState.visualSamples?.residual || workflowState.selectedSample,
-          sampleLabel: "Residual sample",
-          sampleHelp: "Redraws the observed-versus-reconstructed residual plot for one sample.",
-          onSampleChange: (sample) => {
-            workflowState.visualSamples.residual = sample;
-          },
-        }
-      );
+	        (id, sample) => mSigSDK.qcPlots.plotFitResiduals(id, analysis.residuals, sample),
+	        details("Residual object", analysis.residuals),
+	        "Shows observed, reconstructed, and residual spectra for one sample.",
+	        {
+	          settingKeys: RESIDUAL_PARAMETER_KEYS,
+	          sampleControl: true,
+	          sample: workflowState.visualSamples?.residual || workflowState.selectedSample,
+	          sampleLabel: "Residual sample",
+	          sampleHelp: "Redraws the observed, reconstructed, and residual difference plot for one sample.",
+	          onSampleChange: (sample) => {
+	            workflowState.visualSamples.residual = sample;
+	          },
+	        }
+	      );
       await plotSection(
         "Uncertainty intervals",
         async (id, sample, status) => {
-          if (!analysis.exposureEngine?.supportsBootstrap) {
-            throw new Error("Uncertainty intervals are not run for the selected external fitting method.");
-          }
           const bootstrap = await getBootstrapForSample(sample, status);
           await mSigSDK.qcPlots.plotBootstrapConfidenceIntervals(id, bootstrap);
-          status.textContent = `Showing uncertainty intervals for sample ${sample}.`;
+          const rerunNote = workflowState.bootstrapNeedsRerun
+            ? ` Cached intervals use ${bootstrap?.iterations || "the previous"} iterations; rerun the workflow to compute ${workflowState.parameters.bootstrapIterations}.`
+            : "";
+          status.textContent = `Showing uncertainty intervals for sample ${sample}.${rerunNote}`;
         },
-	        (sample) => analysis.exposureEngine?.supportsBootstrap
-	          ? table(bootstrapRows(workflowState.bootstrapBySample?.[sample] || workflowState.bootstrap), null, {
-	            title: "Uncertainty values for the selected sample",
-	            caption: "Lists repeat-fit intervals and selection-frequency values for the sample selected above.",
-	          })
-          : note("Uncertainty intervals are not shown for this selected fitting method. Use that package's own uncertainty workflow, or switch the fitting method to mSigSDK quick fit for browser-level uncertainty intervals.", "warning"),
-	        "Shows whether the selected sample's fitted recipe stays similar when the sample is resampled and refit. Wide intervals mean the exact ingredient amounts are less stable. External packages should use their package-specific uncertainty workflows.",
+	        (sample) => table(bootstrapRows(workflowState.bootstrapBySample?.[sample] || workflowState.bootstrap), null, {
+	          title: "Uncertainty values for the selected sample",
+	          caption: "Lists repeat-fit intervals and selection-frequency values for the sample selected above.",
+	        }),
+        `Shows repeat-fit confidence intervals for one sample. Values are signature-contribution percentage points. ${analysis.exposureEngine?.uncertaintyBasis || "mSigSDK review bootstrap uses the active spectra and signature catalog."}`,
         {
+          settingKeys: UNCERTAINTY_PARAMETER_KEYS,
           sampleControl: true,
           sample: workflowState.visualSamples?.bootstrap || workflowState.selectedSample,
           sampleLabel: "Uncertainty sample",
-          sampleHelp: "Changing this runs or reuses uncertainty intervals for one sample.",
+          sampleHelp: "All fitted samples are computed during the workflow. This selector changes which sample is displayed.",
           onSampleChange: (sample) => {
             workflowState.visualSamples.bootstrap = sample;
           },
@@ -1966,7 +3382,7 @@
         "Cutoff sensitivity",
         (id) => {
           if (!analysis.thresholdSensitivity) {
-            throw new Error("Cutoff sensitivity is not run for the selected external fitting method.");
+            throw new Error("Cutoff sensitivity is not available for this selected result.");
           }
           return mSigSDK.qcPlots.plotThresholdSensitivity(id, analysis.thresholdSensitivity);
         },
@@ -1975,65 +3391,134 @@
 	            title: "Cutoff sensitivity values",
 	            caption: "Lists how reconstruction, active signatures, and recipe estimates change across the cutoff values tested in this workflow.",
 	          })
-          : note("Cutoff sensitivity is not recomputed for this selected fitting method because different packages may apply cutoffs differently. Review that package's sensitivity settings or switch to mSigSDK quick fit for this check.", "warning"),
-	        "Shows whether the fitted recipe changes when very small ingredients are kept or ignored. Stable results should change gradually rather than flip abruptly."
-	      );
+          : note("Cutoff sensitivity is not available for this selected result.", "warning"),
+			        `Shows how reconstruction changes when small fitted contributions are removed. The review summary uses reconstruction cosine drop from the baseline cutoff. ${analysis.exposureEngine?.cutoffSensitivityBasis || "mSigSDK applies the configured cutoffs to the active contribution table."}`
+			        , { settingKeys: CUTOFF_PARAMETER_KEYS }
+			      );
 
-	      tableStack.append(note("Signature recipe estimates depend on the supplied catalog, spectra, cutoffs, and review evidence. Treat them as a fitted recipe, not as direct observation of the underlying biology."));
-	      tableStack.append(workflowOutputGuide(
-	        "Fitting method used",
-	        "The contribution table below comes from the selected fitting method. mSigSDK then adds input checks, reconstruction checks, residual review, tooltip reporting tables, run records, and tool export files around that table.",
-	        engineRows(analysis)
-	      ));
-	      tableStack.append(workflowOutputGuide(
-	        "How to read the interpretation tables",
-	        "Read these tables in order. Start with the fitted recipe only after the review evidence describes how much caution to apply to each sample.",
-	        [
-	          { table: "Signature recipe estimates", meaning: "The guessed recipe for each sample: which reference signatures were mixed and in what amounts. These are model estimates, not direct observations." },
-	          { table: "Review evidence", meaning: "The reporting mode and review cues that qualify those recipe estimates." },
-	          { table: "Warnings", meaning: "Rule-triggered review cautions emitted by the workflow." },
-	          { table: "Suggested review steps", meaning: "Suggested checks before using the output in a report." },
-	        ]
-	      ));
-	      tableStack.append(note("Do not copy signature contribution rows into a result section without the reporting mode, warning codes, reconstruction context, and cutoff/uncertainty context.", "warning"));
-      tableStack.append(table(exposureRows(analysis.fit.exposures, { minExposure: 0, topN: 30 }), null, {
-	        title: "Signature recipe estimates",
-	        caption: "Shows the fitted recipe produced by the selected fitting method. These are model estimates and should be read with the review and warning tables below.",
-	      }));
-      tableStack.append(fitQualityMethodGuide());
-      tableStack.append(fitQualityEvidenceTable(analysis.fitQualityEvidence, {
-	        includeActiveSignatures: true,
-	        maxRows: 12,
-	        title: "Review evidence for reporting",
-	        caption: "Shows how cautiously each sample should be interpreted and which review cues should accompany the fitted recipe.",
-	      }));
-      tableStack.append(workflowOutputGuide(
-        "Reference-signature similarity evidence",
-        "This is the reference-catalog evidence behind similarity review cues. It is not recomputed from the sample cosine; it comes from continuous scoring of similar neighboring signatures, crowded catalog regions, broad profiles, and low-specificity signatures.",
-        catalogAmbiguityTable(analysis)
-      ));
-      tableStack.append(workflowWarningTable(analysis.warnings));
-      tableStack.append(note("Warnings are review safeguards. They explain which configured rule was triggered and why the result may need caveats, residual review, a broader catalog, more mutations, or a different analysis strategy.", "warning"));
-      tableStack.append(table(actionRows(analysis.recommendedActions), null, {
-        title: "Suggested review steps",
-        caption: "Lists the follow-up checks generated from the workflow review evidence. Treat these as a practical checklist before reporting.",
-      }));
-      tableStack.append(note("Suggested review steps are generated from the review evidence. Treat them as the checklist for a publication or project report.", "info"));
-      tableStack.append(details("Full workflow result", analysis));
+	      tableStack.append(collapsibleOutput("Fitted recipe and sample review evidence", [
+	        workflowOutputGuide(
+	          "Fitting method used",
+	          "The contribution table comes from the selected fitting method. mSigSDK adds input checks, reconstruction checks, residual review, tooltip reporting tables, run records, and tool export files around that table.",
+	          engineRows(analysis)
+	        ),
+	        note("Do not copy signature contribution rows into a result section without the reporting mode, warning codes, reconstruction context, and cutoff/uncertainty context.", "warning"),
+	        table(exposureRows(analysis.fit.exposures, { minExposure: 0, topN: 30 }), null, {
+	          title: "Signature recipe estimates",
+	          caption: "Shows the fitted recipe produced by the selected fitting method.",
+	        }),
+	        fitQualityMethodGuide(),
+	        fitQualityEvidenceTable(analysis.fitQualityEvidence, {
+	          includeActiveSignatures: true,
+	          includeInterpretationEvidence: true,
+	          maxRows: 12,
+	          title: "Review diagnostics preview for reporting",
+	          caption: "Shows how cautiously each sample should be interpreted and which review cues should accompany the fitted recipe.",
+	        }),
+	      ]));
+	      tableStack.append(collapsibleOutput("Warnings and suggested review steps", [
+	        workflowWarningTable(analysis.warnings),
+	        table(actionRows(analysis.recommendedActions), null, {
+	          title: "Suggested review steps",
+	          caption: "Lists the follow-up checks generated from the workflow review evidence.",
+	        }),
+	      ]));
+	      tableStack.append(collapsibleOutput("Reference-signature similarity evidence", [
+	        workflowOutputGuide(
+	          "Reference-catalog review evidence",
+	          "This table explains similarity review cues from neighboring signatures, crowded catalog regions, broad profiles, and low-specificity signatures.",
+	          catalogAmbiguityTable(analysis)
+	        ),
+	      ]));
+	      tableStack.append(collapsibleOutput("Full workflow result object", details("Workflow result JSON", analysis)));
       markWorkflowUpdated(reviewPanel);
     }
 
+	    function recomputeCachedCutoffSensitivity(analysis) {
+	      if (!analysis?.fit?.exposures || !workflowState.spectra) return null;
+	      const activeSignatures = activeAnalysisSignatures(analysis);
+	      const thresholdSensitivity = calculateSelectedExposureCutoffSensitivity({
+	        signatures: activeSignatures,
+	        spectra: workflowState.spectra,
+	        exposures: analysis.fit.exposures,
+	        engine: analysis.exposureEngine || currentFitEngine(),
+	        thresholds: workflowState.parameters.thresholdGrid,
+	      });
+	      analysis.thresholdSensitivity = thresholdSensitivity;
+	      analysis.qc = {
+	        ...(analysis.qc || {}),
+	        thresholdSensitivity,
+	      };
+	      if (analysis.report?.qc) {
+	        analysis.report.qc.thresholdSensitivity = thresholdSensitivity;
+	      }
+	      return thresholdSensitivity;
+	    }
+
+	    function cachedBootstrapMatchesIterations() {
+	      const entries = Object.values(workflowState.bootstrapBySample || {}).filter(Boolean);
+	      if (!entries.length) return false;
+	      return entries.every((entry) => Number(entry.iterations) === Number(workflowState.parameters.bootstrapIterations));
+	    }
+
+	    function refreshCachedAnalysisForKeys(keys = []) {
+	      const analysis = workflowState.analysis;
+	      const changedKeys = [...new Set(keys)].filter((key) => PLOT_REFRESH_PARAMETER_KEYS.has(key));
+	      if (changedKeys.some((key) => BURDEN_REFRESH_PARAMETER_KEYS.has(key))) {
+	        validateCurrentInputs();
+	        document.dispatchEvent(new CustomEvent("msig:endToEndInputs"));
+	      }
+	      if (!analysis) return analysis;
+	      if (changedKeys.includes("thresholdGrid")) {
+	        recomputeCachedCutoffSensitivity(analysis);
+	      }
+	      if (changedKeys.includes("bootstrapIterations")) {
+	        workflowState.bootstrapNeedsRerun = !cachedBootstrapMatchesIterations();
+	      }
+	      if (changedKeys.some((key) => key !== "bootstrapIterations")) {
+	        workflowState.analysis = refreshFitQualityEvidenceWithBootstrap(analysis);
+	      }
+	      return workflowState.analysis;
+	    }
+
+	    async function applyReviewSettings({ render = true } = {}) {
+	      syncParametersFromControls({ target: "reviewDraft" });
+	      const changedKeys = commitReviewParameterDraftToParameters();
+	      refreshCachedAnalysisForKeys(changedKeys);
+	      if (render) {
+	        await renderReview();
+	      } else {
+	        renderReviewSettingsStatus();
+	      }
+	      document.dispatchEvent(new CustomEvent("msig:endToEndParameterRefresh", {
+	        detail: { keys: changedKeys },
+	      }));
+	      return changedKeys;
+	    }
+
+	    document.addEventListener("msig:endToEndReviewDraftChange", () => {
+	      renderReviewSettingsStatus();
+	    });
+
+    function renderReviewRunning(event) {
+      const engine = event.detail?.engine || "the selected fitting method";
+      plotGrid.replaceChildren(loadingPlaceholder(`Running ${engine}. Visual checks will refresh when the fit finishes.`));
+      tableStack.replaceChildren(placeholder("Review tables will refresh after the run finishes."));
+      markWorkflowUpdated(reviewPanel);
+    }
+
+    document.addEventListener("msig:endToEndStart", renderReviewRunning);
     document.addEventListener("msig:endToEndRun", renderReview);
-    plotGrid.append(placeholder("Run the workflow to see plots."));
+    renderEmptyReview();
     reviewPanel.append(plotGrid, tableStack);
     display(reviewPanel);
   </script>
 
-  <script type="text/markdown">
-    ## Step 4. Save files needed to rerun or review
+<script type="text/markdown">
+## Step 4. Save files needed to rerun or review
 
-	    A complete result should preserve more than the fitted recipe. Save the input tables, signature recipe estimates, reconstruction and review evidence, uncertainty results, warnings, suggested review steps, report fields, a run record, and files that help compare or rerun the analysis in other tools.
-  </script>
+A complete result should preserve more than the fitted recipe. Save the input tables, signature recipe estimates, reconstruction and review evidence, uncertainty results, warnings, suggested review steps, report fields, a run record, and files that help compare or rerun the analysis in other tools.
+</script>
 
   <script type="module" pinned id="5">
     const exportPanel = document.createElement("div");
@@ -2044,7 +3529,10 @@
     exportStack.setAttribute("aria-live", "polite");
 
     function handoffRows(bundle) {
-      return Object.entries(bundle?.tools || {}).map(([tool, value]) => ({
+      return [
+        ...Object.entries(bundle?.tools || {}),
+        ...Object.entries(bundle?.standaloneTools || {}),
+      ].map(([tool, value]) => ({
         "tool or package": tool,
         files: Array.isArray(value.files) ? value.files.length : 0,
         "supporting details": Object.keys(value.manifest || {}).length,
@@ -2062,7 +3550,7 @@
         qc: "Quality checks",
         warnings: "Cautions",
         recommendedActions: "Suggested follow-up",
-	        fitQualityEvidence: "Review evidence",
+	        fitQualityEvidence: "Review diagnostics",
         thresholdSensitivity: "Cutoff sensitivity",
         bootstrap: "Uncertainty estimates",
         provenance: "Run record",
@@ -2079,11 +3567,27 @@
       exportStack.replaceChildren();
       const analysis = workflowState.analysis;
       if (!analysis) {
-        exportStack.append(placeholder("Run the workflow to create exports."));
+        const previewBundle = createWorkflowInteroperabilityBundle();
+        if (!previewBundle) {
+          exportStack.append(placeholder("Load data to prepare external-tool run files, then run the workflow to create result exports."));
+          return;
+        }
+        exportStack.append(note("External-tool run files are ready as soon as spectra and signatures are loaded.", "info"));
+        exportStack.append(downloadMany([
+          { filename: "end_to_end_interoperability_bundle.json", type: "json", value: previewBundle, label: "Download tool export bundle JSON" },
+        ]));
+        exportStack.append(collapsibleOutput("Prepared external-tool file formats", [
+          table(handoffRows(previewBundle), null, {
+            title: "External-tool export formats",
+            caption: "Prepared before fitting so local package runs can feed back into the selected fitting method.",
+          }),
+        ]));
+        markWorkflowUpdated(exportPanel);
         return;
       }
       const spectraTsv = mSigSDK.io.exportSigProfilerMatrix(workflowState.spectra, { contexts: workflowState.contexts });
-      const signaturesTsv = mSigSDK.io.exportCOSMICSignatureMatrix(workflowState.signatures, { contexts: workflowState.contexts });
+      const signaturesForExport = analysis.fit?.signatures || workflowState.signatures;
+      const signaturesTsv = mSigSDK.io.exportCOSMICSignatureMatrix(signaturesForExport, { contexts: workflowState.contexts });
       const exposuresCsv = rowsToCsv(exposureRows(analysis.fit.exposures, { minExposure: 0, topN: 1000 }));
       const reportBundle = {
         parameters: workflowState.parameters,
@@ -2106,56 +3610,11 @@
         report: analysis.report,
         provenance: workflowState.provenance,
         interoperability: workflowState.interoperability,
+        standaloneToolHandoffs: workflowState.interoperability?.standaloneTools || {},
         crossToolReferenceSummary: crossToolSummary,
       };
-	      exportStack.append(workflowOutputGuide(
-	        "What the export bundle preserves",
-	        "These downloads are the review trail for the run. They keep the inputs, fitted recipe, reconstruction and review evidence, warnings, settings, and run record together so another person can reproduce and review the analysis.",
-	        [
-	          { file: "spectra TSV", meaning: "The active sample-by-context mutation-count table." },
-	          { file: "signature TSV", meaning: "The reference catalog used for fitting." },
-	          { file: "signature contributions CSV", meaning: "The fitted signature recipe. Read only with the review evidence." },
-	          { file: "workflow report JSON", meaning: "The full structured report, including input checks, warnings, suggested review steps, uncertainty, cutoff sensitivity, and run record." },
-	          { file: "tool export bundle JSON", meaning: "Information and files for other tools such as SigProfiler-style workflows." },
-	        ]
-      ));
-	      exportStack.append(table([
-	        { file: "spectra TSV", reason: "Rerun or share the sample-by-context table" },
-	        { file: "signature TSV", reason: "Record the reference catalog" },
-	        { file: "signature contributions CSV", reason: "Share fitted recipe estimates" },
-	        { file: "workflow report JSON", reason: "Preserve checks, warnings, report fields, and run record" },
-      ], null, {
-        title: "Downloadable files",
-        caption: "Explains which files the workflow can save and why each file matters for review or rerun.",
-      }));
+	      exportStack.append(note("The download links are the main thing here. Supporting file-format and report-section tables are collapsed below.", "info"));
 	      exportStack.append(note("Do not share the signature contributions CSV by itself when the run has warnings or needs cautious interpretation. Share the workflow report JSON with it so collaborators can see the reconstruction checks and caveats.", "warning"));
-      exportStack.append(workflowOutputGuide(
-        "Tool export table",
-        "This table states which external-tool file formats were prepared. It does not mean those external tools were run here; it means the current tables were organized so the analysis can be compared or rerun elsewhere.",
-        [
-          { column: "tool or package", meaning: "External package or file format prepared." },
-          { column: "files", meaning: "Number of generated files for that target." },
-          { column: "supporting details", meaning: "How much supporting information is recorded with the export." },
-        ]
-      ));
-      exportStack.append(table(handoffRows(workflowState.interoperability), null, {
-        title: "External-tool export formats",
-        caption: "Shows which tool/package formats were prepared so the same data can be compared or rerun outside this browser page.",
-      }));
-      exportStack.append(workflowOutputGuide(
-        "Report section table",
-        "These are the major sections in the structured report. They show what evidence is preserved before download.",
-        [
-          { section: "Run settings", meaning: "Cutoffs and workflow settings used for this run." },
-	          { section: "Input checks and quality checks", meaning: "Input checks, mutation-count review, reconstruction, residual, and review evidence." },
-          { section: "Cautions and suggested follow-up", meaning: "Interpretive cautions and follow-up steps." },
-          { section: "Run record", meaning: "SDK version, data source, and run details." },
-        ]
-      ));
-      exportStack.append(table(readableReportFieldRows(analysis.report), null, {
-        title: "Structured report sections",
-        caption: "Shows the main report sections preserved in the workflow JSON so another collaborator can inspect the run context, checks, warnings, and results.",
-      }));
       exportStack.append(downloadMany([
         { filename: "end_to_end_spectra.tsv", text: spectraTsv, label: "Download spectra TSV" },
         { filename: "end_to_end_signatures.tsv", text: signaturesTsv, label: "Download signatures TSV" },
@@ -2163,12 +3622,45 @@
         { filename: "end_to_end_workflow_report.json", type: "json", value: reportBundle, label: "Download workflow report JSON" },
         { filename: "end_to_end_interoperability_bundle.json", type: "json", value: workflowState.interoperability, label: "Download tool export bundle JSON" },
       ]));
-      exportStack.append(details("Run record", workflowState.provenance));
+      exportStack.append(collapsibleOutput("What each download preserves", [
+        table([
+          { file: "spectra TSV", reason: "Rerun or share the sample-by-context table" },
+          { file: "signature TSV", reason: "Record the active signature catalog" },
+          { file: "signature contributions CSV", reason: "Share fitted recipe estimates" },
+          { file: "workflow report JSON", reason: "Preserve checks, warnings, report fields, and run record" },
+          { file: "tool export bundle JSON", reason: "Prepare comparison or rerun files for external tools" },
+        ], null, {
+          title: "Downloadable files",
+          caption: "Explains which files the workflow can save and why each file matters for review or rerun.",
+        }),
+      ]));
+      exportStack.append(collapsibleOutput("External-tool handoff formats", [
+        table(handoffRows(workflowState.interoperability), null, {
+          title: "External-tool export formats",
+          caption: "Shows which tool/package formats were prepared so the same data can be compared or rerun outside this browser page.",
+        }),
+      ]));
+      exportStack.append(collapsibleOutput("Structured report sections and run record", [
+        table(readableReportFieldRows(analysis.report), null, {
+          title: "Structured report sections",
+          caption: "Shows the main report sections preserved in the workflow JSON.",
+        }),
+        details("Run record", workflowState.provenance),
+      ]));
       markWorkflowUpdated(exportPanel);
     }
 
+    function renderExportsRunning(event) {
+      const engine = event.detail?.engine || "the selected fitting method";
+      exportStack.replaceChildren(loadingPlaceholder(`Running ${engine}. Downloads will refresh when the workflow finishes.`));
+      markWorkflowUpdated(exportPanel);
+    }
+
+    document.addEventListener("msig:endToEndStart", renderExportsRunning);
     document.addEventListener("msig:endToEndRun", renderExports);
-    exportStack.append(placeholder("Run the workflow to create exports."));
+    document.addEventListener("msig:endToEndParameterRefresh", renderExports);
+    document.addEventListener("msig:endToEndInputs", renderExports);
+    exportStack.append(placeholder("Load data to prepare external-tool run files, then run the workflow to create result exports."));
     exportPanel.append(exportStack);
     display(exportPanel);
   </script>
