@@ -1297,7 +1297,7 @@ function createDeconstructSigsRScript({
     "    tumor.ref = as.data.frame(spectra),",
     "    signatures.ref = as.data.frame(signatures),",
     "    sample.id = sample_name,",
-    `    signature.cutoff = ${Number(signatureCutoff)}`,
+    `    signature.cutoff = ${Number(signatureCutoff)},`,
     "    contexts.needed = FALSE",
     "  )",
     "  weights <- as.numeric(fit$weights)",

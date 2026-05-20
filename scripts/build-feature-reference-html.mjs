@@ -342,6 +342,7 @@ const html = `<!doctype html>
 
       .content {
         min-width: 0;
+        overflow-x: hidden;
         border: 1px solid var(--rule);
         border-radius: 8px;
         background: var(--surface);
@@ -427,6 +428,8 @@ const html = `<!doctype html>
       }
 
       .table-wrap {
+        width: 100%;
+        max-width: 100%;
         overflow-x: auto;
         margin: 18px 0 26px;
         border: 1px solid var(--rule);

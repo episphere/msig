@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="mSigSDK browser notebooks and JavaScript APIs for mutational signature analysis."
+      content="mSigSDK JavaScript APIs and educational browser notebooks for mutational signature analysis."
     />
     <meta property="og:title" content="mSigSDK" />
     <meta
       property="og:description"
-      content="Run browser-native mutational signature review workflows, inspect notebook code, and import the SDK from GitHub Pages."
+      content="Explore educational mutational signature examples, inspect notebook code, and import the SDK from GitHub Pages."
     />
     <meta property="twitter:card" content="summary_large_image" />
     <title>mSigSDK browser workflows</title>
@@ -676,8 +676,10 @@
             </div>
           </div>
           <p class="hero-note">
-            Runs as a static browser module; compatible external engines stay
-            connected through adapters and optional browser runtimes.
+            Hosted notebooks are educational examples for public or bundled
+            demonstration data. Use the SDK in your own environment for private
+            data, large cohorts, and production validation; compatible external
+            engines stay connected through adapters and optional browser runtimes.
           </p>
         </div>
 
@@ -794,11 +796,13 @@
       <section id="notebooks" class="section" aria-labelledby="notebooks-heading">
         <div class="section-header">
           <div>
-            <p class="eyebrow">Runnable examples</p>
+            <p class="eyebrow">Educational examples</p>
             <h2 id="notebooks-heading">Notebook workflows</h2>
             <p>
-              Each notebook focuses on one analysis decision and opens in the static
-              browser runner with editable JavaScript cells.
+              Each notebook focuses on one SDK capability using public or
+              bundled demonstration inputs. The hosted runner is for learning,
+              inspection, and code adaptation, not private user data or
+              large-cohort production analysis.
             </p>
           </div>
           <a class="button" href="./notebooks/viewer.html">Browse all</a>
@@ -815,7 +819,8 @@
       <div class="footer-inner">
         mSigSDK is maintained in the
         <a href="https://github.com/episphere/msig">episphere/msig</a>
-        repository. Hosted examples import <code>./main.js</code> from GitHub Pages.
+        repository. Hosted examples import <code>./main.js</code> from GitHub Pages
+        and demonstrate SDK patterns on public or bundled inputs.
       </div>
     </footer>
 
@@ -958,7 +963,7 @@
               link.href = `./notebooks/viewer.html?notebook=${encodeURIComponent(
                 entry.file
               )}`;
-              link.textContent = "Run notebook";
+              link.textContent = "Open example";
 
               body.append(title, summary, link);
               article.append(image, body);

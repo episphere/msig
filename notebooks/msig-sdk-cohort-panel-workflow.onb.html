@@ -245,7 +245,8 @@
         field("Upload signatures", fileInput(signaturesText)),
         field("Sample details", metadataText, "Optional rows with sample plus group columns."),
         field("Upload sample details", fileInput(metadataText))
-      )
+      ),
+      div("cohort-panel-actions", applyDataButton)
     );
 
     const dataOutput = div("cohort-panel-output");

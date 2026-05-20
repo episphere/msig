@@ -97,7 +97,7 @@ Use `mSigSDK.pipelines` for the full computational API and `mSigSDK.workflows.*L
 
 ## Interactive Examples
 
-The canonical interactive recipes now live with the GitHub Pages site: [mSigSDK runnable notebooks](https://episphere.github.io/msig/notebooks/viewer.html). These notebooks use curated count-scale PCAWG WGS examples, show the JavaScript cells inline, and can be edited and rerun in the browser. The resource-portability notebook demonstrates how mSigPortal and TCGA/GDC resources become validated SDK matrices, portable TSV files, and provenance-backed analysis objects.
+The canonical interactive recipes now live with the GitHub Pages site: [mSigSDK educational notebooks](https://episphere.github.io/msig/notebooks/viewer.html). These notebooks use public or bundled demonstration inputs, show the JavaScript cells inline, and can be edited and rerun in the browser. They are learning examples for SDK calls, plots, result objects, and export patterns, not a hosted workspace for private user data, regulated data, or large-cohort production analysis. The resource-portability notebook demonstrates how mSigPortal and TCGA/GDC resources become validated SDK matrices, portable TSV files, and provenance-backed analysis objects.
 
 Notebook cards and the runner menu are generated from `notebooks/notebooks.json`. When adding a new `*.onb.html` notebook, run `npm run notebooks:manifest` so it appears automatically on the website and in the runner.
 
@@ -386,7 +386,7 @@ NMF plot helpers are available under `mSigSDK.signatureExtractionPlots`. Extract
 
 ### Observable Notebook Workflows
 
-The SDK includes focused Observable Kit notebooks for browser testing without loading every analysis into one runtime:
+The SDK includes focused Observable Kit notebooks for educational browser testing without loading every analysis into one runtime. The hosted notebooks use public or bundled demonstration inputs; production analyses should adapt the SDK calls in a controlled local or institutional environment:
 
 - Hosted notebook gallery: <https://episphere.github.io/msig/notebooks/viewer.html>
 - `notebooks/msig-sdk-notebooks.onb.html`: index of focused notebooks.
