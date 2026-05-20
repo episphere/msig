@@ -6,6 +6,32 @@ import {
 } from './utils.js';
 
 import { id83Color } from '../../utils/colors.js';
+
+function cappedIndelLabel(mutationType) {
+  const [length, eventType, contextType, rawIndex] = String(
+    mutationType || ''
+  ).split(':');
+  const value = Number(rawIndex);
+  if (!Number.isFinite(value)) return rawIndex || '';
+
+  if (eventType === 'Del' && contextType !== 'M') {
+    const homopolymerLength = value + 1;
+    return homopolymerLength >= 6 ? '6+' : String(homopolymerLength);
+  }
+
+  if (value >= 5) return '5+';
+  return String(value);
+}
+
+function cappedIndelGroupLabel(groupKey) {
+  const [length, eventType, contextType] = String(groupKey || '').split(':');
+  if (length === '1') return contextType || '';
+  const numericLength = Number(length);
+  return Number.isFinite(numericLength) && numericLength >= 5
+    ? `${numericLength}+`
+    : length;
+}
+
 export default function ID83(apiData, title = '') {
   const colors = id83Color;
 
@@ -40,10 +66,7 @@ export default function ID83(apiData, title = '') {
     .map((group) =>
       group.data.map((e) => ({
         indel: group.mutation,
-        index:
-          group.mutation.includes('Del') && group.mutation.slice(-1) != 'M'
-            ? +e.mutationType.slice(-1) + 1
-            : e.mutationType.slice(-1),
+        index: cappedIndelLabel(e.mutationType),
       }))
     )
     .flat();
@@ -67,10 +90,7 @@ export default function ID83(apiData, title = '') {
       mutationType:
         e.mutationType.substring(2, 5) === 'Del' ? 'Deletion' : 'Insertion',
       extraValue: e.mutationType.substring(6, 7),
-      xval:
-        e.mutationType.substring(2, 5) === 'Del'
-          ? +e.mutationType.slice(-1) + 1
-          : e.mutationType.slice(-1),
+      xval: cappedIndelLabel(e.mutationType),
     })),
     hovertemplate:
       '<b>%{customdata.mutationOrder} bp %{customdata.mutationType}, %{customdata.extraValue}, %{customdata.xval}</b><br>' +
@@ -87,13 +107,11 @@ export default function ID83(apiData, title = '') {
         .slice(0, groupIndex)
         .reduce((lastIndex, b) => lastIndex + b.data.length, 0) +
       (group.data.length - 1) * 0.5,
-    y: 1.01,
-    text: `<b>${
-      group.mutation[0] == '1' ? group.mutation.slice(-1) : group.mutation[0]
-    }</b>`,
+    y: 1.055,
+    text: `<b>${cappedIndelGroupLabel(group.mutation)}</b>`,
     showarrow: false,
     font: {
-      size: 14,
+      size: 13,
       color: colors[group.mutation].text,
     },
     align: 'center',
@@ -105,11 +123,11 @@ export default function ID83(apiData, title = '') {
     xanchor: 'bottom',
     yanchor: 'bottom',
     x: index,
-    y: -0.1,
+    y: -0.16,
     text: '<b>' + indel.index + '</b>',
     showarrow: false,
     font: {
-      size: 12,
+      size: 11,
     },
     align: 'center',
   }));
@@ -119,12 +137,12 @@ export default function ID83(apiData, title = '') {
     yref: 'paper',
     x: num,
     xanchor: 'bottom',
-    y: 1.07,
+    y: 1.22,
     yanchor: 'bottom',
     text: '<b>' + arrayIDAnnXTop[index] + '</b>',
     showarrow: false,
     font: {
-      size: 16,
+      size: 15,
       family: 'Times New Roman',
     },
     align: 'center',
@@ -135,12 +153,12 @@ export default function ID83(apiData, title = '') {
     yref: 'paper',
     x: num,
     xanchor: 'bottom',
-    y: -0.15,
+    y: -0.28,
     yanchor: 'bottom',
     text: '<b>' + arrayIDAnnXBot[index] + '</b>',
     showarrow: false,
     font: {
-      size: 15,
+      size: 13,
       family: 'Times New Roman',
     },
     align: 'center',
@@ -157,8 +175,8 @@ export default function ID83(apiData, title = '') {
     x1: array
       .slice(0, groupIndex + 1)
       .reduce((lastIndex, e) => lastIndex + e.data.length, -0.6),
-    y0: 1.07,
-    y1: 1.01,
+    y0: 1.13,
+    y1: 1.06,
     fillcolor: colors[group.mutation].shape,
     line: {
       width: 0,
@@ -175,8 +193,8 @@ export default function ID83(apiData, title = '') {
     x1: array
       .slice(0, groupIndex + 1)
       .reduce((lastIndex, e) => lastIndex + e.data.length, -0.6),
-    y0: -0.01,
-    y1: -0.05,
+    y0: -0.035,
+    y1: -0.12,
     fillcolor: colors[group.mutation].shape,
     line: {
       width: 0,
@@ -186,7 +204,7 @@ export default function ID83(apiData, title = '') {
   const layout = {
     title: `<b>${title}</b>`,
     hoverlabel: { bgcolor: '#FFF' },
-    height: 500,
+    height: 620,
     //width:1080,
     autosize: true,
     xaxis: {
@@ -199,13 +217,14 @@ export default function ID83(apiData, title = '') {
       linecolor: 'black',
       linewidth: 1,
       mirror: 'all',
+      range: [-0.5, indelNames.length - 0.5],
     },
     yaxis: {
       title: {
         text:
           parseFloat(totalMutations).toFixed(2) > 1
             ? '<b>Number of Indels</b>'
-            : '<b>Percent of Indels</b>',
+            : '<b>Percentage of Indels</b>',
         font: {
           family: 'Times New Roman',
           size: 18,

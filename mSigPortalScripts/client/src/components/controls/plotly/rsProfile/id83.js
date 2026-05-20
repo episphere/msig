@@ -1,3 +1,28 @@
+function cappedIndelLabel(mutationType) {
+  const [length, eventType, contextType, rawIndex] = String(
+    mutationType || ''
+  ).split(':');
+  const value = Number(rawIndex);
+  if (!Number.isFinite(value)) return rawIndex || '';
+
+  if (eventType === 'Del' && contextType !== 'M') {
+    const homopolymerLength = value + 1;
+    return homopolymerLength >= 6 ? '6+' : String(homopolymerLength);
+  }
+
+  if (value >= 5) return '5+';
+  return String(value);
+}
+
+function cappedIndelGroupLabel(groupKey) {
+  const [length, eventType, contextType] = String(groupKey || '').split(':');
+  if (length === '1') return contextType || '';
+  const numericLength = Number(length);
+  return Number.isFinite(numericLength) && numericLength >= 5
+    ? `${numericLength}+`
+    : length;
+}
+
 export default function ID83(rawData, sample) {
   const colors = {
     '1:Del:C': { shape: '#FBBD6F', text: 'black' },
@@ -67,11 +92,7 @@ export default function ID83(rawData, sample) {
     .map((indel) =>
       indel.data.map((e) => ({
         indel: indel.indel,
-        index:
-          indel.indel.substring(2, 5) == 'Del'
-            ? +e.mutationType.slice(-1) + 1
-            : e.mutationType.slice(-1),
-        //index: e.mutationType.slice(-1),
+        index: cappedIndelLabel(e.mutationType),
       }))
     )
     .flat();
@@ -95,10 +116,7 @@ export default function ID83(rawData, sample) {
       mutationType:
         e.mutationType.substring(2, 5) === 'Del' ? 'Deletion' : 'Insertion',
       extraValue: e.mutationType.substring(6, 7),
-      xval:
-        e.mutationType.substring(2, 5) === 'Del'
-          ? +e.mutationType.slice(-1) + 1
-          : e.mutationType.slice(-1),
+      xval: cappedIndelLabel(e.mutationType),
     })),
     hovertemplate:
       '<b>%{customdata.mutationOrder} bp %{customdata.mutationType}, %{customdata.extraValue}, %{customdata.xval}</b><br>' +
@@ -115,13 +133,11 @@ export default function ID83(rawData, sample) {
         .slice(0, groupIndex)
         .reduce((lastIndex, b) => lastIndex + b.data.length, 0) +
       (group.data.length - 1) * 0.5,
-    y: 1.01,
-    text: `<b>${
-      group.indel[0] == '1' ? group.indel.slice(-1) : group.indel[0]
-    }</b>`,
+    y: 1.055,
+    text: `<b>${cappedIndelGroupLabel(group.indel)}</b>`,
     showarrow: false,
     font: {
-      size: 14,
+      size: 13,
       color: colors[group.indel].text,
     },
     align: 'center',
@@ -133,11 +149,11 @@ export default function ID83(rawData, sample) {
     xanchor: 'bottom',
     yanchor: 'bottom',
     x: index,
-    y: -0.1,
+    y: -0.16,
     text: '<b>' + indel.index + '</b>',
     showarrow: false,
     font: {
-      size: 12,
+      size: 11,
     },
     align: 'center',
   }));
@@ -147,12 +163,12 @@ export default function ID83(rawData, sample) {
     yref: 'paper',
     x: num,
     xanchor: 'bottom',
-    y: 1.07,
+    y: 1.22,
     yanchor: 'bottom',
     text: '<b>' + arrayIDAnnXTop[index] + '</b>',
     showarrow: false,
     font: {
-      size: 16,
+      size: 15,
       family: 'Times New Roman',
     },
     align: 'center',
@@ -163,12 +179,12 @@ export default function ID83(rawData, sample) {
     yref: 'paper',
     x: num,
     xanchor: 'bottom',
-    y: -0.15,
+    y: -0.28,
     yanchor: 'bottom',
     text: '<b>' + arrayIDAnnXBot[index] + '</b>',
     showarrow: false,
     font: {
-      size: 15,
+      size: 13,
       family: 'Times New Roman',
     },
     align: 'center',
@@ -200,8 +216,8 @@ export default function ID83(rawData, sample) {
     x1: array
       .slice(0, groupIndex + 1)
       .reduce((lastIndex, e) => lastIndex + e.data.length, -0.6),
-    y0: 1.07,
-    y1: 1.01,
+    y0: 1.13,
+    y1: 1.06,
     fillcolor: colors[group.indel].shape,
     line: {
       width: 0,
@@ -218,8 +234,8 @@ export default function ID83(rawData, sample) {
     x1: array
       .slice(0, groupIndex + 1)
       .reduce((lastIndex, e) => lastIndex + e.data.length, -0.6),
-    y0: -0.01,
-    y1: -0.05,
+    y0: -0.035,
+    y1: -0.12,
     fillcolor: colors[group.indel].shape,
     line: {
       width: 0,
@@ -228,7 +244,7 @@ export default function ID83(rawData, sample) {
 
   const layout = {
     hoverlabel: { bgcolor: '#FFF' },
-    height: 500,
+    height: 620,
     //width:1080,
     autosize: true,
     xaxis: {
@@ -241,6 +257,7 @@ export default function ID83(rawData, sample) {
       linecolor: 'black',
       linewidth: 1,
       mirror: 'all',
+      range: [-0.5, indelNames.length - 0.5],
     },
     yaxis: {
       title: {

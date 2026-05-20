@@ -499,7 +499,12 @@
         }
         .maf-plot-frame {
           width: 100%;
-          min-height: 520px;
+          min-height: 560px;
+        }
+        .maf-plot-scroll {
+          width: 100%;
+          overflow-x: auto;
+          padding-bottom: 8px;
         }
         .maf-card-header {
           display: flex;
@@ -1760,7 +1765,12 @@
         lookupHeader,
         renderContextStrip(traceRow.referenceContext, traceRow.ref),
         renderFactGrid([
-          ["Reference trinucleotide", traceRow.referenceContext || "-"],
+          [
+            state.selectedProfile === "SBS1536"
+              ? "Reference pentanucleotide"
+              : "Reference trinucleotide",
+            traceRow.referenceContext || "-",
+          ],
           ["Center matches ref", traceRow.referenceMatchesContext ? "Yes" : "Review"],
           ["Lookup key", traceRow.lookupKey],
         ])
@@ -1975,6 +1985,18 @@
       });
       const plotFrame = document.createElement("div");
       plotFrame.className = "maf-plot-frame";
+      if (state.selectedProfile === "DBS78") {
+        plotFrame.style.minHeight = "620px";
+        plotFrame.style.width = "1680px";
+      } else if (state.selectedProfile === "ID83") {
+        plotFrame.style.minHeight = "720px";
+        plotFrame.style.width = "1960px";
+      } else if (state.selectedProfile === "SBS1536") {
+        plotFrame.style.minHeight = "680px";
+      }
+      const plotScroll = document.createElement("div");
+      plotScroll.className = "maf-plot-scroll";
+      plotScroll.append(plotFrame);
       const traceRow = selectedTrace();
       const highlightedContext =
         traceRow?.counted && traceRow.sample === state.selectedGroup
@@ -2001,7 +2023,7 @@
       panel.append(
         heading,
         mafField("Sample shown", groupSelect, "The selected row's bin is highlighted when it belongs to this sample."),
-        plotFrame,
+        plotScroll,
         table(state.audit?.rows || [], [
           { key: "checkpoint", label: "Checkpoint" },
           { key: "value", label: "Value" },
@@ -2032,6 +2054,22 @@
               ? "Every x-axis label is a trinucleotide bin. The selected row's bin is outlined when it contributes to this sample."
               : `${state.selectedProfile} is rendered with its profile-specific COSMIC bin order.`,
           dataset: "MAF-derived profile",
+          height:
+            state.selectedProfile === "DBS78"
+              ? 580
+              : state.selectedProfile === "ID83"
+                ? 660
+              : state.selectedProfile === "SBS1536"
+                ? 640
+                : undefined,
+          width:
+            state.selectedProfile === "DBS78"
+              ? 1680
+              : state.selectedProfile === "ID83"
+                ? 1960
+                : undefined,
+          scale: ["DBS78", "ID83"].includes(state.selectedProfile) ? "percent" : undefined,
+          tickFontSize: state.selectedProfile === "DBS78" ? 10 : undefined,
           showContextLabels: state.selectedProfile === "SBS96",
           highlightContexts: highlightedContext ? [highlightedContext] : [],
         });

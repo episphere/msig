@@ -876,6 +876,16 @@ const mSigSDK = (function () {
     );
   }
 
+  function renderPlotNotice(target, title, message) {
+    return setContainerHTML(
+      target,
+      `<div style="border:1px solid #d7e3df;border-radius:8px;background:#f8fbfa;color:#334155;padding:18px;line-height:1.5">
+        <strong style="display:block;color:#0f172a;margin-bottom:4px">${escapeHTML(title)}</strong>
+        <span>${escapeHTML(message)}</span>
+      </div>`
+    );
+  }
+
   function isFigureContextValue(value) {
     return (
       value !== undefined &&
@@ -2209,6 +2219,174 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
     });
   }
 
+  function profilePlotScale(profileKeyValue, options = {}) {
+    const key = workflowProfileKey(profileKeyValue);
+    const requestedScale = String(options.scale || options.plotScale || "").toLowerCase();
+    if (requestedScale === "count" || requestedScale === "counts") return "count";
+    if (requestedScale === "percent" || requestedScale === "percentage") return "percent";
+    return key === "DBS78" || key === "ID83" ? "percent" : "count";
+  }
+
+  function scaleProfileRowsForPlot(rows, profileKeyValue, options = {}) {
+    const scale = profilePlotScale(profileKeyValue, options);
+    const total = rows.reduce((sum, row) => sum + Number(row.mutations || 0), 0);
+    if (scale !== "percent" || total <= 0) {
+      return {
+        rows,
+        total,
+        scale: "count",
+        plottedMetric: "mutation count",
+      };
+    }
+
+    return {
+      rows: rows.map((row) => ({
+        ...row,
+        mutations: Number(row.mutations || 0) / total,
+        contribution: Number(row.contribution || row.mutations || 0) / total,
+      })),
+      total,
+      scale: "percent",
+      plottedMetric: "mutation percentage",
+    };
+  }
+
+  function profilePlotLayoutOverrides(
+    profileKeyValue,
+    renderedLayout = {},
+    options = {},
+    metrics = {}
+  ) {
+    const key = workflowProfileKey(profileKeyValue);
+    if (key === "DBS78") {
+      const maxMutation = Number(metrics.maxMutation || 0);
+      const countScale = metrics.scale !== "percent";
+      return {
+        ...renderedLayout,
+        autosize: false,
+        width: Number(options.width) || 1680,
+        height: Number(options.height) || 560,
+        margin: {
+          l: 82,
+          r: 28,
+          t: 94,
+          b: 118,
+          ...(renderedLayout.margin || {}),
+        },
+        bargap: renderedLayout.bargap ?? 0.08,
+        xaxis: {
+          ...(renderedLayout.xaxis || {}),
+          automargin: true,
+          tickangle: -90,
+          tickfont: {
+            ...(renderedLayout.xaxis?.tickfont || {}),
+            family: "Arial, sans-serif",
+            size: Number(options.tickFontSize) || 10,
+          },
+        },
+        yaxis: {
+          ...(renderedLayout.yaxis || {}),
+          automargin: true,
+          tick0: countScale ? 0 : renderedLayout.yaxis?.tick0,
+          dtick:
+            countScale && maxMutation <= 5
+              ? 1
+              : renderedLayout.yaxis?.dtick,
+          tickformat: countScale ? ",d" : renderedLayout.yaxis?.tickformat,
+          range:
+            countScale && maxMutation <= 5
+              ? [0, Math.max(1.2, Math.ceil(maxMutation) + 0.2)]
+              : renderedLayout.yaxis?.range,
+          title: {
+            ...(renderedLayout.yaxis?.title || {}),
+            standoff: 12,
+            font: {
+              ...(renderedLayout.yaxis?.title?.font || {}),
+              family: "Arial, sans-serif",
+              size: 13,
+            },
+          },
+        },
+        annotations: (renderedLayout.annotations || []).map((annotation) => ({
+          ...annotation,
+          text:
+            typeof annotation.text === "string"
+              ? annotation.text.replace(
+                  " Substitutions</b>",
+                  " Double Base Substitutions</b>"
+                )
+              : annotation.text,
+          font: {
+            ...(annotation.font || {}),
+            size: Math.min(Number(annotation.font?.size) || 14, 14),
+          },
+        })),
+      };
+    }
+
+    if (key === "ID83") {
+      const countScale = metrics.scale !== "percent";
+      const maxMutation = Number(metrics.maxMutation || 0);
+      return {
+        ...renderedLayout,
+        autosize: false,
+        width: Number(options.width) || 1960,
+        height: Number(options.height) || 620,
+        margin: {
+          l: 90,
+          r: 28,
+          t: 126,
+          b: 156,
+          ...(renderedLayout.margin || {}),
+        },
+        bargap: renderedLayout.bargap ?? 0.08,
+        xaxis: {
+          ...(renderedLayout.xaxis || {}),
+          automargin: true,
+          showticklabels: false,
+        },
+        yaxis: {
+          ...(renderedLayout.yaxis || {}),
+          automargin: true,
+          tick0: countScale ? 0 : renderedLayout.yaxis?.tick0,
+          dtick:
+            countScale && maxMutation <= 6
+              ? 1
+              : renderedLayout.yaxis?.dtick,
+          tickformat: countScale ? ",d" : ".0%",
+          range:
+            countScale && maxMutation <= 6
+              ? [0, Math.max(1.2, Math.ceil(maxMutation) + 0.2)]
+              : renderedLayout.yaxis?.range,
+          title: {
+            ...(renderedLayout.yaxis?.title || {}),
+            standoff: 12,
+            font: {
+              ...(renderedLayout.yaxis?.title?.font || {}),
+              size: 14,
+            },
+          },
+        },
+      };
+    }
+
+    if (key === "SBS1536") {
+      return {
+        ...renderedLayout,
+        height: Number(options.height) || 620,
+        margin: {
+          l: 78,
+          r: 30,
+          t: 88,
+          b: 110,
+          ...(renderedLayout.margin || {}),
+        },
+      };
+    }
+
+    return renderedLayout;
+  }
+
   /**
    * Renders a COSMIC-style mutational profile using the renderer that matches the selected matrix.
    *
@@ -2280,18 +2458,37 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
     const total = rows.reduce((sum, row) => sum + Number(row.mutations || 0), 0);
 
     if (!rows.length || total === 0) {
-      return renderPlotError(
+      return renderPlotNotice(
         divID,
-        `No counted ${profileKeyValue} bins are available for ${selectedSample}.`
+        `${profileKeyValue} spectrum is empty`,
+        `No counted ${profileKeyValue} bins are available for ${selectedSample}. Review the selected profile requirements and row-level skipped reasons before plotting.`
       );
     }
 
     const title = options.title || `Converted ${profileKeyValue} spectrum`;
-    const rendered = renderer(rows, title);
+    const scaledPlot = scaleProfileRowsForPlot(rows, profileKeyValue, options);
+    const rendered = renderer(scaledPlot.rows, title);
+    const adjustedLayout = profilePlotLayoutOverrides(
+      profileKeyValue,
+      rendered.layout || {},
+      options,
+      {
+        total: scaledPlot.rows.reduce(
+          (sum, row) => sum + Number(row.mutations || 0),
+          0
+        ),
+        rawTotal: scaledPlot.total,
+        scale: scaledPlot.scale,
+        maxMutation: scaledPlot.rows.reduce(
+          (max, row) => Math.max(max, Number(row.mutations || 0)),
+          0
+        ),
+      }
+    );
     const layout = {
-      ...(rendered.layout || {}),
+      ...adjustedLayout,
       meta: {
-        ...(rendered.layout?.meta || {}),
+        ...(adjustedLayout.meta || {}),
         subtitle:
           options.subtitle ||
           `COSMIC-style ${profileKeyValue} profile rendered with its profile-specific bin order.`,
@@ -2301,7 +2498,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
           profile: profileOptionsFromKey(profileKeyValue).profile,
           matrix: profileOptionsFromKey(profileKeyValue).matrix,
           contexts: orderedContexts.length,
-          plottedMetric: "mutation count",
+          plottedMetric: scaledPlot.plottedMetric,
         }),
       },
     };
@@ -2312,7 +2509,7 @@ plotProjectMutationalBurdenByCancerType(projectData, "plotDiv");
       layout,
       options.publication || {}
     );
-    return { traces: rendered.traces || [], layout, rows };
+    return { traces: rendered.traces || [], layout, rows: scaledPlot.rows };
   }
 
   function plotGroupedMutationalProfilesWithPlotly(
