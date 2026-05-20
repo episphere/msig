@@ -454,7 +454,7 @@
         }
         .maf-base-strip {
           display: grid;
-          grid-template-columns: repeat(3, minmax(56px, 1fr));
+          grid-template-columns: repeat(var(--maf-context-bases, 3), minmax(56px, 1fr));
           gap: 8px;
           align-items: center;
         }
@@ -896,6 +896,11 @@
         context: normalizeSequenceWindow(entry.context, size),
         source: entry.source || "reference lookup table",
       };
+    }
+
+    function apiReferenceWindowForRow(row) {
+      const entry = state.lookupTable[lookupKey(row)];
+      return normalizeSequenceWindow(lookupEntryContext(entry), 5);
     }
 
     function contextSourceLabel(row, hasRowContext, lookupSource) {
@@ -1907,18 +1912,26 @@
       return row;
     }
 
+    function contextBaseLabel(index, length) {
+      const center = Math.floor(length / 2);
+      if (index === center) return "reference";
+      const offset = index - center;
+      return offset < 0 ? `${Math.abs(offset)} upstream` : `${offset} downstream`;
+    }
+
     function renderContextStrip(context, ref) {
       const strip = document.createElement("div");
       strip.className = "maf-base-strip";
-      const labels = ["5' base", "reference", "3' base"];
       const bases = context ? context.split("") : ["?", ref || "?", "?"];
+      const center = Math.floor(bases.length / 2);
+      strip.style.setProperty("--maf-context-bases", String(bases.length));
       bases.forEach((base, index) => {
         const node = document.createElement("div");
-        node.className = `maf-base ${index === 1 ? "center" : ""}`.trim();
+        node.className = `maf-base ${index === center ? "center" : ""}`.trim();
         const big = document.createElement("span");
         big.textContent = base || "?";
         const small = document.createElement("small");
-        small.textContent = labels[index];
+        small.textContent = contextBaseLabel(index, bases.length);
         node.append(big, small);
         strip.append(node);
       });
@@ -2006,16 +2019,17 @@
       sourceBadge.className = traceRow.contextSource === "missing" ? "maf-pill warning" : "maf-pill highlight";
       sourceBadge.textContent = traceRow.contextSource;
       lookupHeader.append(lookupHeading, sourceBadge);
+      const apiWindow = apiReferenceWindowForRow(traceRow.row) || traceRow.referenceContext;
+      const profileContextLabel =
+        state.selectedProfile === "SBS1536"
+          ? "SBS1536 context used"
+          : "SBS96 context used";
       lookupCard.append(
         lookupHeader,
-        renderContextStrip(traceRow.referenceContext, traceRow.ref),
+        renderContextStrip(apiWindow, traceRow.ref),
         renderFactGrid([
-          [
-            state.selectedProfile === "SBS1536"
-              ? "Reference pentanucleotide"
-              : "Reference trinucleotide",
-            traceRow.referenceContext || "-",
-          ],
+          ["API 5-base window", apiWindow || "-"],
+          [profileContextLabel, traceRow.referenceContext || "-"],
           ["Center matches ref", traceRow.referenceMatchesContext ? "Yes" : "Review"],
           ["Lookup key", traceRow.lookupKey],
         ])
