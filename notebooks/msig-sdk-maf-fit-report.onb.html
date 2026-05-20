@@ -114,6 +114,8 @@
     ]);
     const COMPLEMENT = { A: "T", C: "G", G: "C", T: "A", N: "N" };
     const MAX_LIVE_LOOKUP = 50;
+    const MAX_API_CONTEXT_LOOKUP = 1000;
+    const CONTEXT_LOOKUP_CONCURRENCY = 6;
     const MAX_GDC_FILES = 5;
     const MAX_GDC_ROWS = 1000;
     const DEFAULT_GDC_ROWS = 500;
@@ -847,6 +849,10 @@
       return activeProfileDefinition()?.matrix === 1536 ? 5 : 3;
     }
 
+    function activeProfileUsesReferenceApi() {
+      return state.selectedProfile === "SBS96" || state.selectedProfile === "SBS1536";
+    }
+
     function sdkProfileReady() {
       return Boolean(state.profileConversion?.spectraByProfile?.[state.selectedProfile]);
     }
@@ -889,6 +895,9 @@
     }
 
     function contextSourceLabel(row, hasRowContext, lookupSource) {
+      if (lookupSource) {
+        return lookupSource;
+      }
       if (hasRowContext) {
         return state.inputSource === "tcga-gdc" ? "GDC CONTEXT column" : "uploaded context column";
       }
@@ -906,7 +915,7 @@
       const alleleOk = /^[ACGT]$/.test(ref) && /^[ACGT]$/.test(alt);
       const rowSuppliedContext = contextFromRow(row, contextSize);
       const lookupContext = lookupContextForRow(row, contextSize);
-      const referenceContext = rowSuppliedContext || lookupContext.context;
+      const referenceContext = lookupContext.context || rowSuppliedContext;
       const contextSource = contextSourceLabel(row, Boolean(rowSuppliedContext), lookupContext.source);
       const referenceMatchesContext = Boolean(
         referenceContext && referenceContext[Math.floor(referenceContext.length / 2)] === ref
@@ -1067,6 +1076,107 @@
       ].slice(-8);
     }
 
+    function lookupEntryContext(entry) {
+      if (!entry) return "";
+      return typeof entry === "string" ? entry : entry.context;
+    }
+
+    function lookupHasRequiredContext(row, size) {
+      return Boolean(normalizeSequenceWindow(lookupEntryContext(state.lookupTable[lookupKey(row)]), size));
+    }
+
+    function apiContextCandidateRows(size, { force = false, limit = MAX_API_CONTEXT_LOOKUP } = {}) {
+      if (!activeProfileUsesReferenceApi()) return [];
+      return state.rows
+        .filter((row) =>
+          row.chromosome &&
+          row.start_position &&
+          /^[ACGT]$/.test(row.reference_allele) &&
+          /^[ACGT]$/.test(row.tumor_seq_allele2) &&
+          variantTypeIsSnv(row.variant_type) &&
+          (force || !lookupHasRequiredContext(row, size))
+        )
+        .slice(0, limit);
+    }
+
+    function storeApiContext(row, context, size) {
+      const normalizedContext = normalizeSequenceWindow(context, size);
+      if (!normalizedContext) return false;
+      const key = lookupKey(row);
+      const existing = lookupEntryContext(state.lookupTable[key]);
+      if (existing && String(existing).length > normalizedContext.length) {
+        return false;
+      }
+      state.lookupTable[key] = {
+        context: normalizedContext,
+        source: "UCSC Genome Browser API",
+        genome: row.build || state.sourceGenome || "hg19",
+        contextSize: size,
+      };
+      return true;
+    }
+
+    async function resolveApiContextsForActiveProfile({
+      force = false,
+      limit = MAX_API_CONTEXT_LOOKUP,
+      renderAfter = false,
+    } = {}) {
+      if (!state.rows.length || !activeProfileUsesReferenceApi()) return { resolved: 0, failed: 0, requested: 0 };
+      const contextSize = activeContextSize();
+      const candidates = apiContextCandidateRows(contextSize, { force, limit });
+      if (!candidates.length) {
+        await refreshProfileConversion({ renderAfter });
+        return { resolved: 0, failed: 0, requested: 0 };
+      }
+
+      setStatus(
+        "Resolving reference sequence",
+        `Querying the UCSC Genome Browser API for ${candidates.length} ${contextSize}-base context window(s).`,
+        "running"
+      );
+
+      let cursor = 0;
+      let resolved = 0;
+      let failed = 0;
+      async function worker() {
+        while (cursor < candidates.length) {
+          const row = candidates[cursor];
+          cursor += 1;
+          try {
+            const context = await getMutationalContext(
+              normalizeChromosome(row.chromosome) || row.chromosome,
+              row.build || state.sourceGenome || "hg19",
+              Number(row.start_position),
+              { offline: false, contextSize }
+            );
+            if (storeApiContext(row, context, contextSize)) {
+              resolved += 1;
+            }
+          } catch (error) {
+            failed += 1;
+            console.warn("Reference API context lookup failed.", row, error);
+          }
+        }
+      }
+
+      await Promise.all(
+        Array.from({ length: Math.min(CONTEXT_LOOKUP_CONCURRENCY, candidates.length) }, () => worker())
+      );
+      pushProgress(
+        "context-api",
+        `Resolved ${resolved}/${candidates.length} reference context window(s) from the UCSC Genome Browser API${failed ? `; ${failed} failed` : ""}.`
+      );
+      await refreshProfileConversion({ renderAfter: false });
+      recompute();
+      setStatus(
+        "Reference context ready",
+        `Resolved ${resolved}/${candidates.length} context window(s) from the UCSC Genome Browser API${failed ? `; ${failed} failed and kept row-supplied context when available` : ""}.`,
+        failed ? "ready" : "ready"
+      );
+      if (renderAfter) render();
+      return { resolved, failed, requested: candidates.length };
+    }
+
     async function refreshProfileConversion({ renderAfter = false } = {}) {
       if (!state.rows.length) {
         state.profileConversion = null;
@@ -1209,7 +1319,9 @@
         `Loaded ${state.rows.length} row(s) from ${source === "tcga-gdc" ? "TCGA/GDC" : filename || "pasted/uploaded text"}.`,
         "ready"
       );
-      refreshProfileConversion({ renderAfter: true });
+      refreshProfileConversion({ renderAfter: true }).then(() => {
+        resolveApiContextsForActiveProfile({ renderAfter: true });
+      });
     }
 
     function applyPastedData(text, filename = "pasted-maf") {
@@ -1350,46 +1462,11 @@
 
     async function runLiveLookup() {
       const limit = Math.max(1, Math.min(MAX_LIVE_LOOKUP, Number(state.liveLimit) || MAX_LIVE_LOOKUP));
-      const candidates = state.trace
-        .filter((row) =>
-          row.contextSource === "missing" &&
-          row.chromosome &&
-          row.start_position &&
-          /^[ACGT]$/.test(row.ref) &&
-          /^[ACGT]$/.test(row.alt) &&
-          variantTypeIsSnv(row.variantType)
-        )
-        .slice(0, limit);
-
-      if (!candidates.length) {
-        setStatus("No live lookup needed", "All convertible rows already have the required reference window or are not eligible for lookup.", "ready");
+      const result = await resolveApiContextsForActiveProfile({ force: true, limit, renderAfter: true });
+      if (!result.requested) {
+        setStatus("No API lookup needed", "All convertible rows already have API context or are not eligible for lookup.", "ready");
         return;
       }
-
-      setStatus("Running live reference lookup", `Looking up reference context for ${candidates.length} row(s).`, "running");
-      for (const candidate of candidates) {
-        try {
-          const contextSize = activeContextSize();
-          const context = await getMutationalContext(
-            normalizeChromosome(candidate.chromosome) || candidate.chromosome,
-            candidate.build || state.sourceGenome || "hg19",
-            Number(candidate.start_position),
-            { offline: false, contextSize }
-          );
-          const normalizedContext = normalizeSequenceWindow(context, contextSize);
-          if (normalizedContext) {
-            state.lookupTable[candidate.lookupKey] = {
-              context: normalizedContext,
-              source: "live reference lookup",
-            };
-          }
-        } catch (error) {
-          console.warn("Live reference lookup failed.", candidate, error);
-        }
-      }
-      await refreshProfileConversion();
-      recompute();
-      setStatus("Live lookup finished", `Resolved context for up to ${candidates.length} row(s).`, "ready");
     }
 
     function statusCard() {
@@ -1438,6 +1515,7 @@
         state.selectedGroup = "";
         recompute();
         render();
+        resolveApiContextsForActiveProfile({ renderAfter: true });
       });
       const requirements = table(PROFILE_DEFINITIONS.map((profile) => ({
         profile: profile.key,
@@ -1903,13 +1981,13 @@
       genome.addEventListener("change", () => {
         state.sourceGenome = genome.value;
       });
-      const liveButton = mafButton("Run context lookup", "primary");
+      const liveButton = mafButton("Refresh API context", "primary");
       liveButton.addEventListener("click", runLiveLookup);
       const controlRow = document.createElement("div");
       controlRow.className = "maf-lookup-controls";
       controlRow.append(
-        mafField("Live lookup row cap", liveLimit, `Maximum ${MAX_LIVE_LOOKUP} rows per run.`),
-        mafField("Genome build", genome, "Used only when a row is missing context."),
+        mafField("API lookup row cap", liveLimit, `Maximum ${MAX_LIVE_LOOKUP} rows per manual refresh.`),
+        mafField("Genome build", genome, "Used for UCSC Genome Browser API context lookup."),
         liveButton
       );
       const lookupCard = document.createElement("div");
@@ -1945,7 +2023,7 @@
       panel.append(
         heading,
         mafCaption(state.selectedProfile.startsWith("SBS")
-          ? "SBS profiles use reference bases around the substituted base. SBS96 requires three bases; SBS1536 requires five bases."
+          ? "SBS profiles use reference bases fetched from the UCSC Genome Browser API. SBS96 requires three bases; SBS1536 requires five bases."
           : "DBS and ID profiles use allele-level event evidence; sequence context is used only when the selected profile requires it."),
         controlRow,
         lookupCard,

@@ -238,7 +238,7 @@ function normalizeMafInputRows(data, groupBy) {
   return [...groups.values()];
 }
 
-function lookupOfflineContext(table, chromosomeNumber, startPosition) {
+function lookupOfflineContextEntry(table, chromosomeNumber, startPosition) {
   if (!table) {
     return null;
   }
@@ -254,15 +254,37 @@ function lookupOfflineContext(table, chromosomeNumber, startPosition) {
   ];
 
   for (const key of candidateKeys) {
-    const direct = lookupContextValue(lookup?.[key]);
+    const value = lookup?.[key];
+    const direct = lookupContextValue(value);
     if (direct) {
-      return direct;
+      return {
+        context: direct,
+        source:
+          value && typeof value === "object" && value.source
+            ? String(value.source)
+            : "offline reference lookup",
+      };
     }
   }
 
   const chromosomeLookup =
     lookup?.[chromosome] || lookup?.[`chr${chromosome}`] || table.chromosomes?.[chromosome] || table.chromosomes?.[`chr${chromosome}`];
-  return lookupContextValue(chromosomeLookup?.[position]);
+  const value = chromosomeLookup?.[position];
+  const context = lookupContextValue(value);
+  if (!context) {
+    return null;
+  }
+  return {
+    context,
+    source:
+      value && typeof value === "object" && value.source
+        ? String(value.source)
+        : "offline reference lookup",
+  };
+}
+
+function lookupOfflineContext(table, chromosomeNumber, startPosition) {
+  return lookupOfflineContextEntry(table, chromosomeNumber, startPosition)?.context || null;
 }
 
 async function loadBundledContextLookupTable(genome) {
@@ -434,6 +456,19 @@ function variantTypeIsDeletion(value) {
 }
 
 async function resolveReferenceContext(row, size, options) {
+  const lookupEntry = lookupOfflineContextEntry(
+    options.contextLookupTable,
+    row.chromosome,
+    row.startPosition
+  );
+  const lookupSupplied = normalizeSequenceWindow(lookupEntry?.context, size);
+  if (lookupSupplied) {
+    return {
+      context: lookupSupplied,
+      source: lookupEntry.source || "offline reference lookup",
+    };
+  }
+
   const rowSupplied =
     getRowSuppliedContext(row.raw, size) ||
     getRowSuppliedContext(row.originalRow, size);

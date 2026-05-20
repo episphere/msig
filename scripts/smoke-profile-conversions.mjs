@@ -114,7 +114,10 @@ const lookupBackedSbs1536 = await convertMafToProfileSpectra(
     groupBy: "sample",
     offline: true,
     contextLookupTable: {
-      "1:900": "AACGT",
+      "1:900": {
+        context: "AACGT",
+        source: "UCSC Genome Browser API",
+      },
     },
   }
 );
@@ -125,7 +128,7 @@ assert.equal(
 );
 assert.equal(
   lookupBackedSbs1536.traceByProfile.SBS1536[0].contextSource,
-  "offline reference lookup"
+  "UCSC Genome Browser API"
 );
 
 const undersizedLookup = await convertMafToProfileSpectra(
