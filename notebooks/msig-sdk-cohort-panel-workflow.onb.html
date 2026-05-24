@@ -134,6 +134,7 @@
         .cohort-panel-plot h3 { margin: 0 0 0.55rem; font-size: 1rem; }
         .cohort-panel-plot-host { min-height: 24rem; overflow: auto; }
         .cohort-panel-plot.primary .cohort-panel-plot-host { min-height: 31rem; }
+        .cohort-panel-plot.secondary .cohort-panel-plot-host { min-height: 0; overflow: visible; }
         .cohort-panel-status { font-weight: 700; color: #0d6f7f; }
         .cohort-panel-table-wrap { overflow-x: auto; border: 1px solid rgba(16, 82, 100, 0.18); border-radius: 8px; }
         .cohort-panel-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
@@ -145,6 +146,7 @@
         .cohort-panel-review-list { margin: 0; padding-left: 1.1rem; color: #345f72; }
         .cohort-panel-review-list li { margin: 0.25rem 0; }
         .cohort-panel-plot-host svg { display: block; width: 100%; height: auto; min-width: 560px; }
+        .cohort-panel-plot.secondary .cohort-panel-plot-host svg { max-width: 760px; min-width: 0; }
         .cohort-panel-chart-note { margin-top: 0.5rem; color: #547184; font-size: 0.85rem; }
         @media (max-width: 760px) {
           .cohort-panel-grid,
@@ -566,7 +568,7 @@
       );
       plotOutput.replaceChildren();
       addPlot("Retained mutation burden by sample", (host) => host.replaceChildren(renderRetainedBurdenFigure(samplePlanningRows)), null, { primary: true });
-      addPlot("Signature assessability by target", (host) => host.replaceChildren(renderSignatureAssessabilityFigure(signatureRows)), null, { secondary: true });
+      addPlot("Key signature decisions", (host) => host.replaceChildren(renderSignatureAssessabilityFigure(signatureRows)), null, { secondary: true });
     }
 
     function renderDownloads(params, cohort, panel, opportunityInputs) {
@@ -1324,29 +1326,46 @@
     }
 
     function renderSignatureAssessabilityFigure(rows = []) {
-      const data = [...rows];
+      const maxRows = 12;
+      const data = rankSignatureDecisionRows(rows, maxRows);
       if (!data.length) return note("No signatures to plot.");
       const node = div("cohort-panel-chart");
       const width = 760;
-      const rowHeight = 30;
-      const margin = { top: 74, right: 30, bottom: 36, left: 130 };
+      const rowHeight = 34;
+      const margin = { top: 128, right: 160, bottom: 42, left: 112 };
       const plotWidth = width - margin.left - margin.right;
-      const height = margin.top + margin.bottom + data.length * rowHeight;
+      const visibleRows = Math.max(4, data.length);
+      const height = margin.top + margin.bottom + visibleRows * rowHeight;
       const tiers = [
         { key: "higherSupport", label: "Higher", color: "#087f8c" },
         { key: "limitedSupport", label: "Limited", color: "#56b4a2" },
-        { key: "notDetected", label: "Not detected", color: "#cfe5ee" },
-        { key: "notAssessable", label: "Not assessable", color: "#b9c6cf" },
+        { key: "notDetected", label: "Below", color: "#cfe5ee" },
+        { key: "notAssessable", label: "Blocked", color: "#b9c6cf" },
       ];
       const maxCalls = Math.max(1, ...data.map((row) => tiers.reduce((sum, tier) => sum + Number(row[tier.key] || 0), 0)));
       const x = (value) => margin.left + (Math.max(0, Number(value) || 0) / maxCalls) * plotWidth;
-      const svg = svgElement("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": "Signature assessability counts by target" });
-      svg.append(svgElement("text", { x: margin.left, y: 22, fill: "#123245", "font-size": 16, "font-weight": 800 }, "Assay-planning tiers by signature"));
+      const summary = summarizeSignatureDecisionRows(rows, data.length);
+      const svg = svgElement("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": "Key signature decisions" });
+      svg.append(svgElement("text", { x: margin.left, y: 22, fill: "#123245", "font-size": 16, "font-weight": 800 }, "Key signature decisions"));
+      svg.append(svgElement("text", { x: margin.left, y: 42, fill: "#547184", "font-size": 12 }, "Ranked signatures with support, original signal, or review blockers."));
+
+      [
+        { label: "Selected", value: summary.selected },
+        { label: "Supported", value: summary.supported },
+        { label: "Limited only", value: summary.limitedOnly },
+        { label: "Blocked", value: summary.blocked },
+        { label: "Omitted", value: summary.omitted },
+      ].forEach((chip, index) => {
+        const chipX = margin.left + index * 118;
+        svg.append(svgElement("rect", { x: chipX, y: 56, width: 108, height: 24, rx: 5, fill: "rgba(15,142,163,0.08)", stroke: "rgba(16,82,100,0.16)" }));
+        svg.append(svgElement("text", { x: chipX + 9, y: 72, fill: "#244c60", "font-size": 11, "font-weight": 700 }, `${chip.value} ${chip.label}`));
+      });
+
       let legendX = margin.left;
       tiers.forEach((tier) => {
-        svg.append(svgElement("rect", { x: legendX, y: 42, width: 14, height: 14, rx: 3, fill: tier.color }));
-        svg.append(svgElement("text", { x: legendX + 20, y: 53, fill: "#244c60", "font-size": 11 }, tier.label));
-        legendX += 120;
+        svg.append(svgElement("rect", { x: legendX, y: 96, width: 12, height: 12, rx: 3, fill: tier.color }));
+        svg.append(svgElement("text", { x: legendX + 18, y: 106, fill: "#244c60", "font-size": 11 }, tier.label));
+        legendX += 92;
       });
       [0, 0.5, 1].forEach((fraction) => {
         const value = Math.round(maxCalls * fraction);
@@ -1357,19 +1376,102 @@
       data.forEach((row, index) => {
         const y = margin.top + index * rowHeight;
         let cursor = margin.left;
-        svg.append(svgElement("text", { x: margin.left - 10, y: y + 16, fill: "#244c60", "font-size": 11, "text-anchor": "end" }, row.signature));
+        svg.append(svgElement("text", { x: margin.left - 10, y: y + 19, fill: "#244c60", "font-size": 12, "font-weight": 700, "text-anchor": "end" }, row.signature));
+        svg.append(svgElement("rect", { x: margin.left, y: y + 7, width: plotWidth, height: 20, rx: 4, fill: "rgba(207,229,238,0.28)" }));
         tiers.forEach((tier) => {
           const count = Number(row[tier.key] || 0);
           const segmentWidth = x(count) - margin.left;
           if (count > 0) {
-            svg.append(svgElement("rect", { x: cursor, y: y + 5, width: Math.max(1, segmentWidth), height: 16, rx: 3, fill: tier.color }));
+            svg.append(svgElement("rect", { x: cursor, y: y + 7, width: Math.max(1, segmentWidth), height: 20, rx: 4, fill: tier.color }));
           }
           cursor += segmentWidth;
         });
-        svg.append(svgElement("text", { x: Math.min(width - 10, cursor + 6), y: y + 17, fill: "#123245", "font-size": 11 }, supportSummary(row)));
+        svg.append(svgElement("text", { x: width - 10, y: y + 20, fill: "#123245", "font-size": 11, "text-anchor": "end" }, compactSupportSummary(row)));
       });
       node.append(svg);
+      node.append(chartNote(`Showing ${data.length} key signatures; all ${rows.length} are in the table and exports.`));
       return node;
+    }
+
+    function rankSignatureDecisionRows(rows = [], limit = 12) {
+      const unused = new Set(rows.map((_, index) => index));
+      const ranked = [];
+      const appendGroup = (predicate, comparator) => {
+        rows
+          .map((row, index) => ({ row, index }))
+          .filter((entry) => unused.has(entry.index) && predicate(decisionStats(entry.row)))
+          .sort((left, right) => comparator(decisionStats(left.row), decisionStats(right.row)) || String(left.row.signature || "").localeCompare(String(right.row.signature || "")))
+          .forEach((entry) => {
+            unused.delete(entry.index);
+            ranked.push(entry.row);
+          });
+      };
+      appendGroup(
+        (stats) => stats.supported > 0,
+        (left, right) =>
+          right.supported - left.supported ||
+          right.higher - left.higher ||
+          right.limited - left.limited ||
+          right.originalFit - left.originalFit
+      );
+      appendGroup(
+        (stats) => stats.supported === 0 && stats.originalFit > 0,
+        (left, right) =>
+          right.originalFit - left.originalFit ||
+          right.notAssessable - left.notAssessable ||
+          right.callableMass - left.callableMass
+      );
+      appendGroup(
+        (stats) => stats.notAssessable > 0,
+        (left, right) =>
+          right.notAssessable - left.notAssessable ||
+          right.callableMass - left.callableMass ||
+          right.originalFit - left.originalFit
+      );
+      appendGroup(
+        () => true,
+        (left, right) =>
+          right.callableMass - left.callableMass ||
+          right.originalFit - left.originalFit ||
+          right.supported - left.supported
+      );
+      return ranked.slice(0, limit);
+    }
+
+    function summarizeSignatureDecisionRows(rows = [], shownCount = 0) {
+      return {
+        selected: rows.length,
+        supported: rows.filter((row) => decisionStats(row).supported > 0).length,
+        limitedOnly: rows.filter((row) => {
+          const stats = decisionStats(row);
+          return stats.higher === 0 && stats.limited > 0;
+        }).length,
+        blocked: rows.filter((row) => decisionStats(row).notAssessable > 0).length,
+        omitted: Math.max(0, rows.length - shownCount),
+      };
+    }
+
+    function compactSupportSummary(row) {
+      const stats = decisionStats(row);
+      return [
+        stats.supported ? `${stats.supported} support` : null,
+        stats.notDetected ? `${stats.notDetected} below` : null,
+        stats.notAssessable ? `${stats.notAssessable} blocked` : null,
+      ].filter(Boolean).join(" / ") || "No calls";
+    }
+
+    function decisionStats(row = {}) {
+      const higher = Math.max(0, Number(row.higherSupport ?? row.highSupport ?? 0) || 0);
+      const limited = Math.max(0, Number(row.limitedSupport || 0) || 0);
+      return {
+        higher,
+        limited,
+        supported: higher + limited,
+        notDetected: Math.max(0, Number(row.notDetected || 0) || 0),
+        notAssessable: Math.max(0, Number(row.notAssessable || 0) || 0),
+        originalFit: Math.max(0, Number(row.originalFitSampleCount || 0) || 0),
+        callableMass: Number.isFinite(Number(row.callableSignatureMassValue)) ? Number(row.callableSignatureMassValue) : -1,
+      };
     }
 
     function svgElement(name, attributes = {}, text = null) {

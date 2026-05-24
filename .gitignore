@@ -30,3 +30,4 @@ docs/package-repos/pyodide/*.whl
 docs/package-repos/**/*.tar.gz
 docs/package-repos/**/*.tgz
 docs/package-repos/**/PACKAGES*
+docs/manuscript/manuscript/MSIGSDK_FINAL_SUBMISSION_DRAFT.md

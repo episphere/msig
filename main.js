@@ -845,6 +845,15 @@ const mSigSDK = (function () {
     return `${text.slice(0, startLength)}...${text.slice(-endLength)}`;
   }
 
+  function compactSamplePlotLabel(value, maxLength = 14) {
+    const text = String(value ?? "");
+    const tcga = text.match(/^TCGA-([A-Z0-9]{2})-([A-Z0-9]{3,4})/i);
+    if (tcga) {
+      return `TCGA-${tcga[1].toUpperCase()}-${tcga[2].toUpperCase()}`;
+    }
+    return compactPlotLabel(text, maxLength);
+  }
+
   function formatRmseAxisTick(value) {
     if (!Number.isFinite(value)) {
       return "";
@@ -6384,13 +6393,17 @@ Renders a plot of mutational profiles in a given div element ID.
       min: 28,
       max: 56,
     });
+    const sampleLabelMaxLength = publicationNumber(publication, "sampleLabelMaxLength", compactLayout ? 13 : 26, {
+      min: 8,
+      max: 36,
+    });
     const fitWidth = publicationNumber(publication, "fitWidth", compactLayout ? 86 : 108, {
       min: 72,
       max: 150,
     });
     const x0 = publicationNumber(publication, "x0", compactLayout ? 26 : 34, { min: 18, max: 54 });
-    const y0 = publicationNumber(publication, "bodyY", compactLayout ? 222 : 224, { min: 198, max: 290 });
-    const gapSampleBurden = 10;
+    const y0 = publicationNumber(publication, "bodyY", compactLayout ? 222 : 224, { min: 198, max: 360 });
+    const gapSampleBurden = compactLayout ? 16 : 10;
     const gapBurdenHeat = 10;
     const gapHeatFit = 16;
     const rightPad = compactLayout ? 28 : 36;
@@ -6414,7 +6427,7 @@ Renders a plot of mutational profiles in a given div element ID.
       ? Math.min(
           requestedCellWidth,
           Math.max(
-            38,
+            44,
             Math.floor((targetWidth - fixedWidthWithoutHeat) / Math.max(1, displaySignatures.length))
           )
         )
@@ -6445,26 +6458,61 @@ Renders a plot of mutational profiles in a given div element ID.
     const burdenScale = d3.scaleLinear().domain([0, maxBurden]).range([0, burdenWidth]);
     const cosineScale = d3.scaleLinear().domain([minCosine, 1]).range([0, fitWidth]);
     const color = d3.scaleSequential(d3.interpolateViridis).domain([0, Math.max(maxExposure, 0.2)]);
-    const totalScale = d3
-      .scaleLinear()
-      .domain([0, d3.max(signatureSummary, (row) => row.total) || 1])
-      .range([0, compactLayout ? 64 : 76]);
 
     svg
       .append("desc")
       .text(
         `${sampleNames.length} samples by ${displaySignatures.length} displayed signatures. Top signatures are ranked by cohort total exposure; ${hiddenSignatures.length} lower-ranked signatures are grouped into Other.`
       );
+    const defs = svg.append("defs");
+    const sampleLabelClipId = `msig-cohort-sample-label-clip-${Math.random().toString(36).slice(2)}`;
+    defs
+      .append("clipPath")
+      .attr("id", sampleLabelClipId)
+      .attr("clipPathUnits", "userSpaceOnUse")
+      .append("rect")
+      .attr("x", sampleX - 2)
+      .attr("y", y0 - rowHeight)
+      .attr("width", Math.max(40, sampleLabelWidth - 6))
+      .attr("height", heatHeight + rowHeight * 2);
     const otherSummary = signatureSummary.find((summary) => summary.hidden);
     const otherIndex = otherSummary ? signatureSummary.indexOf(otherSummary) : -1;
     const topPanelY = 18;
-    const topPanelHeight = y0 - 44;
+    const topPanelHeight = publicationNumber(publication, "topPanelHeight", y0 - 52, { min: 150, max: 280 });
+    const topPanelHeatmapGap = publicationNumber(
+      publication,
+      "topPanelHeatmapGap",
+      Math.max(4, y0 - 30 - (topPanelY + topPanelHeight)),
+      { min: 4, max: 96 }
+    );
     const barBaselineY = 120;
     const labelY = 144;
     const prevalenceY = 160;
     const hiddenCountY = 176;
-    const heatTitleY = y0 - 30;
-    const headerY = y0 - 12;
+    const heatTitleY = topPanelY + topPanelHeight + topPanelHeatmapGap;
+    const headerY = heatTitleY + 18;
+    const compactTopPanel = compactLayout;
+    const rankedLabelWidth = Math.min(
+      compactLayout ? 174 : 188,
+      Math.max(compactLayout ? 142 : 156, sampleLabelWidth + 16)
+    );
+    const rankedBarX = sampleX + rankedLabelWidth;
+    const rankedValueWidth = compactLayout ? 92 : 104;
+    const rankedBarWidth = Math.max(
+      156,
+      Math.min(360, width - rankedBarX - rankedValueWidth - rightPad)
+    );
+    const rankedY0 = topPanelY + 66;
+    const rankedRowHeight = compactLayout
+      ? Math.max(
+          13,
+          Math.min(16, (topPanelHeight - 82) / Math.max(1, signatureSummary.length))
+        )
+      : 17;
+    const totalScale = d3
+      .scaleLinear()
+      .domain([0, d3.max(signatureSummary, (row) => row.total) || 1])
+      .range([0, compactTopPanel ? rankedBarWidth : 76]);
     svg
       .append("rect")
       .attr("x", sampleX - 12)
@@ -6487,83 +6535,161 @@ Renders a plot of mutational profiles in a given div element ID.
       .attr("y", 60)
       .attr("font", "650 10.5px Arial, sans-serif")
       .attr("fill", SCIENTIFIC_COLORS.gray)
-      .text("Totals by signature; percent = samples above cutoff.");
-    svg
-      .append("line")
-      .attr("x1", heatX)
-      .attr("x2", heatX + heatWidth)
-      .attr("y1", barBaselineY)
-      .attr("y2", barBaselineY)
-      .attr("stroke", "#CBD5E1")
-      .attr("stroke-width", 1);
-    signatureSummary.forEach((summary, index) => {
-      const x = heatX + index * cellWidth;
-      const barHeight = Math.max(3, totalScale(summary.total));
-      if (summary.hidden) {
-        svg
-          .append("rect")
-          .attr("x", x - 3)
-          .attr("y", topPanelY + 6)
-          .attr("width", cellWidth + 6)
-          .attr("height", topPanelHeight - 12)
-          .attr("rx", 7)
-          .attr("fill", "#ECFDF5")
-          .attr("stroke", "#A7F3D0");
-      }
-      svg
-        .append("rect")
-        .attr("x", x + cellWidth * 0.24)
-        .attr("y", barBaselineY - barHeight)
-        .attr("width", cellWidth * 0.52)
-        .attr("height", barHeight)
-        .attr("rx", 4)
-        .attr("fill", summary.hidden ? SCIENTIFIC_COLORS.green : SCIENTIFIC_COLORS.blue)
-        .attr("opacity", 0.82)
-        .on("mousemove", (event) =>
-          showTooltip(
-            event,
-            tooltipRows([
-              ["Signature", summary.signature],
-              ["Mean exposure", d3.format(".1%")(summary.mean)],
-              ["Total exposure", formatPlotNumber(summary.total, 3)],
-              ["Samples >= cutoff", `${summary.prevalence}/${sampleNames.length}`],
-              ["Display", summary.hidden ? `${hiddenSignatures.length} lower-ranked signatures` : "Top cohort signature"],
-            ])
-          )
-        )
-        .on("mouseleave", hideTooltip);
+      .text(
+        compactTopPanel
+          ? "Ranked total exposure; right label shows samples above cutoff."
+          : "Totals by signature; percent = samples above cutoff."
+      );
+    if (compactTopPanel) {
       svg
         .append("text")
-        .attr("class", "msig-cohort-signature-label")
-        .attr("x", x + cellWidth / 2)
-        .attr("y", labelY)
-        .attr("text-anchor", "middle")
-        .attr("font", "800 11px Arial, sans-serif")
-        .attr("fill", SCIENTIFIC_COLORS.darkGray)
-        .text(compactPlotLabel(summary.displayLabel, cellWidth < 44 ? 7 : 10))
-        .append("title")
-        .text(summary.hidden ? `${summary.displayLabel}: ${summary.signature}` : summary.signature);
-      svg
-        .append("text")
-        .attr("class", "msig-cohort-prevalence-label")
-        .attr("x", x + cellWidth / 2)
-        .attr("y", prevalenceY)
-        .attr("text-anchor", "middle")
-        .attr("font", "700 9.2px Arial, sans-serif")
+        .attr("x", width - rightPad - 4)
+        .attr("y", 42)
+        .attr("text-anchor", "end")
+        .attr("font", "700 10px Arial, sans-serif")
         .attr("fill", SCIENTIFIC_COLORS.gray)
-        .text(d3.format(".0%")(summary.prevalenceFraction));
-      if (summary.hidden) {
+        .text(`Full catalog retained: ${signatureNames.length} signatures`);
+      signatureSummary.forEach((summary, index) => {
+        const y = rankedY0 + index * rankedRowHeight;
+        const rowLabel = summary.hidden
+          ? `${summary.displayLabel} (${hiddenSignatures.length} grouped)`
+          : summary.displayLabel;
+        if (summary.hidden) {
+          svg
+            .append("rect")
+            .attr("x", sampleX - 6)
+            .attr("y", y - 2)
+            .attr("width", rankedLabelWidth + rankedBarWidth + rankedValueWidth + 8)
+            .attr("height", rankedRowHeight)
+            .attr("rx", 6)
+            .attr("fill", "#ECFDF5")
+            .attr("stroke", "#A7F3D0");
+        }
         svg
           .append("text")
-          .attr("class", "msig-cohort-hidden-count")
+          .attr("x", sampleX)
+          .attr("y", y + 9.5)
+          .attr("font", "800 10px Arial, sans-serif")
+          .attr("fill", SCIENTIFIC_COLORS.darkGray)
+          .text(compactPlotLabel(rowLabel, 22))
+          .append("title")
+          .text(summary.hidden ? `${summary.displayLabel}: ${summary.signature}` : summary.signature);
+        svg
+          .append("rect")
+          .attr("x", rankedBarX)
+          .attr("y", y + 1)
+          .attr("width", rankedBarWidth)
+          .attr("height", 9)
+          .attr("rx", 5)
+          .attr("fill", "#E2E8F0");
+        svg
+          .append("rect")
+          .attr("x", rankedBarX)
+          .attr("y", y + 1)
+          .attr("width", Math.max(summary.total > 0 ? 3 : 0, totalScale(summary.total)))
+          .attr("height", 9)
+          .attr("rx", 5)
+          .attr("fill", summary.hidden ? SCIENTIFIC_COLORS.green : SCIENTIFIC_COLORS.blue)
+          .attr("opacity", summary.hidden ? 0.76 : 0.84)
+          .on("mousemove", (event) =>
+            showTooltip(
+              event,
+              tooltipRows([
+                ["Signature", summary.signature],
+                ["Mean exposure", d3.format(".1%")(summary.mean)],
+                ["Total exposure", formatPlotNumber(summary.total, 3)],
+                ["Samples >= cutoff", `${summary.prevalence}/${sampleNames.length}`],
+                ["Display", summary.hidden ? `${hiddenSignatures.length} lower-ranked signatures` : "Top cohort signature"],
+              ])
+            )
+          )
+          .on("mouseleave", hideTooltip);
+        svg
+          .append("text")
+          .attr("x", rankedBarX + rankedBarWidth + 8)
+          .attr("y", y + 9.5)
+          .attr("font", "750 9.6px Arial, sans-serif")
+          .attr("fill", SCIENTIFIC_COLORS.gray)
+          .text(`${summary.prevalence}/${sampleNames.length} samples`);
+      });
+    } else {
+      svg
+        .append("line")
+        .attr("x1", heatX)
+        .attr("x2", heatX + heatWidth)
+        .attr("y1", barBaselineY)
+        .attr("y2", barBaselineY)
+        .attr("stroke", "#CBD5E1")
+        .attr("stroke-width", 1);
+      signatureSummary.forEach((summary, index) => {
+        const x = heatX + index * cellWidth;
+        const barHeight = Math.max(3, totalScale(summary.total));
+        if (summary.hidden) {
+          svg
+            .append("rect")
+            .attr("x", x - 3)
+            .attr("y", topPanelY + 6)
+            .attr("width", cellWidth + 6)
+            .attr("height", topPanelHeight - 12)
+            .attr("rx", 7)
+            .attr("fill", "#ECFDF5")
+            .attr("stroke", "#A7F3D0");
+        }
+        svg
+          .append("rect")
+          .attr("x", x + cellWidth * 0.24)
+          .attr("y", barBaselineY - barHeight)
+          .attr("width", cellWidth * 0.52)
+          .attr("height", barHeight)
+          .attr("rx", 4)
+          .attr("fill", summary.hidden ? SCIENTIFIC_COLORS.green : SCIENTIFIC_COLORS.blue)
+          .attr("opacity", 0.82)
+          .on("mousemove", (event) =>
+            showTooltip(
+              event,
+              tooltipRows([
+                ["Signature", summary.signature],
+                ["Mean exposure", d3.format(".1%")(summary.mean)],
+                ["Total exposure", formatPlotNumber(summary.total, 3)],
+                ["Samples >= cutoff", `${summary.prevalence}/${sampleNames.length}`],
+                ["Display", summary.hidden ? `${hiddenSignatures.length} lower-ranked signatures` : "Top cohort signature"],
+              ])
+            )
+          )
+          .on("mouseleave", hideTooltip);
+        svg
+          .append("text")
+          .attr("class", "msig-cohort-signature-label")
           .attr("x", x + cellWidth / 2)
-          .attr("y", hiddenCountY)
+          .attr("y", labelY)
           .attr("text-anchor", "middle")
-          .attr("font", "700 8.8px Arial, sans-serif")
-          .attr("fill", SCIENTIFIC_COLORS.green)
-          .text(`${hiddenSignatures.length} grp`);
-      }
-    });
+          .attr("font", "800 11px Arial, sans-serif")
+          .attr("fill", SCIENTIFIC_COLORS.darkGray)
+          .text(compactPlotLabel(summary.displayLabel, cellWidth < 44 ? 7 : 10))
+          .append("title")
+          .text(summary.hidden ? `${summary.displayLabel}: ${summary.signature}` : summary.signature);
+        svg
+          .append("text")
+          .attr("class", "msig-cohort-prevalence-label")
+          .attr("x", x + cellWidth / 2)
+          .attr("y", prevalenceY)
+          .attr("text-anchor", "middle")
+          .attr("font", "700 9.2px Arial, sans-serif")
+          .attr("fill", SCIENTIFIC_COLORS.gray)
+          .text(d3.format(".0%")(summary.prevalenceFraction));
+        if (summary.hidden) {
+          svg
+            .append("text")
+            .attr("class", "msig-cohort-hidden-count")
+            .attr("x", x + cellWidth / 2)
+            .attr("y", hiddenCountY)
+            .attr("text-anchor", "middle")
+            .attr("font", "700 8.8px Arial, sans-serif")
+            .attr("fill", SCIENTIFIC_COLORS.green)
+            .text(`${hiddenSignatures.length} grp`);
+        }
+      });
+    }
     svg
       .append("rect")
       .attr("x", heatX - 5)
@@ -6603,6 +6729,22 @@ Renders a plot of mutational profiles in a given div element ID.
     svg.append("text").attr("x", burdenX).attr("y", headerY).attr("font", "800 11px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Burden");
     svg.append("text").attr("x", burdenValueX).attr("y", headerY).attr("font", "800 11px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("n");
     svg.append("text").attr("x", fitX).attr("y", headerY).attr("font", "800 11px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Fit cosine");
+    if (compactTopPanel) {
+      signatureSummary.forEach((summary, index) => {
+        const x = heatX + index * cellWidth;
+        svg
+          .append("text")
+          .attr("class", "msig-cohort-signature-label")
+          .attr("x", x + cellWidth / 2)
+          .attr("y", headerY)
+          .attr("text-anchor", "middle")
+          .attr("font", "800 10px Arial, sans-serif")
+          .attr("fill", SCIENTIFIC_COLORS.gray)
+          .text(compactPlotLabel(summary.displayLabel, cellWidth < 52 ? 7 : 9))
+          .append("title")
+          .text(summary.hidden ? `${summary.displayLabel}: ${summary.signature}` : summary.signature);
+      });
+    }
 
     const rows = svg
       .append("g")
@@ -6619,13 +6761,23 @@ Renders a plot of mutational profiles in a given div element ID.
       .attr("width", width - sampleX - 26)
       .attr("height", rowHeight)
       .attr("fill", (_row, index) => (index % 2 ? "#ffffff" : "#F8FAFC"));
-    rows
-      .append("text")
+
+    svg
+      .append("g")
+      .attr("clip-path", `url(#${sampleLabelClipId})`)
+      .selectAll("text.msig-cohort-sample-label")
+      .data(displayRows)
+      .join("text")
+      .attr("class", "msig-cohort-sample-label")
       .attr("x", sampleX)
-      .attr("y", rowHeight / 2 + 4)
-      .attr("font", "700 10.5px Arial, sans-serif")
+      .attr("y", (_row, index) => y0 + index * rowHeight + rowHeight / 2 + 4)
+      .attr("font", compactLayout ? "750 10px Arial, sans-serif" : "700 10.5px Arial, sans-serif")
       .attr("fill", SCIENTIFIC_COLORS.darkGray)
-      .text((row) => compactPlotLabel(row.sample, compactLayout ? 21 : 26))
+      .text((row) =>
+        compactLayout
+          ? compactSamplePlotLabel(row.sample, sampleLabelMaxLength)
+          : compactPlotLabel(row.sample, sampleLabelMaxLength)
+      )
       .append("title")
       .text((row) => row.sample);
     rows
@@ -6753,7 +6905,6 @@ Renders a plot of mutational profiles in a given div element ID.
     const legendY = height - 56;
     const legendWidth = Math.min(220, heatWidth);
     const gradientId = `msig-cohort-exposure-gradient-${Math.random().toString(36).slice(2)}`;
-    const defs = svg.append("defs");
     const gradient = defs.append("linearGradient").attr("id", gradientId).attr("x1", "0%").attr("x2", "100%");
     d3.range(0, 1.01, 0.1).forEach((stop) => {
       gradient.append("stop").attr("offset", `${stop * 100}%`).attr("stop-color", color(stop * maxExposure));

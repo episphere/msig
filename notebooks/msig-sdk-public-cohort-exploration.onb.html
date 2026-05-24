@@ -1026,15 +1026,23 @@
             dataset: label,
             signatureCatalog: active.selection.signatureSetName,
           }, {
-            topN: 12,
+            topN: 8,
             exposureThreshold: parseNumber(exposureThresholdInput.value, 0.01),
             title: "Full-COSMIC cohort exposure landscape",
-            subtitle: "Full reference-catalog fit; display summarizes the top 12 cohort signatures plus Other.",
+            subtitle: "Full reference-catalog fit; display summarizes the top 8 cohort signatures plus Other.",
             publication: {
               compact: true,
-              rowHeight: 17,
-              cellWidth: 56,
-              maxWidth: "100%",
+              rowHeight: 24,
+              cellWidth: 58,
+              sampleLabelWidth: 132,
+              sampleLabelMaxLength: 13,
+              burdenWidth: 82,
+              burdenValueWidth: 38,
+              fitWidth: 90,
+              bodyY: 276,
+              targetWidth: 960,
+              maxWidth: "960px",
+              scrollX: false,
             },
           })
         );
