@@ -1,0 +1,6 @@
+docs/package-repos/**/*.whl binary
+docs/package-repos/**/*.tgz binary
+docs/package-repos/**/*.tar.gz binary
+docs/package-repos/**/PACKAGES text eol=lf
+docs/package-repos/**/PACKAGES.gz binary
+docs/package-repos/**/PACKAGES.rds binary

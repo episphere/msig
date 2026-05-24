@@ -39,6 +39,15 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
       note,
     } = mSigSDK.presentation;
 
+    const bundledPyodideWheelPackage = (filename) => ({
+      spec: new URL(`../docs/package-repos/pyodide/${filename}`, location.href).href,
+      options: { deps: false },
+    });
+    const DEFAULT_MUSICAL_MICROPIP_PACKAGES = Object.freeze([
+      bundledPyodideWheelPackage("musical-1.0.0-py3-none-any.whl"),
+      bundledPyodideWheelPackage("seaborn-0.13.2-py3-none-any.whl"),
+    ]);
+
     const workflowState = {
       contexts: sbs96Contexts(),
       spectra: null,
@@ -1437,7 +1446,10 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
             runtime: "pyodide",
             method: workflowState.parameters.musicalMethod,
             threshold: workflowState.parameters.musicalThreshold,
-            micropipPackages: parsePackageList(workflowState.parameters.musicalPackage, []),
+            micropipPackages: parsePackageList(
+              workflowState.parameters.musicalPackage,
+              DEFAULT_MUSICAL_MICROPIP_PACKAGES
+            ),
             timeoutMs: workflowState.parameters.pyodideTimeoutMs,
           }
         );
@@ -2711,7 +2723,7 @@ These controls choose the fitting engine and package settings. Check the input f
     const webRBinaryVersionInput = document.createElement("input");
     webRBinaryVersionInput.value = workflowState.parameters.webrBinaryRVersion;
     const musicalPackageInput = document.createElement("textarea");
-    musicalPackageInput.placeholder = "Optional wheel URL/package spec, one per line. Leave blank only if MuSiCal is preloaded in the worker.";
+    musicalPackageInput.placeholder = "Optional custom wheel URL/package spec, one per line. Leave blank to use the bundled MuSiCal wheels.";
     musicalPackageInput.value = workflowState.parameters.musicalPackage;
     const musicalMethodInput = document.createElement("input");
     musicalMethodInput.value = workflowState.parameters.musicalMethod;
@@ -2761,7 +2773,7 @@ These controls choose the fitting engine and package settings. Check the input f
     const musicalPackageField = field(
       "MuSiCal package name or wheel URL",
       musicalPackageInput,
-      "Running the official MuSiCal package requires a Pyodide-compatible package or wheel."
+      "Running the official MuSiCal package requires a Pyodide-compatible package or wheel. The public deployment defaults to bundled MuSiCal and seaborn wheels."
     );
 	    const musicalMethodField = field("MuSiCal method", musicalMethodInput);
 	    const musicalThresholdField = field("MuSiCal minimum contribution (0-1)", musicalThresholdInput);

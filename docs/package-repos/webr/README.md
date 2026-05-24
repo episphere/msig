@@ -10,4 +10,7 @@ Required packages for the current manuscript plan:
 - solver dependencies including `nnls`, `quadprog`, and `GenSA`
 
 `manifest.json` records the pinned artifacts and SHA-256 hashes. The repository
-index is `bin/emscripten/contrib/4.6/PACKAGES`.
+indexes are `bin/emscripten/contrib/4.6/PACKAGES`, `PACKAGES.gz`, and
+`PACKAGES.rds`. The complete local WebR cache is intentionally ignored because
+it includes package files too large for ordinary GitHub hosting; the public
+deployment tracks only the adapter artifacts listed in `manifest.json`.
