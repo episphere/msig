@@ -11,7 +11,7 @@ One way to think about it is a mystery-drink problem. The observed mutation spec
 
 Start by loading a real public cohort through the mSigPortal APIs. The default selection is TCGA WES Lung-AdenoCa SBS96, but the menu lets you choose the public study, cancer type, sequencing strategy, mutation-pattern table, table size, and compatible reference signature catalog. You can also paste or upload your own spectra and signature catalog when adapting the workflow.
 
-The fitting method menu can run the built-in SDK fit, package adapters for SigProfilerAssignment and MuSiCal when Pyodide can install them, deconstructSigs through WebR with the original archived R source when needed, sigminer when WebR can install it, and mSigSDK de novo extraction with SigProfilerExtractor handoff files. The downstream mSigSDK checks, plots, reports, and exports stay the same around whichever fitting method produced the contribution table.
+The fitting method menu can run the built-in SDK fit plus the four executable external package adapters in the SDK runtime manifest: SigProfilerAssignment and MuSiCal through Pyodide, and deconstructSigs and sigminer through WebR. Native JavaScript NMF remains the SDK discovery workflow in the NMF notebook rather than an external package adapter. The downstream mSigSDK checks, plots, reports, and exports stay the same around whichever fitting method produced the contribution table.
 
 A close reconstruction is useful, but it is not the whole analysis. Some reference signatures look similar to each other, like two ingredients with similar flavor. The workflow also checks mutation counts, leftover pattern after fitting, uncertainty, cutoff sensitivity, and reference-signature similarity. These are review diagnostics: they tell you what deserves inspection before making a claim.
 </script>
@@ -68,7 +68,6 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
         webrRepositoryUrl: "https://repo.r-wasm.org",
         webrBinaryRVersion: "4.5",
         sigProfilerAssignmentPackage: "SigProfilerAssignment==1.1.3",
-        sigProfilerExtractorPackage: "SigProfilerExtractor==1.2.6",
         sigProfilerGenomeBuild: "GRCh37",
         sigProfilerCosmicVersion: 3.5,
         sigProfilerExome: false,
@@ -140,21 +139,6 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
 	          "mSigSDK cutoff review applied around the selected contribution table; package-native cutoffs may differ.",
 	        description:
 	          "Runs the established SigProfilerAssignment package in the browser when Pyodide and the package are available. SigProfilerAssignment estimates the signature recipe; mSigSDK then checks, plots, and reports those results.",
-      },
-      sigprofilerextractor_pyodide: {
-        label: "mSigSDK de novo extraction",
-        shortLabel: "mSigSDK extraction",
-        runtime: "Browser-native NMF; SigProfilerExtractor handoff files exported",
-        command: "adapters.sigProfilerExtractor.run",
-        exposureSource: "mSigSDK browser-native NMF extraction",
-        supportsThresholdSensitivity: true,
-        supportsBootstrap: true,
-        uncertaintyBasis:
-          "mSigSDK review bootstrap using the extracted signature catalog from the browser run.",
-        cutoffSensitivityBasis:
-          "mSigSDK cutoff review applied to the selected contribution table and extracted signatures.",
-        description:
-          "Runs mSigSDK browser-native NMF to extract candidate signatures from the loaded spectra. This is not execution of the SigProfilerExtractor Python package; the export bundle includes the Python snippet and input table for an exact local or server SigProfilerExtractor run.",
       },
       musical_pyodide: {
         label: "MuSiCal",
@@ -368,6 +352,30 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
 	      return Math.round(value / step) * step;
 	    }
 
+	    function roundedQuantile(values = [], probability = 0.9, { step = 0.001, min = null, max = null } = {}) {
+	      const value = quantile(values, probability);
+	      if (!Number.isFinite(value)) return null;
+	      const bounded = clampNumber(
+	        value,
+	        Number.isFinite(min) ? min : -Infinity,
+	        Number.isFinite(max) ? max : Infinity
+	      );
+	      return Number(niceRound(bounded, step).toFixed(6));
+	    }
+
+	    function upperOutlierCutoffs(values = [], currentCheck, currentPriority, options = {}) {
+	      const finiteValues = sortedFiniteValues(values).filter((value) => value > 0);
+	      if (!finiteValues.length) {
+	        return { check: currentCheck, priority: currentPriority };
+	      }
+	      const check = roundedQuantile(finiteValues, 0.9, options);
+	      const priority = roundedQuantile(finiteValues, 0.95, options);
+	      return {
+	        check: Number.isFinite(check) ? check : currentCheck,
+	        priority: Number.isFinite(priority) ? Math.max(priority, check || priority) : currentPriority,
+	      };
+	    }
+
 	    function spectraMutationTotals() {
 	      return Object.values(workflowState.spectra || {}).map((spectrum) =>
 	        Object.values(spectrum || {}).reduce((sum, value) => sum + parseNumber(value, 0), 0)
@@ -413,31 +421,45 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
 	        )
 	        : current.moderateBurdenThreshold;
 	      const residualValues = fitQualityComponentValues("residual", "unexplainedFraction").map((value) => value * 100);
-	      const residualCheck = Number.isFinite(quantile(residualValues, 0.75))
-	        ? niceRound(clampNumber(quantile(residualValues, 0.75), 15, 35), 1)
-	        : current.residualUnexplainedCheckPercent;
-	      const residualPriority = Number.isFinite(quantile(residualValues, 0.9))
-	        ? niceRound(clampNumber(Math.max(quantile(residualValues, 0.9), residualCheck + 5), 25, 60), 1)
-	        : current.residualUnexplainedPriorityPercent;
+	      const residualCutoffs = upperOutlierCutoffs(
+	        residualValues,
+	        current.residualUnexplainedCheckPercent,
+	        current.residualUnexplainedPriorityPercent,
+	        { step: 0.1 }
+	      );
+	      const bootstrapValues = fitQualityComponentValues("bootstrap", "maxConfidenceWidth").map((value) => value * 100);
+	      const bootstrapCutoffs = upperOutlierCutoffs(
+	        bootstrapValues,
+	        current.bootstrapCiCheckPercent,
+	        current.bootstrapCiPriorityPercent,
+	        { step: 0.1 }
+	      );
+	      const cutoffDropValues = fitQualityComponentValues("threshold", "cosineDrop");
+	      const cutoffDropCutoffs = upperOutlierCutoffs(
+	        cutoffDropValues,
+	        current.cutoffCosineDropCheck,
+	        current.cutoffCosineDropPriority,
+	        { step: 0.001 }
+	      );
 	      const nnValues = fitQualityComponentValues("ambiguity", "maxActivePairCosine");
-	      const nnCheck = Number.isFinite(quantile(nnValues, 0.9))
-	        ? Number(clampNumber(quantile(nnValues, 0.9), 0.9, 0.99).toFixed(3))
-	        : current.nnCosineCheck;
-	      const nnPriority = Number.isFinite(quantile(nnValues, 0.97))
-	        ? Number(clampNumber(Math.max(quantile(nnValues, 0.97), nnCheck + 0.01), 0.93, 0.995).toFixed(3))
-	        : current.nnCosinePriority;
+	      const nnCutoffs = upperOutlierCutoffs(
+	        nnValues,
+	        current.nnCosineCheck,
+	        current.nnCosinePriority,
+	        { step: 0.001, min: 0, max: 0.999 }
+	      );
 	      return {
 	        ...current,
 	        lowBurdenThreshold,
 	        moderateBurdenThreshold,
-	        residualUnexplainedCheckPercent: residualCheck,
-	        residualUnexplainedPriorityPercent: residualPriority,
-	        bootstrapCiCheckPercent: "",
-	        bootstrapCiPriorityPercent: "",
-	        cutoffCosineDropCheck: "",
-	        cutoffCosineDropPriority: "",
-	        nnCosineCheck: nnCheck,
-	        nnCosinePriority: nnPriority,
+	        residualUnexplainedCheckPercent: residualCutoffs.check,
+	        residualUnexplainedPriorityPercent: residualCutoffs.priority,
+	        bootstrapCiCheckPercent: bootstrapCutoffs.check,
+	        bootstrapCiPriorityPercent: bootstrapCutoffs.priority,
+	        cutoffCosineDropCheck: cutoffDropCutoffs.check,
+	        cutoffCosineDropPriority: cutoffDropCutoffs.priority,
+	        nnCosineCheck: nnCutoffs.check,
+	        nnCosinePriority: nnCutoffs.priority,
 	      };
 	    }
 
@@ -1176,7 +1198,7 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
 	        { field: "Execution detail", value: result?.loadedOutput || engine.exposureSource },
 	        { field: "Loaded samples", value: loadedSampleCount || "n/a" },
 	        { field: "Samples fitted", value: fittedSampleCount || "n/a" },
-	        { field: "Uncertainty samples", value: uncertaintySampleCount || "not run yet" },
+	        { field: "Uncertainty samples", value: uncertaintySampleCount || "not evaluated yet" },
 	        { field: "Contribution table", value: result?.exposures ? "available" : engine.command === "workflows.runCohortFit" ? "created by mSigSDK workflow" : "not available" },
         { field: "Cutoff sensitivity", value: engine.supportsThresholdSensitivity ? engine.cutoffSensitivityBasis : "not available for this selected package" },
         { field: "Uncertainty intervals", value: engine.supportsBootstrap ? engine.uncertaintyBasis : "not available for this selected package" },
@@ -1261,25 +1283,6 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
             cosmicVersion: workflowState.parameters.sigProfilerCosmicVersion,
             exome: workflowState.parameters.sigProfilerExome,
             timeoutMs: workflowState.parameters.pyodideTimeoutMs,
-          }
-        );
-      }
-
-      if (engineKey === "sigprofilerextractor_pyodide") {
-        return await mSigSDK.adapters.sigProfilerExtractor.run(
-          {
-            spectra: workflowState.spectra,
-          },
-          {
-            runtime: "browser_nmf",
-            contexts: workflowState.contexts,
-            referenceGenome: workflowState.parameters.sigProfilerGenomeBuild,
-            minimumSignatures: 1,
-            maximumSignatures: Math.min(5, Math.max(1, Object.keys(workflowState.spectra || {}).length)),
-            nmfReplicates: 8,
-            maxBrowserRuns: 8,
-            maxIterations: 700,
-            signaturePrefix: "SPE_NMF",
           }
         );
       }
@@ -1569,23 +1572,9 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
         },
         {
           contexts: workflowState.contexts,
-          include: ["sigProfilerAssignment", "sigProfilerExtractor", "sigProfilerPlotting", "deconstructSigs", "sigminer", "musical"],
+          include: ["sigProfilerAssignment", "deconstructSigs", "sigminer", "musical"],
         }
       );
-      interoperability.standaloneTools = {
-        sigProfilerMatrixGenerator: mSigSDK.adapters.sigProfilerMatrixGenerator.prepareInput(
-          { files: [] },
-          { project: "end_to_end_matrix_generator", referenceGenome: workflowState.parameters.sigProfilerGenomeBuild }
-        ),
-        sigProfilerSimulator: mSigSDK.adapters.sigProfilerSimulator.prepareInput(
-          { files: [] },
-          { project: "end_to_end_simulator", genome: workflowState.parameters.sigProfilerGenomeBuild, simulations: 100 }
-        ),
-        sigProfilerClusters: mSigSDK.adapters.sigProfilerClusters.prepareInput(
-          { files: [] },
-          { project: "end_to_end_clusters", genome: workflowState.parameters.sigProfilerGenomeBuild }
-        ),
-      };
       return interoperability;
     }
 
@@ -1619,6 +1608,12 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
       const reviewedAnalysis = bootstrap
         ? refreshFitQualityEvidenceWithBootstrap(analysis)
         : analysis;
+      workflowState.analysis = reviewedAnalysis;
+      const adaptiveReviewDefaults = resetReviewDraftToAdaptive({ commit: true });
+      const adaptivelyReviewedAnalysis = refreshFitQualityEvidenceWithBootstrap(reviewedAnalysis);
+      workflowState.analysis = adaptivelyReviewedAnalysis;
+      workflowState.bootstrap = bootstrap;
+      workflowState.adaptiveReviewDefaults = reviewParameterSnapshot(adaptiveReviewDefaults);
       const interoperability = createWorkflowInteroperabilityBundle();
       const provenance = mSigSDK.provenance.createProvenance({
         analysis: "interactive end-to-end workflow",
@@ -1635,21 +1630,18 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
 	          "Signature contribution estimates depend on the supplied spectra, active signature catalog, mutation context type, fitting settings, and cutoffs.",
         ],
       });
-      workflowState.analysis = reviewedAnalysis;
-      workflowState.bootstrap = bootstrap;
-      workflowState.adaptiveReviewDefaults = reviewParameterSnapshot(computeAdaptiveReviewDefaults());
       workflowState.interoperability = interoperability;
       workflowState.provenance = provenance;
-      workflowState.exposureEngineResult = reviewedAnalysis.exposureEngineResult || engineResult;
+      workflowState.exposureEngineResult = adaptivelyReviewedAnalysis.exposureEngineResult || engineResult;
       workflowState.runtimeMs = performance.now() - started;
       document.dispatchEvent(new CustomEvent("msig:endToEndRun"));
-      return reviewedAnalysis;
+      return adaptivelyReviewedAnalysis;
     }
 
 	    display(metrics([
 	      { label: "SDK", value: mSigSDK.version, note: "Imported from ../main.js" },
 	      { label: "Mutation context type", value: "Selected by data", note: "Defaults to TCGA WES Lung-AdenoCa SBS96" },
-	      { label: "Fitting method", value: "Selectable", note: "Built-in mSigSDK, SigProfilerAssignment, SigProfilerExtractor, MuSiCal, deconstructSigs, or sigminer" },
+	      { label: "Fitting method", value: "Selectable", note: "Built-in mSigSDK, SigProfilerAssignment, MuSiCal, deconstructSigs, or sigminer" },
 	      { label: "Status", value: "Waiting for data", note: "Use the next cell" },
 	    ]));
 	    display(collapsibleOutput("Concept map", workflowOutputGuide(
@@ -2168,7 +2160,7 @@ Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 
 <script type="text/markdown">
 ## Step 2. Choose settings and run
 
-These controls choose the fitting engine and package settings. Check the input first, then choose which method should guess the signature recipe. You can use mSigSDK's built-in fit, package adapters such as SigProfilerAssignment and MuSiCal where Pyodide is available, deconstructSigs through WebR with the original archived R source when needed, sigminer where WebR package builds are available, or mSigSDK de novo extraction with exact SigProfilerExtractor handoff files.
+These controls choose the fitting engine and package settings. Check the input first, then choose which method should guess the signature recipe. You can use mSigSDK's built-in fit, SigProfilerAssignment or MuSiCal where Pyodide is available, and deconstructSigs or sigminer where WebR package builds are available. Use the separate NMF notebook for mSigSDK native de novo discovery.
 </script>
 
   <script type="module" pinned id="3">
@@ -2270,7 +2262,7 @@ These controls choose the fitting engine and package settings. Check the input f
       [
 	        {
 	          title: "Choose the fitting method",
-	          body: "Select which method guesses the signature recipe: the built-in mSigSDK fit, SigProfilerAssignment, mSigSDK de novo extraction, MuSiCal, deconstructSigs, or sigminer.",
+	          body: "Select which method guesses the signature recipe: the built-in mSigSDK fit, SigProfilerAssignment, MuSiCal, deconstructSigs, or sigminer.",
 	        },
 	        {
 	          title: "Check the input tables",
@@ -2332,7 +2324,7 @@ These controls choose the fitting engine and package settings. Check the input f
 	      },
 	      lowBurdenThreshold: {
 	        label: "Low mutation-count cutoff",
-	        help: "Samples below this mutation count are flagged as low-burden fits.",
+	        help: "Defaults to the cohort 10th percentile after data load. Samples below this data-derived mutation-count cutoff are flagged as low-burden fits.",
 	        type: "number",
 	        step: 10,
 	        fallback: 100,
@@ -2371,7 +2363,7 @@ These controls choose the fitting engine and package settings. Check the input f
 	      },
 	      residualUnexplainedCheckPercent: {
 	        label: "Residual check (%)",
-	        help: "Unexplained residual fraction that starts a residual caveat when the reconstruction rule is met.",
+	        help: "Defaults to the cohort 90th percentile after fitting. Samples at or above this unexplained residual percentage receive a residual review cue.",
 	        type: "number",
 	        step: 1,
 	        fallback: 20,
@@ -2379,23 +2371,23 @@ These controls choose the fitting engine and package settings. Check the input f
 	      },
 	      residualUnexplainedPriorityPercent: {
 	        label: "Residual priority (%)",
-	        help: "Unexplained residual fraction that raises the residual caveat to priority review.",
+	        help: "Defaults to the cohort 95th percentile after fitting. Samples at or above this unexplained residual percentage receive a priority residual cue.",
 	        type: "number",
 	        step: 1,
 	        fallback: 30,
 	        parse: (value) => parseNumber(value, 30),
 	      },
 	      bootstrapCiCheckPercent: {
-	        label: "Bootstrap CI check (pp)",
-	        help: "Optional. Enter the bootstrap CI threshold in percentage points. Leave blank to keep bootstrap CI as a blue measured value.",
+	        label: "Bootstrap 95% CI width check (%)",
+	        help: "Defaults to the cohort 90th percentile after bootstrap. Samples at or above this widest 95% CI width receive an uncertainty cue; leave blank to disable.",
 	        type: "number",
 	        step: 1,
 	        placeholder: "off",
 	        parse: (value) => String(value ?? "").trim(),
 	      },
 	      bootstrapCiPriorityPercent: {
-	        label: "Bootstrap CI priority (pp)",
-	        help: "Optional. Enter the priority CI threshold in percentage points. Leave blank to keep bootstrap CI as a blue measured value.",
+	        label: "Bootstrap 95% CI width priority (%)",
+	        help: "Defaults to the cohort 95th percentile after bootstrap. Samples at or above this widest 95% CI width receive a priority uncertainty cue; leave blank to disable.",
 	        type: "number",
 	        step: 1,
 	        placeholder: "off",
@@ -2403,7 +2395,7 @@ These controls choose the fitting engine and package settings. Check the input f
 	      },
 	      cutoffCosineDropCheck: {
 	        label: "Cutoff cosine-drop check (0-1)",
-	        help: "Optional. Enter a reconstruction cosine-drop threshold to mark cutoff sensitivity as a check. Leave blank to keep it as a blue measured value.",
+	        help: "Defaults to the cohort 90th percentile after fitting. Samples at or above this maximum reconstruction-cosine drop receive a cutoff-sensitivity cue; leave blank to disable.",
 	        type: "number",
 	        step: 0.005,
 	        max: 1,
@@ -2412,7 +2404,7 @@ These controls choose the fitting engine and package settings. Check the input f
 	      },
 	      cutoffCosineDropPriority: {
 	        label: "Cutoff cosine-drop priority (0-1)",
-	        help: "Optional. Enter a larger reconstruction cosine-drop threshold for priority review. Leave blank to keep it as a blue measured value.",
+	        help: "Defaults to the cohort 95th percentile after fitting. Samples at or above this maximum reconstruction-cosine drop receive a priority cutoff-sensitivity cue; leave blank to disable.",
 	        type: "number",
 	        step: 0.005,
 	        max: 1,
@@ -2420,8 +2412,8 @@ These controls choose the fitting engine and package settings. Check the input f
 	        parse: (value) => String(value ?? "").trim(),
 	      },
 	      nnCosineCheck: {
-	        label: "NN cosine sim check (0-1)",
-	        help: "Nearest-neighbor signature cosine similarity that starts a fitted-signature confusion caveat.",
+	        label: "Nearest signature cosine check (0-1)",
+	        help: "Defaults to the cohort 90th percentile after fitting. Samples at or above this nearest active-signature cosine receive an ambiguity cue.",
 	        type: "number",
 	        step: 0.01,
 	        max: 1,
@@ -2429,8 +2421,8 @@ These controls choose the fitting engine and package settings. Check the input f
 	        parse: (value) => parseNumber(value, 0.9),
 	      },
 	      nnCosinePriority: {
-	        label: "NN cosine sim priority (0-1)",
-	        help: "Nearest-neighbor signature cosine similarity that raises the confusion caveat to priority review.",
+	        label: "Nearest signature cosine priority (0-1)",
+	        help: "Defaults to the cohort 95th percentile after fitting. Samples at or above this nearest active-signature cosine receive a priority ambiguity cue.",
 	        type: "number",
 	        step: 0.01,
 	        max: 1,
@@ -2556,8 +2548,6 @@ These controls choose the fitting engine and package settings. Check the input f
     engineSelect.value = workflowState.parameters.fitEngine;
     const spaPackageInput = document.createElement("input");
     spaPackageInput.value = workflowState.parameters.sigProfilerAssignmentPackage;
-    const spePackageInput = document.createElement("input");
-    spePackageInput.value = workflowState.parameters.sigProfilerExtractorPackage;
     const spaGenomeInput = document.createElement("input");
     spaGenomeInput.value = workflowState.parameters.sigProfilerGenomeBuild;
     const spaCosmicInput = numberInput(workflowState.parameters.sigProfilerCosmicVersion, 0.1);
@@ -2600,11 +2590,6 @@ These controls choose the fitting engine and package settings. Check the input f
       spaPackageInput,
       "Package name or wheel URL used by browser Python. Default: SigProfilerAssignment==1.1.3."
     );
-    const spePackageField = field(
-      "SigProfilerExtractor package name",
-      spePackageInput,
-      "Used only when requesting an exact non-browser package run from the SDK."
-    );
     const spaGenomeField = field("SigProfiler genome build", spaGenomeInput);
     const spaCosmicField = field("COSMIC version", spaCosmicInput);
     const spaExomeField = field("SigProfiler exome/WES mode", spaExomeInput, "Check this for exome/WES-style SigProfilerAssignment settings.");
@@ -2639,10 +2624,9 @@ These controls choose the fitting engine and package settings. Check the input f
     );
 
 	    function readParameters() {
-	      syncParametersFromControls();
+      syncParametersFromControls();
       workflowState.parameters.fitEngine = engineSelect.value;
       workflowState.parameters.sigProfilerAssignmentPackage = spaPackageInput.value.trim() || "SigProfilerAssignment==1.1.3";
-      workflowState.parameters.sigProfilerExtractorPackage = spePackageInput.value.trim() || "SigProfilerExtractor==1.2.6";
       workflowState.parameters.sigProfilerGenomeBuild = spaGenomeInput.value.trim() || "GRCh37";
       workflowState.parameters.sigProfilerCosmicVersion = parseNumber(spaCosmicInput.value, 3.5);
       workflowState.parameters.sigProfilerExome = Boolean(spaExomeInput.checked);
@@ -2661,14 +2645,12 @@ These controls choose the fitting engine and package settings. Check the input f
       readParameters();
       const engine = currentFitEngine();
       const isSpa = workflowState.parameters.fitEngine === "sigprofilerassignment_pyodide";
-      const isSpe = workflowState.parameters.fitEngine === "sigprofilerextractor_pyodide";
       const isMusical = workflowState.parameters.fitEngine === "musical_pyodide";
       const isPyodide = engine.runtime.includes("Pyodide");
       const isWebR = engine.runtime.includes("WebR");
       const isSigminerWebR = workflowState.parameters.fitEngine === "sigminer_webr";
       spaPackageField.hidden = !isSpa;
-      spePackageField.hidden = true;
-      spaGenomeField.hidden = !isSpa && !isSpe;
+      spaGenomeField.hidden = !isSpa;
       spaCosmicField.hidden = !isSpa;
       spaExomeField.hidden = !isSpa;
       pyodideTimeoutField.hidden = !isPyodide;
@@ -2861,7 +2843,6 @@ These controls choose the fitting engine and package settings. Check the input f
 	      exposureThresholdField,
 	      groupKeyField,
       spaPackageField,
-      spePackageField,
       spaGenomeField,
       spaCosmicField,
       spaExomeField,
@@ -2933,8 +2914,8 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 	        keys: ["residualUnexplainedCheckPercent", "residualUnexplainedPriorityPercent"],
 	      },
 	      {
-	        title: "Bootstrap CI (pp)",
-	        description: "Plot value is the largest confidence interval among reportable signatures, in percentage points.",
+	        title: "Bootstrap 95% CI width (%)",
+	        description: "Plot value is the largest 95% confidence interval among reportable signatures, shown as percent of relative exposure.",
 	        keys: ["bootstrapCiCheckPercent", "bootstrapCiPriorityPercent"],
 	      },
 	      {
@@ -2943,13 +2924,13 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 	        keys: ["cutoffCosineDropCheck", "cutoffCosineDropPriority"],
 	      },
 	      {
-	        title: "NN cosine sim (0-1)",
+	        title: "Nearest signature cosine (0-1)",
 	        description: "Plot value and thresholds use the highest cosine similarity between fitted active signatures.",
 	        keys: ["nnCosineCheck", "nnCosinePriority"],
 	      },
 	      {
 	        title: "Shared active-signature filter (%)",
-	        description: "Used by Bootstrap CI and NN cosine sim to decide which fitted signatures are reportable.",
+	        description: "Used by bootstrap CI and nearest-signature cosine checks to decide which fitted signatures are reportable.",
 	        keys: ["activeSignaturePercent"],
 	      },
 	    ];
@@ -3154,8 +3135,8 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 	        bootstrapCiPriorityPercent: "Bootstrap max CI priority",
 	        cutoffCosineDropCheck: "Cutoff max drop check",
 	        cutoffCosineDropPriority: "Cutoff max drop priority",
-	        nnCosineCheck: "NN cosine check",
-	        nnCosinePriority: "NN cosine priority",
+	        nnCosineCheck: "Nearest signature cosine check",
+	        nnCosinePriority: "Nearest signature cosine priority",
 	        activeSignaturePercent: "Active signature",
 	        thresholdGrid: "Cutoffs",
 	        bootstrapIterations: "Iterations",
@@ -3663,6 +3644,37 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 		        , { parameterPanel: reviewSettingsPanel(), interpretLabel: "How to read this panel" }
 		      );
 		      await plotSection(
+		        "Full-COSMIC cohort exposure landscape",
+		        (id) => mSigSDK.qcPlots.plotCohortSignatureSummary(id, {
+		          spectra: workflowState.spectra,
+		          exposures: analysis.fit?.exposures,
+		          fitQuality: analysis.fitQualityEvidence,
+		          metadata: workflowState.metadata,
+		          signatureNames: Object.keys(activeAnalysisSignatures(analysis) || {}),
+		          dataset: workflowState.publicSelection
+		            ? `${workflowState.publicSelection.study} ${workflowState.publicSelection.cancer} ${workflowState.publicSelection.profile || ""}`.trim()
+		            : (workflowState.source || "Loaded cohort"),
+		          signatureCatalog: workflowState.publicSelection?.signatureSetName || analysis.fit?.catalog || "active reference catalog",
+		        }, {
+		          topN: 12,
+		          exposureThreshold: workflowState.parameters.exposureThreshold,
+		          title: "Full-COSMIC cohort exposure landscape",
+		          subtitle: "Full reference-catalog fit; display summarizes the top 12 cohort signatures plus Other.",
+		          publication: {
+		            compact: true,
+		            rowHeight: 17,
+		            cellWidth: 56,
+		            maxWidth: "100%",
+		          },
+		        }),
+		        table(exposureRows(analysis.fit.exposures, { minExposure: 0, topN: 30 }), null, {
+		          title: "Displayed cohort signatures",
+		          caption: "The figure computes the full fitted catalog and displays the highest-total cohort signatures plus an Other column for lower-ranked fitted COSMIC SBS signatures.",
+		        }),
+		        "Shows the fitted signature landscape across all loaded samples. The computation uses the active full reference catalog; the visual compresses lower-ranked signatures into Other so the cohort pattern remains readable.",
+		        { settingKeys: ["exposureThreshold"], interpretLabel: "How to read this cohort landscape" }
+		      );
+		      await plotSection(
 		        "Mutation count",
 	        (id) => mSigSDK.qcPlots.plotMutationBurdenSummary(id, analysis.qc.mutationBurden),
         table(burdenSampleRows(analysis.qc.mutationBurden), null, {
@@ -3711,7 +3723,7 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 	          title: "Uncertainty values for the selected sample",
 	          caption: "Lists repeat-fit intervals and selection-frequency values for the sample selected above.",
 	        }),
-        `Shows repeat-fit confidence intervals for one sample. Values are signature-contribution percentage points. ${analysis.exposureEngine?.uncertaintyBasis || "mSigSDK review bootstrap uses the active spectra and signature catalog."}`,
+        `Shows repeat-fit confidence intervals for one sample. Values are signature-contribution percentages. ${analysis.exposureEngine?.uncertaintyBasis || "mSigSDK review bootstrap uses the active spectra and signature catalog."}`,
         {
           settingKeys: UNCERTAINTY_PARAMETER_KEYS,
           sampleControl: true,

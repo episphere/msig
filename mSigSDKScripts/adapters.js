@@ -13,48 +13,56 @@ import {
   toFiniteNumber,
 } from "./validation.js";
 import {
-  calculateReconstructionError,
-  fitSpectraWithNNLS,
-} from "./qc.js";
-import {
   checkWebRPackageAvailability,
   detectWebRRuntime,
   runPyodide,
   runWebR,
 } from "./runners.js";
 import {
-  extractSignaturesNMFInWorker,
-  selectNMFRank,
-} from "./signatureExtraction.js";
+  PACKAGE_RUNTIME_MANIFEST,
+  getPackageRuntime,
+  listPackageRuntimes,
+} from "./packageRuntimes.js";
 
 const ADAPTER_SCHEMA_VERSION = "msig.adapters.v0.3";
-const DEFAULT_SPA_PACKAGE = "SigProfilerAssignment==1.1.3";
+const DEFAULT_SPA_PACKAGE =
+  "docs/package-repos/pyodide/sigprofilerassignment-1.1.3-py3-none-any.whl";
+const DEFAULT_SPA_VERSION = "1.1.3";
 const DEFAULT_SPE_PACKAGE = "SigProfilerExtractor==1.2.6";
 const DEFAULT_SPMG_PACKAGE = "SigProfilerMatrixGenerator==1.3.6";
 const DEFAULT_SPS_PACKAGE = "SigProfilerSimulator==1.2.2";
 const DEFAULT_SPC_PACKAGE = "SigProfilerClusters==1.2.2";
 const DEFAULT_SPP_PACKAGE = "sigProfilerPlotting==1.4.3";
 const DEFAULT_DECONSTRUCTSIGS_WEBR_PACKAGES = ["deconstructSigs"];
-const DEFAULT_DECONSTRUCTSIGS_SOURCE_ARCHIVE_URL =
-  "https://cran.r-project.org/src/contrib/Archive/deconstructSigs/deconstructSigs_1.8.0.tar.gz";
-const DEFAULT_DECONSTRUCTSIGS_SOURCE_VERSION = "1.8.0";
-const DEFAULT_DECONSTRUCTSIGS_SOURCE_COMMIT = "725f909dea9fb86ce4dea8a43b727b105da8bdd2";
-const DEFAULT_DECONSTRUCTSIGS_SOURCE_FILES = [
-  "golden_section_search.R",
-  "internal.scripts.R",
-  "normalize.data.R",
-  "whichSignatures.R",
-].map((name) => ({
-  path: `/input/deconstructSigs/R/${name}`,
-  url: `https://raw.githubusercontent.com/cran/deconstructSigs/${DEFAULT_DECONSTRUCTSIGS_SOURCE_COMMIT}/R/${name}`,
-}));
 const DEFAULT_SIGMINER_WEBR_PACKAGES = ["sigminer"];
+const DEFAULT_MUSICAL_PACKAGE =
+  "docs/package-repos/pyodide/musical-1.0.0-py3-none-any.whl";
+const DEFAULT_SEABORN_PACKAGE =
+  "docs/package-repos/pyodide/seaborn-0.13.2-py3-none-any.whl";
 const DEFAULT_PYODIDE_SCIENTIFIC_PACKAGES = [
   "numpy",
   "scipy",
   "pandas",
+  "matplotlib",
   "scikit-learn",
+  "statsmodels",
+  "pillow",
 ];
+const DEFAULT_MUSICAL_MICROPIP_PACKAGES = [
+  DEFAULT_MUSICAL_PACKAGE,
+  DEFAULT_SEABORN_PACKAGE,
+].map((spec) => ({ spec, options: { deps: false } }));
+const DEFAULT_SPA_MICROPIP_PACKAGES = [
+  DEFAULT_SPA_PACKAGE,
+  "docs/package-repos/pyodide/sigprofilermatrixgenerator-1.3.6-py3-none-any.whl",
+  "docs/package-repos/pyodide/sigprofilerplotting-1.4.3-py3-none-any.whl",
+  "docs/package-repos/pyodide/alive_progress-3.3.0-py3-none-any.whl",
+  "docs/package-repos/pyodide/about_time-4.2.1-py3-none-any.whl",
+  "docs/package-repos/pyodide/graphemeu-0.7.2-py3-none-any.whl",
+  "docs/package-repos/pyodide/pdf2image-1.17.0-py3-none-any.whl",
+  "docs/package-repos/pyodide/pypdf-6.11.0-py3-none-any.whl",
+  "docs/package-repos/pyodide/reportlab-4.5.1-py3-none-any.whl",
+].map((spec) => ({ spec, options: { deps: false } }));
 
 function normalizeArray(value) {
   if (value === undefined || value === null) {
@@ -613,50 +621,6 @@ function integerInRange(value, fallback, min, max) {
   return Math.max(min, Math.min(max, resolved));
 }
 
-function buildSigProfilerExtractorRankGrid({
-  minimumSignatures = 1,
-  maximumSignatures = 5,
-  sampleCount = 1,
-  contextCount = 1,
-} = {}) {
-  const upperBound = Math.max(1, Math.min(
-    integerInRange(maximumSignatures, 5, 1, 20),
-    Math.max(1, sampleCount || 1),
-    Math.max(1, contextCount || 1)
-  ));
-  const lowerBound = Math.min(
-    upperBound,
-    integerInRange(minimumSignatures, 1, 1, upperBound)
-  );
-  return Array.from(
-    { length: upperBound - lowerBound + 1 },
-    (_, index) => lowerBound + index
-  );
-}
-
-function summarizeSigProfilerExtractorRankSelection(rankSelection) {
-  if (!rankSelection) {
-    return null;
-  }
-  return {
-    ranks: rankSelection.ranks,
-    recommendedRank: rankSelection.recommendedRank,
-    rankSelectionCriterion: rankSelection.rankSelectionCriterion,
-    criterionDirection: rankSelection.criterionDirection,
-    criterionValue: rankSelection.criterionValue,
-    runs: (rankSelection.runs || []).map((run) => ({
-      rank: run.rank,
-      reconstructionError: run.reconstructionError,
-      averageSampleCosineSimilarity: run.averageSampleCosineSimilarity,
-      copheneticCorrelation: run.copheneticCorrelation,
-      averageSilhouette: run.averageSilhouette,
-      criterionValue: run.criterionValue,
-      converged: run.converged,
-      iterations: run.iterations,
-    })),
-  };
-}
-
 function sigProfilerExtractorPackageSpec(packages = []) {
   return normalizeArray(packages).find((packageName) =>
     /(^|[/@])SigProfilerExtractor([=@<>\s]|$)/i.test(String(packageName || ""))
@@ -665,7 +629,7 @@ function sigProfilerExtractorPackageSpec(packages = []) {
 
 function createSigProfilerExtractorPyodideError({ prepared, packageSpec } = {}) {
   const error = new Error(
-    "SigProfilerExtractor cannot currently be installed in browser Python because its package dependency chain includes torch, which Pyodide cannot install. Use the browser extraction run or export the SigProfilerExtractor handoff files for a local or server Python run."
+    "SigProfilerExtractor cannot currently be installed in browser Python because its package dependency chain includes torch, which Pyodide cannot install. Exact package execution is required for adapter run methods; use prepareInput/export handoff files for a local or server Python run until a compatible Pyodide artifact exists."
   );
   error.name = "SigProfilerExtractorPyodideDependencyError";
   error.code = "PYODIDE_UNSUPPORTED_DEPENDENCY";
@@ -673,143 +637,6 @@ function createSigProfilerExtractorPyodideError({ prepared, packageSpec } = {}) 
   error.missingDependency = "torch>=1.8.1";
   error.preparedInput = prepared?.manifest || null;
   return error;
-}
-
-async function runSigProfilerExtractorBrowserNmf(
-  { spectra },
-  {
-    contexts = null,
-    outputDirectory = "/output/sigprofiler_extractor",
-    referenceGenome = "GRCh37",
-    minimumSignatures = 1,
-    maximumSignatures = 5,
-    nmfReplicates = 100,
-    cpu = 1,
-    maxBrowserRuns = 8,
-    maxIterations = 700,
-    tolerance = 1e-5,
-    seed = 123,
-    signaturePrefix = "SPE_NMF",
-    rankSelectionCriterion = "reconstruction_error",
-  } = {}
-) {
-  const prepared = prepareSigProfilerExtractorInput(
-    { spectra },
-    {
-      contexts,
-      outputDirectory,
-      referenceGenome,
-      minimumSignatures,
-      maximumSignatures,
-      nmfReplicates,
-      cpu,
-    }
-  );
-  const normalizedSpectra = normalizeMatrixObject(spectra);
-  const ranks = buildSigProfilerExtractorRankGrid({
-    minimumSignatures,
-    maximumSignatures,
-    sampleCount: Object.keys(normalizedSpectra).length,
-    contextCount: prepared.manifest.contextCount,
-  });
-  const nRuns = integerInRange(nmfReplicates, 8, 1, Math.max(1, maxBrowserRuns));
-  let extraction;
-  let rankSelection = null;
-
-  if (ranks.length > 1) {
-    rankSelection = selectNMFRank(normalizedSpectra, {
-      ranks,
-      maxIterations,
-      tolerance,
-      nRuns,
-      seed,
-      rankSelectionCriterion,
-      contexts: prepared.manifest.contexts,
-    });
-    extraction =
-      rankSelection.runs.find((run) => run.rank === rankSelection.recommendedRank)
-        ?.result || rankSelection.runs[0]?.result;
-  } else {
-    extraction = await extractSignaturesNMFInWorker(normalizedSpectra, {
-      rank: ranks[0] || 1,
-      maxIterations,
-      tolerance,
-      nRuns,
-      seed,
-      contexts: prepared.manifest.contexts,
-      signaturePrefix,
-    });
-  }
-
-  if (!extraction) {
-    throw new Error("Browser extraction did not return signatures and contributions.");
-  }
-
-  if (rankSelection && extraction.signatures) {
-    extraction.signatures = Object.fromEntries(
-      Object.entries(extraction.signatures).map(([signature, profile], index) => [
-        `${signaturePrefix}${index + 1}`,
-        profile,
-      ])
-    );
-    extraction.exposures = Object.fromEntries(
-      Object.entries(extraction.exposures || {}).map(([sample, row]) => [
-        sample,
-        Object.fromEntries(Object.values(row || {}).map((value, index) => [
-          `${signaturePrefix}${index + 1}`,
-          value,
-        ])),
-      ])
-    );
-  }
-
-  return {
-    schemaVersion: ADAPTER_SCHEMA_VERSION,
-    adapter: "sigprofilerextractor",
-    runtime: "browser_nmf",
-    status: "completed",
-    signatures: extraction.signatures,
-    exposures: extraction.exposures,
-    candidateSignatureTables: [
-      {
-        path: "browser_nmf_signatures",
-        signatureCount: Object.keys(extraction.signatures || {}).length,
-      },
-    ],
-    candidateExposureTables: [
-      {
-        path: "browser_nmf_exposures",
-        score: null,
-        orientation: "sample_by_signature",
-      },
-    ],
-    preparedInput: prepared.manifest,
-    extraction: {
-      rank: extraction.rank,
-      reconstructionError: extraction.reconstructionError,
-      averageSampleCosineSimilarity: extraction.averageSampleCosineSimilarity,
-      iterations: extraction.iterations,
-      converged: extraction.converged,
-      bestRun: extraction.bestRun,
-      rankSelection: summarizeSigProfilerExtractorRankSelection(rankSelection),
-    },
-    provenance: buildAdapterProvenance({
-      tool: "SigProfilerExtractor-compatible extraction",
-      runtime: "browser_nmf",
-      parameters: {
-        ...prepared.manifest,
-        rankGrid: ranks,
-        selectedRank: extraction.rank,
-        nRuns,
-        maxIterations,
-        tolerance,
-        seed,
-        rankSelectionCriterion,
-      },
-      notes:
-        "Browser-native NMF run using the same matrix prepared for SigProfilerExtractor. The handoff files and Python snippet remain available for local or server SigProfilerExtractor execution.",
-    }),
-  };
 }
 
 function createSigProfilerMatrixGeneratorPythonSnippet({
@@ -1483,6 +1310,7 @@ function createSigminerRScript({
     "  output.matrix <- output.matrix[sample.names, , drop = FALSE]",
     "}",
     "exposures <- data.frame(sample = rownames(output.matrix), output.matrix, check.names = FALSE)",
+    "dir.create(dirname(" + JSON.stringify(outputPath) + "), recursive = TRUE, showWarnings = FALSE)",
     `write.table(exposures, file = ${JSON.stringify(outputPath)}, sep = "\\t", quote = FALSE, row.names = FALSE)`,
     "",
   ].join("\n");
@@ -1579,56 +1407,6 @@ function parseSigminerOutput(
 
 function uniquePackages(packages) {
   return [...new Set(normalizeArray(packages).filter(Boolean))];
-}
-
-function normalizeDeconstructSigsSourceFiles(sourceFiles = DEFAULT_DECONSTRUCTSIGS_SOURCE_FILES) {
-  return normalizeArray(sourceFiles)
-    .map((file) => {
-      if (typeof file === "string") {
-        return {
-          path: `/input/deconstructSigs/R/${file.split("/").pop()}`,
-          url: file,
-        };
-      }
-      return {
-        path: file?.path,
-        url: file?.url,
-        text: file?.text,
-      };
-    })
-    .filter((file) => file.path && (file.url || file.text !== undefined));
-}
-
-async function fetchTextSourceFile(file) {
-  if (file.text !== undefined) {
-    return String(file.text);
-  }
-  if (typeof fetch !== "function") {
-    throw new Error(
-      "Cannot fetch the original deconstructSigs source files because fetch is unavailable in this runtime."
-    );
-  }
-  const response = await fetch(file.url, { cache: "force-cache" });
-  if (!response.ok) {
-    throw new Error(
-      `Could not fetch original deconstructSigs source file ${file.url}: HTTP ${response.status}.`
-    );
-  }
-  return await response.text();
-}
-
-async function prepareDeconstructSigsSourceFileInputs(sourceFiles) {
-  const normalized = normalizeDeconstructSigsSourceFiles(sourceFiles);
-  if (!normalized.length) {
-    return [];
-  }
-  return await Promise.all(
-    normalized.map(async (file) => ({
-      path: file.path,
-      text: await fetchTextSourceFile(file),
-      sourceUrl: file.url || null,
-    }))
-  );
 }
 
 function sigminerSolverPackage(method = "NNLS") {
@@ -1768,9 +1546,6 @@ async function runDeconstructSigsWebR(
     binaryRVersion,
     packageIndexUrls,
     skipPackageCheck = false,
-    useSourceArchiveOnMissingPackage = true,
-    sourceArchiveUrl = DEFAULT_DECONSTRUCTSIGS_SOURCE_ARCHIVE_URL,
-    sourceFiles = DEFAULT_DECONSTRUCTSIGS_SOURCE_FILES,
     timeoutMs = 300000,
     runnerOptions = {},
   } = {}
@@ -1792,36 +1567,15 @@ async function runDeconstructSigsWebR(
         rPackages,
         ...packageOptions,
       });
-  const sourceArchiveExecution =
-    Boolean(
-      availability &&
-        !availability.available &&
-        useSourceArchiveOnMissingPackage &&
-        availability.status === "missing package" &&
-        (availability.missing || []).includes("deconstructSigs")
-    );
-  if (availability && !sourceArchiveExecution) {
+  if (availability) {
     assertWebRAdapterAvailable(availability, "deconstructSigs");
   }
-  const sourceFileInputs = sourceArchiveExecution
-    ? await prepareDeconstructSigsSourceFileInputs(sourceFiles)
-    : [];
-  const rSnippet = sourceArchiveExecution
-    ? createDeconstructSigsRScript({
-        spectraPath,
-        signaturePath,
-        outputPath,
-        signatureCutoff,
-        sourceArchiveUrl: sourceFileInputs.length ? null : sourceArchiveUrl,
-        sourceFilePaths: sourceFileInputs.map((file) => file.path),
-      })
-    : prepared.rSnippet;
 
   const rawRun = await runWebR(
     {
-      r: rSnippet,
-      rPackages: sourceArchiveExecution ? [] : uniquePackages(rPackages),
-      files: [...prepared.files, ...sourceFileInputs],
+      r: prepared.rSnippet,
+      rPackages: uniquePackages(rPackages),
+      files: prepared.files,
       outputFiles: [prepared.manifest.outputPath],
       timeoutMs,
       repositoryUrl,
@@ -1840,22 +1594,11 @@ async function runDeconstructSigsWebR(
   return {
     schemaVersion: ADAPTER_SCHEMA_VERSION,
     adapter: "deconstructsigs",
-    runtime: sourceArchiveExecution ? "webr_source_archive" : "webr",
+    runtime: "webr",
     status: "completed",
     exactPackageExecution: true,
-    sourceArchiveExecution,
-    packageInstallMode: sourceArchiveExecution
-      ? sourceFileInputs.length
-        ? "cran_source_files"
-        : "cran_source_archive"
-      : "webr_binary_repository",
-    sourceFiles: sourceFileInputs.map((file) => ({
-      path: file.path,
-      sourceUrl: file.sourceUrl || null,
-    })),
-    loadedOutput: sourceArchiveExecution
-      ? "Computed by original deconstructSigs 1.8.0 R source in WebR for the active data"
-      : "Computed by deconstructSigs in WebR for the active data",
+    packageInstallMode: "webr_binary_repository",
+    loadedOutput: "Computed by deconstructSigs in WebR for the active data",
     packageAvailability: availability,
     preparedInput: prepared.manifest,
     exposures,
@@ -1864,11 +1607,10 @@ async function runDeconstructSigsWebR(
       tool: "deconstructSigs",
       runtime: "webr",
       packageName: "deconstructSigs",
-      packageVersion: sourceArchiveExecution ? DEFAULT_DECONSTRUCTSIGS_SOURCE_VERSION : null,
+      packageVersion: getPackageRuntime("deconstructSigs")?.packageVersion || null,
       parameters: prepared.manifest,
-      notes: sourceArchiveExecution
-        ? "Original deconstructSigs 1.8.0 R source loaded from the pinned CRAN mirror source files and executed in webR because the active WebR binary repository did not provide the archived package."
-        : "Exact package execution through webR. Availability depends on compatible WebAssembly package builds in the active repository.",
+      notes:
+        "Exact package execution through webR. Availability depends on compatible WebAssembly package builds in the active repository.",
     }),
   };
 }
@@ -1970,6 +1712,7 @@ async function runSigminerWebR(
       tool: "sigminer",
       runtime: "webr",
       packageName: "sigminer",
+      packageVersion: getPackageRuntime("sigminer")?.packageVersion || null,
       parameters: prepared.manifest,
       notes:
         "Exact package execution through webR. Availability depends on compatible WebAssembly package builds in the active repository.",
@@ -1992,7 +1735,7 @@ async function runSigProfilerAssignment(
   {
     contexts = null,
     pyodidePackages = DEFAULT_PYODIDE_SCIENTIFIC_PACKAGES,
-    micropipPackages = [DEFAULT_SPA_PACKAGE],
+    micropipPackages = DEFAULT_SPA_MICROPIP_PACKAGES,
     outputDirectory = "/output/sigprofilerassignment",
     contextType = "96",
     collapseToSBS96 = true,
@@ -2054,7 +1797,7 @@ async function runSigProfilerAssignment(
       tool: "SigProfilerAssignment",
       runtime: "pyodide",
       packageName: "SigProfilerAssignment",
-      packageVersion: String(DEFAULT_SPA_PACKAGE).split("==")[1] || null,
+      packageVersion: getPackageRuntime("sigProfilerAssignment")?.packageVersion || DEFAULT_SPA_VERSION,
       parameters: config,
       notes:
         "Matrix-mode execution disables plotting and mutation-level probability export for browser compatibility.",
@@ -2063,12 +1806,8 @@ async function runSigProfilerAssignment(
 }
 
 /**
- * Runs a browser-compatible SigProfilerExtractor handoff workflow.
- *
- * The default runtime uses browser-native NMF against the matrix prepared for
- * SigProfilerExtractor. Exact package execution can still be requested with
- * runtime="pyodide", but current SigProfilerExtractor wheels require torch,
- * which is not installable in Pyodide.
+ * Runs SigProfilerExtractor through Pyodide when a compatible package artifact
+ * is available. No JavaScript implementation is exposed as an adapter fallback.
  *
  * @async
  * @function runSigProfilerExtractor
@@ -2080,7 +1819,7 @@ async function runSigProfilerAssignment(
 async function runSigProfilerExtractor(
   { spectra },
   {
-    runtime = "browser_nmf",
+    runtime = "pyodide",
     contexts = null,
     pyodidePackages = DEFAULT_PYODIDE_SCIENTIFIC_PACKAGES,
     micropipPackages = [DEFAULT_SPE_PACKAGE],
@@ -2090,38 +1829,14 @@ async function runSigProfilerExtractor(
     maximumSignatures = 5,
     nmfReplicates = 100,
     cpu = 1,
-    maxBrowserRuns = 8,
-    maxIterations = 700,
-    tolerance = 1e-5,
-    seed = 123,
-    signaturePrefix = "SPE_NMF",
-    rankSelectionCriterion = "reconstruction_error",
     timeoutMs = 300000,
     runnerOptions = {},
   } = {}
 ) {
-  if (runtime === "browser" || runtime === "browser_nmf" || runtime === "browser_fallback") {
-    return await runSigProfilerExtractorBrowserNmf(
-      { spectra },
-      {
-        contexts,
-        outputDirectory,
-        referenceGenome,
-        minimumSignatures,
-        maximumSignatures,
-        nmfReplicates,
-        cpu,
-        maxBrowserRuns,
-        maxIterations,
-        tolerance,
-        seed,
-        signaturePrefix,
-        rankSelectionCriterion,
-      }
-    );
-  }
   if (runtime !== "pyodide") {
-    throw new Error(`Unsupported SigProfilerExtractor runtime "${runtime}". Use "browser_nmf" or "pyodide".`);
+    throw new Error(
+      `Unsupported SigProfilerExtractor runtime "${runtime}". Exact package adapter execution requires runtime "pyodide".`
+    );
   }
   const prepared = prepareSigProfilerExtractorInput(
     { spectra },
@@ -2243,8 +1958,6 @@ function createInteroperabilityBundle(
     contexts = null,
     include = [
       "sigprofilerassignment",
-      "sigprofilerextractor",
-      "sigprofilerplotting",
       "deconstructsigs",
       "sigminer",
       "musical",
@@ -2336,146 +2049,8 @@ json.dumps({
 `;
 }
 
-function subsetSignatures(signatures, signatureNames) {
-  return Object.fromEntries(
-    signatureNames
-      .filter((signatureName) => signatures[signatureName])
-      .map((signatureName) => [signatureName, signatures[signatureName]])
-  );
-}
-
-function completeExposureRecord(signatureNames, partialRecord) {
-  return Object.fromEntries(
-    signatureNames.map((signatureName) => [
-      signatureName,
-      safeNumber(partialRecord?.[signatureName], 0) || 0,
-    ])
-  );
-}
-
 /**
- * Runs a browser-native sparse NNLS refit comparator using MuSiCal-compatible inputs.
- *
- * This helper does not execute the MuSiCal Python package. It provides a small
- * sparse refit comparator for browser review when a Pyodide-compatible MuSiCal
- * wheel is not supplied.
- *
- * @async
- * @function runSparseNnlsRefit
- * @memberof adapters
- * @param {Object} input - Spectra and signatures.
- * @param {Object} [options] - Sparse refit options.
- * @returns {Promise<Object>} Sparse refit exposures and reconstruction metrics.
- */
-async function runSparseNnlsRefit(
-  { spectra, signatures },
-  {
-    contexts = null,
-    threshold = 0.01,
-    keepAtLeastOne = true,
-    maxIterations = null,
-    convergenceTolerance = 1e-10,
-  } = {}
-) {
-  const normalizedSpectra = normalizeMatrixObject(spectra);
-  const normalizedSignatures = normalizeMatrixObject(signatures);
-  const signatureNames = Object.keys(normalizedSignatures);
-  if (signatureNames.length === 0) {
-    throw new Error("MuSiCal-compatible sparse refit requires at least one signature.");
-  }
-  const contextOrder = normalizeContextOrder({
-    spectra: normalizedSpectra,
-    signatures: normalizedSignatures,
-    contexts,
-  });
-  const initialExposures = await fitSpectraWithNNLS(
-    normalizedSignatures,
-    normalizedSpectra,
-    {
-      contexts: contextOrder,
-      exposureThreshold: 0,
-      exposureType: "relative",
-      renormalize: true,
-      maxIterations,
-      convergenceTolerance,
-    }
-  );
-  const sparseExposures = {};
-  const activeSets = {};
-
-  for (const [sample, exposureRecord] of Object.entries(initialExposures)) {
-    let activeSignatures = signatureNames.filter(
-      (signatureName) => (exposureRecord[signatureName] || 0) >= threshold
-    );
-    if (activeSignatures.length === 0 && keepAtLeastOne) {
-      activeSignatures = [
-        signatureNames.reduce((best, signatureName) =>
-          (exposureRecord[signatureName] || 0) > (exposureRecord[best] || 0)
-            ? signatureName
-            : best
-        ),
-      ];
-    }
-    if (activeSignatures.length === 0) {
-      sparseExposures[sample] = completeExposureRecord(signatureNames, {});
-      activeSets[sample] = [];
-      continue;
-    }
-
-    const refit = await fitSpectraWithNNLS(
-      subsetSignatures(normalizedSignatures, activeSignatures),
-      { [sample]: normalizedSpectra[sample] },
-      {
-        contexts: contextOrder,
-        exposureThreshold: 0,
-        exposureType: "relative",
-        renormalize: true,
-        maxIterations,
-        convergenceTolerance,
-      }
-    );
-    sparseExposures[sample] = completeExposureRecord(
-      signatureNames,
-      refit[sample] || {}
-    );
-    activeSets[sample] = activeSignatures;
-  }
-
-  const reconstructionError = calculateReconstructionError(
-    normalizedSignatures,
-    normalizedSpectra,
-    sparseExposures,
-    { contexts: contextOrder, normalizeMode: "relative" }
-  );
-
-  return {
-    schemaVersion: ADAPTER_SCHEMA_VERSION,
-    adapter: "musical",
-    runtime: "js_sparse_nnls",
-    status: "completed",
-    methodBoundary:
-      "Browser-native sparse NNLS comparator. It uses MuSiCal-compatible matrices but does not execute the MuSiCal Python package.",
-    threshold,
-    activeSets,
-    exposures: sparseExposures,
-    reconstructionError,
-    provenance: buildAdapterProvenance({
-      tool: "MuSiCal-compatible sparse refit",
-      runtime: "js_sparse_nnls",
-      parameters: {
-        threshold,
-        keepAtLeastOne,
-        maxIterations,
-        convergenceTolerance,
-      },
-      notes:
-        "Use runtime='pyodide' with a Pyodide-compatible MuSiCal wheel to execute the external MuSiCal package.",
-    }),
-  };
-}
-
-/**
- * Runs MuSiCal refitting through Pyodide, or a browser-native sparse NNLS comparator.
+ * Runs MuSiCal refitting through Pyodide using the actual MuSiCal package.
  *
  * @async
  * @function runMuSiCalRefit
@@ -2488,27 +2063,30 @@ async function runMuSiCalRefit(
   { spectra, signatures },
   {
     contexts = null,
-    runtime = "js_sparse_nnls",
+    runtime = "pyodide",
     method = "likelihood_bidirectional",
     threshold = 0.001,
     connectedSigs = false,
     pyodidePackages = DEFAULT_PYODIDE_SCIENTIFIC_PACKAGES,
-    micropipPackages = [],
+    micropipPackages = DEFAULT_MUSICAL_MICROPIP_PACKAGES,
     outputDirectory = "/output/musical",
     timeoutMs = 300000,
     runnerOptions = {},
-    ...sparseOptions
   } = {}
 ) {
   if (runtime !== "pyodide") {
-    return await runSparseNnlsRefit(
-      { spectra, signatures },
-      {
-        contexts,
-        threshold,
-        ...sparseOptions,
-      }
+    throw new Error(
+      `Unsupported MuSiCal runtime "${runtime}". Exact MuSiCal adapter execution requires runtime "pyodide" and a Pyodide-compatible MuSiCal package artifact.`
     );
+  }
+  if (!normalizeArray(micropipPackages).filter(Boolean).length) {
+    const error = new Error(
+      "MuSiCal exact adapter execution requires a Pyodide-compatible MuSiCal wheel or package URL in micropipPackages."
+    );
+    error.name = "MuSiCalPackageArtifactRequiredError";
+    error.code = "PYODIDE_PACKAGE_ARTIFACT_REQUIRED";
+    error.packageRuntime = getPackageRuntime("musical");
+    throw error;
   }
 
   const prepared = prepareMuSiCalRefitInput(
@@ -2540,6 +2118,7 @@ async function runMuSiCalRefit(
     adapter: "musical",
     runtime: "pyodide",
     status: rawRun.result?.status || "completed",
+    exactPackageExecution: true,
     exposures: rawRun.result?.exposures || null,
     preparedInput: prepared.manifest,
     rawRun,
@@ -2547,9 +2126,10 @@ async function runMuSiCalRefit(
       tool: "MuSiCal",
       runtime: "pyodide",
       packageName: "musical",
+      packageVersion: getPackageRuntime("musical")?.packageVersion || null,
       parameters: config,
       notes:
-        "Pyodide execution requires the MuSiCal package to be available through supplied Pyodide-compatible wheels or a preloaded worker environment.",
+        "Exact MuSiCal package execution through Pyodide. The package must be available through supplied Pyodide-compatible wheels or a preloaded worker environment.",
     }),
   };
 }
@@ -2562,9 +2142,15 @@ export {
   DEFAULT_SPP_PACKAGE,
   DEFAULT_SPS_PACKAGE,
   DEFAULT_SPA_PACKAGE,
+  DEFAULT_SPA_MICROPIP_PACKAGES,
+  DEFAULT_MUSICAL_PACKAGE,
+  DEFAULT_MUSICAL_MICROPIP_PACKAGES,
+  PACKAGE_RUNTIME_MANIFEST,
   checkDeconstructSigsWebRAvailability,
   checkSigminerWebRAvailability,
   createInteroperabilityBundle,
+  getPackageRuntime,
+  listPackageRuntimes,
   parseExposureTables,
   parseDeconstructSigsOutput,
   parseSigminerOutput,
@@ -2584,5 +2170,4 @@ export {
   runSigminerWebR,
   runSigProfilerAssignment,
   runSigProfilerExtractor,
-  runSparseNnlsRefit,
 };

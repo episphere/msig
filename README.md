@@ -9,8 +9,8 @@ With **mSigSDK**, researchers can:
 - Import local spectra or MAF-like rows for client-side validation, profile conversion, fitting, QC, and reporting.
 - Run burden-aware fitting and exploratory discovery workflows with QC evidence, caveats, and next recommended actions.
 - Exchange spectra, signatures, and exposures with SigProfiler-style, COSMIC-style, and MuSiCal-compatible tabular formats.
-- Launch optional browser Pyodide and WebR runners for compatible package execution, including matrix-mode SigProfilerAssignment, WebR-backed deconstructSigs and sigminer checks, and MuSiCal-compatible refit review when required package assets are available.
-- Prepare matched handoff bundles for SigProfilerAssignment, SigProfilerExtractor, sigProfilerPlotting, deconstructSigs, sigminer, and MuSiCal from the same spectra and signature catalog, plus standalone handoff inputs for SigProfilerMatrixGenerator, SigProfilerSimulator, and SigProfilerClusters.
+- Launch optional browser Pyodide and WebR runners for compatible package execution, including matrix-mode SigProfilerAssignment, WebR-backed deconstructSigs and sigminer checks, and exact MuSiCal refit through the pinned Pyodide package artifact.
+- Prepare matched interoperability bundles for the supported executable package adapters: SigProfilerAssignment, MuSiCal, deconstructSigs, and sigminer.
 - Generate portable reports with provenance metadata and JSON Schema validation.
 
 ---
@@ -24,7 +24,7 @@ With **mSigSDK**, researchers can:
 - **APIs**: Seamlessly integrates with mSigPortal's REST APIs to fetch mutational signature data and metadata.
 - **Data Boundary**: Public reference data are retrieved through APIs; user-supplied spectra can remain local for supported client-side workflows.
 - **Interoperability**: Supports SigProfiler-style spectra, COSMIC-style signatures, MuSiCal input/output helpers, and report JSON Schema validation.
-- **External Tool Adapters**: Provides optional Pyodide and WebR runners, SigProfilerAssignment and SigProfilerExtractor matrix-mode adapters, handoff adapters for SigProfilerMatrixGenerator, SigProfilerSimulator, SigProfilerClusters, sigProfilerPlotting, deconstructSigs, and sigminer, MuSiCal-compatible refit adapters, and a multi-tool interoperability bundle with explicit runtime provenance.
+- **External Tool Adapters**: Provides optional Pyodide and WebR runners, exact executable adapters for SigProfilerAssignment, MuSiCal, deconstructSigs, and sigminer, plus a multi-tool interoperability bundle with explicit runtime provenance.
 - **MAF Profile Conversion**: MAF conversion preserves the SBS96 default and can also return SBS1536, DBS78, and ID83 spectra with row-level traces, audit summaries, warnings, and profile-specific plotting. SBS profiles can resolve 5-base reference windows through the UCSC Genome Browser API; SBS96 uses the centered trinucleotide and SBS1536 uses the full pentanucleotide.
 - **Offline Context Path**: SBS profile conversion can use row-supplied contexts, caller-supplied lookup tables, or bundled smoke-test lookup assets for hg19, hg38, and T2T-CHM13 when live genome context lookup is not used.
 
@@ -164,7 +164,7 @@ The focused notebooks in `notebooks/` exercise the current public SDK surface:
 - `mSigSDK.signatureExtractionPlots`: extracted profile, exposure heatmap, and rank-diagnostic plots.
 - `mSigSDK.io`: generic TSV export/import plus SigProfiler, COSMIC, and MuSiCal matrix round trips.
 - `mSigSDK.runners`: optional Pyodide Web Worker execution for browser-side Python packages and WebR execution for compatible R package builds.
-- `mSigSDK.adapters`: SigProfilerAssignment, SigProfilerExtractor, SigProfilerMatrixGenerator, SigProfilerSimulator, SigProfilerClusters, sigProfilerPlotting, deconstructSigs, sigminer, and MuSiCal adapters that prepare canonical files, execute optional runtimes where supported, parse compatible output tables, and return provenance-rich outputs.
+- `mSigSDK.adapters`: SigProfilerAssignment, MuSiCal, deconstructSigs, and sigminer executable adapters that prepare canonical files, run optional Pyodide/WebR runtimes where supported, parse compatible exposure tables, and return provenance-rich outputs. SigProfiler-style matrix import/export remains available through `mSigSDK.io` as a file-format bridge.
 - `mSigSDK.reports`, `mSigSDK.provenance`, and `mSigSDK.workflows`: structured reports, reproducibility metadata, MAF-to-spectra conversion, high-level signature-fitting workflows, and browser-sized NMF workflows.
 - `mSigSDK.presentation`: reusable browser output helpers for metric cards, tables, notes, expandable object details, and compact rows derived from common SDK result objects.
 - `mSigSDK.advisor`: validated burden-aware strategy recommendations, signature ambiguity screening, catalog-sufficiency checks, and fit-quality evidence reports.
@@ -204,7 +204,7 @@ const bundle = mSigSDK.adapters.createInteroperabilityBundle(
 );
 
 console.log(Object.keys(bundle.tools));
-// sigProfilerAssignment, sigProfilerExtractor, sigProfilerPlotting, deconstructSigs, sigminer, musical
+// sigProfilerAssignment, deconstructSigs, sigminer, musical
 ```
 
 SigProfilerAssignment matrix-mode execution is available through the Pyodide runner:
@@ -223,12 +223,12 @@ console.log(assignment.exposures);
 console.log(assignment.provenance);
 ```
 
-SigProfilerExtractor, sigProfilerPlotting, deconstructSigs, and sigminer are supported as handoff adapters. The SDK prepares matrix-mode files and executable Python or R snippets, and it can parse common output tables back into SDK matrices. SigProfilerExtractor can also be launched through Pyodide when the package and dependencies install successfully in the target browser worker.
+The supported executable package adapters are SigProfilerAssignment, MuSiCal, deconstructSigs, and sigminer. The SDK prepares shared spectra/signature matrices, runs compatible Pyodide or WebR package assets, and parses exposure tables back into SDK matrices.
 
 ```javascript
-const extractorInput = mSigSDK.adapters.sigProfilerExtractor.prepareInput(
-  { spectra },
-  { minimumSignatures: 2, maximumSignatures: 6 }
+const assignmentInput = mSigSDK.adapters.sigProfilerAssignment.prepareInput(
+  { spectra, signatures },
+  { contexts: mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 }) }
 );
 
 const deconstructInput = mSigSDK.adapters.deconstructSigs.prepareInput(
@@ -241,44 +241,20 @@ const sigminerInput = mSigSDK.adapters.sigminer.prepareInput(
   { method: "QP", mode: "SBS" }
 );
 
-const plottingInput = mSigSDK.adapters.sigProfilerPlotting.prepareInput(
-  { spectra },
-  { matrixType: "SBS", plotType: "96" }
-);
-```
-
-Variant-level SigProfiler tools are exposed as standalone handoff adapters because they start from VCF/MAF-like files rather than SDK spectra:
-
-```javascript
-const matrixGeneratorInput = mSigSDK.adapters.sigProfilerMatrixGenerator.prepareInput(
-  { files: [{ path: "sample.vcf", text: vcfText }] },
-  { project: "my_project", referenceGenome: "GRCh37" }
-);
-
-const simulatorInput = mSigSDK.adapters.sigProfilerSimulator.prepareInput(
-  { files: [{ path: "sample.vcf", text: vcfText }] },
-  { project: "my_project_simulations", simulations: 100 }
-);
-
-const clustersInput = mSigSDK.adapters.sigProfilerClusters.prepareInput(
-  { files: [{ path: "sample.vcf", text: vcfText }] },
-  { project: "my_project_clusters", genome: "GRCh37" }
-);
-```
-
-MuSiCal support has two paths. The default path runs a browser-native sparse NNLS comparator on MuSiCal-compatible matrices. Package execution is available with `runtime: "pyodide"` when a Pyodide-compatible MuSiCal wheel or preloaded worker environment is supplied.
-
-```javascript
-const sparseRefit = await mSigSDK.adapters.musical.runRefit(
+const musicalInput = mSigSDK.adapters.musical.prepareRefitInput(
   { spectra, signatures },
-  { threshold: 0.001 }
+  { contexts: mSigSDK.validation.getExpectedContexts({ profile: "SBS", matrix: 96 }) }
 );
+```
 
+MuSiCal support is package-exact only. `mSigSDK.adapters.musical.runRefit(...)` requires the Pyodide runtime and a compatible pinned MuSiCal package artifact; if the artifact is unavailable, the adapter reports an availability error instead of running a JavaScript substitute.
+
+```javascript
 const musicalPackageRun = await mSigSDK.adapters.musical.runRefit(
   { spectra, signatures },
   {
     runtime: "pyodide",
-    micropipPackages: ["https://example.org/wheels/MuSiCal-1.0.0-py3-none-any.whl"]
+    micropipPackages: ["docs/package-repos/pyodide/musical-1.0.0-py3-none-any.whl"]
   }
 );
 ```
@@ -496,8 +472,8 @@ The source code is hosted on GitHub: [mSigSDK Repository](https://github.com/epi
 Explore interactive examples: [Observable Notebooks](https://observablehq.com/@aaronge-2020/signatures).
 
 ### Contact
-**Aaron Ge**  
-Division of Cancer Epidemiology and Genetics, National Cancer Institute.  
+**Aaron Ge**
+Division of Cancer Epidemiology and Genetics, National Cancer Institute.
 Email: [age1@som.umaryland.edu](mailto:age1@som.umaryland.edu).
 
 ---

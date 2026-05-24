@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>E4 browser runtime harness</title>
+    <style>body { font-family: Arial, sans-serif; padding: 20px; }</style>
+  </head>
+  <body>
+    <h1>E4 browser runtime harness</h1>
+    <pre id="log">Loading SDK...</pre>
+    <script type="module">
+      const log = document.querySelector("#log");
+      const { mSigSDK } = await import("/main.js?e4=" + Date.now());
+      window.__MSIG_BENCH_READY__ = true;
+      log.textContent = "Ready";
+      window.__runMsigBenchmark = async function runBenchmark(scenario, repeat, data) {
+        const started = performance.now();
+        try {
+          let details = {};
+          if (scenario === "single_sample_fit_report") {
+            const exposures = await mSigSDK.qc.fitSpectraWithNNLS(data.signatures, data.spectra, {
+              contexts: data.contexts,
+              exposureType: "relative",
+              renormalize: true,
+              maxIterations: 10000,
+              convergenceTolerance: 1e-12
+            });
+            const qc = mSigSDK.qc.calculateReconstructionError(data.signatures, data.spectra, exposures, {
+              contexts: data.contexts,
+              normalizeMode: "relative"
+            });
+            const report = mSigSDK.reports.createAnalysisReport({
+              title: "Browser runtime single-sample report",
+              summary: "Benchmark report generated in the browser.",
+              qc,
+              exposures
+            }, { format: "html" });
+            details = { reportBytes: report.length };
+          } else if (scenario === "medium_cohort_120" || scenario === "portal_scale_300x40") {
+            const exposures = await mSigSDK.qc.fitSpectraWithNNLS(data.signatures, data.spectra, {
+              contexts: data.contexts,
+              exposureType: "relative",
+              renormalize: true,
+              maxIterations: 10000,
+              convergenceTolerance: 1e-12
+            });
+            details = { exposureRows: Object.keys(exposures).length };
+          } else if (scenario === "bootstrap_500") {
+            const bootstrap = await mSigSDK.qc.bootstrapSignatureFit(data.signatures, data.spectrum, {
+              contexts: data.contexts,
+              iterations: 500,
+              seed: 1000 + repeat,
+              yieldEvery: 50,
+              exposureType: "relative",
+              renormalize: true,
+              maxIterations: 10000,
+              convergenceTolerance: 1e-12
+            });
+            details = { iterations: bootstrap.iterations, signatures: bootstrap.signatures.length };
+          } else if (scenario === "nmf_rank_selection_rank4") {
+            const rankStarted = performance.now();
+            const rankSelection = mSigSDK.signatureExtraction.selectNMFRank(data.spectra, {
+              contexts: data.contexts,
+              ranks: [2, 3, 4, 5],
+              nRuns: 2,
+              seed: 4000 + repeat,
+              maxIterations: 80,
+              tolerance: 1e-5
+            });
+            const rankSelectionMs = performance.now() - rankStarted;
+            const extractionStarted = performance.now();
+            const extraction = mSigSDK.signatureExtraction.extractSignaturesNMF(data.spectra, {
+              contexts: data.contexts,
+              rank: 4,
+              nRuns: 3,
+              seed: 5000 + repeat,
+              maxIterations: 100,
+              tolerance: 1e-5
+            });
+            const extractionMs = performance.now() - extractionStarted;
+            details = {
+              recommendedRank: rankSelection.recommendedRank,
+              extractionError: extraction.reconstructionError,
+              rankSelectionMs,
+              extractionMs
+            };
+          } else {
+            throw new Error("Unknown scenario " + scenario);
+          }
+          return {
+            status: "completed",
+            elapsedMs: performance.now() - started,
+            sampleCount: data.spectra ? Object.keys(data.spectra).length : 1,
+            signatureCount: data.signatures ? Object.keys(data.signatures).length : null,
+            details
+          };
+        } catch (error) {
+          return {
+            status: "failed",
+            elapsedMs: performance.now() - started,
+            error: error.message,
+            sampleCount: data.spectra ? Object.keys(data.spectra).length : 1,
+            signatureCount: data.signatures ? Object.keys(data.signatures).length : null
+          };
+        }
+      };
+    </script>
+  </body>
+</html>

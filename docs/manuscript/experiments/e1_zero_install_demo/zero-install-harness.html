@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>E1 zero-install mSigSDK demo</title>
+    <style>
+      body { margin: 0; font-family: Arial, sans-serif; color: #172026; background: #f7f9fb; }
+      main { max-width: 980px; margin: 0 auto; padding: 28px; }
+      h1 { margin: 0 0 10px; font-size: 28px; }
+      .status { margin: 20px 0; padding: 16px; border: 1px solid #c8d2dc; background: #fff; border-radius: 6px; }
+      .steps { display: grid; gap: 8px; margin-top: 14px; }
+      .step { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid #e4e9ef; padding-bottom: 6px; }
+      .done { color: #0b6b4f; font-weight: 700; }
+      #report { margin-top: 18px; background: #fff; border: 1px solid #c8d2dc; padding: 18px; max-height: 520px; overflow: auto; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>mSigSDK zero-install browser run</h1>
+      <div class="status">
+        <div id="current">Starting from a blank browser tab...</div>
+        <div class="steps" id="steps"></div>
+      </div>
+      <div id="report"></div>
+    </main>
+    <script type="module">
+      const urls = {
+        spectra: "https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=PCAWG&cancer=Lung-AdenoCA&strategy=WGS&profile=SBS&matrix=96&offset=0",
+        signatures: "https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature?source=Reference_signatures&strategy=WGS&profile=SBS&matrix=96&signatureSetName=COSMIC_v3_Signatures_GRCh37_SBS96&limit=10000&offset=0"
+      };
+      const steps = [];
+      const startedAt = performance.now();
+      const current = document.querySelector("#current");
+      const stepsNode = document.querySelector("#steps");
+      function mark(name) {
+        const elapsedSeconds = (performance.now() - startedAt) / 1000;
+        steps.push({ name, elapsedSeconds });
+        stepsNode.innerHTML = steps.map((step) => '<div class="step"><span class="done">' + step.name + '</span><span>' + step.elapsedSeconds.toFixed(3) + ' s</span></div>').join("");
+        current.textContent = name;
+      }
+      function sbsContexts() {
+        const bases = ["A", "C", "G", "T"];
+        const substitutions = ["C>A", "C>G", "C>T", "T>A", "T>C", "T>G"];
+        const contexts = [];
+        for (const substitution of substitutions) {
+          const ref = substitution[0];
+          for (const left of bases) {
+            for (const right of bases) {
+              contexts.push(left + "[" + substitution + "]" + right);
+            }
+          }
+        }
+        return contexts;
+      }
+      function rowsToSpectra(rows, contexts) {
+        const sample = rows[0].sample;
+        const spectrum = Object.fromEntries(contexts.map((context) => [context, 0]));
+        for (const row of rows) {
+          if (row.sample === sample) spectrum[row.mutationType] = Number(row.mutations) || 0;
+        }
+        return { [sample]: spectrum };
+      }
+      function rowsToSignatures(rows, contexts) {
+        const signatureNames = [...new Set(rows.map((row) => String(row.signatureName || "").trim()).filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const selected = new Set(signatureNames);
+        const signatures = Object.fromEntries(signatureNames.map((name) => [name, Object.fromEntries(contexts.map((context) => [context, 0]))]));
+        for (const row of rows) {
+          if (selected.has(row.signatureName)) signatures[row.signatureName][row.mutationType] = Number(row.contribution) || 0;
+        }
+        return signatures;
+      }
+      try {
+        mark("Page loaded");
+        const { mSigSDK } = await import("/main.js?e1=" + Date.now());
+        mark("SDK imported");
+        const [spectrumRows, signatureRows] = await Promise.all([
+          fetch(urls.spectra, { cache: "no-store" }).then((response) => response.json()),
+          fetch(urls.signatures, { cache: "no-store" }).then((response) => response.json())
+        ]);
+        mark("mSigPortal data fetched");
+        const contexts = sbsContexts();
+        const spectra = rowsToSpectra(spectrumRows, contexts);
+        const signatures = rowsToSignatures(signatureRows, contexts);
+        const exposures = await mSigSDK.qc.fitSpectraWithNNLS(signatures, spectra, {
+          contexts,
+          exposureType: "relative",
+          renormalize: true,
+          convergenceTolerance: 1e-12,
+          maxIterations: 10000
+        });
+        mark("Single-sample fit completed");
+        const reconstruction = mSigSDK.qc.calculateReconstructionError(signatures, spectra, exposures, { contexts, normalizeMode: "relative" });
+        const report = mSigSDK.reports.createAnalysisReport({
+          title: "mSigSDK zero-install report",
+          summary: "Fresh-browser PCAWG Lung-AdenoCA SBS96 single-sample fit against the full COSMIC v3 SBS96 catalog.",
+          parameters: { signatureCatalog: "Full COSMIC_v3_Signatures_GRCh37_SBS96", sourceUrls: urls },
+          qc: reconstruction,
+          exposures,
+          signatures,
+          provenance: { sdkName: mSigSDK.name, sdkVersion: mSigSDK.version, sourceUrls: urls }
+        }, { format: "html" });
+        mark("SDK report generated");
+        document.querySelector("#report").innerHTML = report;
+        const sampleName = Object.keys(exposures)[0];
+        window.__MSIG_E1_RESULT__ = {
+          status: "completed",
+          elapsedSeconds: (performance.now() - startedAt) / 1000,
+          sampleCount: Object.keys(spectra).length,
+          signatureCount: Object.keys(signatures).length,
+          activeSignatures: Object.values(exposures[sampleName]).filter((value) => value > 0).length,
+          reportBytes: report.length,
+          urls,
+          steps
+        };
+        window.dispatchEvent(new CustomEvent("msig-e1-report-ready", { detail: window.__MSIG_E1_RESULT__ }));
+      } catch (error) {
+        current.textContent = "Failed: " + error.message;
+        window.__MSIG_E1_RESULT__ = { status: "failed", error: error.message, steps, urls };
+        throw error;
+      }
+    </script>
+  </body>
+</html>

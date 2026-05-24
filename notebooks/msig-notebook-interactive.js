@@ -923,7 +923,7 @@ function renderPortability(app, { spectra, signatures, analysis, params }) {
   const signatureRoundTrip = mSigSDK.io.importCOSMICSignatureMatrix(signatureTsv);
   const bundle = mSigSDK.adapters.createInteroperabilityBundle(
     { spectra, signatures },
-    { contexts, include: ["sigProfilerAssignment", "sigProfilerExtractor", "deconstructSigs", "musical"] }
+    { contexts, include: ["sigProfilerAssignment", "deconstructSigs", "sigminer", "musical"] }
   );
   const provenance = mSigSDK.provenance.createProvenance({
     analysis: "interactive resource portability check",
@@ -1035,7 +1035,7 @@ async function runPanelWorkflow(app, includeCohort = false) {
     );
     outputs.summary.append(presentation.metrics([
       { label: "Cohort warnings", value: cohort.warnings.length },
-      { label: "Group comparison", value: cohort.groupComparison?.reportingMode || "not run" },
+      { label: "Group comparison", value: cohort.groupComparison?.reportingMode || "not evaluated" },
       { label: "Cohort figures", value: cohort.publicationFigures.length },
     ]));
     outputs.summary.append(presentation.table(presentation.exposureRows(cohort.fit.exposures, { minExposure: 0, topN: 18 }), undefined, { maxRows: 18 }));
@@ -1123,16 +1123,11 @@ async function runNmfWorkflow(app) {
   await plotCard(outputs.plots, "Rank diagnostics", (host) =>
     mSigSDK.signatureExtractionPlots.plotNMFRankSelection(host, rankSelection)
   );
-  const handoff = mSigSDK.adapters.sigProfilerExtractor.prepareInput(
-    { spectra },
-    { contexts, minimumSignatures: 2, maximumSignatures: 6, nmfReplicates: 100 }
-  );
+  const spectraMatrix = mSigSDK.io.exportSigProfilerMatrix(spectra, { contexts });
   outputs.exports.append(renderDownloads([
-    ...handoff.files.map((file) => ({
-      filename: file.path.split("/").pop(),
-      text: file.text,
-      label: `Download ${file.path.split("/").pop()}`,
-    })),
+    { filename: "interactive_nmf_sbs96_spectra.tsv", text: spectraMatrix, label: "Download SBS96 spectra TSV" },
+    { filename: "interactive_nmf_signatures.json", type: "json", value: result.signatures || {}, label: "Download extracted signatures JSON" },
+    { filename: "interactive_nmf_exposures.json", type: "json", value: result.exposures || {}, label: "Download NMF exposures JSON" },
     { filename: "interactive_nmf_report.json", type: "json", value: { params, result, matches, rankSelection }, label: "Download discovery report JSON" },
   ]));
 }
@@ -1149,21 +1144,24 @@ async function runEngineWorkflow(app) {
     renormalize: true,
     includeFitDetails: true,
   });
-  let sparse = null;
+  let musicalPackage = null;
+  let musicalStatus = "not evaluated";
   try {
-    sparse = await mSigSDK.adapters.musical.runSparseNnlsRefit(
+    musicalPackage = await mSigSDK.adapters.musical.runRefit(
       { spectra, signatures, contexts },
-      { threshold: params.exposureThreshold, renormalize: true }
+      { runtime: "pyodide", threshold: params.exposureThreshold, renormalize: true }
     );
-  } catch (_error) {
-    sparse = { exposures: {} };
+    musicalStatus = "exact package run completed";
+  } catch (error) {
+    musicalStatus = error?.message || "MuSiCal package artifact unavailable";
+    musicalPackage = { exposures: {} };
   }
   const standardExposures = standard.exposures || standard || {};
-  const sparseExposures = sparse.exposures || {};
+  const musicalExposures = musicalPackage.exposures || {};
   const signaturesList = Object.keys(signatures);
   const comparisonRows = Object.keys(spectra).map((sample) => {
     const a = standardExposures[sample] || {};
-    const b = sparseExposures[sample] || {};
+    const b = musicalExposures[sample] || {};
     const dot = signaturesList.reduce((sum, sig) => sum + Number(a[sig] || 0) * Number(b[sig] || 0), 0);
     const normA = Math.sqrt(signaturesList.reduce((sum, sig) => sum + Number(a[sig] || 0) ** 2, 0));
     const normB = Math.sqrt(signaturesList.reduce((sum, sig) => sum + Number(b[sig] || 0) ** 2, 0));
@@ -1172,31 +1170,32 @@ async function runEngineWorkflow(app) {
       sample,
       cosine: normA && normB ? Number((dot / (normA * normB)).toFixed(4)) : null,
       msigsdkTop: top(a),
-      sparseTop: top(b),
+      musicalTop: top(b),
       review: top(a) === top(b) ? "Agreement" : "Review",
     };
   });
   const bundle = mSigSDK.adapters.createInteroperabilityBundle(
     { spectra, signatures },
-    { contexts, include: ["sigProfilerAssignment", "sigProfilerExtractor", "deconstructSigs", "musical"] }
+    { contexts, include: ["sigProfilerAssignment", "deconstructSigs", "sigminer", "musical"] }
   );
   outputs.summary.append(presentation.metrics([
     { label: "Samples", value: Object.keys(spectra).length },
     { label: "Reference signatures", value: signaturesList.length },
     { label: "Cross-tool fixtures", value: crossToolSummary.length },
     { label: "Tool export targets", value: Object.keys(bundle.tools || {}).length },
+    { label: "MuSiCal package adapter", value: musicalStatus },
   ]));
   outputs.summary.append(presentation.table(comparisonRows, undefined, { maxRows: 24 }));
   outputs.summary.append(presentation.table(crossToolSummary, undefined, { maxRows: 8 }));
   outputs.summary.append(presentation.table(Object.entries(bundle.tools || {}).map(([tool, value]) => ({
     tool,
     files: (value.files || value.input?.files || []).length,
-    workflowStage: tool === "sigProfilerExtractor" ? "De novo extraction" : "Known-signature refit",
+    workflowStage: "Known-signature refit",
   }))));
   outputs.exports.append(renderDownloads([
     { filename: "interactive_engine_comparison.csv", text: rowsToCsv(comparisonRows), label: "Download comparison CSV" },
     { filename: "interactive_engine_handoff_bundle.json", type: "json", value: bundle, label: "Download tool export bundle JSON" },
-    { filename: "interactive_engine_report.json", type: "json", value: { params, standardExposures, sparseExposures, comparisonRows }, label: "Download tool comparison report JSON" },
+    { filename: "interactive_engine_report.json", type: "json", value: { params, standardExposures, musicalExposures, musicalStatus, comparisonRows }, label: "Download tool comparison report JSON" },
   ]));
 }
 

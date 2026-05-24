@@ -29,15 +29,17 @@
     "smoke:guidance": "node scripts/smoke-guidance.mjs",
     "smoke:profile-conversions": "node scripts/smoke-profile-conversions.mjs",
     "smoke:tcga-contexts": "node scripts/smoke-tcga-contexts.mjs",
-    "verify:tool-interoperability": "node scripts/verify-tool-interoperability.mjs",
-    "benchmark:confusable": "node docs/manuscript/experiments/2026_05_14_confusable_signature_benchmark/code/confusable-signature-benchmark.mjs",
-    "benchmark:browser": "node docs/manuscript/experiments/2026_05_14_browser_benchmark/code/run-browser-benchmarks.mjs",
-    "validation:panel": "node docs/manuscript/experiments/2026_05_14_panel_downsampling_validation/code/panel-downsampling-validation.mjs",
-    "concordance:cross-tools": "python docs/manuscript/experiments/2026_05_13_deconstructsigs_concordance/code/run-cross-tool-comparators.py",
-    "benchmark:manuscript": "node scripts/benchmark-manuscript.mjs --output=docs/manuscript/data/benchmark-results.json --markdown=docs/manuscript/data/benchmark-results.md",
-    "google-assets:manuscript": "node scripts/generate-manuscript-v03-assets.mjs",
-    "assets:manuscript": "node scripts/generate-manuscript-v03-assets.mjs",
-    "v03-assets:manuscript": "node scripts/generate-manuscript-v03-assets.mjs"
+    "test:exact-adapters": "node scripts/verify-exact-adapter-boundaries.mjs",
+    "manuscript:clean-experiments": "node scripts/manuscript/clean-experiments.mjs",
+    "experiment:e1-zero-install": "node docs/manuscript/experiments/e1_zero_install_demo/code/run-zero-install-demo.mjs",
+    "experiment:e2-r-setup": "Rscript scripts/manuscript/setup-e2-r-packages.R",
+    "experiment:e2-adapter-fidelity": "node docs/manuscript/experiments/e2_adapter_fidelity/code/run-adapter-fidelity.mjs",
+    "experiment:e3-reference-checks": "node docs/manuscript/experiments/e3_internal_reference_checks/code/run-internal-reference-checks.mjs",
+    "experiment:e4-browser-benchmarks": "node docs/manuscript/experiments/e4_browser_runtime_benchmarks/code/run-browser-runtime-benchmarks.mjs",
+    "experiment:e6-compatibility": "node docs/manuscript/experiments/e6_cross_browser_compatibility/code/run-compatibility-checks.mjs",
+    "experiment:all": "npm run experiment:e1-zero-install && npm run experiment:e2-adapter-fidelity && npm run experiment:e3-reference-checks && npm run experiment:e4-browser-benchmarks && npm run experiment:e6-compatibility",
+    "assets:main-manuscript": "node scripts/manuscript/generate-main-assets.mjs",
+    "assets:manuscript": "node scripts/manuscript/generate-assets.mjs && node scripts/manuscript/generate-main-assets.mjs"
   },
   "repository": {
     "type": "git",
@@ -54,7 +56,9 @@
   "homepage": "https://episphere.github.io/msig/",
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.0.1",
-    "documentation": "^14.0.3"
+    "d3": "^7.9.0",
+    "documentation": "^14.0.3",
+    "playwright-core": "^1.56.1"
   },
   "dependencies": {
     "build": "^0.1.4",

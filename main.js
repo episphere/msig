@@ -301,7 +301,7 @@ const {
 
 const {
   DEFAULT_PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.27.4/full/",
-  DEFAULT_WEBR_BINARY_R_VERSION = "4.5",
+  DEFAULT_WEBR_BINARY_R_VERSION = "4.6",
   DEFAULT_WEBR_MODULE_URL = "https://webr.r-wasm.org/latest/webr.mjs",
   DEFAULT_WEBR_REPOSITORY_URL = "https://repo.r-wasm.org",
   PYODIDE_RUNNER_SCHEMA_VERSION = "msig.runner.pyodide.v0.3",
@@ -324,10 +324,15 @@ const {
   DEFAULT_SPMG_PACKAGE = "SigProfilerMatrixGenerator==1.3.6",
   DEFAULT_SPP_PACKAGE = "sigProfilerPlotting==1.4.3",
   DEFAULT_SPS_PACKAGE = "SigProfilerSimulator==1.2.2",
-  DEFAULT_SPA_PACKAGE = "SigProfilerAssignment==1.1.3",
+  DEFAULT_SPA_PACKAGE = "docs/package-repos/pyodide/sigprofilerassignment-1.1.3-py3-none-any.whl",
+  DEFAULT_SPA_MICROPIP_PACKAGES = [],
+  DEFAULT_MUSICAL_PACKAGE = "docs/package-repos/pyodide/musical-1.0.0-py3-none-any.whl",
+  PACKAGE_RUNTIME_MANIFEST = { tools: {} },
   checkDeconstructSigsWebRAvailability = missingDependency("checkDeconstructSigsWebRAvailability"),
   checkSigminerWebRAvailability = missingDependency("checkSigminerWebRAvailability"),
   createInteroperabilityBundle = missingDependency("createInteroperabilityBundle"),
+  getPackageRuntime = missingDependency("getPackageRuntime"),
+  listPackageRuntimes = missingDependency("listPackageRuntimes"),
   parseExposureTables = missingDependency("parseExposureTables"),
   parseDeconstructSigsOutput = missingDependency("parseDeconstructSigsOutput"),
   parseSigminerOutput = missingDependency("parseSigminerOutput"),
@@ -347,7 +352,6 @@ const {
   runSigminerWebR = missingDependency("runSigminerWebR"),
   runSigProfilerAssignment = missingDependency("runSigProfilerAssignment"),
   runSigProfilerExtractor = missingDependency("runSigProfilerExtractor"),
-  runSparseNnlsRefit = missingDependency("runSparseNnlsRefit"),
 } = adaptersModule;
 
 // import * as mSigPortalPlotting from "./index.js";
@@ -395,6 +399,10 @@ const mSigSDK = (function () {
 
   /**
    * @namespace signatureExtractionPlots
+   */
+
+  /**
+   * @namespace plotting
    */
 
   /**
@@ -461,6 +469,73 @@ const mSigSDK = (function () {
     }
 
     return Array.isArray(value) ? value : [value];
+  }
+
+  const DEFAULT_PLOTTING_OPTIONS = Object.freeze({
+    publicationReady: true,
+    maxDisplaySignatures: 12,
+    otherSignatureLabel: "Other fitted COSMIC SBS",
+    otherSignatureDisplayLabel: "Other",
+    figure: {
+      compact: false,
+      includeBadges: true,
+      explanatoryCaptions: true,
+    },
+    palette: {
+      ...SCIENTIFIC_COLORS,
+      exposureZero: "#F8FAFC",
+      exposureLow: "#D9F0F3",
+      exposureMid: "#56B4E9",
+      exposureHigh: "#0072B2",
+      exposureVeryHigh: "#003B5C",
+    },
+  });
+  let activePlottingOptions = copyProvenanceValue(DEFAULT_PLOTTING_OPTIONS);
+
+  function mergePlainObjects(base = {}, override = {}) {
+    const output = { ...(base && typeof base === "object" ? base : {}) };
+    for (const [key, value] of Object.entries(
+      override && typeof override === "object" ? override : {}
+    )) {
+      if (
+        value &&
+        typeof value === "object" &&
+        !Array.isArray(value) &&
+        output[key] &&
+        typeof output[key] === "object" &&
+        !Array.isArray(output[key])
+      ) {
+        output[key] = mergePlainObjects(output[key], value);
+      } else if (value !== undefined) {
+        output[key] = copyProvenanceValue(value);
+      }
+    }
+    return output;
+  }
+
+  function getPlottingDefaults() {
+    return copyProvenanceValue(activePlottingOptions);
+  }
+
+  function setPlottingDefaults(options = {}) {
+    activePlottingOptions = mergePlainObjects(activePlottingOptions, options);
+    return getPlottingDefaults();
+  }
+
+  function resetPlottingDefaults() {
+    activePlottingOptions = copyProvenanceValue(DEFAULT_PLOTTING_OPTIONS);
+    return getPlottingDefaults();
+  }
+
+  function resolvePlotPublication(publication = null) {
+    const supplied =
+      publication && typeof publication === "object" && !Array.isArray(publication)
+        ? publication
+        : {};
+    if (publication === false || activePlottingOptions.publicationReady === false) {
+      return supplied;
+    }
+    return mergePlainObjects(activePlottingOptions.figure || {}, supplied);
   }
 
   function getRuntimeContext() {
@@ -972,10 +1047,7 @@ const mSigSDK = (function () {
     figureContext = null,
     publication = null,
   } = {}) {
-    const publicationObject =
-      publication && typeof publication === "object" && !Array.isArray(publication)
-        ? publication
-        : {};
+    const publicationObject = resolvePlotPublication(publication);
     const normalizedTitle = String(
       publicationObject.title || title || "mSigSDK figure"
     ).trim();
@@ -1129,7 +1201,7 @@ const mSigSDK = (function () {
       title: plotlyFigureTitle(layout),
       subtitle: layout?.meta?.subtitle,
       figureContext: layout?.meta?.figureContext,
-      publication,
+      publication: resolvePlotPublication(publication),
     });
     const plotLayout = plotlyLayoutWithPublication(layout, publicationInfo);
 
@@ -1181,6 +1253,31 @@ const mSigSDK = (function () {
         padding: 16px 18px 18px;
         color: #111827;
         font-family: Inter, Arial, sans-serif;
+      }
+      .msig-d3-plot.msig-d3-compact {
+        padding: 10px 12px 12px;
+        box-shadow: none;
+      }
+      .msig-d3-plot.msig-d3-compact .msig-d3-header {
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .msig-d3-plot.msig-d3-compact .msig-d3-title {
+        font-size: 16px;
+      }
+      .msig-d3-plot.msig-d3-compact .msig-d3-subtitle {
+        font-size: 11px;
+        line-height: 1.32;
+      }
+      .msig-d3-plot.msig-d3-compact .msig-d3-badge {
+        min-width: 64px;
+        padding: 5px 7px;
+      }
+      .msig-d3-plot.msig-d3-compact .msig-d3-badge-label {
+        font-size: 9px;
+      }
+      .msig-d3-plot.msig-d3-compact .msig-d3-badge-value {
+        font-size: 12px;
       }
       .msig-publication-figure {
         position: relative;
@@ -1819,15 +1916,17 @@ const mSigSDK = (function () {
   ) {
     ensureD3PlotStyles();
     const { element: container } = resolvePlotContainer(target);
+    const effectivePublication = resolvePlotPublication(publication);
     container.innerHTML = "";
     container.classList.add("msig-d3-plot");
-    container.style.maxWidth = maxWidth;
+    container.classList.toggle("msig-d3-compact", Boolean(effectivePublication?.compact));
+    container.style.maxWidth = effectivePublication?.maxWidth || maxWidth;
     const publicationInfo = normalizeFigurePublication({
       title,
       subtitle,
       badges,
       figureContext,
-      publication,
+      publication: effectivePublication,
       caption,
     });
 
@@ -1925,6 +2024,16 @@ const mSigSDK = (function () {
     };
 
     return { container, chart, tooltip, showTooltip, hideTooltip, publication: publicationInfo };
+  }
+
+  function publicationNumber(publication, key, fallback, { min = 1, max = Infinity } = {}) {
+    const value = Number(publication?.[key]);
+    if (!Number.isFinite(value)) return fallback;
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function publicationBool(publication, key, fallback = false) {
+    return typeof publication?.[key] === "boolean" ? publication[key] : fallback;
   }
 
   function appendResponsiveSvg(chart, width, height, label, publication = null) {
@@ -3965,6 +4074,93 @@ Renders a plot of mutational profiles in a given div element ID.
     const emptyCount = samples.filter(
       (sample) => sample.flags?.emptySpectrum
     ).length;
+    const publication = resolvePlotPublication(options.publication);
+    const burdenLayout = options.layout || publication?.layout || "ranked";
+
+    if (burdenLayout === "histogram") {
+      const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+        title: options.title || "Mutation burden QC",
+        subtitle:
+          options.subtitle ||
+          "Distribution of total mutations across the cohort.",
+        badges: [
+          { label: "Samples", value: String(samples.length) },
+          {
+            label: "Median",
+            value: formatPlotNumber(burdenSummary.overall?.median || d3.median(samples, (sample) => sample.totalMutations), 0),
+          },
+          { label: "Max", value: formatPlotNumber(maxBurden, 0) },
+        ],
+        figureContext: mergeFigureContext(options.figureContext, {
+          dataset: options.dataset || burdenSummary.dataset || burdenSummary.source,
+          samples: samples.length,
+          metric: "total mutations",
+          lowBurdenThreshold: hasThreshold ? threshold : "off",
+        }),
+        publication,
+        maxWidth: publication?.maxWidth || "760px",
+      });
+      const width = publicationNumber(publication, "width", 760, { min: 360 });
+      const height = publicationNumber(publication, "height", 380, { min: 240 });
+      const margin = {
+        top: publicationNumber(publication, "marginTop", 36, { min: 16 }),
+        right: publicationNumber(publication, "marginRight", 28, { min: 8 }),
+        bottom: publicationNumber(publication, "marginBottom", 58, { min: 28 }),
+        left: publicationNumber(publication, "marginLeft", 68, { min: 34 }),
+      };
+      const innerWidth = width - margin.left - margin.right;
+      const innerHeight = height - margin.top - margin.bottom;
+      const svg = appendResponsiveSvg(chart, width, height, "Mutation burden distribution", publication);
+      const values = samples.map((sample) => Number(sample.totalMutations) || 0);
+      const x = d3.scaleLinear().domain([0, maxBurden]).nice().range([0, innerWidth]);
+      const bins = d3.bin().domain(x.domain()).thresholds(publicationNumber(publication, "bins", 10, { min: 4, max: 24 }))(values);
+      const y = d3.scaleLinear().domain([0, d3.max(bins, (bin) => bin.length) || 1]).nice().range([innerHeight, 0]);
+      const plot = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+      plot
+        .append("g")
+        .attr("stroke", SCIENTIFIC_COLORS.lightGray)
+        .attr("stroke-opacity", 0.85)
+        .call(d3.axisLeft(y).ticks(5).tickSize(-innerWidth).tickFormat(""))
+        .call((axis) => axis.select(".domain").remove());
+      plot
+        .selectAll("rect.msig-burden-bin")
+        .data(bins)
+        .join("rect")
+        .attr("class", "msig-burden-bin")
+        .attr("x", (bin) => x(bin.x0) + 1)
+        .attr("y", (bin) => y(bin.length))
+        .attr("width", (bin) => Math.max(2, x(bin.x1) - x(bin.x0) - 2))
+        .attr("height", (bin) => innerHeight - y(bin.length))
+        .attr("rx", 3)
+        .attr("fill", SCIENTIFIC_COLORS.blue)
+        .attr("opacity", 0.9)
+        .on("mousemove", (event, bin) =>
+          showTooltip(
+            event,
+            tooltipRows([
+              ["Mutation range", `${d3.format(",.0f")(bin.x0)}-${d3.format(",.0f")(bin.x1)}`],
+              ["Samples", bin.length],
+            ])
+          )
+        )
+        .on("mouseleave", hideTooltip);
+      if (hasThreshold) {
+        plot
+          .append("line")
+          .attr("x1", x(threshold))
+          .attr("x2", x(threshold))
+          .attr("y1", 0)
+          .attr("y2", innerHeight)
+          .attr("stroke", SCIENTIFIC_COLORS.vermillion)
+          .attr("stroke-width", 2)
+          .attr("stroke-dasharray", "5 5");
+      }
+      plot.append("g").attr("transform", `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5).tickFormat(d3.format("~s"))).call(styleD3Axis);
+      plot.append("g").call(d3.axisLeft(y).ticks(5)).call(styleD3Axis);
+      svg.append("text").attr("class", "msig-d3-axis-title").attr("x", margin.left + innerWidth / 2).attr("y", height - 12).attr("text-anchor", "middle").text("Total mutations");
+      svg.append("text").attr("class", "msig-d3-axis-title").attr("transform", "rotate(-90)").attr("x", -(margin.top + innerHeight / 2)).attr("y", 16).attr("text-anchor", "middle").text("Samples");
+      return { data: samples, threshold, layout: "histogram", bins };
+    }
 
 	    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
 	      title: "Mutation burden QC",
@@ -3987,17 +4183,18 @@ Renders a plot of mutational profiles in a given div element ID.
       publication: options.publication,
     });
 
-    const width = 920;
-    const rowHeight = 28;
+    const width = publicationNumber(publication, "width", 920, { min: 460 });
+    const rowHeight = publicationNumber(publication, "rowHeight", publication?.compact ? 20 : 28, { min: 12, max: 48 });
     const margin = { top: 38, right: 92, bottom: 58, left: 132 };
     const innerWidth = width - margin.left - margin.right;
-    const innerHeight = Math.max(240, samples.length * rowHeight);
-    const height = innerHeight + margin.top + margin.bottom;
+    const innerHeight = Math.max(publicationNumber(publication, "minInnerHeight", 240, { min: 120 }), samples.length * rowHeight);
+    const height = publicationNumber(publication, "height", innerHeight + margin.top + margin.bottom, { min: 220 });
     const svg = appendResponsiveSvg(
       chart,
       width,
       height,
-      "Mutation burden by sample"
+      "Mutation burden by sample",
+      publication
     );
     const plot = svg
       .append("g")
@@ -4421,9 +4618,9 @@ Renders a plot of mutational profiles in a given div element ID.
 	      { key: "burden", label: "Burden", header: ["Burden", "(mut)"] },
 	      { key: "reconstruction", label: "Fit cosine", header: ["Fit", "cosine"] },
 	      { key: "residual", label: "Residual", header: ["Residual", "(%)"] },
-	      { key: "bootstrap", label: "Bootstrap max CI", header: ["Bootstrap", "max CI (pp)"] },
-	      { key: "threshold", label: "Cutoff max cosine drop", header: ["Cutoff", "max drop"] },
-	      { key: "ambiguity", label: "NN cosine sim", header: ["NN cosine", "sim"] },
+	      { key: "bootstrap", label: "Bootstrap 95% CI width (%)", header: ["Bootstrap", "95% CI", "width (%)"] },
+	      { key: "threshold", label: "Cutoff-sensitivity max cosine drop", header: ["Cutoff", "max cosine", "drop"] },
+	      { key: "ambiguity", label: "Nearest active-signature cosine", header: ["Nearest", "signature", "cosine"] },
 	    ];
     const classLabel = {
       standard_qc_passed: "No active caveat",
@@ -4475,7 +4672,7 @@ Renders a plot of mutational profiles in a given div element ID.
       {
         label: "n/a",
         color: stateColor.missing,
-        text: "not run for sample",
+        text: "not available for sample",
       },
     ];
 	    const reviewActionGuide = [
@@ -4497,15 +4694,15 @@ Renders a plot of mutational profiles in a given div element ID.
 	      {
 	        label: "Bootstrap",
 	        text:
-	          "Largest confidence interval among reportable signatures, in percentage points. A conservative summary.",
+	          "Largest confidence interval among reportable signatures, shown as percent of relative exposure. A conservative summary.",
 	      },
 		      {
 		        label: "Cutoff",
 		        text:
-		          "Across the tested cutoffs, each reconstruction cosine is compared with the baseline. The cell shows the biggest drop.",
+		          "Across the tested exposure cutoffs, each reconstruction cosine is compared with the baseline. The cell shows the biggest drop.",
 		      },
 		      {
-		        label: "NN cosine sim",
+		        label: "Nearest signature cosine",
 		        text:
 		          "Highest cosine similarity between two fitted active signatures. Values near 1 mean harder-to-separate signatures.",
 		      },
@@ -4528,9 +4725,9 @@ Renders a plot of mutational profiles in a given div element ID.
       burden: "Mutation burden",
       reconstruction: "Reconstruction fit",
       residual: "Residual and catalog fit",
-      bootstrap: "Bootstrap max CI",
-      threshold: "Cutoff max cosine drop",
-	      ambiguity: "Nearest-neighbor cosine similarity between fitted signatures",
+      bootstrap: "Bootstrap 95% CI width (%)",
+      threshold: "Cutoff-sensitivity max cosine drop",
+	      ambiguity: "Nearest active-signature cosine",
     };
     const componentMeaning = {
       burden: {
@@ -4558,18 +4755,18 @@ Renders a plot of mutational profiles in a given div element ID.
 	      bootstrap: {
 	        concern: "Reportable signature is inconsistently selected",
 	        caution: "Reportable signature selection is variable",
-	        observed: "Conservative max CI measured",
+	        observed: "Bootstrap 95% CI width measured as relative-exposure percent",
 	        ok: "No bootstrap selection cue",
-	        missing: "Bootstrap not run for this sample",
-	        default: "Largest bootstrap confidence interval, range 0 to 100 percentage points",
+	        missing: "No bootstrap intervals supplied for this sample",
+	        default: "Largest 95% bootstrap exposure confidence-interval width, reported as a relative-exposure percent",
 	      },
 	      threshold: {
 	        concern: "Reconstruction changes across cutoffs",
 	        caution: "Small reconstruction change across cutoffs",
-	        observed: "Biggest baseline-to-cutoff cosine drop measured, range 0 to 1",
+	        observed: "Biggest baseline-to-cutoff reconstruction-cosine drop measured, range 0 to 1",
 	        ok: "No cutoff-sensitivity cue",
-	        missing: "Cutoffs not run",
-	        default: "Biggest baseline-to-cutoff reconstruction cosine drop, range 0 to 1",
+	        missing: "No cutoff-sensitivity results supplied",
+	        default: "Biggest reconstruction-cosine decrease after applying the tested exposure cutoffs, range 0 to 1",
 	      },
 	      ambiguity: {
 	        concern: "Very similar active signatures",
@@ -4720,7 +4917,7 @@ Renders a plot of mutational profiles in a given div element ID.
 		    const formatPercentValue = (value, digits = 1) =>
 		      Number.isFinite(value) ? formatPlotNumber(value * 100, digits) : "NA";
 		    const formatPercentagePointEvidence = (value, digits = 1) =>
-		      Number.isFinite(value) ? `${formatPlotNumber(value * 100, digits)} pp` : "NA";
+		      Number.isFinite(value) ? `${formatPlotNumber(value * 100, digits)}%` : "NA";
 		    const formatPercentagePointValue = (value, digits = 1) =>
 		      Number.isFinite(value) ? formatPlotNumber(value * 100, digits) : "NA";
 	    const formatEvidenceNumber = (value, digits = 3) =>
@@ -4772,7 +4969,7 @@ Renders a plot of mutational profiles in a given div element ID.
 	      }
 	      if (Number.isFinite(evidence.reviewConfidenceWidth)) {
 	        rules.push(
-	          `check if the largest CI is at least ${formatPercentagePointEvidence(
+	          `check if the largest 95% CI width is at least ${formatPercentagePointEvidence(
 	            evidence.reviewConfidenceWidth,
 	            0
 	          )}`
@@ -4780,7 +4977,7 @@ Renders a plot of mutational profiles in a given div element ID.
 	      }
 	      if (Number.isFinite(evidence.strongConfidenceWidth)) {
 	        rules.push(
-	          `priority if the largest CI is at least ${formatPercentagePointEvidence(
+	          `priority if the largest 95% CI width is at least ${formatPercentagePointEvidence(
 	            evidence.strongConfidenceWidth,
 	            0
 	          )}`
@@ -4852,7 +5049,7 @@ Renders a plot of mutational profiles in a given div element ID.
     };
 		    const bootstrapEvidenceValue = (evidence) => {
 		      if (!evidence.measured) {
-		        return "not run";
+		        return "n/a";
 		      }
 		      return Number.isFinite(evidence.maxConfidenceWidth)
 		        ? formatPercentagePointValue(evidence.maxConfidenceWidth, 0)
@@ -5095,7 +5292,7 @@ Renders a plot of mutational profiles in a given div element ID.
 		            "Value",
 		            formatPercentagePointEvidence(evidence.maxConfidenceWidth, 1),
 		          ],
-		          ["Summary", "Conservative max among reportable signatures"],
+		          ["Summary", "Widest 95% exposure CI among reportable signatures"],
 		          ["Iterations", evidence.iterations ?? "NA"],
 		          [
 		            "Reportable signatures",
@@ -5112,8 +5309,14 @@ Renders a plot of mutational profiles in a given div element ID.
 	            "Value",
 	            formatEvidenceNumber(evidence.cosineDrop, 4),
 	          ],
-	          ["Summary", "Worst baseline-to-cutoff drop across tested cutoffs"],
-	          ["Cutoffs tested", evidence.thresholdCount ?? "NA"],
+	          ["Summary", "Worst baseline-to-cutoff reconstruction-cosine drop"],
+	          [
+	            "Cutoffs tested",
+	            Array.isArray(evidence.testedThresholds)
+	              ? evidence.testedThresholds.map((value) => formatPlotNumber(value, 3)).join(", ")
+	              : evidence.thresholdCount ?? "NA",
+	          ],
+	          ["Baseline cutoff", formatEvidenceNumber(evidence.baselineThreshold, 3)],
 	          thresholdRuleText(evidence) ? ["Rule", thresholdRuleText(evidence)] : null,
 	          ["Why", "Small contributions are removed; the remaining recipe is renormalized."],
 	          [
@@ -5163,14 +5366,282 @@ Renders a plot of mutational profiles in a given div element ID.
       }
       return [];
     };
-    const rowHeight = 34;
-    const margin = { top: 30, right: 32, bottom: 64, left: 150 };
-    const flagWidth = 310;
-    const heatGap = 54;
-    const heatCellWidth = 88;
+    const publication = resolvePlotPublication(options.publication);
+    const renderPublicationSummary = () => {
+      const width = publicationNumber(publication, "width", 560, { min: 460 });
+      const height = publicationNumber(publication, "height", 320, { min: 250 });
+      const totalSamples = samples.length;
+      const caveatSamples = samples.filter((sample) => activeCaveatCountFor(sample) > 0).length;
+      const medianFitCosine = d3.median(
+        samples
+          .map((sample) => evidenceFor(sample, "reconstruction").cosineSimilarity)
+          .filter(Number.isFinite)
+      );
+      const topSamples = [...samples]
+        .sort((a, b) => {
+          const caveatDelta = activeCaveatCountFor(b) - activeCaveatCountFor(a);
+          if (caveatDelta !== 0) return caveatDelta;
+          const burdenA = evidenceFor(a, "burden").totalMutations ?? a.metrics?.totalMutations ?? 0;
+          const burdenB = evidenceFor(b, "burden").totalMutations ?? b.metrics?.totalMutations ?? 0;
+          return burdenB - burdenA;
+        })
+        .slice(0, 3);
+      const shortComponentLabel = {
+        burden: "Burden",
+        reconstruction: "Fit",
+        residual: "Residual",
+        bootstrap: "Bootstrap",
+        threshold: "Cutoff",
+        ambiguity: "Nearest sig.",
+      };
+      const fieldSummary = components.map(({ key, label }) => {
+        const counts = samples.reduce(
+          (acc, sample) => {
+            const state = componentState(sample, key);
+            acc[state] = (acc[state] || 0) + 1;
+            return acc;
+          },
+          { concern: 0, caution: 0, observed: 0, ok: 0, missing: 0 }
+        );
+        const cueCount = (counts.concern || 0) + (counts.caution || 0);
+        const measuredCount = totalSamples - (counts.missing || 0);
+        const fieldState = counts.concern
+          ? "concern"
+          : counts.caution
+            ? "caution"
+            : measuredCount
+              ? "observed"
+              : "missing";
+        return {
+          key,
+          label: shortComponentLabel[key] || label,
+          cueCount,
+          measuredCount,
+          state: fieldState,
+        };
+      });
+
+      const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+        title: "Fit-quality evidence summary",
+        subtitle:
+          "Manuscript view of the SDK trust/evidence dashboard: sample-level caveats and the fields that triggered them.",
+        badges: [
+          { label: "Samples", value: String(totalSamples) },
+          { label: "With caveats", value: String(caveatSamples) },
+        ],
+        figureContext: mergeFigureContext(options.figureContext, {
+          dataset:
+            options.dataset ||
+            fitQualityEvidenceResult.dataset ||
+            fitQualityEvidenceResult.source,
+          samples: totalSamples,
+          metrics:
+            "summary of burden, reconstruction, residual, bootstrap, cutoff, and ambiguity evidence",
+        }),
+        publication,
+      });
+      const svg = appendResponsiveSvg(chart, width, height, "Fit-quality evidence summary", publication);
+      const cardY = 18;
+      const cardW = (width - 64) / 3;
+      const kpis = [
+        ["Samples", String(totalSamples), SCIENTIFIC_COLORS.blue],
+        ["With caveats", String(caveatSamples), SCIENTIFIC_COLORS.orange],
+        [
+          "Median fit cosine",
+          Number.isFinite(medianFitCosine) ? formatPlotNumber(medianFitCosine, 3) : "NA",
+          SCIENTIFIC_COLORS.green,
+        ],
+      ];
+      kpis.forEach(([label, value, color], index) => {
+        const x0 = 20 + index * (cardW + 12);
+        svg
+          .append("rect")
+          .attr("x", x0)
+          .attr("y", cardY)
+          .attr("width", cardW)
+          .attr("height", 58)
+          .attr("rx", 10)
+          .attr("fill", "#ffffff")
+          .attr("stroke", SCIENTIFIC_COLORS.lightGray);
+        svg
+          .append("text")
+          .attr("x", x0 + 14)
+          .attr("y", cardY + 22)
+          .attr("font", "700 11px Arial, sans-serif")
+          .attr("fill", SCIENTIFIC_COLORS.darkGray)
+          .text(label);
+        svg
+          .append("text")
+          .attr("x", x0 + 14)
+          .attr("y", cardY + 48)
+          .attr("font", "700 24px Arial, sans-serif")
+          .attr("fill", color)
+          .text(value);
+      });
+
+      svg
+        .append("text")
+        .attr("x", 20)
+        .attr("y", 106)
+        .attr("font", "700 13px Arial, sans-serif")
+        .attr("fill", SCIENTIFIC_COLORS.darkGray)
+        .text("Evidence fields checked");
+      const tileW = (width - 56) / 3;
+      const tileH = 34;
+      fieldSummary.forEach((field, index) => {
+        const col = index % 3;
+        const row = Math.floor(index / 3);
+        const x0 = 20 + col * (tileW + 8);
+        const y0 = 118 + row * (tileH + 9);
+        const color = stateColor[field.state] || stateColor.missing;
+        svg
+          .append("rect")
+          .attr("x", x0)
+          .attr("y", y0)
+          .attr("width", tileW)
+          .attr("height", tileH)
+          .attr("rx", 8)
+          .attr("fill", color)
+          .attr("opacity", field.state === "missing" ? 0.85 : 0.9)
+          .on("mousemove", (event) =>
+            showTooltip(
+              event,
+              tooltipRows([
+                ["Field", field.label],
+                ["Samples measured", `${field.measuredCount}/${totalSamples}`],
+                ["Samples with action cue", String(field.cueCount)],
+              ])
+            )
+          )
+          .on("mouseleave", hideTooltip);
+        svg
+          .append("text")
+          .attr("x", x0 + 12)
+          .attr("y", y0 + 21)
+          .attr("font", "700 11px Arial, sans-serif")
+          .attr("fill", field.state === "missing" ? SCIENTIFIC_COLORS.darkGray : "#ffffff")
+          .text(field.label);
+        svg
+          .append("text")
+          .attr("x", x0 + tileW - 12)
+          .attr("y", y0 + 21)
+          .attr("text-anchor", "end")
+          .attr("font", "700 11px Arial, sans-serif")
+          .attr("fill", field.state === "missing" ? SCIENTIFIC_COLORS.darkGray : "#ffffff")
+          .text(
+            field.cueCount
+              ? `${field.cueCount} cue${field.cueCount === 1 ? "" : "s"}`
+              : field.measuredCount
+                ? `${field.measuredCount} checked`
+                : "n/a"
+          );
+      });
+
+      svg
+        .append("text")
+        .attr("x", 20)
+        .attr("y", 222)
+        .attr("font", "700 13px Arial, sans-serif")
+        .attr("fill", SCIENTIFIC_COLORS.darkGray)
+        .text("Representative samples");
+      const headerY = 240;
+      [
+        ["Sample", 30],
+        ["Caveats", 184],
+        ["Burden", 314],
+        ["Fit cosine", 424],
+      ].forEach(([label, x0]) => {
+        svg
+          .append("text")
+          .attr("x", x0)
+          .attr("y", headerY)
+          .attr("font", "700 10px Arial, sans-serif")
+          .attr("fill", SCIENTIFIC_COLORS.darkGray)
+          .text(label);
+      });
+      topSamples.forEach((sample, index) => {
+        const y0 = 258 + index * 24;
+        const caveatCount = activeCaveatCountFor(sample);
+        const severity = activeCaveatSeverityFor(sample);
+        const burden = evidenceFor(sample, "burden").totalMutations ?? sample.metrics?.totalMutations;
+        const cosine = evidenceFor(sample, "reconstruction").cosineSimilarity ?? sample.metrics?.cosineSimilarity;
+        svg
+          .append("rect")
+          .attr("x", 20)
+          .attr("y", y0 - 13)
+          .attr("width", width - 40)
+          .attr("height", 21)
+          .attr("rx", 5)
+          .attr("fill", index % 2 ? "#ffffff" : "#f8fafc");
+        svg
+          .append("text")
+          .attr("x", 30)
+          .attr("y", y0)
+          .attr("font", "700 10.5px Arial, sans-serif")
+          .attr("fill", SCIENTIFIC_COLORS.darkGray)
+          .text(compactPlotLabel(sample.sample, 18));
+        svg
+          .append("circle")
+          .attr("cx", 194)
+          .attr("cy", y0 - 4)
+          .attr("r", 5)
+          .attr("fill", stateColor[severity] || SCIENTIFIC_COLORS.green);
+        svg
+          .append("text")
+          .attr("x", 208)
+          .attr("y", y0)
+          .attr("font", "700 10.5px Arial, sans-serif")
+          .attr("fill", SCIENTIFIC_COLORS.darkGray)
+          .text(caveatCount ? `${caveatCount} active` : "none");
+        svg
+          .append("text")
+          .attr("x", 314)
+          .attr("y", y0)
+          .attr("font", "10.5px Arial, sans-serif")
+          .attr("fill", SCIENTIFIC_COLORS.darkGray)
+          .text(Number.isFinite(burden) ? formatPlotNumber(burden, 0) : "NA");
+        svg
+          .append("text")
+          .attr("x", 424)
+          .attr("y", y0)
+          .attr("font", "700 10.5px Arial, sans-serif")
+          .attr("fill", SCIENTIFIC_COLORS.green)
+          .text(Number.isFinite(cosine) ? formatPlotNumber(cosine, 3) : "NA");
+      });
+
+      return {
+        data: topSamples,
+        components: fieldSummary,
+        summary: { totalSamples, caveatSamples, medianFitCosine },
+      };
+    };
+    if (
+      publicationBool(publication, "summary", false) ||
+      publicationBool(publication, "manuscriptSummary", false)
+    ) {
+      return renderPublicationSummary();
+    }
+    const totalSampleCount = samples.length;
+    const maxRows = publicationNumber(publication, "maxRows", samples.length, { min: 1, max: samples.length });
+    const rowHeight = publicationNumber(publication, "rowHeight", publication?.compact ? 24 : 34, { min: 16, max: 46 });
+    const margin = {
+      top: publicationNumber(publication, "marginTop", publication?.compact ? 24 : 30, { min: 16 }),
+      right: publicationNumber(publication, "marginRight", 32, { min: 12 }),
+      bottom: publicationNumber(publication, "marginBottom", 64, { min: 34 }),
+      left: publicationNumber(publication, "marginLeft", publication?.compact ? 118 : 150, { min: 80 }),
+    };
+    const flagWidth = publicationNumber(publication, "flagWidth", publication?.compact ? 190 : 310, { min: 90 });
+    const heatGap = publicationNumber(publication, "heatGap", publication?.compact ? 32 : 54, { min: 16 });
+    const heatCellWidth = publicationNumber(publication, "heatCellWidth", publication?.compact ? 64 : 88, { min: 44 });
     const heatWidth = components.length * heatCellWidth;
-    const width = margin.left + flagWidth + heatGap + heatWidth + margin.right;
-    const innerHeight = Math.max(270, samples.length * rowHeight);
+    samples = samples.slice(0, maxRows);
+    const displayedSampleCount = samples.length;
+    const sampleSubsetText =
+      displayedSampleCount < totalSampleCount
+        ? `Display shows the ${displayedSampleCount} highest-priority rows from the ${totalSampleCount}-sample cohort.`
+        : `Display shows all ${totalSampleCount} samples.`;
+    const width = publicationNumber(publication, "width", margin.left + flagWidth + heatGap + heatWidth + margin.right, { min: 520 });
+    const innerHeight = Math.max(publicationNumber(publication, "minInnerHeight", publication?.compact ? 160 : 270, { min: 90 }), samples.length * rowHeight);
     const height = innerHeight + margin.top + margin.bottom;
 	    const activeCaveatCounts = samples.map((sample) =>
 	      activeCaveatCountFor(sample)
@@ -5186,11 +5657,14 @@ Renders a plot of mutational profiles in a given div element ID.
 		    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
 		      title: "Review diagnostics summary",
 		      subtitle:
-		        "Active caveats are reporting prompts, not failed samples. Blue cells are measured diagnostics; yellow and red cells are user-configured action cues.",
+		        `Active caveats are reporting prompts, not failed samples. ${sampleSubsetText} Blue cells are measured diagnostics; yellow and red cells are user-configured action cues.`,
       badges: [
         {
-          label: "Samples",
-          value: String(samples.length),
+          label: "Samples shown",
+          value:
+            displayedSampleCount < totalSampleCount
+              ? `${displayedSampleCount}/${totalSampleCount}`
+              : String(displayedSampleCount),
         },
         {
           label: "Mean active caveats",
@@ -5204,14 +5678,17 @@ Renders a plot of mutational profiles in a given div element ID.
           options.dataset ||
           fitQualityEvidenceResult.dataset ||
           fitQualityEvidenceResult.source,
-        samples: samples.length,
+        samples: totalSampleCount,
+        displayedSamples: displayedSampleCount,
         metrics:
           "burden, reconstruction, residual, bootstrap, cutoff, ambiguity, and catalog evidence",
       }),
-      publication: options.publication,
+      publication,
       });
-    appendReviewGuide();
-	    const svg = appendResponsiveSvg(chart, width, height, "Review diagnostics summary");
+    if (!publicationBool(publication, "hideGuide", false)) {
+      appendReviewGuide();
+    }
+	    const svg = appendResponsiveSvg(chart, width, height, "Review diagnostics summary", publication);
     const y = d3
       .scaleBand()
       .domain(samples.map((sample) => sample.sample))
@@ -5403,6 +5880,12 @@ Renders a plot of mutational profiles in a given div element ID.
       .attr("clip-path", (_row, index) => `url(#${heatClipPrefix}-${index})`)
       .style("pointer-events", "none")
       .text((row) => compactText(row.value, heatTextMaxChars));
+	    const maxHeaderLineCount = Math.max(
+	      ...components.map((component) => (component.header || [component.label]).length),
+	      1
+	    );
+	    const headerY = maxHeaderLineCount > 2 ? -38 : -16;
+	    const headerDy = maxHeaderLineCount > 2 ? 13 : 11;
 	    const headerLabels = heatPlot
 	      .selectAll("text.msig-fit-quality-component-header")
 	      .data(components)
@@ -5413,7 +5896,7 @@ Renders a plot of mutational profiles in a given div element ID.
         heatCellWidth / 2 -
         2
       )
-	      .attr("y", -16)
+	      .attr("y", headerY)
 	      .attr("text-anchor", "middle")
 	      .attr("fill", SCIENTIFIC_COLORS.darkGray)
 	      .attr("font", "700 10px Arial, sans-serif");
@@ -5424,7 +5907,7 @@ Renders a plot of mutational profiles in a given div element ID.
 	      .attr("x", function () {
 	        return this.parentNode.getAttribute("x");
 	      })
-	      .attr("dy", (_line, index) => (index === 0 ? 0 : 11))
+	      .attr("dy", (_line, index) => (index === 0 ? 0 : headerDy))
 	      .text((line) => line);
     headerLabels
       .append("title")
@@ -5450,6 +5933,51 @@ Renders a plot of mutational profiles in a given div element ID.
       .attr("y", height - 14)
       .attr("text-anchor", "middle")
       .text("Evidence fields");
+
+    if (publicationBool(publication, "inlineDefinitions", false)) {
+      const bootstrapIterations = d3.max(
+        samples
+          .map((sample) => evidenceFor(sample, "bootstrap").iterations)
+          .filter(Number.isFinite)
+      );
+      const thresholdValues = uniqueStringsForPlot(
+        samples.flatMap((sample) => evidenceFor(sample, "threshold").testedThresholds || [])
+      )
+        .map((value) => Number(value))
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      const baselineCutoffs = samples
+        .map((sample) => evidenceFor(sample, "threshold").baselineThreshold)
+        .filter(Number.isFinite);
+      const baselineCutoff = baselineCutoffs.length ? d3.median(baselineCutoffs) : null;
+      const thresholdText = thresholdValues.length
+        ? thresholdValues.map((value) => formatPlotNumber(value, 3)).join(", ")
+        : "configured cutoffs";
+      const definitionLines = [
+        `Bootstrap: widest 95% exposure CI after ${Number.isFinite(bootstrapIterations) ? formatPlotNumber(bootstrapIterations, 0) : "configured"} refits, shown as % of relative exposure.`,
+        `Cutoff max cosine drop: largest decrease from baseline cutoff ${Number.isFinite(baselineCutoff) ? formatPlotNumber(baselineCutoff, 3) : "the baseline"} across tested exposure cutoffs (${thresholdText}).`,
+        "Nearest signature cosine: closest pair among active fitted signatures; higher values indicate harder-to-separate signatures.",
+      ];
+      const definition = svg
+        .append("g")
+        .attr("transform", `translate(${margin.left},${height - 70})`);
+      definition
+        .append("line")
+        .attr("x1", 0)
+        .attr("x2", Math.min(width - margin.left - margin.right, flagWidth + heatGap + heatWidth))
+        .attr("y1", -12)
+        .attr("y2", -12)
+        .attr("stroke", SCIENTIFIC_COLORS.lightGray);
+      definitionLines.forEach((line, index) => {
+        definition
+          .append("text")
+          .attr("x", 0)
+          .attr("y", index * 16)
+          .attr("fill", SCIENTIFIC_COLORS.muted || "#475569")
+          .attr("font", "700 10.5px Arial, sans-serif")
+          .text(line);
+      });
+    }
 
     return { data: samples, components };
   }
@@ -5568,8 +6096,8 @@ Renders a plot of mutational profiles in a given div element ID.
 	            ["Comparison", row.comparisonGroup],
 	            ["Mean diff", formatPlotNumber(row.meanDifference, 4)],
 	            ["Effect size", formatPlotNumber(row.effectSize, 3)],
-	            ["p-value", row.pValue === null ? "not run" : formatPlotNumber(row.pValue, 4)],
-	            ["q-value", row.qValue === null ? "not run" : formatPlotNumber(row.qValue, 4)],
+	            ["p-value", row.pValue === null ? "not evaluated" : formatPlotNumber(row.pValue, 4)],
+	            ["q-value", row.qValue === null ? "not evaluated" : formatPlotNumber(row.qValue, 4)],
           ])
         )
       )
@@ -5600,6 +6128,522 @@ Renders a plot of mutational profiles in a given div element ID.
       .text("Mean exposure difference");
 
     return { data: rows };
+  }
+
+  function exposureSignatureNames(exposures, explicitNames = null) {
+    if (Array.isArray(explicitNames) && explicitNames.length) {
+      return explicitNames.map(String);
+    }
+    return uniqueStringsForPlot(
+      Object.values(exposures || {}).flatMap((row) =>
+        Object.keys(row || {}).filter((key) => key !== "rnorm")
+      )
+    );
+  }
+
+  function sampleBurdenFromSpectrum(record) {
+    return Object.values(record || {}).reduce((sum, value) => {
+      const numeric = Number(value);
+      return sum + (Number.isFinite(numeric) ? Math.max(0, numeric) : 0);
+    }, 0);
+  }
+
+  function fitQualitySampleLookup(fitQuality) {
+    const lookup = new Map();
+    for (const sample of fitQuality?.samples || []) {
+      const name = sample.sample || sample.sampleName;
+      if (name) lookup.set(name, sample);
+    }
+    return lookup;
+  }
+
+  function normalizeExposureRowForDisplay(row, signatureNames, { relative = true } = {}) {
+    const values = Object.fromEntries(
+      signatureNames.map((signature) => [
+        signature,
+        Math.max(0, Number(row?.[signature]) || 0),
+      ])
+    );
+    if (!relative) return values;
+    const total = Object.values(values).reduce((sum, value) => sum + value, 0);
+    if (total <= 0) return values;
+    return Object.fromEntries(
+      signatureNames.map((signature) => [signature, values[signature] / total])
+    );
+  }
+
+  /**
+   * Renders a cohort-level signature-exposure landscape using full-catalog
+   * exposures while reducing the display to the top cohort signatures plus
+   * an explicit Other remainder.
+   *
+   * @function plotCohortSignatureSummary
+   * @memberof qcPlots
+   * @param {string|Element} divID - Container element or element id.
+   * @param {Object} cohort - Cohort input with spectra, exposures, fitQuality, and metadata.
+   * @param {Object} [options] - Plot options.
+   * @returns {Object|Element} Render metadata or an error element.
+   */
+  function plotCohortSignatureSummary(divID, cohort = {}, options = {}) {
+    const publication = resolvePlotPublication(options.publication);
+    const exposures = cohort.exposures || cohort.fit?.exposures || {};
+    const spectra = cohort.spectra || {};
+    const fitQuality = cohort.fitQuality || cohort.fitQualityEvidence || cohort.quality || null;
+    const signatureNames = exposureSignatureNames(
+      exposures,
+      options.signatureNames || cohort.signatureNames
+    );
+    const sampleNames =
+      options.sampleNames ||
+      cohort.sampleNames ||
+      uniqueStringsForPlot([
+        ...Object.keys(exposures || {}),
+        ...Object.keys(spectra || {}),
+      ]);
+    if (!signatureNames.length || !sampleNames.length) {
+      return renderPlotError(
+        divID,
+        "No cohort exposure data available for the signature summary."
+      );
+    }
+
+    const topN = Math.max(
+      1,
+      Math.floor(
+        Number(options.topN ?? activePlottingOptions.maxDisplaySignatures ?? 12)
+      )
+    );
+    const otherLabel =
+      options.otherLabel ||
+      activePlottingOptions.otherSignatureLabel ||
+      "Other fitted COSMIC SBS";
+    const otherDisplayLabel =
+      options.otherDisplayLabel ||
+      activePlottingOptions.otherSignatureDisplayLabel ||
+      "Other";
+    const exposureThreshold = Number(options.exposureThreshold ?? 0.01);
+    const relative = options.relative !== false;
+    const fitLookup = fitQualitySampleLookup(fitQuality);
+    const rowsBySample = new Map();
+    const signatureTotals = Object.fromEntries(signatureNames.map((name) => [name, 0]));
+    const signaturePrevalence = Object.fromEntries(signatureNames.map((name) => [name, 0]));
+
+    for (const sample of sampleNames) {
+      const normalized = normalizeExposureRowForDisplay(exposures[sample], signatureNames, {
+        relative,
+      });
+      rowsBySample.set(sample, normalized);
+      for (const signature of signatureNames) {
+        const value = Number(normalized[signature]) || 0;
+        signatureTotals[signature] += value;
+        if (value >= exposureThreshold) signaturePrevalence[signature] += 1;
+      }
+    }
+
+    const orderedSignatures = [...signatureNames].sort(
+      (a, b) => signatureTotals[b] - signatureTotals[a] || a.localeCompare(b)
+    );
+    const shownSignatures = orderedSignatures.slice(0, Math.min(topN, orderedSignatures.length));
+    const hiddenSignatures = orderedSignatures.slice(shownSignatures.length);
+    const displaySignatures = hiddenSignatures.length
+      ? [...shownSignatures, otherLabel]
+      : shownSignatures;
+    const metadataBySample = new Map(
+      (cohort.metadata || []).map((row) => [row.sample || row.sampleName, row])
+    );
+    const displayRows = sampleNames.map((sample) => {
+      const sourceRow = rowsBySample.get(sample) || {};
+      const displayValues = Object.fromEntries(
+        shownSignatures.map((signature) => [signature, Number(sourceRow[signature]) || 0])
+      );
+      if (hiddenSignatures.length) {
+        displayValues[otherLabel] = hiddenSignatures.reduce(
+          (sum, signature) => sum + (Number(sourceRow[signature]) || 0),
+          0
+        );
+      }
+      const burden =
+        Number(cohort.burdenBySample?.[sample]) ||
+        Number(metadataBySample.get(sample)?.totalMutations) ||
+        sampleBurdenFromSpectrum(spectra[sample]);
+      const fitSample = fitLookup.get(sample) || {};
+      const fitCosine =
+        Number(fitSample.metrics?.cosineSimilarity) ||
+        Number(fitSample.cosineSimilarity) ||
+        Number(fitSample.reconstruction?.cosineSimilarity);
+      const dominantSignature = displaySignatures.reduce(
+        (best, signature) =>
+          (Number(displayValues[signature]) || 0) > (Number(displayValues[best]) || 0)
+            ? signature
+            : best,
+        displaySignatures[0]
+      );
+      return {
+        sample,
+        values: displayValues,
+        burden: Number.isFinite(burden) ? burden : 0,
+        fitCosine: Number.isFinite(fitCosine) ? fitCosine : null,
+        dominantSignature,
+      };
+    });
+
+    const signatureSummary = displaySignatures.map((signature) => {
+      const hidden = signature === otherLabel;
+      const total = hidden
+        ? hiddenSignatures.reduce((sum, name) => sum + signatureTotals[name], 0)
+        : signatureTotals[signature];
+      const prevalence = hidden
+        ? displayRows.filter((row) => (Number(row.values[signature]) || 0) >= exposureThreshold).length
+        : signaturePrevalence[signature];
+      return {
+        signature,
+        displayLabel: hidden ? otherDisplayLabel : signature,
+        hidden,
+        total,
+        mean: sampleNames.length ? total / sampleNames.length : 0,
+        prevalence,
+        prevalenceFraction: sampleNames.length ? prevalence / sampleNames.length : 0,
+      };
+    });
+
+    displayRows.sort((a, b) => {
+      const groupCmp =
+        displaySignatures.indexOf(a.dominantSignature) -
+        displaySignatures.indexOf(b.dominantSignature);
+      return groupCmp || b.burden - a.burden || a.sample.localeCompare(b.sample);
+    });
+
+    const maxExposure = Math.max(
+      0.01,
+      ...displayRows.flatMap((row) => displaySignatures.map((signature) => row.values[signature] || 0))
+    );
+    const maxBurden = Math.max(1, ...displayRows.map((row) => row.burden || 0));
+    const minCosine = Math.max(
+      0,
+      Math.min(
+        ...displayRows
+          .map((row) => row.fitCosine)
+          .filter((value) => Number.isFinite(value)),
+        1
+      ) - 0.02
+    );
+    const displayCountText = hiddenSignatures.length
+      ? `${shownSignatures.length} + Other`
+      : String(shownSignatures.length);
+    const catalogName =
+      options.signatureCatalog ||
+      cohort.signatureCatalog ||
+      cohort.catalog ||
+      "COSMIC SBS96";
+    const dataset =
+      options.dataset || cohort.dataset || cohort.source || "Cohort";
+    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
+      title: options.title || "Cohort signature exposure landscape",
+      subtitle:
+        options.subtitle ||
+        `${sampleNames.length} samples fitted against the full ${catalogName}; display shows top ${shownSignatures.length} cohort signatures${hiddenSignatures.length ? " plus an explicit Other remainder" : ""}.`,
+      badges: [
+        { label: "Samples", value: String(sampleNames.length) },
+        { label: "Catalog signatures", value: String(signatureNames.length) },
+        { label: "Displayed", value: displayCountText },
+        { label: "Exposure cutoff", value: formatPlotNumber(exposureThreshold, 3) },
+      ],
+      figureContext: mergeFigureContext(options.figureContext, {
+        dataset,
+        samples: sampleNames.length,
+        signatureCatalog: catalogName,
+        signatures: signatureNames.length,
+        displayedSignatures: displayCountText,
+        exposureThreshold,
+      }),
+      publication,
+      caption:
+        options.caption ||
+        `${dataset}: full-catalog signature fitting summarized as a cohort exposure landscape. Signatures are ranked by total cohort exposure; lower-ranked signatures are retained in the computation and grouped only for display as ${otherDisplayLabel} (${otherLabel}).`,
+      maxWidth: options.maxWidth || "1180px",
+    });
+
+    const rowHeight = publicationNumber(publication, "rowHeight", publication?.compact ? 16 : 19, { min: 12, max: 34 });
+    const cellWidth = publicationNumber(publication, "cellWidth", publication?.compact ? 54 : 60, { min: 32, max: 82 });
+    const sampleLabelWidth = publicationNumber(publication, "sampleLabelWidth", 128, { min: 86, max: 190 });
+    const burdenWidth = publicationNumber(publication, "burdenWidth", 88, { min: 60, max: 140 });
+    const fitWidth = publicationNumber(publication, "fitWidth", 92, { min: 64, max: 140 });
+    const x0 = 34;
+    const y0 = 190;
+    const heatWidth = displaySignatures.length * cellWidth;
+    const heatHeight = Math.max(displayRows.length * rowHeight, 120);
+    const width = publicationNumber(
+      publication,
+      "width",
+      x0 + sampleLabelWidth + 10 + burdenWidth + 14 + heatWidth + 16 + fitWidth + 36,
+      { min: 720 }
+    );
+    const height = publicationNumber(publication, "height", y0 + heatHeight + 92, { min: 420 });
+    const svg = appendResponsiveSvg(chart, width, height, "Cohort signature exposure landscape", publication);
+    const sampleX = x0;
+    const burdenX = sampleX + sampleLabelWidth + 10;
+    const heatX = burdenX + burdenWidth + 14;
+    const fitX = heatX + heatWidth + 16;
+    const burdenScale = d3.scaleLinear().domain([0, maxBurden]).range([0, burdenWidth]);
+    const cosineScale = d3.scaleLinear().domain([minCosine, 1]).range([0, fitWidth]);
+    const color = d3.scaleSequential(d3.interpolateViridis).domain([0, Math.max(maxExposure, 0.2)]);
+    const totalScale = d3
+      .scaleLinear()
+      .domain([0, d3.max(signatureSummary, (row) => row.total) || 1])
+      .range([0, 74]);
+
+    svg.append("text").attr("x", sampleX).attr("y", 34).attr("font", "800 14px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.darkGray).text("Signature totals across cohort");
+    signatureSummary.forEach((summary, index) => {
+      const x = heatX + index * cellWidth;
+      svg
+        .append("rect")
+        .attr("x", x + cellWidth * 0.24)
+        .attr("y", 116 - totalScale(summary.total))
+        .attr("width", cellWidth * 0.52)
+        .attr("height", totalScale(summary.total))
+        .attr("rx", 4)
+        .attr("fill", summary.hidden ? SCIENTIFIC_COLORS.gray : SCIENTIFIC_COLORS.blue)
+        .attr("opacity", 0.82)
+        .on("mousemove", (event) =>
+          showTooltip(
+            event,
+            tooltipRows([
+              ["Signature", summary.signature],
+              ["Mean exposure", d3.format(".1%")(summary.mean)],
+              ["Total exposure", formatPlotNumber(summary.total, 3)],
+              ["Samples >= cutoff", `${summary.prevalence}/${sampleNames.length}`],
+              ["Display", summary.hidden ? `${hiddenSignatures.length} lower-ranked signatures` : "Top cohort signature"],
+            ])
+          )
+        )
+        .on("mouseleave", hideTooltip);
+      svg
+        .append("text")
+        .attr("class", "msig-cohort-signature-label")
+        .attr("x", x + cellWidth / 2)
+        .attr("y", 136)
+        .attr("text-anchor", "middle")
+        .attr("font", "800 11px Arial, sans-serif")
+        .attr("fill", SCIENTIFIC_COLORS.darkGray)
+        .text(compactPlotLabel(summary.displayLabel, cellWidth < 48 ? 8 : 11))
+        .append("title")
+        .text(summary.hidden ? `${summary.displayLabel}: ${summary.signature}` : summary.signature);
+      svg
+        .append("text")
+        .attr("class", "msig-cohort-prevalence-label")
+        .attr("x", x + cellWidth / 2)
+        .attr("y", 152)
+        .attr("text-anchor", "middle")
+        .attr("font", "700 9.5px Arial, sans-serif")
+        .attr("fill", SCIENTIFIC_COLORS.gray)
+        .text(d3.format(".0%")(summary.prevalenceFraction));
+    });
+    if (hiddenSignatures.length) {
+      const otherIndex = signatureSummary.findIndex((summary) => summary.hidden);
+      const otherBarX = heatX + Math.max(0, otherIndex) * cellWidth;
+      const otherNoteWidth = publicationNumber(publication, "otherNoteWidth", 136, {
+        min: 110,
+        max: 220,
+      });
+      const otherNoteX = Math.min(
+        otherBarX + cellWidth + 8,
+        width - 34 - otherNoteWidth
+      );
+      const otherNoteY = 54;
+      const otherNoteHeight = 58;
+      svg
+        .append("path")
+        .attr(
+          "d",
+          `M${otherNoteX + 4},${otherNoteY + otherNoteHeight / 2} L${otherBarX + cellWidth / 2},${118}`
+        )
+        .attr("fill", "none")
+        .attr("stroke", "#94A3B8")
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "3 3")
+        .attr("opacity", 0.8);
+      svg
+        .append("rect")
+        .attr("class", "msig-cohort-other-note-bg")
+        .attr("x", otherNoteX)
+        .attr("y", otherNoteY)
+        .attr("width", otherNoteWidth)
+        .attr("height", otherNoteHeight)
+        .attr("rx", 8)
+        .attr("fill", "#FFFFFF")
+        .attr("stroke", "#CBD5E1");
+      const otherLines = [
+        otherDisplayLabel,
+        `${hiddenSignatures.length} lower-ranked`,
+        "COSMIC SBS signatures",
+      ];
+      otherLines.forEach((line, index) => {
+        svg
+          .append("text")
+          .attr("class", "msig-cohort-other-note")
+          .attr("x", otherNoteX + 10)
+          .attr("y", otherNoteY + 18 + index * 16)
+          .attr("font", index === 0 ? "800 12px Arial, sans-serif" : "700 10.5px Arial, sans-serif")
+          .attr("fill", index === 0 ? SCIENTIFIC_COLORS.darkGray : SCIENTIFIC_COLORS.gray)
+          .text(line);
+      });
+    }
+    svg.append("text").attr("x", heatX).attr("y", 168).attr("font", "800 13px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.darkGray).text("Relative exposure per sample");
+    svg.append("text").attr("x", sampleX).attr("y", y0 - 12).attr("font", "800 12px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Sample");
+    svg.append("text").attr("x", burdenX).attr("y", y0 - 12).attr("font", "800 12px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Burden");
+    svg.append("text").attr("x", fitX).attr("y", y0 - 12).attr("font", "800 12px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Fit cosine");
+
+    const rows = svg
+      .append("g")
+      .selectAll("g.msig-cohort-summary-row")
+      .data(displayRows)
+      .join("g")
+      .attr("class", "msig-cohort-summary-row")
+      .attr("transform", (_row, index) => `translate(0,${y0 + index * rowHeight})`);
+
+    rows
+      .append("rect")
+      .attr("x", sampleX - 4)
+      .attr("y", -1)
+      .attr("width", width - sampleX - 26)
+      .attr("height", rowHeight)
+      .attr("fill", (_row, index) => (index % 2 ? "#ffffff" : "#F8FAFC"));
+    rows
+      .append("text")
+      .attr("x", sampleX)
+      .attr("y", rowHeight / 2 + 4)
+      .attr("font", "700 10.5px Arial, sans-serif")
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .text((row) => compactPlotLabel(row.sample, 18))
+      .append("title")
+      .text((row) => row.sample);
+    rows
+      .append("rect")
+      .attr("x", burdenX)
+      .attr("y", rowHeight / 2 - 5)
+      .attr("width", burdenWidth)
+      .attr("height", 10)
+      .attr("rx", 4)
+      .attr("fill", "#E5E7EB");
+    rows
+      .append("rect")
+      .attr("x", burdenX)
+      .attr("y", rowHeight / 2 - 5)
+      .attr("width", (row) => burdenScale(row.burden))
+      .attr("height", 10)
+      .attr("rx", 4)
+      .attr("fill", SCIENTIFIC_COLORS.sky)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Sample", row.sample],
+            ["Mutation burden", formatPlotNumber(row.burden, 0)],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    rows
+      .selectAll("rect.msig-cohort-exposure-cell")
+      .data((row) =>
+        displaySignatures.map((signature) => ({
+          sample: row.sample,
+          signature,
+          exposure: Number(row.values[signature]) || 0,
+          dominantSignature: row.dominantSignature,
+        }))
+      )
+      .join("rect")
+      .attr("class", "msig-cohort-exposure-cell")
+      .attr("x", (cell) => heatX + displaySignatures.indexOf(cell.signature) * cellWidth)
+      .attr("y", 1)
+      .attr("width", cellWidth - 2)
+      .attr("height", rowHeight - 2)
+      .attr("rx", 2)
+      .attr("fill", (cell) => (cell.exposure > 0 ? color(cell.exposure) : "#F8FAFC"))
+      .attr("stroke", (cell) =>
+        cell.signature === cell.dominantSignature ? SCIENTIFIC_COLORS.darkGray : "#ffffff"
+      )
+      .attr("stroke-width", (cell) => (cell.signature === cell.dominantSignature ? 1.3 : 0.7))
+      .on("mousemove", (event, cell) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Sample", cell.sample],
+            ["Signature", cell.signature],
+            ["Exposure", d3.format(".2%")(cell.exposure)],
+            ["Dominant", cell.signature === cell.dominantSignature ? "yes" : "no"],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+    rows
+      .append("rect")
+      .attr("x", fitX)
+      .attr("y", rowHeight / 2 - 5)
+      .attr("width", fitWidth)
+      .attr("height", 10)
+      .attr("rx", 4)
+      .attr("fill", "#F0EFE3");
+    rows
+      .append("circle")
+      .attr("cx", (row) =>
+        fitX + (Number.isFinite(row.fitCosine) ? cosineScale(row.fitCosine) : 0)
+      )
+      .attr("cy", rowHeight / 2)
+      .attr("r", (row) => (Number.isFinite(row.fitCosine) ? 4.3 : 0))
+      .attr("fill", SCIENTIFIC_COLORS.orange)
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 1.2)
+      .on("mousemove", (event, row) =>
+        showTooltip(
+          event,
+          tooltipRows([
+            ["Sample", row.sample],
+            ["Fit cosine", Number.isFinite(row.fitCosine) ? formatPlotNumber(row.fitCosine, 4) : "NA"],
+          ])
+        )
+      )
+      .on("mouseleave", hideTooltip);
+
+    const legendX = heatX;
+    const legendY = height - 38;
+    const legendWidth = Math.min(240, heatWidth);
+    const gradientId = `msig-cohort-exposure-gradient-${Math.random().toString(36).slice(2)}`;
+    const defs = svg.append("defs");
+    const gradient = defs.append("linearGradient").attr("id", gradientId).attr("x1", "0%").attr("x2", "100%");
+    d3.range(0, 1.01, 0.1).forEach((stop) => {
+      gradient.append("stop").attr("offset", `${stop * 100}%`).attr("stop-color", color(stop * maxExposure));
+    });
+    svg
+      .append("rect")
+      .attr("x", legendX)
+      .attr("y", legendY)
+      .attr("width", legendWidth)
+      .attr("height", 12)
+      .attr("rx", 6)
+      .attr("fill", `url(#${gradientId})`);
+    svg.append("text").attr("x", legendX).attr("y", legendY - 8).attr("font", "700 11px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Relative exposure");
+    svg.append("text").attr("x", legendX).attr("y", legendY + 30).attr("font", "700 10px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("0");
+    svg.append("text").attr("x", legendX + legendWidth).attr("y", legendY + 30).attr("text-anchor", "end").attr("font", "700 10px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text(d3.format(".0%")(maxExposure));
+    svg
+      .append("text")
+      .attr("x", fitX)
+      .attr("y", legendY + 4)
+      .attr("font", "700 11px Arial, sans-serif")
+      .attr("fill", SCIENTIFIC_COLORS.gray)
+      .text(`Fit cosine scale: ${formatPlotNumber(minCosine, 3)} to 1`);
+
+    return {
+      samples: displayRows,
+      signatures: signatureSummary,
+      fullSignatureCount: signatureNames.length,
+      displayedSignatures: displaySignatures,
+      hiddenSignatures,
+      topN,
+      otherLabel: hiddenSignatures.length ? otherLabel : null,
+      otherDisplayLabel: hiddenSignatures.length ? otherDisplayLabel : null,
+    };
   }
 
   /**
@@ -5887,6 +6931,7 @@ Renders a plot of mutational profiles in a given div element ID.
    * @param {string} [options.title="COSMIC-style SBS96 profile"] - Figure title.
    * @param {string} [options.subtitle=null] - Figure subtitle.
    * @param {boolean} [options.showContextLabels=false] - Render all trinucleotide context labels on the x-axis.
+   * @param {string} [options.contextLabelMode="none"] - Use "compact" for manuscript-scale all-context labels without horizontal scrolling.
    * @param {string|string[]} [options.highlightContexts=[]] - Context labels to outline in the plot.
    * @returns {Object|Element} Render metadata or an error element.
    */
@@ -5930,11 +6975,30 @@ Renders a plot of mutational profiles in a given div element ID.
         .filter(Boolean)
         .map((context) => String(context).toUpperCase())
     );
+    const rawContextLabelMode =
+      options.contextLabelMode ??
+      publication?.contextLabelMode ??
+      (showContextLabels ? "full" : "none");
+    const contextLabelMode =
+      rawContextLabelMode === true
+        ? "full"
+        : rawContextLabelMode === false || rawContextLabelMode == null
+          ? "none"
+          : String(rawContextLabelMode).toLowerCase();
+    const showAxisContextLabels =
+      contextLabelMode !== "none" && contextLabelMode !== "false";
+    const compactContextLabels =
+      contextLabelMode === "compact" || contextLabelMode === "manuscript";
+    const scrollContextLabels = showAxisContextLabels && !compactContextLabels;
+    const showAxisTitles = publicationBool(publication, "showAxisTitles", true);
+    const showXAxisTitle = publicationBool(publication, "showXAxisTitle", showAxisTitles);
+    const showYAxisTitle = publicationBool(publication, "showYAxisTitle", showAxisTitles);
+    const showContextCaption = publicationBool(publication, "showContextCaption", true);
 
     const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
       title,
       subtitle,
-      maxWidth: showContextLabels ? "100%" : "1080px",
+      maxWidth: scrollContextLabels ? "100%" : "1080px",
       badges: [
         { label: "Sample shown", value: selectedSample },
         {
@@ -5954,21 +7018,41 @@ Renders a plot of mutational profiles in a given div element ID.
       publication,
     });
 
-    const baseWidth = 1080;
-    const width = showContextLabels
+    const baseWidth = publicationNumber(publication, "width", 1080, { min: 420 });
+    const width = scrollContextLabels
       ? Math.max(baseWidth, 116 + orderedContexts.length * 18)
       : baseWidth;
-    const height = showContextLabels ? 660 : 500;
+    const height = publicationNumber(
+      publication,
+      "height",
+      showAxisContextLabels ? (compactContextLabels ? 560 : 660) : 500,
+      { min: 260 }
+    );
     const margin = {
-      top: 60,
-      right: 34,
-      bottom: showContextLabels ? 220 : 78,
-      left: 82,
+      top: publicationNumber(publication, "marginTop", 60, { min: 30 }),
+      right: publicationNumber(publication, "marginRight", 34, { min: 12 }),
+      bottom: publicationNumber(
+        publication,
+        "marginBottom",
+        showAxisContextLabels
+          ? compactContextLabels
+            ? showContextCaption
+              ? 142
+              : 118
+            : showContextCaption
+              ? 220
+              : 190
+          : showXAxisTitle || showContextCaption
+            ? 78
+            : 34,
+        { min: 44 }
+      ),
+      left: publicationNumber(publication, "marginLeft", 82, { min: 50 }),
     };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
-    const svg = appendResponsiveSvg(chart, width, height, "COSMIC-style SBS96 profile");
-    if (showContextLabels) {
+    const svg = appendResponsiveSvg(chart, width, height, "COSMIC-style SBS96 profile", publication);
+    if (scrollContextLabels) {
       const scrollFrame = document.createElement("div");
       scrollFrame.className = "msig-d3-horizontal-scroll";
       chart.insertBefore(scrollFrame, svg.node());
@@ -6112,18 +7196,24 @@ Renders a plot of mutational profiles in a given div element ID.
       .call(
         d3
           .axisBottom(x)
-          .tickValues(showContextLabels ? orderedContexts : [])
+          .tickValues(showAxisContextLabels ? orderedContexts : [])
           .tickSizeOuter(0)
       );
     styleD3Axis(xAxis);
-    if (showContextLabels) {
+    if (showAxisContextLabels) {
+      const contextLabelFontSize = publicationNumber(
+        publication,
+        "contextLabelFontSize",
+        compactContextLabels ? 8.5 : 9,
+        { min: 6, max: 12 }
+      );
       xAxis
         .selectAll("text")
         .attr("transform", "rotate(-90)")
         .attr("text-anchor", "end")
         .attr("dx", "-0.7em")
         .attr("dy", "-0.32em")
-        .attr("font-size", 9)
+        .attr("font-size", contextLabelFontSize)
         .attr("fill", (context) =>
           highlightedContexts.has(String(context).toUpperCase())
             ? SCIENTIFIC_COLORS.darkGray
@@ -6134,34 +7224,48 @@ Renders a plot of mutational profiles in a given div element ID.
         );
     }
 
-    plot
-      .append("text")
-      .attr("class", "msig-d3-axis-title")
-      .attr("transform", "rotate(-90)")
-      .attr("x", -innerHeight / 2)
-      .attr("y", -62)
-      .attr("text-anchor", "middle")
-      .text(useRelativeScale ? "Fraction of SBS mutations" : "Number of SBS mutations");
+    if (showYAxisTitle) {
+      plot
+        .append("text")
+        .attr("class", "msig-d3-axis-title")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -innerHeight / 2)
+        .attr("y", -62)
+        .attr("text-anchor", "middle")
+        .text(useRelativeScale ? "Fraction of SBS mutations" : "Number of SBS mutations");
+    }
 
-    plot
-      .append("text")
-      .attr("class", "msig-d3-axis-title")
-      .attr("x", showContextLabels ? 0 : innerWidth / 2)
-      .attr("y", innerHeight + (showContextLabels ? 178 : 42))
-      .attr("text-anchor", showContextLabels ? "start" : "middle")
-      .text("SBS96 contexts in COSMIC mutation-class order");
+    if (showXAxisTitle) {
+      plot
+        .append("text")
+        .attr("class", "msig-d3-axis-title")
+        .attr("x", scrollContextLabels ? 0 : innerWidth / 2)
+        .attr(
+          "y",
+          innerHeight + (showAxisContextLabels ? (compactContextLabels ? 108 : 178) : 42)
+        )
+        .attr("text-anchor", scrollContextLabels ? "start" : "middle")
+        .text("SBS96 contexts in COSMIC mutation-class order");
+    }
 
-    plot
-      .append("text")
-      .attr("class", "msig-d3-caption")
-      .attr("x", showContextLabels ? 0 : innerWidth / 2)
-      .attr("y", innerHeight + (showContextLabels ? 202 : 64))
-      .attr("text-anchor", showContextLabels ? "start" : "middle")
-      .text(
-        showContextLabels
-          ? "Full trinucleotide labels are shown below each bar; scroll horizontally if the plot is wider than the page."
-          : "Full trinucleotide labels are available on hover."
-      );
+    if (showContextCaption) {
+      plot
+        .append("text")
+        .attr("class", "msig-d3-caption")
+        .attr("x", scrollContextLabels ? 0 : innerWidth / 2)
+        .attr(
+          "y",
+          innerHeight + (showAxisContextLabels ? (compactContextLabels ? 130 : 202) : 64)
+        )
+        .attr("text-anchor", scrollContextLabels ? "start" : "middle")
+        .text(
+          showAxisContextLabels
+            ? compactContextLabels
+              ? "All 96 trinucleotide labels are shown on the x-axis."
+              : "Full trinucleotide labels are shown below each bar; scroll horizontally if the plot is wider than the page."
+            : "Full trinucleotide labels are available on hover."
+        );
+    }
 
     return {
       sample: selectedSample,
@@ -6529,19 +7633,41 @@ Renders a plot of mutational profiles in a given div element ID.
         metrics: "active signatures, reconstruction cosine, and RMSE",
       }),
       publication,
-      maxWidth: "1120px",
+      maxWidth: publication?.maxWidth || "1120px",
     });
-    const width = 1160;
-    const rowHeight = 54;
-    const margin = { top: 72, right: 42, bottom: 56, left: 116 };
+    const requestedWidth = publicationNumber(publication, "width", 1160, { min: 520 });
+    const rowHeight = publicationNumber(publication, "rowHeight", publication?.compact ? 42 : 54, { min: 30, max: 72 });
+    const margin = {
+      top: publicationNumber(publication, "marginTop", publication?.compact ? 56 : 72, { min: 36 }),
+      right: publicationNumber(publication, "marginRight", 42, { min: 18 }),
+      bottom: publicationNumber(publication, "marginBottom", 56, { min: 34 }),
+      left: publicationNumber(publication, "marginLeft", 116, { min: 68 }),
+    };
     const thresholdX = 28;
-    const activeX = 245;
-    const activeWidth = 330;
-    const cosineX = 730;
-    const cosineWidth = 320;
+    const activeX = publication?.compact ? 190 : 245;
+    const activeWidth = publicationNumber(publication, "activeWidth", publication?.compact ? 220 : 330, { min: 120 });
+    const activeValueWidth = publicationNumber(publication, "activeValueWidth", publication?.compact ? 68 : 78, { min: 52, max: 120 });
+    const cosineGap = publicationNumber(publication, "cosineGap", publication?.compact ? 30 : 46, { min: 18, max: 120 });
+    const cosineWidth = publicationNumber(publication, "cosineWidth", publication?.compact ? 230 : 320, { min: 120 });
+    const cosineValueWidth = publicationNumber(publication, "cosineValueWidth", 66, { min: 44, max: 120 });
+    const minimumCosineX = activeX + activeWidth + activeValueWidth + cosineGap;
+    const compactCosineDefault = Math.min(
+      requestedWidth - margin.right - cosineWidth - cosineValueWidth,
+      500
+    );
+    const cosineX = publicationNumber(
+      publication,
+      "cosineX",
+      Math.max(publication?.compact ? compactCosineDefault : 730, minimumCosineX),
+      { min: minimumCosineX }
+    );
+    const width = Math.max(
+      requestedWidth,
+      cosineX + cosineWidth + cosineValueWidth + margin.right
+    );
     const innerHeight = rows.length * rowHeight;
     const height = margin.top + innerHeight + margin.bottom;
-    const svg = appendResponsiveSvg(chart, width, height, "Cutoff sensitivity summary");
+    const svg = appendResponsiveSvg(chart, width, height, "Cutoff sensitivity summary", publication);
     const activeScale = d3.scaleLinear().domain([0, maxActive]).nice().range([0, activeWidth]);
     const cosineScale = d3.scaleLinear().domain([minCosine, 1]).range([0, cosineWidth]);
     const plot = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
@@ -6612,8 +7738,9 @@ Renders a plot of mutational profiles in a given div element ID.
       .on("mouseleave", hideTooltip);
     rowGroups
       .append("text")
-      .attr("x", activeX - margin.left + activeWidth + 12)
+      .attr("x", activeX - margin.left + activeWidth + activeValueWidth - 8)
       .attr("y", rowHeight / 2 + 5)
+      .attr("text-anchor", "end")
       .attr("fill", SCIENTIFIC_COLORS.darkGray)
       .attr("font", "800 13px Arial, sans-serif")
       .text((row) => formatPlotNumber(row.activeSignatures, 1));
@@ -6690,6 +7817,8 @@ Renders a plot of mutational profiles in a given div element ID.
       publication = null,
       dataset = null,
       signatureCatalog = null,
+      topN = activePlottingOptions.maxDisplaySignatures || 12,
+      minMean = 0,
     } = {}
   ) {
     const sampleName =
@@ -6714,7 +7843,7 @@ Renders a plot of mutational profiles in a given div element ID.
       const numeric = Number(value);
       return Number.isFinite(numeric) ? numeric : fallback;
     };
-    const rows = signatures.map((signature) => {
+    const allRows = signatures.map((signature) => {
       const values = exposureSamples
         .map((sample) => finiteOr(sample?.[signature.signatureName], 0))
         .filter(Number.isFinite);
@@ -6752,6 +7881,21 @@ Renders a plot of mutational profiles in a given div element ID.
         values,
       };
     });
+    const informativeRows = allRows
+      .filter((row) =>
+        row.signatureName &&
+        (
+          Number(row.mean || 0) > minMean ||
+          Number(row.upper || 0) > minMean ||
+          Number(row.selectionFrequency || 0) > 0
+        )
+      )
+      .sort((a, b) => (b.mean || 0) - (a.mean || 0));
+    const rows = informativeRows.slice(0, Math.max(1, Math.floor(Number(topN) || 12)));
+    const hiddenCount = Math.max(0, informativeRows.length - rows.length);
+    if (!rows.length) {
+      return renderPlotError(divID, "No nonzero bootstrap exposure estimates were available.");
+    }
     const maxExposure = Math.max(
       ...rows.flatMap((row) => [row.upper, row.mean, ...row.values]),
       0.01
@@ -6762,11 +7906,12 @@ Renders a plot of mutational profiles in a given div element ID.
 
 	    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
       title: "Bootstrap exposure uncertainty",
-      subtitle: "Bootstrap draws, intervals, medians, and means share one exposure scale.",
+      subtitle: `Bootstrap was computed across the fitted catalog for ${sampleName || "the selected sample"}. Display shows ${rows.length} of ${informativeRows.length} informative signatures${hiddenCount ? `; ${hiddenCount} lower-ranked informative signatures are hidden for readability.` : "."}`,
       badges: [
         ...(sampleName ? [{ label: "Sample", value: sampleName }] : []),
         { label: "Bootstrap Iterations", value: String(bootstrapResult.iterations || 0) },
         { label: "Confidence Interval", value: `${confidenceLabel}%` },
+        { label: "Signatures shown", value: `${rows.length}/${informativeRows.length}` },
         { label: "Selected", value: `${selectedCount}/${rows.length}` },
       ],
       figureContext: mergeFigureContext(figureContext, {
@@ -6811,7 +7956,8 @@ Renders a plot of mutational profiles in a given div element ID.
       chart,
       width,
       height,
-      "Bootstrap confidence intervals and exposure distributions"
+      "Bootstrap confidence intervals and exposure distributions",
+      publication
     );
     const y = d3
       .scaleBand()
@@ -7032,7 +8178,7 @@ Renders a plot of mutational profiles in a given div element ID.
       .attr("text-anchor", "middle")
       .text("Selected");
 
-    return { data: rows };
+    return { data: rows, fullData: allRows, hiddenCount };
   }
 
   /**
@@ -7059,6 +8205,7 @@ Renders a plot of mutational profiles in a given div element ID.
    * @param {Object} nmfResult - Result from mSigSDK.signatureExtraction.extractSignaturesNMF.
    * @param {Object} [options] - Plot options.
    * @param {number} [options.maxSignatures=Infinity] - Maximum signatures to render.
+   * @param {number|null} [options.columns=null] - Optional number of columns for the rendered component profiles.
    * @returns {Promise<Array|Element>} Rendered profile results or an error element.
    */
   async function plotNMFSignatureProfiles(
@@ -7066,43 +8213,72 @@ Renders a plot of mutational profiles in a given div element ID.
     nmfResult,
     {
       maxSignatures = Infinity,
+      columns = null,
       figureContext = null,
       publication = null,
       dataset = null,
+      title = null,
+      subtitle = null,
     } = {}
   ) {
     const { element: container } = resolvePlotContainer(divID);
-    const signatures = Object.entries(nmfResult?.signatures || {}).slice(
-      0,
-      maxSignatures
-    );
+    const allSignatures = Object.entries(nmfResult?.signatures || {});
+    const signatures = allSignatures.slice(0, maxSignatures);
     const contexts = nmfResult?.contexts || null;
+    const totalSignatureCount = allSignatures.length;
+    const rank = Number(nmfResult?.rank);
 
     if (signatures.length === 0) {
       return renderPlotError(divID, "No extracted NMF signatures available.");
     }
 
+    const requestedColumns = Number(
+      columns ?? publication?.profileColumns ?? publication?.columns
+    );
+    const profileColumns =
+      Number.isFinite(requestedColumns) && requestedColumns > 1
+        ? Math.min(signatures.length, Math.round(requestedColumns))
+        : 1;
     container.innerHTML = "";
     container.style.display = "grid";
     container.style.gap = "28px";
+    container.style.alignItems = "start";
+    container.style.gridTemplateColumns =
+      profileColumns > 1
+        ? `repeat(${profileColumns}, minmax(0, 1fr))`
+        : "1fr";
 
 	    const rendered = [];
-	    for (const [signatureName, signatureRecord] of signatures) {
+	    for (const [componentIndex, [signatureName, signatureRecord]] of signatures.entries()) {
 	      const signatureDiv = document.createElement("div");
 	      signatureDiv.style.width = "100%";
 	      container.appendChild(signatureDiv);
+        const rankLabel = Number.isFinite(rank)
+          ? `rank-${rank}`
+          : `${totalSignatureCount}-component`;
+        const profileTitle = title
+          ? `${title}: ${signatureName}`
+          : `Extracted NMF component: ${signatureName}`;
+        const displayScope =
+          signatures.length < totalSignatureCount
+            ? `This renderer is showing ${signatures.length} of ${totalSignatureCount} extracted components.`
+            : `All ${totalSignatureCount} extracted components are shown.`;
+        const profileSubtitle =
+          subtitle ||
+          `${signatureName} is component ${componentIndex + 1} of ${totalSignatureCount} from the ${rankLabel} de novo NMF model. ${displayScope} It is plotted in SBS96 context order and is not a named COSMIC catalog signature.`;
 	      rendered.push(
 	        plotCosmicSbs96Profile(signatureDiv, signatureRecord, {
 	          sample: signatureName,
 	          contexts,
           normalize: "auto",
-          title: `Extracted profile: ${signatureName}`,
-          subtitle:
-            "COSMIC-style SBS96 plot for the extracted pattern. Use this as an exploratory profile, not as a named etiology without additional validation.",
+          title: profileTitle,
+          subtitle: profileSubtitle,
           figureContext: mergeFigureContext(figureContext, {
             dataset: dataset || nmfResult.dataset || nmfResult.source,
             extractedSignature: signatureName,
-            extractedSignatures: signatures.length,
+            extractedSignatures: totalSignatureCount,
+            displayedExtractedSignatures: signatures.length,
+            nmfRank: Number.isFinite(rank) ? rank : null,
             profile: "SBS",
             matrix: contexts?.length || Object.keys(signatureRecord || {}).length,
           }),
@@ -7347,13 +8523,19 @@ Renders a plot of mutational profiles in a given div element ID.
       publication: options.publication,
     });
 
-    const width = 920;
-    const panelWidth = 365;
-    const panelGap = 72;
-    const margin = { top: 34, right: 34, bottom: 62, left: 72 };
-    const innerHeight = 260;
-    const height = innerHeight + margin.top + margin.bottom;
-    const svg = appendResponsiveSvg(chart, width, height, "NMF rank diagnostics");
+    const publication = resolvePlotPublication(options.publication);
+    const width = publicationNumber(publication, "width", 920, { min: 460 });
+    const panelGap = publicationNumber(publication, "panelGap", publication?.compact ? 44 : 72, { min: 18 });
+    const margin = {
+      top: publicationNumber(publication, "marginTop", 34, { min: 20 }),
+      right: publicationNumber(publication, "marginRight", 34, { min: 12 }),
+      bottom: publicationNumber(publication, "marginBottom", 62, { min: 34 }),
+      left: publicationNumber(publication, "marginLeft", 72, { min: 48 }),
+    };
+    const panelWidth = publicationNumber(publication, "panelWidth", (width - margin.left - margin.right - panelGap) / 2, { min: 120 });
+    const innerHeight = publicationNumber(publication, "innerHeight", publication?.compact ? 190 : 260, { min: 120 });
+    const height = publicationNumber(publication, "height", innerHeight + margin.top + margin.bottom, { min: 220 });
+    const svg = appendResponsiveSvg(chart, width, height, "NMF rank diagnostics", publication);
     const x = d3
       .scaleLinear()
       .domain(d3.extent(runs, (run) => run.rank))
@@ -7699,7 +8881,7 @@ Renders a plot of mutational profiles in a given div element ID.
         ? [
             makeWorkflowWarning(
               "SIGNATURE_PROFILE_MISMATCH",
-              "The supplied signature catalog does not match any requested MAF-derived profile matrix; fitting was not run.",
+              "The supplied signature catalog does not match any requested MAF-derived profile matrix; fitting was skipped.",
               {
                 requestedProfiles: requestedProfileKeys,
                 signatureContexts: getMatrixContexts(signatures).length,
@@ -8085,19 +9267,26 @@ Renders a plot of mutational profiles in a given div element ID.
     summarizeMutationBurden,
   };
 
-	  const qcPlots = {
-	    plotBootstrapConfidenceIntervals,
-	    plotBootstrapExposureSummary,
-	    plotCohortGroupComparison,
-	    plotCosmicProfile,
-	    plotCosmicSbs96Profile,
-	    plotFitQualityEvidenceDashboard,
+  const qcPlots = {
+    plotBootstrapConfidenceIntervals,
+    plotBootstrapExposureSummary,
+    plotCohortGroupComparison,
+    plotCohortSignatureSummary,
+    plotCosmicProfile,
+    plotCosmicSbs96Profile,
+    plotFitQualityEvidenceDashboard,
 	    plotFitResiduals,
 	    plotMutationBurdenSummary,
     plotPanelEvidenceMatrix,
     plotReconstructionError,
     plotThresholdSensitivity,
     plotThresholdSensitivitySummary,
+  };
+
+  const plotting = {
+    getDefaults: getPlottingDefaults,
+    setDefaults: setPlottingDefaults,
+    resetDefaults: resetPlottingDefaults,
   };
 
   const signatureExtraction = {
@@ -8250,9 +9439,14 @@ Renders a plot of mutational profiles in a given div element ID.
     DEFAULT_SPP_PACKAGE,
     DEFAULT_SPS_PACKAGE,
     DEFAULT_SPA_PACKAGE,
+    DEFAULT_SPA_MICROPIP_PACKAGES,
+    DEFAULT_MUSICAL_PACKAGE,
+    PACKAGE_RUNTIME_MANIFEST,
     checkDeconstructSigsWebRAvailability,
     checkSigminerWebRAvailability,
     createInteroperabilityBundle,
+    getPackageRuntime,
+    listPackageRuntimes,
     parseExposureTables,
     parseDeconstructSigsOutput,
     parseSigminerOutput,
@@ -8272,7 +9466,6 @@ Renders a plot of mutational profiles in a given div element ID.
     runSigminerWebR,
     runSigProfilerAssignment,
     runSigProfilerExtractor,
-    runSparseNnlsRefit,
     sigProfilerAssignment: {
       prepareInput: prepareSigProfilerAssignmentInput,
       run: runSigProfilerAssignment,
@@ -8311,7 +9504,7 @@ Renders a plot of mutational profiles in a given div element ID.
     musical: {
       prepareRefitInput: prepareMuSiCalRefitInput,
       runRefit: runMuSiCalRefit,
-      runSparseNnlsRefit,
+      packageRuntime: PACKAGE_RUNTIME_MANIFEST.tools?.musical || null,
     },
   };
 
@@ -8330,6 +9523,7 @@ Renders a plot of mutational profiles in a given div element ID.
     validation,
     qc,
     qcPlots,
+    plotting,
     signatureExtraction,
     signatureExtractionPlots,
     io,

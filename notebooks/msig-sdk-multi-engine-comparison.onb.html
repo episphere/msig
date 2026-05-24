@@ -8,7 +8,7 @@
 
 Choose a public SBS96 dataset or upload one spectra table, then triage the samples where fitting engines disagree on the same spectra and reference-signature catalog.
 
-The default public benchmark uses 38 cached PCAWG lung adenocarcinoma WGS spectra and nine COSMIC SBS96 signatures (`SBS1`, `SBS2`, `SBS4`, `SBS5`, `SBS13`, `SBS17a`, `SBS17b`, `SBS18`, `SBS40`). mSigSDK is recomputed in the browser. R `nnls`, deconstructSigs, SigProfilerAssignment, and MuSiCal SparseNNLS are imported from package-output CSVs generated from the same input matrix and catalog. Public API and uploaded SBS96 spectra use the selected reference catalog automatically; browser package engines run when their package builds are available, and deconstructSigs loads the original archived R source in WebR when the binary WebR repository does not include the package.
+The default benchmark uses 38 cached PCAWG lung adenocarcinoma WGS spectra and the full COSMIC v3 SBS96 catalog from the E2 adapter-fidelity experiment. mSigSDK is recomputed in the browser. The four executable external package adapters supported by the SDK are shown explicitly: deconstructSigs, sigminer, SigProfilerAssignment, and MuSiCal. Public API and uploaded SBS96 spectra use the selected reference catalog automatically; browser package engines run when their package builds are available. Displays reduce crowded full-catalog exposure matrices to top signatures plus explicit lower-ranked remainders when needed.
 
 Read the outputs as disagreement triage, not a leaderboard. The useful result is the short list of samples where engine choice changes the exposure vector or dominant signature enough to require interpretation.
 </script>
@@ -23,7 +23,14 @@ const {
   formatNumber
 } = mSigSDK.presentation;
 
-const engineDataBase = "../docs/manuscript/experiments/2026_05_13_deconstructsigs_concordance/data/";
+const engineDataBase = "../docs/manuscript/experiments/e2_adapter_fidelity/data/";
+const PACKAGE_RUNTIME_ROWS = mSigSDK.adapters.listPackageRuntimes().map((tool) => ({
+  tool: tool.tool,
+  version: tool.packageVersion,
+  runtime: tool.runtime === "pyodide" ? "Pyodide" : "WebR",
+  language: tool.language,
+  adapter: tool.adapter,
+}));
 
 function engineInstallNotebookStyles() {
   if (document.getElementById("multi-engine-triage-styles")) return;
@@ -383,6 +390,12 @@ async function engineFetchCsv(path) {
   return engineParseCsv(await response.text());
 }
 
+async function engineFetchJson(path) {
+  const response = await fetch(new URL(path, location.href));
+  if (!response.ok) throw new Error(`Unable to load ${path}: ${response.status}`);
+  return await response.json();
+}
+
 function engineNumericRows(rows, idColumn) {
   return rows.map((row) => {
     const numeric = { [idColumn]: row[idColumn] };
@@ -609,6 +622,20 @@ function engineAvailabilityPanel() {
   return panel;
 }
 
+function engineSupportedPackagesPanel() {
+  return engineNotebookTable(PACKAGE_RUNTIME_ROWS, [
+    { key: "tool", label: "Supported package" },
+    { key: "version", label: "Pinned version" },
+    { key: "runtime", label: "Browser runtime" },
+    { key: "language", label: "Language" },
+    { key: "adapter", label: "SDK adapter" },
+  ], {
+    title: "Executable external package adapters",
+    caption: "This roster comes directly from mSigSDK.adapters.listPackageRuntimes(). Native mSigSDK fitting is shown separately as the browser baseline.",
+    maxRows: PACKAGE_RUNTIME_ROWS.length,
+  });
+}
+
 function engineDatasetShortLabel() {
   if (engineActiveDataset.sourceKind === "benchmark") return "PCAWG benchmark";
   if (engineActiveDataset.sourceKind === "public_api") return "mSigPortal API";
@@ -791,30 +818,30 @@ const ENGINE_ROSTER = [
     loadedOutput: "Live refit from the active spectra and reference catalog"
   },
   {
-    name: "R nnls",
-    runtime: "Imported R package output",
-    loadedOutput: "Cached R 4.1.1 nnls exposure CSV",
+    name: "deconstructSigs",
+    runtime: "Imported WebR package output",
+    loadedOutput: "E2 browser deconstructSigs v1.8.0 exposure table",
     unavailable: "Benchmark cache only"
   },
   {
-    name: "deconstructSigs",
-    runtime: "Imported R package output",
-    loadedOutput: "Cached deconstructSigs v1.8.0 exposure CSV",
+    name: "sigminer",
+    runtime: "Imported WebR package output",
+    loadedOutput: "E2 browser sigminer v2.3.1 exposure table",
     unavailable: "Benchmark cache only"
   },
   {
     name: "SigProfilerAssignment",
-    runtime: "Imported Python package output",
-    loadedOutput: "Cached SigProfilerAssignment v1.1.3 exposure CSV",
+    runtime: "Imported Pyodide package output",
+    loadedOutput: "E2 browser SigProfilerAssignment v1.1.3 exposure table",
     unavailable: "Package run not requested"
   },
   {
-    name: "MuSiCal SparseNNLS",
-    runtime: "Imported Python package output",
-    loadedOutput: "Cached Park Lab MuSiCal SparseNNLS exposure CSV",
-    dynamicRuntime: "Browser-native sparse NNLS comparator",
+    name: "MuSiCal",
+    runtime: "Imported Pyodide package output",
+    loadedOutput: "E2 browser MuSiCal v1.0.0 exposure table",
+    dynamicRuntime: "Python package through Pyodide",
     dynamicLoadedOutput: "Computed automatically from the active spectra and reference catalog",
-    unavailable: "Sparse comparator unavailable"
+    unavailable: "Package run not requested"
   }
 ];
 
@@ -972,112 +999,44 @@ async function engineSetActiveDataset({
 function engineBenchmarkExternalOutputs(raw) {
   return [
     {
-      name: "R nnls",
-      runtime: "Imported R package output",
-      exposures: engineMatrixFromRows(raw.rnnls, "sample"),
-      loadedOutput: "Cached R 4.1.1 nnls exposure CSV"
+      name: "deconstructSigs",
+      runtime: "Imported WebR package output",
+      exposures: engineExposureSetFromPairs(raw.exposurePairs, "deconstructsigs"),
+      loadedOutput: "E2 browser deconstructSigs v1.8.0 exposure table"
     },
     {
-      name: "deconstructSigs",
-      runtime: "Imported R package output",
-      exposures: engineMatrixFromRows(raw.deconstructSigs, "sample"),
-      loadedOutput: "Cached deconstructSigs v1.8.0 exposure CSV"
+      name: "sigminer",
+      runtime: "Imported WebR package output",
+      exposures: engineExposureSetFromPairs(raw.exposurePairs, "sigminer"),
+      loadedOutput: "E2 browser sigminer v2.3.1 exposure table"
     },
     {
       name: "SigProfilerAssignment",
-      runtime: `Imported Python package output; ${raw.spaStatus || "Optional Pyodide run not requested"}`,
-      exposures: engineMatrixFromRows(raw.sigProfilerAssignment, "sample"),
-      loadedOutput: "Cached SigProfilerAssignment v1.1.3 exposure CSV"
+      runtime: "Imported Pyodide package output",
+      exposures: engineExposureSetFromPairs(raw.exposurePairs, "sigprofilerassignment"),
+      loadedOutput: "E2 browser SigProfilerAssignment v1.1.3 exposure table"
     },
     {
-      name: "MuSiCal SparseNNLS",
-      runtime: "Imported Python package output",
-      exposures: engineMatrixFromRows(raw.musical, "sample"),
-      loadedOutput: "Cached Park Lab MuSiCal SparseNNLS exposure CSV"
+      name: "MuSiCal",
+      runtime: "Imported Pyodide package output",
+      exposures: engineExposureSetFromPairs(raw.exposurePairs, "musical"),
+      loadedOutput: "E2 browser MuSiCal v1.0.0 exposure table"
     }
   ];
 }
 
-async function engineAutomaticUploadedOutputs(spectra, signatures, contexts) {
-  const outputs = [];
-  try {
-    const sparseResult = await mSigSDK.adapters.runSparseNnlsRefit(
-      { spectra, signatures },
-      {
-        contexts,
-        threshold: 0.01,
-        keepAtLeastOne: true
-      }
-    );
-    if (sparseResult?.exposures) {
-      outputs.push({
-        name: "MuSiCal SparseNNLS",
-        runtime: "Browser-native sparse NNLS comparator",
-        exposures: sparseResult.exposures,
-        loadedOutput: "Computed automatically from the active spectra and reference catalog"
-      });
-    }
-  } catch (error) {
-    console.warn("Automatic sparse refit was unavailable.", error);
+function engineExposureSetFromPairs(rows, tool, exposureKey = "browserExposure") {
+  const exposures = {};
+  for (const row of rows || []) {
+    if (String(row.tool || "").toLowerCase() !== tool) continue;
+    if (!exposures[row.sample]) exposures[row.sample] = {};
+    exposures[row.sample][row.signature] = Number(row[exposureKey] || 0);
   }
-  return outputs;
+  return exposures;
 }
 
-async function engineRunRnnlsWebR(spectra, signatures, contexts) {
-  const spectraPath = "/input/r_nnls_spectra.tsv";
-  const signaturePath = "/input/r_nnls_signatures.tsv";
-  const outputPath = "/output/r_nnls_exposures.tsv";
-  const r = `
-library(nnls)
-spectra <- read.delim("${spectraPath}", check.names = FALSE, row.names = 1)
-signatures <- read.delim("${signaturePath}", check.names = FALSE, row.names = 1)
-contexts <- intersect(colnames(spectra), colnames(signatures))
-spectra <- as.matrix(spectra[, contexts, drop = FALSE])
-signatures <- as.matrix(signatures[, contexts, drop = FALSE])
-design <- t(signatures)
-exposures <- matrix(0, nrow = nrow(spectra), ncol = nrow(signatures), dimnames = list(rownames(spectra), rownames(signatures)))
-for (sample_name in rownames(spectra)) {
-  fit <- nnls::nnls(design, as.numeric(spectra[sample_name, contexts]))
-  values <- as.numeric(fit$x)
-  total <- sum(values)
-  if (total > 0) {
-    values <- values / total
-    values[values < 0.01] <- 0
-    kept <- sum(values)
-    if (kept > 0) {
-      values <- values / kept
-    }
-  }
-  exposures[sample_name, ] <- values
-}
-dir.create(dirname("${outputPath}"), recursive = TRUE, showWarnings = FALSE)
-write.table(data.frame(sample = rownames(exposures), exposures, check.names = FALSE), file = "${outputPath}", sep = "\\t", quote = FALSE, row.names = FALSE)
-`;
-  const rawRun = await mSigSDK.runners.runWebR(
-    {
-      resultR: `{${r}
-"done"}`,
-      rPackages: ["nnls"],
-      files: [
-        { path: spectraPath, text: mSigSDK.io.exportMatrixTSV(spectra, { rowHeader: "sample", columns: contexts }) },
-        { path: signaturePath, text: mSigSDK.io.exportMatrixTSV(signatures, { rowHeader: "signature", columns: contexts }) }
-      ],
-      outputFiles: [outputPath],
-      timeoutMs: 300000
-    },
-    { timeoutMs: 300000 }
-  );
-  const outputFile = rawRun.files?.find((file) => file.path === outputPath) || rawRun.files?.[0];
-  if (!outputFile?.text) throw new Error("R nnls did not return an exposure table.");
-  return {
-    schemaVersion: "msig.dynamic-package.v1",
-    adapter: "r_nnls",
-    runtime: "webr",
-    status: "completed",
-    exactPackageExecution: true,
-    exposures: mSigSDK.io.importMatrixTSV(outputFile.text, { delimiter: "\t" }),
-    rawRun
-  };
+async function engineAutomaticUploadedOutputs(spectra, signatures, contexts) {
+  return [];
 }
 
 async function engineRunDeconstructSigsEngine(spectra, signatures, contexts) {
@@ -1094,13 +1053,6 @@ async function engineRunDeconstructSigsEngine(spectra, signatures, contexts) {
 function enginePackageJobs() {
   return [
     {
-      name: "R nnls",
-      runtime: "R package through WebR",
-      running: "Running R nnls in WebR.",
-      loadedOutput: "Computed by R nnls in WebR for the active data",
-      run: () => engineRunRnnlsWebR(engineSpectra, engineReferenceSignatures, engineContextNames)
-    },
-    {
       name: "deconstructSigs",
       runtime: "R package through WebR",
       running: "Running deconstructSigs in WebR.",
@@ -1116,7 +1068,6 @@ function enginePackageJobs() {
         { spectra: engineSpectra, signatures: engineReferenceSignatures },
         {
           contexts: engineContextNames,
-          micropipPackages: ["SigProfilerAssignment==1.1.3"],
           genomeBuild: "GRCh37",
           cosmicVersion: 3.5,
           exome: false,
@@ -1125,18 +1076,16 @@ function enginePackageJobs() {
       )
     },
     {
-      name: "MuSiCal SparseNNLS",
+      name: "MuSiCal",
       runtime: "Python package through Pyodide",
       running: "Running MuSiCal in Pyodide.",
       loadedOutput: "Computed by MuSiCal in Pyodide for the active data",
-      keepExistingOnFailure: true,
       run: () => mSigSDK.adapters.musical.runRefit(
         { spectra: engineSpectra, signatures: engineReferenceSignatures },
         {
           contexts: engineContextNames,
           runtime: "pyodide",
           threshold: 0.01,
-          micropipPackages: [],
           timeoutMs: 300000
         }
       )
@@ -1657,7 +1606,7 @@ function engineRender() {
       { label: "Engines available", value: `${engineReadyCount()}/${engineStatusRows.length}` },
       { label: "Lens", value: lensDetails.title },
       { label: "Output", value: lensDetails.output }
-    ], "multi-engine-active-strip"), engineAvailabilityPanel(), engineLensStatus(state, concordance.rows, reviewRows));
+    ], "multi-engine-active-strip"), engineSupportedPackagesPanel(), engineAvailabilityPanel(), engineLensStatus(state, concordance.rows, reviewRows));
   }
 
   if (typeof engineConcordanceLensHost !== "undefined" && engineConcordanceLensHost) {
@@ -1739,43 +1688,31 @@ function engineRender() {
 <script type="text/markdown">
 ## Step 1. Choose data and triage settings
 
-Start with the bundled cross-tool benchmark, choose a public mSigPortal dataset, or upload one SBS96 spectra table. The public menu retrieves real API-backed spectra and a compatible reference signature catalog. Uploaded spectra use the bundled COSMIC SBS96 reference catalog and receive a browser-native sparse refit comparator.
+Start with the bundled E2 adapter-fidelity benchmark, choose a public mSigPortal dataset, or upload one SBS96 spectra table. The public menu retrieves real API-backed spectra and a compatible reference signature catalog. Uploaded spectra use the bundled COSMIC SBS96 reference catalog and can launch the supported browser package engines when the required Pyodide/WebR assets are available.
 </script>
 <script type="module">
 const [
-  engineSpectrumRowsRaw,
-  engineReferenceRowsRaw,
-  engineRnnlsRowsRaw,
-  engineDeconstructRowsRaw,
-  engineSpaRowsRaw,
-  engineMusicalRowsRaw,
-  engineAmbiguityRowsRaw
+  engineBenchmarkInputRaw,
+  engineExposurePairsRaw
 ] = await Promise.all([
-  engineFetchCsv(`${engineDataBase}concordance_input_spectra.csv`),
-  engineFetchCsv(`${engineDataBase}concordance_reference_signatures.csv`),
-  engineFetchCsv(`${engineDataBase}r_nnls_exposures.csv`),
-  engineFetchCsv(`${engineDataBase}deconstructsigs_exposures.csv`),
-  engineFetchCsv(`${engineDataBase}sigprofilerassignment_exposures.csv`),
-  engineFetchCsv(`${engineDataBase}musical_sparse_nnls_exposures.csv`),
-  engineFetchCsv(`${engineDataBase}cross_tool_ambiguity_disagreement.csv`)
+  engineFetchJson(`${engineDataBase}adapter-fidelity-input.json`),
+  engineFetchCsv(`${engineDataBase}adapter_fidelity_exposure_pairs.csv`)
 ]);
 
+const engineAmbiguityRowsRaw = [];
+
 const engineBenchmarkRaw = {
-  spectra: engineSpectrumRowsRaw,
-  signatures: engineReferenceRowsRaw,
-  rnnls: engineRnnlsRowsRaw,
-  deconstructSigs: engineDeconstructRowsRaw,
-  sigProfilerAssignment: engineSpaRowsRaw,
-  musical: engineMusicalRowsRaw,
-  spaStatus: "Optional Pyodide run not requested"
+  spectra: engineBenchmarkInputRaw.spectra,
+  signatures: engineBenchmarkInputRaw.signatures,
+  exposurePairs: engineExposurePairsRaw,
 };
 
 async function engineLoadBenchmarkDataset() {
-  engineSetSourceStatus("Loading benchmark", "Preparing the public PCAWG cross-tool benchmark.", "running");
+  engineSetSourceStatus("Loading benchmark", "Preparing the public PCAWG E2 adapter-fidelity benchmark.", "running");
   await engineSetActiveDataset({
-    spectra: engineMatrixFromRows(engineBenchmarkRaw.spectra, "sample"),
-    signatures: engineMatrixFromRows(engineBenchmarkRaw.signatures, "signature"),
-    sourceLabel: "Public PCAWG cross-tool benchmark",
+    spectra: engineBenchmarkRaw.spectra,
+    signatures: engineBenchmarkRaw.signatures,
+    sourceLabel: "Public PCAWG E2 adapter-fidelity benchmark",
     sourceKind: "benchmark",
     externalOutputs: engineBenchmarkExternalOutputs(engineBenchmarkRaw)
   });

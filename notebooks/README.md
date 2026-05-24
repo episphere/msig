@@ -16,7 +16,7 @@ Each notebook should read as a stepwise researcher workflow. Narrative cells sho
 
 ### Input and resource setup
 
-- `msig-sdk-resource-portability.onb.html`: SDK object shape, source metadata, file round trips, and handoff packages.
+- `msig-sdk-resource-portability.onb.html`: SDK object shape, source metadata, file round trips, and the four supported executable package adapters.
 - `msig-sdk-maf-fit-report.onb.html`: raw variant rows to checked SBS96, SBS1536, DBS78, and ID83 profiles with live SBS reference-context lookup, profile-specific plots, audit checks, and exports.
 
 ### Core analysis
@@ -24,13 +24,13 @@ Each notebook should read as a stepwise researcher workflow. Narrative cells sho
 - `msig-sdk-qc-walkthrough.onb.html`: known-signature QC objects: burden, reconstruction, residuals, warnings, and review steps.
 - `msig-sdk-cohort-panel-workflow.onb.html`: panel/WES assay planning with public cohorts, real BED targets, retained burden, and signature assessability.
 - `msig-sdk-panel-evidence-tiers.onb.html`: panel/WES support tiers, assay-coverage visuals, and review reasons.
-- `msig-sdk-nmf-extraction.onb.html`: discovery extraction, rank diagnostics, learned profiles, sample contributions, and external handoff files.
+- `msig-sdk-nmf-extraction.onb.html`: native mSigSDK discovery extraction, rank diagnostics, learned profiles, sample contributions, and review bundle exports.
 
 ### Reliability, reporting, and interoperability
 
 - `msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals, cutoff sensitivity, stability decisions, and uncertainty exports.
 - `msig-sdk-export-report.onb.html`: focused report-packet builder for selected report sections, provenance, audit checks, and reproducibility downloads.
-- `msig-sdk-multi-engine-comparison.onb.html`: shared-input disagreement triage for mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls outputs.
+- `msig-sdk-multi-engine-comparison.onb.html`: shared-input disagreement triage for mSigSDK, SigProfilerAssignment, MuSiCal, deconstructSigs, and sigminer outputs.
 
 ## Local Use
 

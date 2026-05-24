@@ -1,0 +1,4 @@
+source,browser,device,status,sdk_import,public_fetch,fit_report,d3_render,pyodide_adapter,webr_adapter,notes
+automated,Chrome,desktop,pass,pass,pass,pass,pass,pass,pass,
+automated,Edge,desktop,pass,pass,pass,pass,pass,pass,pass,
+automated,Firefox,desktop,pass,pass,pass,pass,pass,pass,pass,

@@ -1,27 +1,20 @@
 # Manuscript Experiments
 
-Each folder is a dated, self-contained reproducibility package with code, source data, generated tables, and figure assets.
-
-## Current Packages
+This directory contains the replacement E1/E2/E3/E4/E6 experiment suite for the mSigSDK manuscript.
 
 | Folder | Purpose |
 | --- | --- |
-| `2026_05_13_synthetic_signature_validation/` | Synthetic burden validation for Table 4 and bootstrap uncertainty checks. |
-| `2026_05_13_deconstructsigs_concordance/` | Independent NNLS, deconstructSigs, SigProfilerAssignment, and MuSiCal concordance analyses for Table 5. |
-| `2026_05_13_real_world_benchmark/` | Node.js benchmark runs retained for side-by-side comparison with browser timings. |
-| `2026_05_14_confusable_signature_benchmark/` | SBS2/SBS13 and SBS5/SBS40/SBS3 stress tests with reporting-mode and coverage summaries. |
-| `2026_05_14_panel_downsampling_validation/` | PCAWG Lung-AdenoCA WGS-to-panel downsampling validation for panel evidence tiers. |
-| `2026_05_14_browser_benchmark/` | Browser-native benchmark harness, Chrome result capture, and unavailable-browser reporting when Firefox is not installed. |
+| `e1_zero_install_demo/` | Fresh-browser zero-install walk-through, timing, screenshots, and public-source provenance. |
+| `e2_adapter_fidelity/` | Browser adapter execution compared with conventional local package execution. |
+| `e3_internal_reference_checks/` | SDK NNLS, NMF, and QC checks against SciPy, R nnls, scikit-learn, and independent Python metrics. |
+| `e4_browser_runtime_benchmarks/` | Fresh browser runtime benchmarks for single-sample, cohort, bootstrap, portal-scale, and NMF workflows. |
+| `e6_cross_browser_compatibility/` | Automated desktop Chrome/Edge/Firefox compatibility checks. |
 
-## Regeneration
-
-Run the scripts from the repository root:
+Run from the repository root:
 
 ```bash
-npm run benchmark:confusable
-npm run validation:panel
-npm run benchmark:browser -- --browsers=chrome,firefox --repeats=3
-npm run concordance:cross-tools
+npm run experiment:all
+npm run assets:manuscript
 ```
 
-Each package README lists its direct command, outputs, and interpretation boundary.
+All result JSON files share the manuscript experiment schema and are consumed by `scripts/manuscript/generate-assets.mjs`.

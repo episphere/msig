@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="600" viewBox="0 0 1180 600" role="img" aria-labelledby="figure1-title figure1-desc">
+  <title id="figure1-title">Figure 1. Architecture and data-residency boundary</title>
+  <desc id="figure1-desc">Architecture diagram showing selected public spectra, catalogs, and runtime assets entering a private browser workspace while user spectra, signature exposures, QC outputs, plots, and reports remain local.</desc>
+  <defs>
+    <marker id="fig1-arrow-blue" viewBox="0 -5 10 10" refX="9" refY="0" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,-5L10,0L0,5" fill="#0072B2"/>
+    </marker>
+    <filter id="fig1-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#111827" flood-opacity="0.09"/>
+    </filter>
+    <style>
+      .fig1-text{font-family:Arial,sans-serif;fill:#111827}
+      .fig1-muted{font-family:Arial,sans-serif;fill:#4b5563}
+      .fig1-title{font-size:29px;font-weight:700}
+      .fig1-section{font-size:22px;font-weight:700}
+      .fig1-label{font-size:16px;font-weight:700}
+      .fig1-small{font-size:15px}
+      .fig1-mini{font-size:12px}
+      .fig1-chip{font-size:14px;font-weight:700}
+    </style>
+  </defs>
+  <rect width="1180" height="600" fill="#f8fafc"/>
+
+  <g transform="translate(0 -64)">
+  <rect x="48" y="126" width="300" height="500" rx="20" fill="#ffffff" stroke="#d1d5db" filter="url(#fig1-shadow)"/>
+  <text x="78" y="166" class="fig1-text fig1-section">Public signature inputs</text>
+  <text x="78" y="192" class="fig1-muted fig1-small">Fetched only when requested</text>
+  <g transform="translate(82 222)">
+    <path d="M50 34c7-26 31-45 62-45 27 0 50 16 62 39 27 5 47 27 47 56 0 31-26 57-59 57H49c-31 0-57-25-57-57 0-29 24-53 54-53 2 0 3 0 4 0z" fill="#E7F3FA" stroke="#0072B2" stroke-width="2.4"/>
+    <text x="108" y="78" text-anchor="middle" class="fig1-text" font-size="19" font-weight="700">mSigPortal</text>
+    <text x="108" y="102" text-anchor="middle" class="fig1-muted fig1-mini">public cancer spectra</text>
+  </g>
+  <g transform="translate(90 366)">
+    <rect width="226" height="48" rx="10" fill="#ffffff" stroke="#0072B2" stroke-width="1.8"/>
+    <rect x="12" y="11" width="60" height="26" rx="5" fill="#E7F3FA" stroke="#b7d8e8"/>
+    <rect x="14" y="27" width="2.3" height="8" rx="1" fill="#0072B2"/><rect x="17" y="19" width="2.3" height="16" rx="1" fill="#0072B2"/><rect x="20" y="24" width="2.3" height="11" rx="1" fill="#0072B2"/><rect x="23" y="13" width="2.3" height="22" rx="1" fill="#111827"/><rect x="26" y="21" width="2.3" height="14" rx="1" fill="#111827"/><rect x="29" y="16" width="2.3" height="19" rx="1" fill="#111827"/><rect x="32" y="28" width="2.3" height="7" rx="1" fill="#D55E00"/><rect x="35" y="20" width="2.3" height="15" rx="1" fill="#D55E00"/><rect x="38" y="25" width="2.3" height="10" rx="1" fill="#D55E00"/><rect x="41" y="18" width="2.3" height="17" rx="1" fill="#9CA3AF"/><rect x="44" y="14" width="2.3" height="21" rx="1" fill="#9CA3AF"/><rect x="47" y="26" width="2.3" height="9" rx="1" fill="#9CA3AF"/><rect x="50" y="22" width="2.3" height="13" rx="1" fill="#009E73"/><rect x="53" y="17" width="2.3" height="18" rx="1" fill="#009E73"/><rect x="56" y="23" width="2.3" height="12" rx="1" fill="#009E73"/><rect x="59" y="27" width="2.3" height="8" rx="1" fill="#CC79A7"/><rect x="62" y="20" width="2.3" height="15" rx="1" fill="#CC79A7"/><rect x="65" y="15" width="2.3" height="20" rx="1" fill="#CC79A7"/>
+    <text x="86" y="20" class="fig1-text fig1-label">SBS96 spectra</text>
+    <text x="86" y="36" class="fig1-muted" font-size="12">mutation counts</text>
+  </g>
+  <g transform="translate(90 430)">
+    <rect width="226" height="48" rx="10" fill="#ffffff" stroke="#E69F00" stroke-width="1.8"/>
+    <rect x="10" y="8" width="66" height="34" rx="6" fill="#FFF4DB" stroke="#efd7a2"/>
+    <rect x="13" y="11" width="15" height="10" rx="2" fill="#0072B2"/>
+        <text x="20.5" y="31" text-anchor="middle" font-family="Arial,sans-serif" font-size="5.5" font-weight="700" fill="#111827">C&gt;A</text><rect x="33" y="11" width="15" height="10" rx="2" fill="#111827"/>
+        <text x="40.5" y="31" text-anchor="middle" font-family="Arial,sans-serif" font-size="5.5" font-weight="700" fill="#111827">C&gt;G</text><rect x="53" y="11" width="15" height="10" rx="2" fill="#D55E00"/>
+        <text x="60.5" y="31" text-anchor="middle" font-family="Arial,sans-serif" font-size="5.5" font-weight="700" fill="#111827">C&gt;T</text><rect x="13" y="25" width="15" height="10" rx="2" fill="#9CA3AF"/>
+        <text x="20.5" y="45" text-anchor="middle" font-family="Arial,sans-serif" font-size="5.5" font-weight="700" fill="#111827">T&gt;A</text><rect x="33" y="25" width="15" height="10" rx="2" fill="#009E73"/>
+        <text x="40.5" y="45" text-anchor="middle" font-family="Arial,sans-serif" font-size="5.5" font-weight="700" fill="#111827">T&gt;C</text><rect x="53" y="25" width="15" height="10" rx="2" fill="#CC79A7"/>
+        <text x="60.5" y="45" text-anchor="middle" font-family="Arial,sans-serif" font-size="5.5" font-weight="700" fill="#111827">T&gt;G</text>
+    <text x="86" y="20" class="fig1-text fig1-label">COSMIC catalog</text>
+    <text x="86" y="36" class="fig1-muted" font-size="12">reference signatures</text>
+  </g>
+  <g transform="translate(90 494)">
+    <rect width="226" height="48" rx="10" fill="#ffffff" stroke="#CC79A7" stroke-width="1.8"/>
+    <rect x="12" y="10" width="56" height="28" rx="6" fill="#f7e9f1" stroke="#e0b3ce"/>
+    <text x="22" y="29" font-family="Consolas,monospace" font-size="17" font-weight="700" fill="#CC79A7">&lt;/&gt;</text>
+    <circle cx="54" cy="24" r="4" fill="#0072B2"/>
+    <text x="86" y="20" class="fig1-text fig1-label">Runtime assets</text>
+    <text x="86" y="36" class="fig1-muted" font-size="12">D3, WebR, Pyodide</text>
+  </g>
+  <text x="198" y="574" text-anchor="middle" class="fig1-muted fig1-mini">No patient-specific spectra are uploaded.</text>
+
+  <path d="M348 436 H414" fill="none" stroke="#0072B2" stroke-width="3" marker-end="url(#fig1-arrow-blue)"/>
+
+  <rect x="414" y="112" width="720" height="524" rx="28" fill="#E8F5F1" stroke="#009E73" stroke-width="3" filter="url(#fig1-shadow)"/>
+  <text x="456" y="154" class="fig1-text fig1-section">Private browser / device boundary</text>
+  <text x="456" y="180" class="fig1-muted fig1-small">Mutational-signature computation runs locally in the browser.</text>
+
+  <rect x="456" y="216" width="374" height="260" rx="18" fill="#ffffff" stroke="#b7d8cd"/>
+  <text x="486" y="252" class="fig1-text fig1-section">mSigSDK analysis core</text>
+  <text x="486" y="277" class="fig1-muted fig1-small">JavaScript signature workflows</text>
+  <g transform="translate(486 312)">
+    <rect width="166" height="34" rx="9" fill="#f8fafc" stroke="#0072B2" stroke-width="1.6"/>
+    <circle cx="19" cy="17" r="12" fill="#0072B2"/>
+    <text x="19" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#ffffff">1</text>
+    <text x="40" y="22" class="fig1-text" font-size="13" font-weight="700">Validate spectra</text>
+  </g>
+  <g transform="translate(658 312)">
+    <rect width="166" height="34" rx="9" fill="#f8fafc" stroke="#E69F00" stroke-width="1.6"/>
+    <circle cx="19" cy="17" r="12" fill="#E69F00"/>
+    <text x="19" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#ffffff">2</text>
+    <text x="40" y="22" class="fig1-text" font-size="13" font-weight="700">Fit signatures</text>
+  </g>
+  <g transform="translate(486 356)">
+    <rect width="166" height="34" rx="9" fill="#f8fafc" stroke="#009E73" stroke-width="1.6"/>
+    <circle cx="19" cy="17" r="12" fill="#009E73"/>
+    <text x="19" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#ffffff">3</text>
+    <text x="40" y="22" class="fig1-text" font-size="13" font-weight="700">NMF extraction</text>
+  </g>
+  <g transform="translate(658 356)">
+    <rect width="166" height="34" rx="9" fill="#f8fafc" stroke="#CC79A7" stroke-width="1.6"/>
+    <circle cx="19" cy="17" r="12" fill="#CC79A7"/>
+    <text x="19" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#ffffff">4</text>
+    <text x="40" y="22" class="fig1-text" font-size="13" font-weight="700">QC evidence</text>
+  </g>
+  <g transform="translate(486 402)">
+    <text x="0" y="11" class="fig1-muted" font-size="12" font-weight="700">Example exposure output</text>
+    <text x="0" y="29" class="fig1-muted" font-size="11" font-weight="700">SBS4</text>
+        <rect x="48" y="19" width="110" height="10" rx="5" fill="#e5edf4"/>
+        <rect x="48" y="19" width="90.19999999999999" height="10" rx="5" fill="#009E73"/>
+        <text x="168" y="29" class="fig1-muted" font-size="10">82%</text><text x="0" y="47" class="fig1-muted" font-size="11" font-weight="700">SBS18</text>
+        <rect x="48" y="37" width="110" height="10" rx="5" fill="#e5edf4"/>
+        <rect x="48" y="37" width="6.6" height="10" rx="5" fill="#0072B2"/>
+        <text x="168" y="47" class="fig1-muted" font-size="10">6%</text><text x="0" y="65" class="fig1-muted" font-size="11" font-weight="700">SBS40</text>
+        <rect x="48" y="55" width="110" height="10" rx="5" fill="#e5edf4"/>
+        <rect x="48" y="55" width="5.5" height="10" rx="5" fill="#6B7280"/>
+        <text x="168" y="65" class="fig1-muted" font-size="10">5%</text>
+  </g>
+
+  <rect x="846" y="216" width="266" height="306" rx="18" fill="#ffffff" stroke="#d7c8de"/>
+  <text x="870" y="252" class="fig1-text fig1-section">Package adapters</text>
+  <text x="870" y="277" class="fig1-muted fig1-small">Pinned external packages in-browser</text>
+  <text x="870" y="307" class="fig1-muted" font-size="11" font-weight="700">R / WebR</text>
+  <g transform="translate(870 318)">
+    <rect width="224" height="28" rx="8" fill="#f8fafc" stroke="#CC79A7" stroke-width="1.5"/>
+    <circle cx="18" cy="14" r="11" fill="#CC79A7"/>
+    <text x="18" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="#ffffff">R</text>
+    <text x="36" y="18" class="fig1-text" font-size="11.3" font-weight="700">deconstructSigs</text>
+    <text x="204" y="18" text-anchor="end" class="fig1-muted" font-size="9.6" font-weight="700">1.8.0</text>
+  </g>
+  <g transform="translate(870 354)">
+    <rect width="224" height="28" rx="8" fill="#f8fafc" stroke="#CC79A7" stroke-width="1.5"/>
+    <circle cx="18" cy="14" r="11" fill="#CC79A7"/>
+    <text x="18" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="#ffffff">R</text>
+    <text x="36" y="18" class="fig1-text" font-size="11.3" font-weight="700">sigminer</text>
+    <text x="204" y="18" text-anchor="end" class="fig1-muted" font-size="9.6" font-weight="700">2.3.1</text>
+  </g>
+  <text x="870" y="397" class="fig1-muted" font-size="11" font-weight="700">Python / Pyodide</text>
+  <g transform="translate(870 408)">
+    <rect width="224" height="28" rx="8" fill="#f8fafc" stroke="#E69F00" stroke-width="1.5"/>
+    <circle cx="18" cy="14" r="11" fill="#E69F00"/>
+    <text x="18" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="#ffffff">Py</text>
+    <text x="36" y="18" class="fig1-text" font-size="11.3" font-weight="700">SigProfilerAssignment</text>
+    <text x="204" y="18" text-anchor="end" class="fig1-muted" font-size="9.6" font-weight="700">1.1.3</text>
+  </g>
+  <g transform="translate(870 444)">
+    <rect width="224" height="28" rx="8" fill="#f8fafc" stroke="#E69F00" stroke-width="1.5"/>
+    <circle cx="18" cy="14" r="11" fill="#E69F00"/>
+    <text x="18" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="#ffffff">Py</text>
+    <text x="36" y="18" class="fig1-text" font-size="11.3" font-weight="700">MuSiCal</text>
+    <text x="204" y="18" text-anchor="end" class="fig1-muted" font-size="9.6" font-weight="700">1.0.0</text>
+  </g>
+  <rect x="876" y="486" width="212" height="26" rx="13" fill="#f8fafc" stroke="#d1d5db"/>
+  <text x="982" y="504" text-anchor="middle" class="fig1-muted" font-size="11" font-weight="700">File-format bridges</text>
+
+  <rect x="514" y="526" width="470" height="76" rx="16" fill="#ffffff" stroke="#009E73" stroke-width="2.4"/>
+  <text x="749" y="558" text-anchor="middle" class="fig1-text" font-size="20" font-weight="700">Local signature results</text>
+  <text x="749" y="584" text-anchor="middle" class="fig1-muted fig1-small">exposures, extracted signatures, QC, plots, and reports</text>
+  <g transform="translate(1018 500)">
+    <path d="M46 8 L84 24 V56 C84 84 66 106 46 116 C26 106 8 84 8 56 V24 Z" fill="#ffffff" stroke="#009E73" stroke-width="3"/>
+    <rect x="30" y="56" width="32" height="28" rx="5" fill="#009E73"/>
+    <path d="M36 56v-12c0-18 20-18 20 0v12" fill="none" stroke="#009E73" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <text x="1064" y="632" text-anchor="middle" class="fig1-text fig1-label" style="fill:#009E73">stays local</text>
+  </g>
+</svg>

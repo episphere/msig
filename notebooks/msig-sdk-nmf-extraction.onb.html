@@ -700,7 +700,7 @@
     }
 
     function nmfResultBestRunLabel(result) {
-      if (!result?.bestRun) return "not run";
+      if (!result?.bestRun) return "not evaluated";
       return `run ${result.bestRun.run}, seed ${result.bestRun.seed}`;
     }
 
@@ -1573,7 +1573,7 @@
 
     nmfApp.renderers.discovery = async () => {
       if (!nmfApp.result) {
-        nmfStatus(nmfDiscoveryStatus, "Extraction not run", "Run extraction from Step 1 or this section.", "warning");
+        nmfStatus(nmfDiscoveryStatus, "Extraction not evaluated", "Run extraction from Step 1 or this section.", "warning");
         nmfDiscoveryOutput.replaceChildren(nmfEmpty("No learned components are available yet."));
         return;
       }
@@ -1727,7 +1727,11 @@
           ...nmfApp.result,
           signatures: { [nmfState.selectedSignature]: selectedProfile },
         },
-        { maxSignatures: 1 }
+        {
+          maxSignatures: 1,
+          title: "Selected extracted NMF component",
+          subtitle: `${nmfState.selectedSignature} is selected from the rank-${nmfApp.result.rank} de novo NMF model; use the component selector to inspect the full extracted signature set.`
+        }
       );
       nmfProfileOutput.replaceChildren(
         table(
@@ -1772,7 +1776,7 @@
   <script type="text/markdown">
     ## Step 4. Compare ranks and export
 
-    A browser rank grid is a triage check. Use it to decide whether discovery is worth a heavier production run, then export the spectra and settings for SigProfilerExtractor.
+    A browser rank grid is a triage check. Use it to decide whether the native mSigSDK NMF discovery result is stable enough to review, then export a native mSigSDK review bundle with spectra, extraction settings, extracted signatures, exposures, and rank diagnostics.
   </script>
 
   <script type="module" pinned id="5">
@@ -1853,9 +1857,9 @@
       nmfField("Rank criterion", rankCriterion, "Criterion used to mark the recommended rank.")
     );
     nmfExportControls.append(
-      nmfField("Minimum signatures", exportMin, "Lower bound for the production extraction run."),
-      nmfField("Maximum signatures", exportMax, "Upper bound for the production extraction run."),
-      nmfField("Production replicates", exportReplicates, "Replicate count saved in the handoff metadata.")
+      nmfField("Minimum review rank", exportMin, "Lower bound saved with the review metadata."),
+      nmfField("Maximum review rank", exportMax, "Upper bound saved with the review metadata."),
+      nmfField("Saved replicate count", exportReplicates, "Replicate count recorded for downstream review planning.")
     );
     nmfRankActions.append(runRankGrid);
     nmfRankExportRoot.append(
@@ -1917,23 +1921,31 @@
         nmfRankOutput.replaceChildren();
       }
 
-      const handoff = mSigSDK.adapters.sigProfilerExtractor.prepareInput(
-        { spectra: nmfGroupedSpectra() },
+      const reviewFiles = [
         {
-          contexts: nmfApp.contexts,
-          minimumSignatures: nmfState.exportMinimumSignatures,
-          maximumSignatures: nmfState.exportMaximumSignatures,
-          nmfReplicates: nmfState.exportReplicates,
-        }
-      );
-      const handoffRows = handoff.files.map((file) => ({
-        file: file.path,
+          filename: "nmf_sbs96_spectra.tsv",
+          text: mSigSDK.io.exportSigProfilerMatrix(nmfGroupedSpectra(), { contexts: nmfApp.contexts }),
+          role: "SigProfiler-style SBS96 spectra matrix",
+        },
+        {
+          filename: "nmf_extracted_signatures.json",
+          text: JSON.stringify(nmfApp.result?.signatures || {}, null, 2),
+          role: "mSigSDK extracted signature matrix",
+        },
+        {
+          filename: "nmf_component_exposures.json",
+          text: JSON.stringify(nmfApp.result?.exposures || {}, null, 2),
+          role: "mSigSDK component exposure matrix",
+        },
+      ];
+      const reviewRows = reviewFiles.map((file) => ({
+        file: file.filename,
         characters: file.text.length,
-        role: "SigProfilerExtractor table-mode input",
+        role: file.role,
       }));
       nmfExportOutput.replaceChildren(
         table(
-          handoffRows,
+          reviewRows,
           [
             { key: "file", label: "File" },
             { key: "characters", label: "Characters" },
@@ -1941,7 +1953,7 @@
           ],
           {
             maxRows: 4,
-            caption: "The export preserves the screened spectra and production extraction settings.",
+            caption: "The export preserves the screened spectra, native mSigSDK NMF output, and review settings.",
           }
         ),
         details("Review bundle contents", {
@@ -1953,17 +1965,17 @@
             maxIterations: nmfState.maxIterations,
             seed: nmfState.seed,
           },
-          productionHandoff: {
-            minimumSignatures: nmfState.exportMinimumSignatures,
-            maximumSignatures: nmfState.exportMaximumSignatures,
-            nmfReplicates: nmfState.exportReplicates,
+          reviewPlanning: {
+            minimumRank: nmfState.exportMinimumSignatures,
+            maximumRank: nmfState.exportMaximumSignatures,
+            savedReplicateCount: nmfState.exportReplicates,
           },
         }),
         downloadMany([
-          ...handoff.files.map((file) => ({
-            filename: file.path.split("/").pop(),
+          ...reviewFiles.map((file) => ({
+            filename: file.filename,
             text: file.text,
-            label: `Download ${file.path.split("/").pop()}`,
+            label: `Download ${file.filename}`,
           })),
           {
             filename: "nmf_extraction_bundle.json",
@@ -1982,14 +1994,12 @@
                 referenceMatches: nmfApp.matches,
                 rankSelection: nmfApp.rankSelection,
               },
-              productionHandoff: {
+              reviewPlanning: {
                 settings: {
-                  minimumSignatures: nmfState.exportMinimumSignatures,
-                  maximumSignatures: nmfState.exportMaximumSignatures,
-                  nmfReplicates: nmfState.exportReplicates,
+                  minimumRank: nmfState.exportMinimumSignatures,
+                  maximumRank: nmfState.exportMaximumSignatures,
+                  savedReplicateCount: nmfState.exportReplicates,
                 },
-                manifest: handoff.manifest,
-                pythonSnippet: handoff.pythonSnippet,
               },
             },
             label: "Download NMF review bundle JSON",

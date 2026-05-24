@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "msig.package-repo.webr.v0.3",
+  "status": "artifacts_available",
+  "webRBinaryRVersion": "4.6",
+  "packageIndex": "bin/emscripten/contrib/4.6/PACKAGES",
+  "repository": "docs/package-repos/webr",
+  "buildImage": "ghcr.io/r-wasm/webr:main",
+  "packages": [
+    {
+      "tool": "deconstructSigs",
+      "package": "deconstructSigs",
+      "version": "1.8.0",
+      "filename": "bin/emscripten/contrib/4.6/deconstructSigs_1.8.0.tgz",
+      "available": true,
+      "sha256": "db13d3147aa675dfc253014cdaada45b70a82a02857d3c7ac337a55974cc1f8c"
+    },
+    {
+      "tool": "sigminer",
+      "package": "sigminer",
+      "version": "2.3.1",
+      "filename": "bin/emscripten/contrib/4.6/sigminer_2.3.1.tgz",
+      "available": true,
+      "sha256": "1f32a789428a9f71c31fbbae02074c9c83f0c020326ac65401a883603f706d1c"
+    },
+    {
+      "tool": "sigminer",
+      "package": "nnls",
+      "version": "1.6",
+      "filename": "bin/emscripten/contrib/4.6/nnls_1.6.tgz",
+      "available": true,
+      "sha256": "b9d4558aefa2de4fe3af59d1337276d0368337c1b2a961fb8008942250ccf69a"
+    },
+    {
+      "tool": "sigminer",
+      "package": "quadprog",
+      "version": "1.5-8",
+      "filename": "bin/emscripten/contrib/4.6/quadprog_1.5-8.tgz",
+      "available": true,
+      "sha256": "8163218c163c0c99a19a6eed245c127b7b5af3387f50142d3377c82c2283fff6"
+    },
+    {
+      "tool": "sigminer",
+      "package": "GenSA",
+      "version": "1.1.15",
+      "filename": "bin/emscripten/contrib/4.6/GenSA_1.1.15.tgz",
+      "available": true,
+      "sha256": "61a190dbe7c92461803c266341a46f7ad6f396f344eecc398e8d6cf87bc67452"
+    }
+  ]
+}

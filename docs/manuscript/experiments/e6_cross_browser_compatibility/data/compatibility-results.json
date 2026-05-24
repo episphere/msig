@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "msig.manuscript.experiment.v1",
+  "generatedAt": "2026-05-21T20:14:17.200Z",
+  "experimentId": "e6_cross_browser_compatibility",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "automatedBrowsers": [
+      {
+        "id": "chrome",
+        "label": "Chrome",
+        "engine": "chromium",
+        "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+      },
+      {
+        "id": "edge",
+        "label": "Edge",
+        "engine": "chromium",
+        "executablePath": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+      },
+      {
+        "id": "firefox",
+        "label": "Firefox",
+        "engine": "firefox",
+        "executablePath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
+      }
+    ],
+    "manualHarness": "docs/manuscript/experiments/e6_cross_browser_compatibility/manual-compatibility-harness.html"
+  },
+  "inputs": {
+    "automatedChecks": [
+      "SDK ESM import",
+      "public mSigPortal fetch",
+      "single-sample fit and report generation",
+      "local D3 SVG render",
+      "Pyodide/WebR runtime capability detection"
+    ]
+  },
+  "rows": [
+    {
+      "source": "automated",
+      "browser": "Chrome",
+      "browserId": "chrome",
+      "device": "desktop",
+      "platform": "Win32",
+      "sdkImport": "pass",
+      "publicFetch": "pass",
+      "fitReport": "pass",
+      "d3Render": "pass",
+      "pyodideAdapter": "pass",
+      "webrAdapter": "pass",
+      "status": "pass",
+      "notes": ""
+    },
+    {
+      "source": "automated",
+      "browser": "Edge",
+      "browserId": "edge",
+      "device": "desktop",
+      "platform": "Win32",
+      "sdkImport": "pass",
+      "publicFetch": "pass",
+      "fitReport": "pass",
+      "d3Render": "pass",
+      "pyodideAdapter": "pass",
+      "webrAdapter": "pass",
+      "status": "pass",
+      "notes": ""
+    },
+    {
+      "source": "automated",
+      "browser": "Firefox",
+      "browserId": "firefox",
+      "device": "desktop",
+      "platform": "Win32",
+      "sdkImport": "pass",
+      "publicFetch": "pass",
+      "fitReport": "pass",
+      "d3Render": "pass",
+      "pyodideAdapter": "pass",
+      "webrAdapter": "pass",
+      "status": "pass",
+      "notes": ""
+    }
+  ],
+  "artifacts": {
+    "json": "docs/manuscript/experiments/e6_cross_browser_compatibility/data/compatibility-results.json",
+    "csv": "docs/manuscript/experiments/e6_cross_browser_compatibility/data/compatibility_matrix.csv",
+    "manualHarness": "docs/manuscript/experiments/e6_cross_browser_compatibility/manual-compatibility-harness.html"
+  },
+  "status": "completed",
+  "notes": []
+}

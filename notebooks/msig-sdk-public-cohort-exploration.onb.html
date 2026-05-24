@@ -398,33 +398,6 @@
       };
     }
 
-    async function tuneFittedExposureHeatmap(host, exposures) {
-      const plot = host.querySelector(".js-plotly-plot") || host;
-      const traceLabels = Array.isArray(plot?.data?.[0]?.x) ? plot.data[0].x : [];
-      const plotWidth = host.getBoundingClientRect().width || 760;
-      const maxTickLabels = Math.max(8, Math.min(24, Math.floor(plotWidth / 34)));
-      const tickSpec = readableSignatureTickSpec(
-        traceLabels.length ? traceLabels : exposureSignatureNames(exposures),
-        maxTickLabels
-      );
-      if (!tickSpec || !window.Plotly?.relayout) return;
-
-      const sampleCount = Object.keys(exposures || {}).length;
-      await window.Plotly.relayout(plot, {
-        "xaxis.title.text": "Fitted signatures",
-        "xaxis.tickangle": -45,
-        "xaxis.automargin": true,
-        "xaxis.tickfont.size": 11,
-        "xaxis.tickmode": tickSpec.tickmode,
-        "xaxis.tickvals": tickSpec.tickvals,
-        "xaxis.ticktext": tickSpec.ticktext,
-        "yaxis.title.text": "Samples",
-        "yaxis.automargin": true,
-        "margin.b": 120,
-        height: Math.max(360, Math.min(620, 260 + sampleCount * 36)),
-      });
-    }
-
     const explorerRoot = document.createElement("div");
     explorerRoot.className = "workflow-panel";
 
@@ -1044,16 +1017,27 @@
       );
 
       if (active.exposures) {
-        await plotCard(plotGrid, "Fitted signature exposure heatmap", async (host) => {
-          await mSigSDK.signatureFitting.plotDatasetMutationalSignaturesExposure(
-            active.exposures,
-            host.id,
-            true,
-            label,
-            true
-          );
-          await tuneFittedExposureHeatmap(host, active.exposures);
-        });
+        await plotCard(plotGrid, "Full-COSMIC cohort exposure landscape", (host) =>
+          mSigSDK.qcPlots.plotCohortSignatureSummary(host, {
+            spectra: active.spectra,
+            exposures: active.exposures,
+            metadata: active.metadata,
+            signatureNames: Object.keys(active.signatures || {}),
+            dataset: label,
+            signatureCatalog: active.selection.signatureSetName,
+          }, {
+            topN: 12,
+            exposureThreshold: parseNumber(exposureThresholdInput.value, 0.01),
+            title: "Full-COSMIC cohort exposure landscape",
+            subtitle: "Full reference-catalog fit; display summarizes the top 12 cohort signatures plus Other.",
+            publication: {
+              compact: true,
+              rowHeight: 17,
+              cellWidth: 56,
+              maxWidth: "100%",
+            },
+          })
+        );
       }
 
       const downloads = [

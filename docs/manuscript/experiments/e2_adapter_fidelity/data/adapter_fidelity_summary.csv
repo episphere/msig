@@ -1,0 +1,5 @@
+tool,browser_runtime,local_runtime,sample_count,signature_count,mean_exposure_cosine,median_exposure_cosine,min_exposure_cosine,max_absolute_exposure_difference,rmse,top_signature_concordance,status
+deconstructsigs,webr,local:Rscript.exe,38,67,1,1,0.9999999999999998,0,0,1,pass
+sigminer,webr,local:Rscript.exe,38,67,1,1,0.9999999999999998,0,0,1,pass
+sigprofilerassignment,pyodide,docker:python:3.11-slim,38,67,1,1,0.9999999999999998,0,0,1,pass
+musical,pyodide,docker:python:3.11-slim,38,67,1,1,0.9999999999999997,4.163336342344337e-15,2.5021563225878793e-16,1,pass

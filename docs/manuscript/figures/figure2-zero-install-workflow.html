@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Figure 2. Zero-install workflow demonstration</title>
+    <script src="../assets/d3.min.js"></script>
+    <style>
+      body { margin: 0; font-family: Arial, sans-serif; color: #172026; background: #f7faf9; }
+      main { max-width: 1320px; margin: 0 auto; padding: 28px; }
+      .figure-frame { background: #ffffff; border: 1px solid #d8e2dc; border-radius: 8px; padding: 22px; box-shadow: 0 8px 24px rgba(16, 32, 27, 0.08); }
+      h1 { margin: 0 0 8px; font-size: 25px; letter-spacing: 0; }
+      .caption { margin: 0 0 20px; color: #53616f; max-width: 1120px; line-height: 1.45; font-size: 15px; }
+      svg { width: 100%; height: auto; display: block; }
+      .svg-shell svg { max-height: 760px; }
+      .tick text { fill: #53616f; font-size: 11px; }
+      .domain, .tick line { stroke: #aab6c2; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="figure-frame">
+
+        <div id="chart"></div>
+      </div>
+    </main>
+    <script>
+      const spec = {"elapsedSeconds":1.8937800000011922,"reportBytes":8931,"sampleCount":1,"signatureCount":67,"sourceSpectrumUrl":"https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=PCAWG&cancer=Lung-AdenoCA&strategy=WGS&profile=SBS&matrix=96&offset=0","sourceCatalogUrl":"https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature?source=Reference_signatures&strategy=WGS&profile=SBS&matrix=96&signatureSetName=COSMIC_v3_Signatures_GRCh37_SBS96&limit=10000&offset=0","steps":[{"id":"blank","label":"A","title":"Page starts","time":0.0002749999985098839,"note":"t=0"},{"id":"import","label":"B","title":"SDK loads","time":1.5477299999967218,"note":"in browser"},{"id":"fetch","label":"C","title":"Inputs fetched","time":1.8738500000014902,"note":"public only"},{"id":"report","label":"D","title":"Report ready","time":1.8935399999991058,"note":"no upload"}],"rawSteps":[{"name":"Page loaded","elapsedSeconds":0.0002749999985098839},{"name":"SDK imported","elapsedSeconds":1.5477299999967218},{"name":"mSigPortal data fetched","elapsedSeconds":1.8738500000014902},{"name":"Single-sample fit completed","elapsedSeconds":1.891439999997616},{"name":"SDK report generated","elapsedSeconds":1.8935399999991058}],"palette":{"ink":"#111827","muted":"#4b5563","hairline":"#d1d5db","panel":"#ffffff","paper":"#f8fafc","blue":"#0072B2","sky":"#56B4E9","green":"#009E73","orange":"#E69F00","vermillion":"#D55E00","purple":"#CC79A7","yellow":"#F0E442","gray":"#6B7280","paleBlue":"#E7F3FA","paleGreen":"#E8F5F1","paleOrange":"#FFF4DB"}};
+
+      const width = 1280, height = 680;
+      const p = spec.palette;
+      const svg = d3.select("#chart").append("svg").attr("viewBox", [0, 0, width, height]);
+      const colors = [p.blue, p.green, p.orange, p.purple];
+      svg.append("rect").attr("width", width).attr("height", height).attr("fill", p.paper);
+
+      const formatTime = (value) => value == null || !Number.isFinite(value)
+        ? "not measured"
+        : d3.format(".2f")(value) + " s";
+
+      const claim = svg.append("g").attr("transform", "translate(64,48)");
+      [
+        ["0 installs", p.blue, 116],
+        ["Public data", p.orange, 132],
+        ["Local report", p.green, 136]
+      ].forEach((item, i) => {
+        const offset = [0, 134, 286][i];
+        const g = claim.append("g").attr("transform", "translate(" + offset + ",0)");
+        g.append("rect").attr("width", item[2]).attr("height", 34).attr("rx", 8).attr("fill", "#ffffff").attr("stroke", item[1]).attr("stroke-width", 1.8);
+        g.append("circle").attr("cx", 20).attr("cy", 17).attr("r", 6).attr("fill", item[1]);
+        g.append("text").attr("x", 38).attr("y", 22).attr("font-size", 14).attr("font-weight", 700).attr("fill", p.ink).text(item[0]);
+      });
+
+      const metric = svg.append("g").attr("transform", "translate(950,28)");
+      metric.append("rect").attr("width", 266).attr("height", 94).attr("rx", 8).attr("fill", "#ffffff").attr("stroke", p.hairline);
+      metric.append("text").attr("x", 26).attr("y", 43).attr("font-size", 36).attr("font-weight", 700).attr("fill", p.green)
+        .text(formatTime(spec.elapsedSeconds || 0));
+      metric.append("text").attr("x", 26).attr("y", 72).attr("font-size", 15).attr("font-weight", 700).attr("fill", p.muted)
+        .text("automated runtime");
+
+      const cardW = 254, cardH = 380, gap = 46, cardTop = 146;
+      const cards = svg.selectAll("g.story-card").data(spec.steps).join("g")
+        .attr("class", "story-card")
+        .attr("transform", (d, i) => "translate(" + (64 + i * (cardW + gap)) + "," + cardTop + ")");
+      cards.append("rect").attr("width", cardW).attr("height", cardH).attr("rx", 8).attr("fill", "#ffffff").attr("stroke", p.hairline);
+      cards.append("circle").attr("cx", 34).attr("cy", 36).attr("r", 19).attr("fill", (d, i) => colors[i]);
+      cards.append("text").attr("x", 34).attr("y", 42).attr("text-anchor", "middle").attr("font-size", 16).attr("font-weight", 700).attr("fill", "#ffffff").text((d) => d.label);
+      cards.append("text").attr("x", 66).attr("y", 33).attr("font-size", 18).attr("font-weight", 700).attr("fill", p.ink).text((d) => d.title);
+      cards.append("text").attr("x", 66).attr("y", 59).attr("font-size", 14).attr("font-weight", 700).attr("fill", p.green)
+        .text((d) => formatTime(d.time));
+      cards.append("rect").attr("x", 62).attr("y", 334).attr("width", 130).attr("height", 30).attr("rx", 8).attr("fill", p.paper).attr("stroke", p.hairline);
+      cards.append("text").attr("x", cardW / 2).attr("y", 354).attr("text-anchor", "middle").attr("font-size", 14).attr("font-weight", 700).attr("fill", p.muted).text((d) => d.note);
+
+      cards.each(function(d, i) {
+        const artX = d.id === "fetch" ? 14 : 22;
+        const g = d3.select(this).append("g").attr("transform", "translate(" + artX + ",96)");
+        if (d.id === "blank") drawBrowser(g, colors[i]);
+        if (d.id === "import") drawImport(g, colors[i]);
+        if (d.id === "fetch") drawFetch(g, colors[i]);
+        if (d.id === "report") drawReport(g, colors[i]);
+      });
+
+      for (let i = 0; i < spec.steps.length - 1; i++) {
+        const x = 64 + (i + 1) * cardW + i * gap + 12;
+        const arrowLen = gap - 24;
+        svg.append("path").attr("d", "M" + x + " " + (cardTop + 192) + " h" + arrowLen).attr("fill", "none").attr("stroke", p.green).attr("stroke-width", 4).attr("stroke-linecap", "round");
+        svg.append("path").attr("d", "M" + (x + arrowLen) + " " + (cardTop + 192) + " l-10 -8 v16 z").attr("fill", p.green);
+      }
+
+      const timeline = svg.append("g").attr("transform", "translate(108,588)");
+      timeline.append("line").attr("x1", 0).attr("x2", 1064).attr("y1", 0).attr("y2", 0).attr("stroke", p.hairline).attr("stroke-width", 2);
+      const tx = d3.scalePoint().domain(spec.steps.map((d) => d.label)).range([16, 1048]).padding(0);
+      timeline.selectAll("circle.tick").data(spec.steps).join("circle")
+        .attr("cx", (d) => tx(d.label)).attr("cy", 0).attr("r", 7).attr("fill", (d, i) => colors[i]);
+      timeline.selectAll("text.tick-label").data(spec.steps).join("text")
+        .attr("x", (d) => tx(d.label)).attr("y", 32).attr("text-anchor", "middle").attr("font-size", 12).attr("font-weight", 700).attr("fill", p.ink)
+        .text((d) => d.label + "  " + formatTime(d.time));
+      svg.append("text").attr("x", 64).attr("y", 652).attr("font-size", 13).attr("font-weight", 700).attr("fill", p.muted)
+        .text("Timing excludes browser launch and URL typing.");
+
+      function drawBrowser(g, color) {
+        g.append("rect").attr("x", 18).attr("y", 4).attr("width", 194).attr("height", 152).attr("rx", 8).attr("fill", p.paleBlue).attr("stroke", color).attr("stroke-width", 2.5);
+        g.append("rect").attr("x", 18).attr("y", 4).attr("width", 194).attr("height", 34).attr("rx", 8).attr("fill", "#ffffff").attr("stroke", color).attr("stroke-width", 2.5);
+        g.append("circle").attr("cx", 39).attr("cy", 21).attr("r", 5).attr("fill", "#ef4444");
+        g.append("circle").attr("cx", 57).attr("cy", 21).attr("r", 5).attr("fill", p.orange);
+        g.append("circle").attr("cx", 75).attr("cy", 21).attr("r", 5).attr("fill", p.green);
+        g.append("rect").attr("x", 44).attr("y", 64).attr("width", 142).attr("height", 18).attr("rx", 9).attr("fill", "#ffffff").attr("stroke", p.hairline);
+        g.append("path").attr("d", "M76 117 l24 22 l52 -60").attr("fill", "none").attr("stroke", color).attr("stroke-width", 7).attr("stroke-linecap", "round").attr("stroke-linejoin", "round");
+        g.append("text").attr("x", 115).attr("y", 196).attr("text-anchor", "middle").attr("font-size", 18).attr("font-weight", 700).attr("fill", p.ink).text("Demo page");
+      }
+      function drawImport(g, color) {
+        g.append("rect").attr("x", 16).attr("y", 0).attr("width", 198).attr("height", 112).attr("rx", 8).attr("fill", p.ink);
+        g.append("text").attr("x", 115).attr("y", 49).attr("text-anchor", "middle").attr("font-size", 22).attr("font-weight", 700).attr("fill", "#d7f9f0").text("mSigSDK");
+        g.append("path").attr("d", "M115 124 v32").attr("fill", "none").attr("stroke", color).attr("stroke-width", 4).attr("stroke-linecap", "round");
+        g.append("path").attr("d", "M115 167 l-10 -14 h20 z").attr("fill", color);
+        g.append("rect").attr("x", 32).attr("y", 182).attr("width", 78).attr("height", 40).attr("rx", 8).attr("fill", p.paleGreen).attr("stroke", color).attr("stroke-width", 2);
+        g.append("rect").attr("x", 120).attr("y", 182).attr("width", 78).attr("height", 40).attr("rx", 8).attr("fill", "#f3e8f6").attr("stroke", p.purple).attr("stroke-width", 2);
+        g.append("text").attr("x", 71).attr("y", 207).attr("text-anchor", "middle").attr("font-size", 15).attr("font-weight", 700).attr("fill", p.ink).text("SDK");
+        g.append("text").attr("x", 159).attr("y", 207).attr("text-anchor", "middle").attr("font-size", 15).attr("font-weight", 700).attr("fill", p.ink).text("D3");
+      }
+      function drawFetch(g, color) {
+        g.append("path").attr("d", "M54 54c6-30 32-50 66-50 29 0 52 16 64 41 25 4 44 26 44 52 0 30-25 54-57 54H50c-29 0-52-23-52-52 0-27 23-50 51-50h5z")
+          .attr("fill", p.paleBlue).attr("stroke", color).attr("stroke-width", 2.5);
+        g.append("text").attr("x", 113).attr("y", 92).attr("text-anchor", "middle").attr("font-size", 18).attr("font-weight", 700).attr("fill", p.ink).text("mSigPortal");
+        g.append("line").attr("x1", 113).attr("y1", 154).attr("x2", 113).attr("y2", 171).attr("stroke", p.green).attr("stroke-width", 4).attr("stroke-linecap", "round");
+        g.append("path").attr("d", "M113 182 l-10 -14 h20 z").attr("fill", p.green);
+        [
+          ["SBS96", p.blue],
+          ["COSMIC", p.orange]
+        ].forEach((item, i) => {
+          const x = 27 + i * 91;
+          g.append("rect").attr("x", x).attr("y", 190).attr("width", 82).attr("height", 32).attr("rx", 8).attr("fill", "#ffffff").attr("stroke", item[1]).attr("stroke-width", 1.8);
+          g.append("circle").attr("cx", x + 17).attr("cy", 206).attr("r", 5).attr("fill", item[1]);
+          g.append("text").attr("x", x + 30).attr("y", 211).attr("font-size", 13).attr("font-weight", 700).attr("fill", p.ink).text(item[0]);
+        });
+      }
+      function drawReport(g, color) {
+        g.append("rect").attr("x", 40).attr("y", 0).attr("width", 154).attr("height", 196).attr("rx", 8).attr("fill", "#ffffff").attr("stroke", color).attr("stroke-width", 2.5);
+        g.append("rect").attr("x", 64).attr("y", 30).attr("width", 106).attr("height", 16).attr("rx", 8).attr("fill", p.paleGreen);
+        g.append("rect").attr("x", 64).attr("y", 64).attr("width", 106).attr("height", 70).attr("rx", 8).attr("fill", p.paleBlue).attr("stroke", p.hairline);
+        g.append("path").attr("d", "M78 113 l25 -26 l23 16 l33 -44").attr("fill", "none").attr("stroke", p.green).attr("stroke-width", 4).attr("stroke-linecap", "round").attr("stroke-linejoin", "round");
+        g.append("rect").attr("x", 64).attr("y", 152).attr("width", 70).attr("height", 12).attr("rx", 6).attr("fill", p.orange);
+        g.append("rect").attr("x", 64).attr("y", 174).attr("width", 96).attr("height", 12).attr("rx", 6).attr("fill", p.purple);
+        g.append("g").attr("transform", "translate(168,202)")
+          .call((lock) => {
+            lock.append("circle").attr("cx", 0).attr("cy", 0).attr("r", 26).attr("fill", p.paleGreen).attr("stroke", p.green).attr("stroke-width", 2);
+            lock.append("rect").attr("x", -10).attr("y", -1).attr("width", 20).attr("height", 17).attr("rx", 4).attr("fill", p.green);
+            lock.append("path").attr("d", "M-7 -1v-8c0-11 14-11 14 0v8").attr("fill", "none").attr("stroke", p.green).attr("stroke-width", 4).attr("stroke-linecap", "round");
+          });
+      }
+
+    </script>
+  </body>
+</html>

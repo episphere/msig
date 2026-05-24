@@ -532,17 +532,7 @@
     const qcFallbackResidualUnexplainedThreshold = 0.07;
     const qcFallbackResidualStructureCosineThreshold = 0.85;
     const qcFallbackResidualStructureBurdenThreshold = 100;
-    const qcDefaultSignatureNames = [
-      "SBS1",
-      "SBS2",
-      "SBS4",
-      "SBS5",
-      "SBS13",
-      "SBS17a",
-      "SBS17b",
-      "SBS18",
-      "SBS40",
-    ];
+    const qcDefaultSignatureNames = null;
     const qcPublicApiBase = "https://analysistools.cancer.gov/mutational-signatures/api/";
     const qcPancancerValue = "__all_cancers__";
 
@@ -1454,7 +1444,9 @@
         ),
       ];
       const spectra = Object.fromEntries(selectedSamples.map((sample) => [sample, dataset.spectra[sample]]));
-      const requestedSignatureNames = qcDefaultSignatureNames.filter((signature) => allSignatures[signature]);
+      const requestedSignatureNames = Array.isArray(qcDefaultSignatureNames)
+        ? qcDefaultSignatureNames.filter((signature) => allSignatures[signature])
+        : [];
       const fallbackSignatureNames = (dataset.signatureNames || Object.keys(allSignatures))
         .filter((signature) => allSignatures[signature]);
       const signatureNames = requestedSignatureNames.length ? requestedSignatureNames : fallbackSignatureNames;

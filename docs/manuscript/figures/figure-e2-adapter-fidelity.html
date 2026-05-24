@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>E2 Adapter Fidelity</title>
+    <script src="../assets/d3.min.js"></script>
+    <style>
+      body { margin: 0; font-family: Arial, sans-serif; color: #172026; background: #ffffff; }
+      main { max-width: 1040px; margin: 0 auto; padding: 28px; }
+      h1 { margin: 0 0 6px; font-size: 26px; }
+      p { margin: 0 0 18px; color: #53616f; }
+      svg { width: 100%; height: auto; overflow: visible; }
+      .axis text { fill: #53616f; font-size: 12px; }
+      .axis path, .axis line { stroke: #aab6c2; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div id="chart"></div>
+    </main>
+    <script>
+      const spec = {"kind":"bar","subtitle":"Mean browser-vs-local exposure cosine for completed adapter pairs.","yLabel":"Mean exposure cosine","data":[{"label":"deconstructsigs","value":1,"secondary":0,"status":"pass"},{"label":"sigminer","value":1,"secondary":0,"status":"pass"},{"label":"sigprofilerassignment","value":1,"secondary":0,"status":"pass"},{"label":"musical","value":1,"secondary":4.163336342344337e-15,"status":"pass"}]};
+      const colors = { pass: "#0b6b4f", completed: "#2f6f73", failed: "#b4473a", missing: "#69737f", blocked: "#b4473a", "not available": "#69737f" };
+      if (spec.kind === "matrix") renderMatrix(spec);
+      else if (spec.kind === "status") renderStatus(spec);
+      else renderBar(spec);
+
+      function renderBar(spec) {
+        const data = spec.data || [];
+        const margin = { top: 24, right: 36, bottom: 160, left: 100 };
+        const width = 1040;
+        const height = 640;
+        const svg = d3.select("#chart").append("svg").attr("viewBox", [0, 0, width, height]);
+        const x = d3.scaleBand().domain(data.map((d) => d.label)).range([margin.left, width - margin.right]).padding(0.22);
+        const maxValue = d3.max(data, (d) => d.value) || 1;
+        const y = d3.scaleLinear().domain([0, maxValue * 1.12]).nice().range([height - margin.bottom, margin.top]);
+        svg.append("g").attr("class", "axis").attr("transform", "translate(0," + (height - margin.bottom) + ")").call(d3.axisBottom(x)).selectAll("text").attr("transform", "rotate(-35)").style("text-anchor", "end");
+        svg.append("g").attr("class", "axis").attr("transform", "translate(" + margin.left + ",0)").call(d3.axisLeft(y).ticks(6));
+        svg.selectAll("rect").data(data).join("rect")
+          .attr("x", (d) => x(d.label))
+          .attr("y", (d) => y(d.value))
+          .attr("width", x.bandwidth())
+          .attr("height", (d) => y(0) - y(d.value))
+          .attr("fill", (d) => colors[d.status] || "#2f6f73");
+        svg.selectAll(".value").data(data).join("text")
+          .attr("x", (d) => x(d.label) + x.bandwidth() / 2)
+          .attr("y", (d) => y(d.value) - 6)
+          .attr("text-anchor", "middle")
+          .attr("font-size", 12)
+          .text((d) => Number.isFinite(d.value) ? d.value.toFixed(d.value < 1 ? 3 : 1) : "");
+        svg.append("text").attr("x", 18).attr("y", 18).attr("font-size", 12).attr("fill", "#53616f").text(spec.yLabel || spec.xLabel || "");
+      }
+
+      function renderStatus(spec) {
+        const data = spec.data && spec.data.length ? spec.data : [{ label: "missing", value: 0, status: "missing" }];
+        const margin = { top: 20, right: 24, bottom: 30, left: 260 };
+        const width = 980;
+        const height = Math.max(180, data.length * 58 + margin.top + margin.bottom);
+        const svg = d3.select("#chart").append("svg").attr("viewBox", [0, 0, width, height]);
+        const y = d3.scaleBand().domain(data.map((d) => d.label)).range([margin.top, height - margin.bottom]).padding(0.22);
+        svg.append("g").attr("class", "axis").attr("transform", "translate(" + margin.left + ",0)").call(d3.axisLeft(y));
+        svg.selectAll("rect").data(data).join("rect")
+          .attr("x", margin.left + 20)
+          .attr("y", (d) => y(d.label))
+          .attr("width", 160)
+          .attr("height", y.bandwidth())
+          .attr("fill", (d) => colors[d.status] || "#69737f");
+        svg.selectAll(".status-label").data(data).join("text")
+          .attr("x", margin.left + 100)
+          .attr("y", (d) => y(d.label) + y.bandwidth() / 2 + 5)
+          .attr("text-anchor", "middle")
+          .attr("fill", "#fff")
+          .attr("font-weight", 700)
+          .text((d) => d.status || "");
+        svg.selectAll(".detail").data(data).join("text")
+          .attr("x", margin.left + 210)
+          .attr("y", (d) => y(d.label) + y.bandwidth() / 2 + 5)
+          .attr("font-size", 12)
+          .attr("fill", "#53616f")
+          .text((d) => d.detail === null || d.detail === undefined ? "" : String(Number(d.detail).toExponential ? Number(d.detail).toExponential(2) : d.detail));
+      }
+
+      function renderMatrix(spec) {
+        const data = spec.data || [];
+        const rows = [...new Set(data.map((d) => d.row))];
+        const columns = [...new Set(data.map((d) => d.column))];
+        const cell = 42;
+        const margin = { top: 74, right: 24, bottom: 24, left: 230 };
+        const width = margin.left + columns.length * cell + margin.right;
+        const height = margin.top + rows.length * cell + margin.bottom;
+        const svg = d3.select("#chart").append("svg").attr("viewBox", [0, 0, width, height]);
+        svg.selectAll(".col").data(columns).join("text")
+          .attr("x", (_, i) => margin.left + i * cell + cell / 2)
+          .attr("y", margin.top - 10)
+          .attr("text-anchor", "end")
+          .attr("transform", (_, i) => "rotate(-35," + (margin.left + i * cell + cell / 2) + "," + (margin.top - 10) + ")")
+          .attr("font-size", 12)
+          .text((d) => d);
+        svg.selectAll(".row").data(rows).join("text")
+          .attr("x", margin.left - 10)
+          .attr("y", (_, i) => margin.top + i * cell + cell / 2 + 5)
+          .attr("text-anchor", "end")
+          .attr("font-size", 12)
+          .text((d) => d);
+        svg.selectAll("rect").data(data).join("rect")
+          .attr("x", (d) => margin.left + columns.indexOf(d.column) * cell)
+          .attr("y", (d) => margin.top + rows.indexOf(d.row) * cell)
+          .attr("width", cell - 4)
+          .attr("height", cell - 4)
+          .attr("fill", (d) => colors[d.status] || "#69737f");
+      }
+    </script>
+  </body>
+</html>

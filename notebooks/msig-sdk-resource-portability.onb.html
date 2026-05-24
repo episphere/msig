@@ -5,7 +5,7 @@
   <script type="text/markdown">
     # Resource portability
 
-    mSigSDK supports SBS96 handoff files, selected browser/Pyodide/WebR execution paths, common output parsers, and round-trip validation for platform interoperability.
+    mSigSDK supports SBS96 handoff files, exact executable adapters for four external packages, common exposure-output parsers, and round-trip validation for platform interoperability. SigProfiler-style SBS96 matrices are treated here as a file format, not as support for additional SigProfiler package execution.
   </script>
 
   <script type="module" pinned id="sbs96-format-bridge">
@@ -45,15 +45,6 @@
         defaultChecked: true,
       },
       {
-        id: "sigprofilerextractor",
-        key: "sigProfilerExtractor",
-        label: "SigProfilerExtractor",
-        environment: "Python package",
-        orientation: "MutationType rows x sample columns",
-        output: "Extracted signatures and activities",
-        defaultChecked: true,
-      },
-      {
         id: "deconstructsigs",
         key: "deconstructSigs",
         label: "deconstructSigs",
@@ -74,7 +65,7 @@
       {
         id: "musical",
         key: "musical",
-        label: "MuSiCal-compatible refit",
+        label: "MuSiCal",
         environment: "Python package or TSV workflow",
         orientation: "MutationType rows x sample columns plus signature rows",
         output: "Exposure table",
@@ -100,18 +91,8 @@
       },
       {
         id: "musical",
-        label: "MuSiCal-compatible refit",
+        label: "MuSiCal",
         outputKind: "exposures",
-      },
-      {
-        id: "sigprofilerextractor",
-        label: "SigProfilerExtractor",
-        outputKind: "signatures and exposures",
-      },
-      {
-        id: "sigprofilermatrixgenerator",
-        label: "SigProfilerMatrixGenerator output",
-        outputKind: "spectra",
       },
     ];
 
@@ -122,13 +103,6 @@
         directSdkRun: "Runs matrix-mode assignment through Pyodide when the target browser can install SigProfilerAssignment",
         sdkImports: "Activity and exposure tables",
         generatedArtifacts: "Sample TSV, signature TSV",
-      },
-      {
-        platform: "SigProfilerExtractor",
-        sdkExports: "SBS96 sample matrix",
-        directSdkRun: "Runs mSigSDK browser-native NMF and exports SigProfilerExtractor handoff files; exact package execution requires a compatible Pyodide environment because current dependencies include torch",
-        sdkImports: "Suggested signatures and activities",
-        generatedArtifacts: "Matrix TSV",
       },
       {
         platform: "deconstructSigs",
@@ -145,7 +119,7 @@
         generatedArtifacts: "Spectra TSV, signatures TSV",
       },
       {
-        platform: "MuSiCal-compatible refit",
+        platform: "MuSiCal",
         sdkExports: "SBS96 spectra and signature TSVs",
         directSdkRun: "Runs the MuSiCal package through Pyodide when compatible package assets are supplied",
         sdkImports: "Sample-row or signature-row exposure tables",
@@ -533,49 +507,9 @@
       ].join("\n");
     }
 
-    function sigProfilerExtractorExample() {
-      const signatures = takeMatrixColumns(state.signatures, matrixNames(state.signatures).slice(0, 3));
-      const signatureText = mSigSDK.io.exportCOSMICSignatureMatrix(signatures, {
-        contexts: state.contexts,
-      });
-      return JSON.stringify(
-        [
-          {
-            path: "/output/SBS96/Suggested_Solution/Signatures/SBS96_Signatures.txt",
-            text: signatureText,
-          },
-          {
-            path: "/output/SBS96/Suggested_Solution/Activities/SBS96_Activities.txt",
-            text: exposureExampleText(),
-          },
-        ],
-        null,
-        2
-      );
-    }
-
-    function matrixGeneratorExample() {
-      return JSON.stringify(
-        [
-          {
-            path: "/output/SBS96/SBS96.all",
-            text: mSigSDK.io.exportSigProfilerMatrix(state.spectra, {
-              contexts: state.contexts,
-            }),
-          },
-        ],
-        null,
-        2
-      );
-    }
-
     function exampleTextForPlatform(platformId = state.selectedInboundPlatform) {
       if (!state.spectra || !state.signatures) return "";
       switch (platformId) {
-        case "sigprofilerextractor":
-          return sigProfilerExtractorExample();
-        case "sigprofilermatrixgenerator":
-          return matrixGeneratorExample();
         case "musical":
           return exposureExampleText({ signatureRows: true });
         default:
@@ -589,61 +523,7 @@
       );
     }
 
-    function parseJsonFiles(text) {
-      const files = JSON.parse(text);
-      if (!Array.isArray(files)) {
-        throw new Error("Paste a JSON array of { path, text } objects.");
-      }
-      return files;
-    }
-
     function summarizeParsedResult(platformId, parsed) {
-      if (platformId === "sigprofilerextractor") {
-        const signatureValidation = mSigSDK.validation.validateSignatureMatrix(
-          parsed.signatures || {},
-          { expectedContexts: state.contexts }
-        );
-        const exposureValidation = mSigSDK.validation.validateExposureMatrix(
-          parsed.exposures || {}
-        );
-        return {
-          type: "signatures_and_exposures",
-          rows: [
-            {
-              object: "Extracted signatures",
-              count: matrixNames(parsed.signatures).length,
-              dimensions: `${matrixNames(parsed.signatures).length} x ${signatureValidation.contexts.length}`,
-              validation: pass(signatureValidation.valid),
-            },
-            {
-              object: "Activities",
-              count: matrixNames(parsed.exposures).length,
-              dimensions: `${matrixNames(parsed.exposures).length} x ${exposureValidation.signatures.length}`,
-              validation: pass(exposureValidation.valid),
-            },
-          ],
-          validation: { signatureValidation, exposureValidation },
-        };
-      }
-      if (platformId === "sigprofilermatrixgenerator") {
-        const key = Object.keys(parsed.matrices || {})[0] || "matrix";
-        const matrix = parsed.matrices?.[key] || {};
-        const validation = mSigSDK.validation.validateSpectra(matrix, {
-          expectedContexts: state.contexts,
-        });
-        return {
-          type: "spectra",
-          rows: [
-            {
-              object: key,
-              count: matrixNames(matrix).length,
-              dimensions: `${matrixNames(matrix).length} x ${validation.contexts.length}`,
-              validation: pass(validation.valid),
-            },
-          ],
-          validation,
-        };
-      }
       const validation = mSigSDK.validation.validateExposureMatrix(parsed || {});
       return {
         type: "exposures",
@@ -672,13 +552,6 @@
           return mSigSDK.adapters.parseSigminerOutput(text, { normalize: true });
         case "musical":
           return mSigSDK.io.importMuSiCalOutput(text, { normalize: true });
-        case "sigprofilerextractor":
-          return mSigSDK.adapters.parseSigProfilerExtractorOutput(
-            parseJsonFiles(text),
-            { normalize: true }
-          );
-        case "sigprofilermatrixgenerator":
-          return mSigSDK.adapters.parseSigProfilerMatrixGeneratorOutput(parseJsonFiles(text));
         default:
           throw new Error(`Unsupported platform: ${platformId}`);
       }
@@ -922,7 +795,7 @@
       const title = document.createElement("h3");
       title.textContent = "mSigSDK platform support";
       const copy = document.createElement("p");
-      copy.textContent = "mSigSDK supports SBS96 handoff files, selected browser/Pyodide/WebR execution paths, common output parsers, and round-trip validation.";
+      copy.textContent = "mSigSDK supports four exact executable package adapters plus SigProfiler-style SBS96 matrix round trips as a file-format bridge.";
       header.append(title, copy);
       return header;
     }

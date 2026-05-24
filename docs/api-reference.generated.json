@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T20:26:47.392Z",
+  "generatedAt": "2026-05-24T02:17:35.564Z",
   "generator": {
     "name": "documentation.js",
     "version": "^14.0.3"
@@ -32,8 +32,8 @@
   ],
   "stats": {
     "namespaces": 21,
-    "functions": 150,
-    "asyncFunctions": 63,
+    "functions": 144,
+    "asyncFunctions": 61,
     "functionsWithExamples": 22
   },
   "namespaces": [
@@ -73,7 +73,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2902
+            "line": 3011
           }
         },
         {
@@ -107,7 +107,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2829
+            "line": 2938
           }
         },
         {
@@ -792,7 +792,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3885
+            "line": 3994
           }
         },
         {
@@ -826,7 +826,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3925
+            "line": 4034
           }
         },
         {
@@ -897,7 +897,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3024
+            "line": 3133
           }
         },
         {
@@ -959,7 +959,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3759
+            "line": 3868
           }
         },
         {
@@ -1014,7 +1014,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3266
+            "line": 3375
           }
         },
         {
@@ -1048,7 +1048,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3925
+            "line": 4034
           }
         },
         {
@@ -1089,7 +1089,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3633
+            "line": 3742
           }
         },
         {
@@ -1130,7 +1130,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2728
+            "line": 2837
           }
         },
         {
@@ -1166,7 +1166,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2644
+            "line": 2753
           }
         },
         {
@@ -1221,7 +1221,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 1982
+            "line": 2091
           }
         },
         {
@@ -1257,7 +1257,7 @@
           ],
           "source": {
             "file": "main.js",
-            "line": 2076
+            "line": 2185
           }
         },
         {
@@ -1298,7 +1298,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3193
+            "line": 3302
           }
         },
         {
@@ -1346,7 +1346,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3885
+            "line": 3994
           }
         },
         {
@@ -1408,7 +1408,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3404
+            "line": 3513
           }
         }
       ]
@@ -1917,7 +1917,7 @@
           ],
           "source": {
             "file": "main.js",
-            "line": 3532
+            "line": 3641
           }
         },
         {
@@ -1979,7 +1979,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3759
+            "line": 3868
           }
         },
         {
@@ -2020,7 +2020,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3633
+            "line": 3742
           }
         }
       ]
@@ -3435,7 +3435,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6685
+            "line": 7812
           }
         },
         {
@@ -3484,7 +3484,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6304
+            "line": 7408
           }
         },
         {
@@ -3518,7 +3518,48 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5467
+            "line": 5995
+          }
+        },
+        {
+          "name": "plotCohortSignatureSummary",
+          "kind": "function",
+          "async": false,
+          "sourceNamespace": "qcPlots",
+          "description": "Renders a cohort-level signature-exposure landscape using full-catalog exposures while reducing the display to the top cohort signatures plus an explicit Other remainder.",
+          "params": [
+            {
+              "name": "divID",
+              "type": "string | Element",
+              "default": null,
+              "description": "Container element or element id.",
+              "properties": []
+            },
+            {
+              "name": "cohort",
+              "type": "Object",
+              "default": null,
+              "description": "Cohort input with spectra, exposures, fitQuality, and metadata.",
+              "properties": []
+            },
+            {
+              "name": "options",
+              "type": "Object=",
+              "default": null,
+              "description": "Plot options.",
+              "properties": []
+            }
+          ],
+          "returns": [
+            {
+              "type": "Object | Element",
+              "description": "Render metadata or an error element."
+            }
+          ],
+          "examples": [],
+          "source": {
+            "file": "main.js",
+            "line": 6187
           }
         },
         {
@@ -3595,7 +3636,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2405
+            "line": 2514
           }
         },
         {
@@ -3668,6 +3709,13 @@
                   "properties": []
                 },
                 {
+                  "name": "options.contextLabelMode",
+                  "type": "string",
+                  "default": "\"none\"",
+                  "description": "Use \"compact\" for manuscript-scale all-context labels without horizontal scrolling.",
+                  "properties": []
+                },
+                {
                   "name": "options.highlightContexts",
                   "type": "string | Array<string>",
                   "default": "[]",
@@ -3686,7 +3734,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5893
+            "line": 6938
           }
         },
         {
@@ -3720,7 +3768,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 4397
+            "line": 4594
           }
         },
         {
@@ -3761,7 +3809,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6187
+            "line": 7291
           }
         },
         {
@@ -3795,7 +3843,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3947
+            "line": 4056
           }
         },
         {
@@ -3829,7 +3877,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5615
+            "line": 6659
           }
         },
         {
@@ -3878,7 +3926,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 4141
+            "line": 4338
           }
         },
         {
@@ -3912,7 +3960,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7048
+            "line": 8194
           }
         },
         {
@@ -3946,7 +3994,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6478
+            "line": 7582
           }
         }
       ]
@@ -4327,7 +4375,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7129
+            "line": 8305
           }
         },
         {
@@ -4361,7 +4409,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7312
+            "line": 8488
           }
         },
         {
@@ -4397,6 +4445,13 @@
                   "default": "Infinity",
                   "description": "Maximum signatures to render.",
                   "properties": []
+                },
+                {
+                  "name": "options.columns",
+                  "type": "number | null",
+                  "default": "null",
+                  "description": "Optional number of columns for the rendered component profiles.",
+                  "properties": []
                 }
               ]
             }
@@ -4410,7 +4465,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7064
+            "line": 8211
           }
         }
       ]
@@ -5707,7 +5762,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7624
+            "line": 8806
           }
         },
         {
@@ -5798,7 +5853,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7489
+            "line": 8671
           }
         },
         {
@@ -6043,7 +6098,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7571
+            "line": 8753
           }
         }
       ]
@@ -6084,7 +6139,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7956
+            "line": 9138
           }
         }
       ]
@@ -6154,7 +6209,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 498
+            "line": 573
           }
         },
         {
@@ -6188,7 +6243,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 667
+            "line": 742
           }
         }
       ]
@@ -6235,7 +6290,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 601
+            "line": 609
           }
         },
         {
@@ -6291,7 +6346,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 328
+            "line": 336
           }
         },
         {
@@ -6318,7 +6373,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 766
+            "line": 774
           }
         },
         {
@@ -6337,7 +6392,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 296
+            "line": 304
           }
         },
         {
@@ -6356,7 +6411,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 523
+            "line": 531
           }
         },
         {
@@ -6390,7 +6445,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 448
+            "line": 456
           }
         },
         {
@@ -6432,7 +6487,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 472
+            "line": 480
           }
         },
         {
@@ -6466,7 +6521,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 930
+            "line": 938
           }
         }
       ]
@@ -6474,7 +6529,7 @@
     {
       "name": "adapters",
       "label": "External adapters",
-      "summary": "SigProfiler, deconstructSigs, sigminer, MuSiCal, COSMIC, and generic TSV handoffs.",
+      "summary": "Exact package adapters for SigProfilerAssignment, MuSiCal, deconstructSigs, and sigminer.",
       "functions": [
         {
           "name": "checkDeconstructSigsWebRAvailability",
@@ -6500,7 +6555,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1717
+            "line": 1495
           }
         },
         {
@@ -6527,7 +6582,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1731
+            "line": 1509
           }
         },
         {
@@ -6576,7 +6631,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 2240
+            "line": 1955
           }
         },
         {
@@ -6625,7 +6680,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1347
+            "line": 1174
           }
         },
         {
@@ -6674,7 +6729,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 2196
+            "line": 1911
           }
         },
         {
@@ -6723,7 +6778,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1502
+            "line": 1330
           }
         },
         {
@@ -6780,231 +6835,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 360
-          }
-        },
-        {
-          "name": "prepareSigProfilerClustersInput",
-          "kind": "function",
-          "async": false,
-          "sourceNamespace": "adapters",
-          "description": "Prepares input files and a Python snippet for SigProfilerClusters.",
-          "params": [
-            {
-              "name": "input",
-              "type": "Object",
-              "default": null,
-              "description": "Input variant files.",
-              "properties": [
-                {
-                  "name": "input.files",
-                  "type": "Array<Object>",
-                  "default": "[]",
-                  "description": "Virtual VCF files.",
-                  "properties": []
-                }
-              ]
-            },
-            {
-              "name": "options",
-              "type": "Object=",
-              "default": null,
-              "description": "Clustering options.",
-              "properties": []
-            }
-          ],
-          "returns": [
-            {
-              "type": "Object",
-              "description": "Virtual files, manifest metadata, and a Python command snippet."
-            }
-          ],
-          "examples": [],
-          "source": {
-            "file": "mSigSDKScripts/adapters.js",
-            "line": 1106
-          }
-        },
-        {
-          "name": "prepareSigProfilerExtractorInput",
-          "kind": "function",
-          "async": false,
-          "sourceNamespace": "adapters",
-          "description": "Prepares matrix-mode input files for SigProfilerExtractor handoff.",
-          "params": [
-            {
-              "name": "input",
-              "type": "Object",
-              "default": null,
-              "description": "Input spectra.",
-              "properties": [
-                {
-                  "name": "input.spectra",
-                  "type": "Object<string, Object<string, number>>",
-                  "default": null,
-                  "description": "Sample spectra.",
-                  "properties": []
-                }
-              ]
-            },
-            {
-              "name": "options",
-              "type": "Object=",
-              "default": null,
-              "description": "Export and handoff options.",
-              "properties": []
-            }
-          ],
-          "returns": [
-            {
-              "type": "Object",
-              "description": "Virtual files, manifest metadata, and a Python command snippet."
-            }
-          ],
-          "examples": [],
-          "source": {
-            "file": "mSigSDKScripts/adapters.js",
-            "line": 481
-          }
-        },
-        {
-          "name": "prepareSigProfilerMatrixGeneratorInput",
-          "kind": "function",
-          "async": false,
-          "sourceNamespace": "adapters",
-          "description": "Prepares variant files and a Python snippet for SigProfilerMatrixGenerator.",
-          "params": [
-            {
-              "name": "input",
-              "type": "Object",
-              "default": null,
-              "description": "Input variant files.",
-              "properties": [
-                {
-                  "name": "input.files",
-                  "type": "Array<Object>",
-                  "default": "[]",
-                  "description": "Virtual VCF/MAF/CNV/SV files.",
-                  "properties": []
-                }
-              ]
-            },
-            {
-              "name": "options",
-              "type": "Object=",
-              "default": null,
-              "description": "MatrixGenerator options.",
-              "properties": []
-            }
-          ],
-          "returns": [
-            {
-              "type": "Object",
-              "description": "Virtual files, manifest metadata, and a Python command snippet."
-            }
-          ],
-          "examples": [],
-          "source": {
-            "file": "mSigSDKScripts/adapters.js",
-            "line": 869
-          }
-        },
-        {
-          "name": "prepareSigProfilerPlottingInput",
-          "kind": "function",
-          "async": false,
-          "sourceNamespace": "adapters",
-          "description": "Prepares a matrix and Python snippet for sigProfilerPlotting.",
-          "params": [
-            {
-              "name": "input",
-              "type": "Object",
-              "default": null,
-              "description": "Matrix input.",
-              "properties": [
-                {
-                  "name": "input.spectra",
-                  "type": "Object<string, Object<string, number>>",
-                  "default": "null",
-                  "description": "Optional spectra to serialize as a SigProfiler matrix.",
-                  "properties": []
-                },
-                {
-                  "name": "input.matrixText",
-                  "type": "string",
-                  "default": "null",
-                  "description": "Optional pre-rendered matrix text.",
-                  "properties": []
-                },
-                {
-                  "name": "input.files",
-                  "type": "Array<Object>",
-                  "default": "[]",
-                  "description": "Optional virtual files.",
-                  "properties": []
-                }
-              ]
-            },
-            {
-              "name": "options",
-              "type": "Object=",
-              "default": null,
-              "description": "Plotting options.",
-              "properties": []
-            }
-          ],
-          "returns": [
-            {
-              "type": "Object",
-              "description": "Virtual files, manifest metadata, and a Python command snippet."
-            }
-          ],
-          "examples": [],
-          "source": {
-            "file": "mSigSDKScripts/adapters.js",
-            "line": 1215
-          }
-        },
-        {
-          "name": "prepareSigProfilerSimulatorInput",
-          "kind": "function",
-          "async": false,
-          "sourceNamespace": "adapters",
-          "description": "Prepares input files and a Python snippet for SigProfilerSimulator.",
-          "params": [
-            {
-              "name": "input",
-              "type": "Object",
-              "default": null,
-              "description": "Input variant files.",
-              "properties": [
-                {
-                  "name": "input.files",
-                  "type": "Array<Object>",
-                  "default": "[]",
-                  "description": "Virtual input files placed under projectPath/input.",
-                  "properties": []
-                }
-              ]
-            },
-            {
-              "name": "options",
-              "type": "Object=",
-              "default": null,
-              "description": "Simulator options.",
-              "properties": []
-            }
-          ],
-          "returns": [
-            {
-              "type": "Object",
-              "description": "Virtual files, manifest metadata, and a Python command snippet."
-            }
-          ],
-          "examples": [],
-          "source": {
-            "file": "mSigSDKScripts/adapters.js",
-            "line": 1006
+            "line": 368
           }
         },
         {
@@ -7053,7 +6884,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1757
+            "line": 1535
           }
         },
         {
@@ -7061,7 +6892,7 @@
           "kind": "function",
           "async": true,
           "sourceNamespace": "adapters",
-          "description": "Runs MuSiCal refitting through Pyodide, or a browser-native sparse NNLS comparator.",
+          "description": "Runs MuSiCal refitting through Pyodide using the actual MuSiCal package.",
           "params": [
             {
               "name": "input",
@@ -7087,7 +6918,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 2487
+            "line": 2062
           }
         },
         {
@@ -7136,7 +6967,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1889
+            "line": 1631
           }
         },
         {
@@ -7170,75 +7001,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1990
-          }
-        },
-        {
-          "name": "runSigProfilerExtractor",
-          "kind": "function",
-          "async": true,
-          "sourceNamespace": "adapters",
-          "description": "Runs a browser-compatible SigProfilerExtractor handoff workflow.The default runtime uses browser-native NMF against the matrix prepared for SigProfilerExtractor. Exact package execution can still be requested with runtime=\"pyodide\", but current SigProfilerExtractor wheels require torch, which is not installable in Pyodide.",
-          "params": [
-            {
-              "name": "input",
-              "type": "Object",
-              "default": null,
-              "description": "Input spectra.",
-              "properties": []
-            },
-            {
-              "name": "options",
-              "type": "Object=",
-              "default": null,
-              "description": "Runtime and SigProfilerExtractor options.",
-              "properties": []
-            }
-          ],
-          "returns": [
-            {
-              "type": "Promise<Object>",
-              "description": "Adapter result with collected files and parsed output tables."
-            }
-          ],
-          "examples": [],
-          "source": {
-            "file": "mSigSDKScripts/adapters.js",
-            "line": 2080
-          }
-        },
-        {
-          "name": "runSparseNnlsRefit",
-          "kind": "function",
-          "async": true,
-          "sourceNamespace": "adapters",
-          "description": "Runs a browser-native sparse NNLS refit comparator using MuSiCal-compatible inputs.This helper does not execute the MuSiCal Python package. It provides a small sparse refit comparator for browser review when a Pyodide-compatible MuSiCal wheel is not supplied.",
-          "params": [
-            {
-              "name": "input",
-              "type": "Object",
-              "default": null,
-              "description": "Spectra and signatures.",
-              "properties": []
-            },
-            {
-              "name": "options",
-              "type": "Object=",
-              "default": null,
-              "description": "Sparse refit options.",
-              "properties": []
-            }
-          ],
-          "returns": [
-            {
-              "type": "Promise<Object>",
-              "description": "Sparse refit exposures and reconstruction metrics."
-            }
-          ],
-          "examples": [],
-          "source": {
-            "file": "mSigSDKScripts/adapters.js",
-            "line": 2370
+            "line": 1733
           }
         }
       ]

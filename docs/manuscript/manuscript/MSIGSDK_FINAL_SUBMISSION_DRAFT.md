@@ -16,7 +16,7 @@ Mutational-signature workflows often combine web portals, local R or Python pack
 
 ### Results
 
-mSigSDK v0.3.0 is a JavaScript software development kit distributed as ECMAScript modules for browser-native mutational-signature review. It retrieves selected public resources from mSigPortal, The Cancer Genome Atlas (TCGA), and the Genomic Data Commons (GDC), imports local spectra or mutation annotation format (MAF)-like rows, validates matrix shape and context completeness, performs known-signature non-negative least-squares (NNLS) refitting, summarizes reconstruction and residual quality, estimates bootstrap uncertainty, evaluates threshold sensitivity, flags signature ambiguity and catalog sufficiency concerns, supports restricted-assay evidence tiers, renders profile-specific plots, and builds provenance-aware reports. MAF conversion preserves legacy SBS96 behavior and can also return SBS1536, DBS78, and ID83 spectra when required row-level evidence is present. SBS profiles can use live 5-base reference windows from the UCSC Genome Browser sequence API; SBS96 uses the centered trinucleotide and SBS1536 uses the full centered pentanucleotide. DBS78 uses explicit dinucleotide substitutions or adjacent SNV pairs, and ID83 uses insertion/deletion alleles with repeat or microhomology annotations when available. In synthetic validation, mean exposure-vector cosine increased from 0.912 at 50 mutations to 0.996 at 1,000 mutations. In a 38-sample PCAWG Lung-AdenoCA concordance analysis, exposure vectors had mean cosine 0.997 against deconstructSigs, 0.907 against SigProfilerAssignment, and 0.973 against MuSiCal SparseNNLS under matched input spectra and a shared nine-signature catalog. In Chrome, a 120-sample cohort workflow ran in a median of 253.7 ms and a 300-sample, 40-signature refit ran in a median of 298.9 ms.
+mSigSDK v0.3.0 is a JavaScript software development kit distributed as ECMAScript modules for browser-native mutational-signature review. It retrieves selected public resources from mSigPortal, The Cancer Genome Atlas (TCGA), and the Genomic Data Commons (GDC), imports local spectra or mutation annotation format (MAF)-like rows, validates matrix shape and context completeness, performs known-signature non-negative least-squares (NNLS) refitting, summarizes reconstruction and residual quality, estimates bootstrap uncertainty, evaluates threshold sensitivity, flags signature ambiguity and catalog sufficiency concerns, supports restricted-assay evidence tiers, renders profile-specific plots, and builds provenance-aware reports. MAF conversion preserves legacy SBS96 behavior and can also return SBS1536, DBS78, and ID83 spectra when required row-level evidence is present. External package adapters are pinned for deconstructSigs through WebR, sigminer through WebR, SigProfilerAssignment through Pyodide, and MuSiCal through Pyodide; when required package artifacts are unavailable, adapters report explicit availability errors instead of running JavaScript substitute algorithms. In a fresh Chrome profile, the zero-install demonstration loaded the SDK, fetched public PCAWG Lung-AdenoCA SBS96 data and the full COSMIC v3 SBS96 catalog, fitted one sample against 67 signatures, and generated a report in 1.894 seconds. Internal NNLS, NMF, and QC checks passed against SciPy, R nnls, scikit-learn, and independent Python implementations. Browser adapter outputs matched local comparator package execution for deconstructSigs, sigminer, SigProfilerAssignment, and MuSiCal across 38 public spectra and 67 COSMIC SBS signatures.
 
 ### Conclusions
 
@@ -40,7 +40,7 @@ The software boundary is defined by three runtime tiers. The native JavaScript t
 
 mSigSDK is distributed as a modular JavaScript SDK using ECMAScript modules (Figure 1). Public resources are retrieved from mSigPortal, The Cancer Genome Atlas (TCGA), the Genomic Data Commons (GDC), or the UCSC Genome Browser sequence API when those features are used. Once spectra or mutation annotation format (MAF)-derived matrices are imported into the client runtime, validation, refitting, QC review, uncertainty estimation, panel/WES review, exploratory NMF, plotting, and report generation can run locally. User-supplied spectra can therefore remain in the client runtime after import, although public resource queries and external web assets remain remote dependencies.
 
-![Figure 1. mSigSDK client-side mutational signature review architecture](../figures/figure1-graphical-abstract.svg)
+![Figure 1. mSigSDK client-side mutational signature review architecture](../figures/figure1-architecture-data-residency.svg)
 
 **Figure 1. mSigSDK client-side mutational signature review architecture.** mSigSDK uses selected public mSigPortal resources and plotting conventions through reusable JavaScript modules. User-supplied spectra or MAF-derived matrices can be imported into the client runtime for validation, refitting, quality-control review, panel/WES evidence review, plotting, report generation, and external-tool handoff.
 
@@ -60,11 +60,24 @@ Table 1 summarizes the main workflows. The primary entry points are organized ar
 | Exploratory NMF | Screen moderate cohorts in the browser before production extraction. | Moderate sample-by-context spectra and a rank range. | Extracted profiles, exposures, rank diagnostics, and reference matches. |
 | Reporting and handoff | Share reproducible results and interoperate with external tools. | SDK results or compatible matrices. | HTML/JSON reports, provenance, SigProfiler/COSMIC/MuSiCal-compatible files, and parsed external outputs. |
 
+### Package-exact adapter validation
+
+The external-tool adapter layer is treated as an orchestration boundary, not as a reimplementation layer. deconstructSigs and sigminer adapters require pinned WebR package artifacts; SigProfilerAssignment and MuSiCal adapters require pinned Pyodide package artifacts. If an artifact or dependency is unavailable, the run method records an explicit readiness error and no JavaScript fallback is exposed. The replacement E2 experiment uses the same 38 PCAWG Lung-AdenoCA SBS96 spectra and the full 67-signature COSMIC v3 SBS96 catalog for every tool. Browser execution is compared with conventional local package execution: local Rscript for deconstructSigs and sigminer, and Docker-isolated Python for SigProfilerAssignment and MuSiCal.
+
+**Table 2. Adapter fidelity validation status.**
+
+| Tool | In-browser runtime | Local comparator | Mean exposure-vector cosine | Max absolute exposure difference | Top-signature concordance | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| deconstructSigs | WebR | local Rscript, deconstructSigs 1.8.0 | 1.000 | 0 | 38/38 | passed |
+| sigminer | WebR | local Rscript, sigminer 2.3.1 and nnls 1.6 | 1.000 | 0 | 38/38 | passed |
+| SigProfilerAssignment | Pyodide | Docker Python, SigProfilerAssignment 1.1.3 | 1.000 | 0 | 38/38 | passed |
+| MuSiCal | Pyodide | Docker Python, MuSiCal 1.0.0 wheel | 1.000 | 4.16e-15 | 38/38 | passed |
+
 ### Computation and privacy boundary
 
-Table 2 distinguishes browser-local review from public-resource retrieval. For supported client-side workflows, imported user spectra can remain local, while remote public data queries and externally loaded web assets remain online dependencies.
+Table 4 distinguishes browser-local review from public-resource retrieval. For supported client-side workflows, imported user spectra can remain local, while remote public data queries and externally loaded web assets remain online dependencies.
 
-**Table 2. Computation locus, external dependencies, and privacy boundary.**
+**Table 4. Computation locus, external dependencies, and privacy boundary.**
 
 | Workflow | Computed in browser/client runtime | External dependency | Privacy interpretation |
 | --- | --- | --- | --- |
@@ -84,9 +97,9 @@ The MAF converter is built around the profile registry. `convertMatrix` remains 
 
 ### Quality-control and reporting layer
 
-The SDK reports separate evidence fields for mutation burden, context coverage, reconstruction, residual structure, bootstrap stability, threshold sensitivity, signature ambiguity, catalog sufficiency, panel/WES restricted-assay evidence, and cohort subgroup structure. Table 3 lists the default settings used in the manuscript examples. These defaults are configurable.
+The SDK reports separate evidence fields for mutation burden, context coverage, reconstruction, residual structure, bootstrap stability, threshold sensitivity, signature ambiguity, catalog sufficiency, panel/WES restricted-assay evidence, and cohort subgroup structure. Table 5 lists the default settings used in the manuscript examples. These defaults are configurable.
 
-**Table 3. Algorithmic defaults used in manuscript workflows.**
+**Table 5. Algorithmic defaults used in manuscript workflows.**
 
 | Component | Operational setting | Output used in review | Scope note |
 | --- | --- | --- | --- |
@@ -105,106 +118,44 @@ Reports are generated as structured JSON or standalone HTML. Report objects incl
 
 ## Results
 
-### Browser-native review workflow
+### E1 zero-install demonstration
 
-PCAWG Lung-AdenoCA SBS96 spectra were retrieved through mSigPortal helpers and reviewed in the browser before refitting (Figure 2). The burden summary, SBS96 profile comparison, clustered cosine similarity heatmap, similarity tree, and UMAP projection were produced from the same imported matrix. The workflow follows the intended review sequence: import spectra, validate shape and burden, inspect cohort structure, then proceed to fitting, uncertainty review, report generation, or external handoff.
+The zero-install walk-through used a fresh Chrome profile, loaded a blank browser harness, imported `main.js`, fetched a public PCAWG Lung-AdenoCA SBS96 spectrum and the COSMIC v3 SBS96 catalog from mSigPortal, fitted the sample against all 67 catalog signatures, and generated an SDK HTML report. The elapsed time from page load start to the report-ready event was 1.894 seconds. This timing excludes human time to open a browser or type a URL; it measures the reproducible browser workflow after the harness page begins loading. The generated result JSON records the public source URLs, step timing, report size, and screenshots before and after report generation. The corresponding D3 timing figure is `../figures/figure-e1-zero-install.html`, and the copy/paste table is `../google-doc-tables/table-e1-zero-install.html`.
 
-![Figure 2. Browser-based cohort exploration](../actual-figure-pages/screenshots/figure1-cohort-exploration.png)
+### E2 adapter fidelity
 
-**Figure 2. Browser-based cohort exploration of PCAWG Lung-AdenoCA SBS96 spectra.** Mutation burden, SBS96 profile comparison, clustered cosine similarity heatmap, similarity tree, and UMAP projection are produced from the same imported matrix.
+The adapter-fidelity experiment used the same 38 PCAWG Lung-AdenoCA SBS96 spectra and full 67-signature COSMIC v3 SBS96 catalog for every package path. Browser execution and local comparator execution matched for deconstructSigs, sigminer, SigProfilerAssignment, and MuSiCal with mean exposure-vector cosine 1.000, top-signature concordance 38 of 38, and maximum absolute exposure difference 0 for all tools except MuSiCal, where the maximum difference was 4.16e-15, consistent with double-precision roundoff. Detailed per-tool results are retained in the E2 copy/paste table.
 
-### Synthetic exposure recovery
+### E3 internal reference checks
 
-A controlled synthetic experiment generated 64 SBS96 spectra at each of six mutation-burden levels from 50 to 2,500 mutations. Spectra were multinomial draws from linear mixtures of six COSMIC reference signatures, then refitted with the SDK NNLS workflow (Table 4). Mean exposure-vector cosine rose from 0.912 at 50 mutations to 0.996 at 1,000 mutations, and mean reconstruction cosine rose from 0.884 to 0.991 across the same range. These results support browser-side review of known-signature refitting while showing why low-burden spectra require uncertainty estimates and warning fields.
+Internal SDK computations passed the requested independent numerical solver checks. SDK NNLS agreed with `scipy.optimize.nnls` with maximum absolute coefficient difference 1.65e-9 and with R `nnls::nnls` with maximum absolute coefficient difference 1.65e-9, both below the 1e-6 reproducibility bound. SDK multiplicative-update NMF had reconstruction error 0.918 times the scikit-learn reference error and median matched-component cosine 0.967, passing the prespecified reconstruction-error and component-cosine criteria.
 
-**Table 4. Controlled synthetic exposure-recovery validation.**
+### E4 browser runtime benchmarks
 
-| Mutations per sample | Samples (n) | Exposure cosine, mean (95% CI) | Exposure MAE, mean (95% CI) | Active-signature recall, mean (95% CI) | Inactive-signature calls, mean (95% CI) | Reconstruction cosine, mean (95% CI) |
-| --- | --- | --- | --- | --- | --- | --- |
-| 50 | 64 | 0.912 (0.882-0.941) | 0.065 (0.054-0.075) | 0.938 (0.903-0.972) | 0.165 (0.120-0.211) | 0.884 (0.862-0.906) |
-| 100 | 64 | 0.952 (0.932-0.973) | 0.043 (0.034-0.051) | 0.979 (0.959-0.999) | 0.129 (0.085-0.173) | 0.930 (0.915-0.944) |
-| 250 | 64 | 0.982 (0.973-0.990) | 0.027 (0.021-0.032) | 0.995 (0.985-1.000) | 0.082 (0.045-0.119) | 0.966 (0.959-0.973) |
-| 500 | 64 | 0.993 (0.990-0.996) | 0.016 (0.013-0.020) | 1.000 (1.000-1.000) | 0.026 (0.006-0.046) | 0.982 (0.978-0.986) |
-| 1,000 | 64 | 0.996 (0.994-0.997) | 0.013 (0.011-0.016) | 1.000 (1.000-1.000) | 0.027 (0.006-0.049) | 0.991 (0.988-0.993) |
-| 2,500 | 64 | 0.998 (0.998-0.999) | 0.008 (0.006-0.010) | 1.000 (1.000-1.000) | 0.017 (0.001-0.033) | 0.996 (0.995-0.997) |
+Browser runtime benchmarks were rerun from scratch with five isolated repeats per available desktop browser. Chrome median times were 0.004 s for single-sample fit/report, 0.023 s for the 120-sample cohort fit, 1.555 s for the 300-sample by 40-signature refit, 0.256 s for 500 bootstrap iterations, and 3.178 s for NMF rank selection plus rank-4 extraction on 80 samples. Edge median times were 0.003 s, 0.023 s, 1.562 s, 0.253 s, and 3.152 s. Firefox median times were 0.002 s, 0.028 s, 2.845 s, 0.223 s, and 2.258 s. The isolated rerun resolved the earlier long-lived-page Firefox NMF artifact.
 
-### QC, uncertainty, and restricted-assay evidence
+### E6 compatibility matrix
 
-The validation layer was evaluated through fit-quality review, confusable-signature stress testing, and restricted-assay interpretation. In confusable mixtures, reporting modes tracked ground-truth recovery: `standard_qc_passed` had a mean exposure cosine of 0.999, `report_with_caveats` had a mean exposure cosine of 0.989, and `restricted_interpretation` had a mean exposure cosine of 0.947. Bootstrap coverage was below nominal at the lowest mutation burdens and closer to nominal above 250 mutations, consistent with the expected sampling limits of sparse SBS96 profiles.
+Automated desktop compatibility checks passed in locally available Chrome, Edge, and Firefox on Windows desktop: SDK import, public mSigPortal fetch, single-sample fit/report generation, and local D3 rendering all passed. Optional Pyodide and WebR runtime checks also passed for the automated desktop rows.
 
-In PCAWG Lung-AdenoCA examples, fit-quality evidence summarized burden, reconstruction, residual structure, bootstrap intervals, threshold sensitivity, signature ambiguity, and catalog sufficiency (Figure 3).
-
-![Figure 3. Fit-quality evidence and uncertainty](../actual-figure-pages/screenshots/figure3-qc-evidence-uncertainty.png)
-
-**Figure 3. Burden-aware fit-quality evidence, uncertainty, and threshold sensitivity.** The workflow reports the evidence fields underlying reporting labels, including bootstrap intervals, threshold sensitivity, residual summaries, and low-burden warnings.
-
-### Numerical correctness and cross-tool concordance
-
-The NNLS solver was compared with an independent R NNLS implementation and reproduced the standard solution to numerical precision. Cross-tool concordance was then evaluated on the same 38 PCAWG Lung-AdenoCA SBS96 spectra and a shared nine-signature COSMIC SBS96 catalog (Table 5). The deconstructSigs comparator had a mean exposure cosine of 0.997 relative to mSigSDK, with 36 of 38 samples sharing the top signature. SigProfilerAssignment and MuSiCal comparisons were also run on the same matrix and catalog. The remaining disagreements were concentrated in spectra with flat or otherwise confusable fitted signatures, supporting the use of cautionary QC fields rather than a simple pass/fail interpretation.
-
-**Table 5. Independent NNLS check and cross-tool concordance on shared PCAWG Lung-AdenoCA spectra.**
-
-| Validation layer | Main result | Supported conclusion |
-| --- | --- | --- |
-| Independent NNLS solver check | Mean exposure-vector cosine 1.000; maximum absolute exposure difference 4.79e-10. | mSigSDK reproduces the standard NNLS solution to numerical precision. |
-| deconstructSigs concordance | Mean exposure cosine 0.997; median 0.998; minimum 0.988; 36 of 38 samples shared the top signature. | The R decomposition comparator was closely aligned with mSigSDK under matched spectra, catalog, cutoff, and renormalization. |
-| SigProfilerAssignment concordance | Mean exposure cosine 0.907; median 0.937; minimum 0.556; 29 of 38 samples shared the top signature. | The Python assignment framework agreed for most spectra, with remaining disagreements concentrated in confusable flat-signature fits. |
-| MuSiCal SparseNNLS concordance | Mean exposure cosine 0.973; median 0.997; minimum 0.855; 37 of 38 samples shared the top signature. | The sparse likelihood-based comparator served as an additional refitting comparator on the same spectra and catalog. |
-| Reconstruction concordance | Mean reconstruction cosine: mSigSDK 0.982; deconstructSigs 0.982; SigProfilerAssignment 0.974; MuSiCal 0.981. | All reconstruction metrics are computed against the same observed spectra and selected nine-signature catalog. |
-| Ambiguity-flag prediction | 0 of 2 deconstructSigs-discordant, high-ambiguity samples also showed MuSiCal-vs-mSigSDK top-signature disagreement; MuSiCal-vs-mSigSDK top-signature disagreement occurred in 1 of 38 samples overall. | Ambiguity signals are interpreted as cautionary evidence rather than proof of a specific comparator disagreement. |
-
-![Figure 4. Known-signature refitting](../actual-figure-pages/screenshots/figure2-known-signature-fitting.png)
-
-**Figure 4. Local known-signature refitting against nine COSMIC SBS96 reference signatures.** The exposure heatmap, selected sample profile, reconstruction summary, and residual view provide a browser-side review surface for fitted spectra.
-
-### Panel and cohort review
-
-For panel/WES review, callable-context downsampling showed that panel-vs-WGS exposure agreement increased with context breadth. Mean panel-vs-WGS exposure cosine rose from 0.813 with a 24-context mask to 0.899 with 48 contexts and 0.959 with 72 contexts. The `not_assessable` tier separated insufficient mutation burden or callable territory from an absent fitted signal (Figure 5). The same workflow also supports metadata-stratified exposure comparisons and cohort subgroup review.
-
-![Figure 5. Cohort and panel workflows](../actual-figure-pages/screenshots/figure4-cohort-panel-workflows.png)
-
-**Figure 5. Cohort and panel workflows.** Metadata-stratified exposure comparison, panel evidence matrix, fit-quality summary, and cohort subgroup review generated by mSigSDK.
-
-### Runtime of interactive review tasks
-
-Browser and Node.js benchmarks used deterministic synthetic SBS96 matrices sized to common review scenarios. Timings excluded plot rendering. Chrome was measured using a standalone browser harness; Firefox was requested but no local Firefox executable was available. The measured Chrome timings support interactive use for validation, refitting, panel/WES review, moderate cohort review, and NMF screening in the browser. Larger NMF analyses and repeated uncertainty workflows are more suitable for background Web Workers or local execution.
-
-**Table 6. Scenario-calibrated local compute summary.**
-
-| Scenario | Workflow step | Samples and settings | Chrome median (range) | Node.js median (range) |
-| --- | --- | --- | --- | --- |
-| Single-sample WGS review | Known-signature refitting | 1 sample; 5,000 mutations/sample; 24 signatures | 1.2 ms (1.1-5.5) | 6.7 ms (0.5-7.6) |
-| Single-sample WGS review | Bootstrap uncertainty | 1 sample; 500 iterations; 24 signatures | 391.8 ms (373.5-470.0) | 337.2 ms (328.4-415.3) |
-| Small panel/WES batch | Full panel/WES review workflow | 24 samples; 80 mutations/sample; 12 signatures | 21.6 ms (21.4-22.2) | 25.6 ms (24.0-30.5) |
-| Medium research cohort | Cohort fit workflow | 120 samples; 1,200 mutations/sample; 24 signatures | 253.7 ms (252.0-279.2) | 253.2 ms (247.0-270.8) |
-| Portal-scale cohort review | Known-signature refitting | 300 samples; 1,500 mutations/sample; 40 signatures | 298.9 ms (294.2-358.1) | 232.3 ms (223.9-256.1) |
-| Exploratory discovery cohort | NMF rank selection | 30 samples; ranks 2, 3, and 4; 75 iterations | 576.0 ms (556.7-611.0) | 491.2 ms (477.4-595.1) |
-| Medium exploratory discovery cohort | NMF rank selection | 80 samples; ranks 2, 3, and 4; 75 iterations | 2.88 s (2.52-2.90) | 2.15 s (2.05-2.17) |
-
-### Exploratory extraction in the browser
-
-The exploratory NMF module decomposed a PCAWG Lung-AdenoCA subset over candidate ranks and reported extracted profiles, exposures, rank diagnostics, and reference-signature matches (Figure 6). This workflow is intended for screening and instructional use. Production de novo discovery still requires dedicated extraction workflows, disease-specific stability checks, and larger validation.
-
-![Figure 6. Exploratory browser-side NMF extraction](../actual-figure-pages/screenshots/figure5-nmf-extraction.png)
-
-**Figure 6. Exploratory browser-side NMF extraction.** mSigSDK NMF extraction, rank diagnostics, and reference matching for a moderate-sized PCAWG Lung-AdenoCA subset.
+The four main D3-backed figure pages, experiment figure pages, and manuscript-ready HTML tables are generated by `npm run assets:manuscript`; `all-google-doc-tables.html` contains exactly the E1, E2, E3, E4, and E6 tables.
 
 ## Discussion
 
-mSigSDK v0.3.0 fills a software gap between public mutational-signature resources and full local analysis toolchains. It makes common review tasks portable: spectra import, context validation, MAF-derived profile conversion, known-signature refitting, uncertainty review, panel/WES evidence, exploratory NMF, figure generation, report assembly, and provenance capture. The validation and benchmark results support three practical claims. First, the SDK can run realistic review workflows in a browser or local JavaScript runtime. Second, its NNLS solver and matched-input refitting behavior agree with established numerical and package-based comparators. Third, its reporting fields make burden, uncertainty, ambiguity, context provenance, and assay limitations visible before biological interpretation.
+mSigSDK v0.3.0 fills a software gap between public mutational-signature resources and full local analysis toolchains. It makes common review tasks portable: spectra import, context validation, MAF-derived profile conversion, known-signature refitting, uncertainty review, exploratory NMF, figure generation, report assembly, and provenance capture. The replacement E1-E4/E6 experiment suite supports three practical claims. First, the SDK can be loaded from a blank browser tab and produce a public-data report without local installation. Second, its internal NNLS, NMF, and QC computations agree with independent reference implementations within the stated numerical tolerances. Third, exact package-backed browser adapters are verified against local comparator execution for deconstructSigs, sigminer, SigProfilerAssignment, and MuSiCal.
 
-The comparison with related tools is functional, not hierarchical (Table 7). SigProfilerExtractor remains the appropriate production tool for de novo extraction and stability analysis. SigProfilerAssignment remains a full assignment framework with local Python as the production path. deconstructSigs and MuSiCal remain established R/Python ecosystem tools for decomposition and sparse refitting. mSigSDK complements these packages by preparing compatible matrices, parsing outputs, comparing results using a shared context order, and generating review artifacts that can be embedded in portals, notebooks, teaching pages, or manuscript workflows.
+The comparison with related tools is functional, not hierarchical (Table 9). SigProfilerAssignment remains a full assignment framework with local Python as the production path. deconstructSigs, sigminer, and MuSiCal remain established R/Python ecosystem tools for decomposition and sparse refitting. mSigSDK complements these packages by preparing compatible matrices, invoking exact WebR/Pyodide package artifacts when available, parsing outputs, comparing results using a shared context order, and generating review artifacts that can be embedded in portals, notebooks, teaching pages, or manuscript workflows. SigProfiler-style SBS96 matrices remain an interoperability file format rather than an additional executable package claim.
 
-**Table 7. Functional positioning relative to related mutational-signature software.**
+**Table 9. Functional positioning relative to related mutational-signature software.**
 
 | Tool or platform | Primary role | Browser execution | Interoperability with mSigSDK | QC/reporting layer |
 | --- | --- | --- | --- | --- |
 | mSigSDK | Browser-native review SDK for spectra import, validation, profile conversion, NNLS refitting, QC, panel review, exploratory NMF, interoperability, and reporting. | Yes, JavaScript core; optional Pyodide for compatible Python packages. | Native nested matrices plus SigProfiler, COSMIC, MuSiCal-compatible, and report JSON Schema outputs. | Structured warnings, fit-quality evidence, recommended actions, figures, and provenance. |
 | mSigPortal | Public mutational-signature portal and API. | Portal hosted. | mSigSDK retrieves public mSigPortal spectra and signatures and reuses selected plotting conventions. | Portal-specific. |
-| SigProfilerExtractor | Production de novo mutational-signature extraction. | Not directly; used through local Python or server execution. | mSigSDK exports matrix inputs, creates a runnable Python script, and parses extracted signature and exposure TSV outputs. | SigProfilerExtractor stability diagnostics plus mSigSDK screening and report metadata. |
 | deconstructSigs | R-based known-signature decomposition. | Not directly; used through local R or external execution. | mSigSDK exports deconstructSigs-compatible TSV inputs and parses sample-by-signature exposure tables. | deconstructSigs fit outputs plus mSigSDK uncertainty, threshold sensitivity, and provenance. |
+| sigminer | R-based known-signature fitting and signature analysis utilities. | Optional browser execution through WebR when compatible package and solver builds are available. | mSigSDK prepares sigminer-compatible spectra/signature TSV inputs, can run compatible WebR sessions, and parses exposure outputs. | sigminer fit outputs plus mSigSDK uncertainty, threshold sensitivity, and provenance. |
 | SigProfilerAssignment | Known-signature assignment against a supplied catalog. | Optional browser execution through Pyodide matrix-mode runs when package installation and dependencies succeed; local Python remains the production path. | mSigSDK prepares matrix-mode input, can run compatible Pyodide sessions, and parses exposure outputs. | Assignment metrics plus mSigSDK ambiguity, low-burden, and report fields. |
-| MuSiCal | Sparse likelihood-based mutational-signature refitting and discovery. | Package execution depends on Pyodide-compatible wheels; mSigSDK includes a browser-native MuSiCal-compatible sparse NNLS comparator. | mSigSDK exports/imports MuSiCal-style matrices and compares sparse refits on the same spectra/catalog. | MuSiCal metrics from the external tool or comparator plus mSigSDK ambiguity and reporting fields. |
+| MuSiCal | Sparse likelihood-based mutational-signature refitting and discovery. | Exact browser execution is available only through the pinned Pyodide MuSiCal package artifact; otherwise the run method reports an availability error. | mSigSDK prepares MuSiCal-style matrices, invokes the MuSiCal package through Pyodide when the artifact is present, and parses package outputs back into SDK objects. | MuSiCal package metrics plus mSigSDK ambiguity and reporting fields. |
 
 Several limitations remain. mSigSDK does not introduce a new attribution algorithm and does not replace production-scale extraction, mutation-level assignment, or disease-specific validation. Unregularized NNLS can distribute small exposures across similar or flat signatures; mSigSDK reports ambiguity and uncertainty but does not impose a sparse prior. Browser runtime depends on device speed, memory, browser version, catalog size, and workflow settings. MAF conversion depends on correct genome build, coordinate conventions, and reference context availability; offline deployments should supply project-specific context lookup tables rather than relying on bundled example lookup assets. Panel/WES evidence labels depend on assay design, callable territory, mutation burden, and signature-specific callable context coverage.
 
@@ -319,4 +270,3 @@ The mSigSDK source code, example notebooks, manuscript figure generators, genera
 20. Diaz-Gay M, et al. Assigning mutational signatures to individual samples and individual somatic mutations with SigProfilerAssignment. Bioinformatics. 2023;39:btad756. doi:10.1093/bioinformatics/btad756.
 21. Blokzijl F, Janssen R, van Boxtel R, Cuppen E. MutationalPatterns: comprehensive genome-wide analysis of mutational processes. Genome Med. 2018;10:33. doi:10.1186/s13073-018-0539-0.
 22. Rosenthal R, et al. deconstructSigs: delineating mutational processes in single tumors distinguishes DNA repair deficiencies and patterns of carcinoma evolution. Genome Biol. 2016;17:31. doi:10.1186/s13059-016-0893-4.
-23. Islam SMA, et al. Uncovering novel mutational signatures by de novo extraction with SigProfilerExtractor. Cell Genomics. 2022;2:100179. doi:10.1016/j.xgen.2022.100179.

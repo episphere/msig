@@ -3,7 +3,7 @@ const DEFAULT_PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.27.4/full
 const WEBR_RUNNER_SCHEMA_VERSION = "msig.runner.webr.v0.3";
 const DEFAULT_WEBR_MODULE_URL = "https://webr.r-wasm.org/latest/webr.mjs";
 const DEFAULT_WEBR_REPOSITORY_URL = "https://repo.r-wasm.org";
-const DEFAULT_WEBR_BINARY_R_VERSION = "4.5";
+const DEFAULT_WEBR_BINARY_R_VERSION = "4.6";
 
 function now() {
   if (typeof performance !== "undefined" && typeof performance.now === "function") {
@@ -197,12 +197,20 @@ async function installMicropipPackages(packages) {
   await pyodideInstance.loadPackage("micropip");
   loadedPyodidePackages.add("micropip");
   const micropip = pyodideInstance.pyimport("micropip");
-  for (const packageName of packageNames) {
-    if (installedMicropipPackages.has(packageName)) {
+  for (const packageEntry of packageNames) {
+    const packageName =
+      typeof packageEntry === "object" && packageEntry !== null
+        ? packageEntry.spec || packageEntry.package || packageEntry.url
+        : packageEntry;
+    const installOptions =
+      typeof packageEntry === "object" && packageEntry !== null
+        ? packageEntry.options || {}
+        : {};
+    if (!packageName || installedMicropipPackages.has(packageName)) {
       continue;
     }
     try {
-      await micropip.install(packageName);
+      await micropip.install(packageName, installOptions);
     } catch (error) {
       const message = error?.message || String(error);
       if (/Can't find a pure Python 3 wheel/i.test(message)) {

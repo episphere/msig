@@ -1,0 +1,1186 @@
+{
+  "schemaVersion": "msig.manuscript.experiment.v1",
+  "generatedAt": "2026-05-21T20:13:53.332Z",
+  "experimentId": "e4_browser_runtime_benchmarks",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "browsers": [
+      {
+        "id": "chrome",
+        "label": "Chrome",
+        "engine": "chromium",
+        "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+      },
+      {
+        "id": "edge",
+        "label": "Edge",
+        "engine": "chromium",
+        "executablePath": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+      },
+      {
+        "id": "firefox",
+        "label": "Firefox",
+        "engine": "firefox",
+        "executablePath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
+      }
+    ],
+    "requestedBrowsers": [
+      "chrome",
+      "edge",
+      "firefox"
+    ],
+    "repeats": 5,
+    "timeoutMs": 240000
+  },
+  "inputs": {
+    "scenarios": [
+      {
+        "id": "single_sample_fit_report",
+        "description": "Single-sample NNLS fit followed by SDK report generation."
+      },
+      {
+        "id": "medium_cohort_120",
+        "description": "NNLS refit for 120 synthetic SBS96 spectra against nine signatures."
+      },
+      {
+        "id": "portal_scale_300x40",
+        "description": "NNLS refit for 300 SBS96 spectra against 40 signatures."
+      },
+      {
+        "id": "bootstrap_500",
+        "description": "Parametric bootstrap uncertainty, 500 iterations, one sample."
+      },
+      {
+        "id": "nmf_rank_selection_rank4",
+        "description": "NMF rank grid plus rank-4 extraction on 80 samples."
+      }
+    ],
+    "repeats": 5,
+    "syntheticDataSeed": 20260521
+  },
+  "rows": [
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "single_sample_fit_report",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 5.044999994337559,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "single_sample_fit_report",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 3.5699999928474426,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "single_sample_fit_report",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 4.1400000005960464,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "single_sample_fit_report",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 4.079999998211861,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "single_sample_fit_report",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 3.6349999979138374,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "medium_cohort_120",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 22.570000000298023,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "medium_cohort_120",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 26.530000001192093,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "medium_cohort_120",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 22.384999997913837,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "medium_cohort_120",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 22.010000005364418,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "medium_cohort_120",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 26.890000000596046,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "portal_scale_300x40",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 1579.7599999979138,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "portal_scale_300x40",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 1622.804999999702,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "portal_scale_300x40",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 1517.1000000014901,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "portal_scale_300x40",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 1554.9150000065565,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "portal_scale_300x40",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 1494.3150000050664,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "bootstrap_500",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 259.5,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "bootstrap_500",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 255.9949999973178,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "bootstrap_500",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 253.3149999976158,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "bootstrap_500",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 254.5650000050664,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "bootstrap_500",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 261.375,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 3098.530000001192,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 361.9888274229196,
+        "rankSelectionMs": 2127.0400000065565,
+        "extractionMs": 971.4749999940395
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 2897.8549999967217,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 360.38383314940205,
+        "rankSelectionMs": 1941.2699999958277,
+        "extractionMs": 956.5750000029802
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 3217.439999997616,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 360.38383314940205,
+        "rankSelectionMs": 2173.4249999970198,
+        "extractionMs": 1044.0099999979138
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 3254.585000000894,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 360.38383314940205,
+        "rankSelectionMs": 1989.8000000044703,
+        "extractionMs": 1264.7749999985099
+      },
+      "error": null
+    },
+    {
+      "browser": "chrome",
+      "browserLabel": "Chrome",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 3178.1949999928474,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 362.1820452269563,
+        "rankSelectionMs": 2174.7149999961257,
+        "extractionMs": 1003.4650000035763
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "single_sample_fit_report",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 3.564999997615814,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "single_sample_fit_report",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 3.469999998807907,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "single_sample_fit_report",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 3.4600000008940697,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "single_sample_fit_report",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 3.3200000002980232,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "single_sample_fit_report",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 3.1349999979138374,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "medium_cohort_120",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 22.70499999821186,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "medium_cohort_120",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 22.5,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "medium_cohort_120",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 22.115000002086163,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "medium_cohort_120",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 21.924999997019768,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "medium_cohort_120",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 23.884999997913837,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "portal_scale_300x40",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 1561.7950000017881,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "portal_scale_300x40",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 1521.1149999946356,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "portal_scale_300x40",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 1514.7049999982119,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "portal_scale_300x40",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 1563.179999999702,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "portal_scale_300x40",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 1623.2250000014901,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "bootstrap_500",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 252.64499999582767,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "bootstrap_500",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 247.89999999850988,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "bootstrap_500",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 251.05499999970198,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "bootstrap_500",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 320.6000000014901,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "bootstrap_500",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 255.57000000029802,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 2943.7099999934435,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 361.9888274229196,
+        "rankSelectionMs": 1958.2249999940395,
+        "extractionMs": 985.4750000014901
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 3186.7299999967217,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 360.38383314940205,
+        "rankSelectionMs": 2102.1549999937415,
+        "extractionMs": 1084.5600000023842
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 3151.89999999851,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 360.38383314940205,
+        "rankSelectionMs": 1941.0649999976158,
+        "extractionMs": 1210.8250000029802
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 2978.7150000035763,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 360.38383314940205,
+        "rankSelectionMs": 1893.945000000298,
+        "extractionMs": 1084.7599999979138
+      },
+      "error": null
+    },
+    {
+      "browser": "edge",
+      "browserLabel": "Edge",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 3230.005000002682,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 362.1820452269563,
+        "rankSelectionMs": 2155.0500000044703,
+        "extractionMs": 1074.9449999928474
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "single_sample_fit_report",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 2.259999999999991,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "single_sample_fit_report",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 2.1200000000000045,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "single_sample_fit_report",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 2.259999999999991,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "single_sample_fit_report",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 2.8199999999999363,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "single_sample_fit_report",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 2.2600000000001046,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "reportBytes": 7617
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "medium_cohort_120",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 28.360000000000127,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "medium_cohort_120",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 28.38000000000011,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "medium_cohort_120",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 29.38000000000011,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "medium_cohort_120",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 29.920000000000073,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "medium_cohort_120",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 27.180000000000064,
+      "sampleCount": 120,
+      "signatureCount": 9,
+      "details": {
+        "exposureRows": 120
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "portal_scale_300x40",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 2845,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "portal_scale_300x40",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 2964.3600000000006,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "portal_scale_300x40",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 2753.34,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "portal_scale_300x40",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 2965.8199999999997,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "portal_scale_300x40",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 2751.26,
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "details": {
+        "exposureRows": 300
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "bootstrap_500",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 221.83999999999992,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "bootstrap_500",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 220.7800000000002,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "bootstrap_500",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 222.83999999999992,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "bootstrap_500",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 229.48000000000002,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "bootstrap_500",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 225.8599999999999,
+      "sampleCount": 1,
+      "signatureCount": 9,
+      "details": {
+        "iterations": 500,
+        "signatures": 9
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 1,
+      "status": "completed",
+      "elapsedMs": 2273.38,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 361.9888274229196,
+        "rankSelectionMs": 1538.68,
+        "extractionMs": 734.6799999999998
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 2,
+      "status": "completed",
+      "elapsedMs": 2246.7799999999997,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 360.38383314940205,
+        "rankSelectionMs": 1518.36,
+        "extractionMs": 728.4200000000001
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 3,
+      "status": "completed",
+      "elapsedMs": 2281.08,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 360.38383314940205,
+        "rankSelectionMs": 1528.94,
+        "extractionMs": 752.1199999999999
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 4,
+      "status": "completed",
+      "elapsedMs": 2164.8199999999997,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 360.38383314940205,
+        "rankSelectionMs": 1451.26,
+        "extractionMs": 713.56
+      },
+      "error": null
+    },
+    {
+      "browser": "firefox",
+      "browserLabel": "Firefox",
+      "scenario": "nmf_rank_selection_rank4",
+      "repeat": 5,
+      "status": "completed",
+      "elapsedMs": 2257.54,
+      "sampleCount": 80,
+      "signatureCount": null,
+      "details": {
+        "recommendedRank": 5,
+        "extractionError": 362.1820452269563,
+        "rankSelectionMs": 1542.9600000000003,
+        "extractionMs": 714.54
+      },
+      "error": null
+    }
+  ],
+  "artifacts": {
+    "json": "docs/manuscript/experiments/e4_browser_runtime_benchmarks/data/browser-runtime-results.json",
+    "csv": "docs/manuscript/experiments/e4_browser_runtime_benchmarks/data/browser_runtime_results.csv",
+    "harness": "docs/manuscript/experiments/e4_browser_runtime_benchmarks/browser-runtime-harness.html"
+  },
+  "status": "completed",
+  "notes": []
+}

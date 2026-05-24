@@ -33,7 +33,7 @@ This file records durable project context for future work on the mSigSDK codebas
 - Residual and mutational spectrum plots reuse mSigPortal plotting components where possible, with standalone figure-context metadata for report and manuscript use.
 - Browser-side NMF extraction helpers, rank selection by reconstruction error, cophenetic correlation, or silhouette, Web Worker support, COSMIC/reference matching, and NMF visualization helpers.
 - Import/export helpers for SigProfiler-style, COSMIC-style, MuSiCal-compatible, and generic TSV matrices.
-- Optional Pyodide Web Worker and WebR runners plus SigProfilerAssignment, SigProfilerExtractor, deconstructSigs, sigminer, and MuSiCal-compatible adapters under `mSigSDK.runners` and `mSigSDK.adapters`.
+- Optional Pyodide Web Worker and WebR runners plus exact executable adapters for SigProfilerAssignment, MuSiCal, deconstructSigs, and sigminer under `mSigSDK.runners` and `mSigSDK.adapters`.
 - Offline MAF context lookup support through row-supplied contexts, caller-supplied lookup tables, and bundled sparse smoke-test assets for hg19, hg38, and T2T-CHM13.
 - Report, provenance, and presentation helpers, including JSON Schema validation for `createAnalysisReport`, reusable tooltip tables, fit-quality rows, panel evidence rows, and uncertainty decision rows.
 - A small primary `mSigSDK.workflows` surface for MAF analysis, single-sample fitting, cohort fitting, and panel/WES review, plus `*Lite` wrappers and compact `mSigSDK.quickstart` aliases for reduced-option entry points.
@@ -65,15 +65,15 @@ This file records durable project context for future work on the mSigSDK codebas
 - `notebooks/msig-sdk-notebooks.onb.html`: workflow map and uniqueness contract.
 - `notebooks/msig-sdk-end-to-end-workflow.onb.html`: complete fit-review-export arc.
 - `notebooks/msig-sdk-public-cohort-exploration.onb.html`: mSigPortal and TCGA/GDC public dataset discovery.
-- `notebooks/msig-sdk-resource-portability.onb.html`: SDK object shape, source metadata, file round trips, and handoff packages.
+- `notebooks/msig-sdk-resource-portability.onb.html`: SDK object shape, source metadata, file round trips, and the four supported executable package adapters.
 - `notebooks/msig-sdk-maf-fit-report.onb.html`: raw variant rows to checked SBS96 spectra.
 - `notebooks/msig-sdk-qc-walkthrough.onb.html`: known-signature QC triage.
 - `notebooks/msig-sdk-cohort-panel-workflow.onb.html`: cohort metadata, group interpretation, and restricted-assay limits.
 - `notebooks/msig-sdk-panel-evidence-tiers.onb.html`: panel/WES support tiers and assay-coverage evidence.
-- `notebooks/msig-sdk-nmf-extraction.onb.html`: discovery extraction, rank diagnostics, learned profiles, sample contributions, and production run files.
+- `notebooks/msig-sdk-nmf-extraction.onb.html`: native mSigSDK discovery extraction, rank diagnostics, learned profiles, sample contributions, and review bundle exports.
 - `notebooks/msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals, cutoff sensitivity, stability decisions, and uncertainty exports.
 - `notebooks/msig-sdk-export-report.onb.html`: focused report packet builder.
-- `notebooks/msig-sdk-multi-engine-comparison.onb.html`: shared-input disagreement triage for mSigSDK, SigProfilerAssignment, deconstructSigs, MuSiCal, and R nnls outputs.
+- `notebooks/msig-sdk-multi-engine-comparison.onb.html`: shared-input disagreement triage for mSigSDK plus SigProfilerAssignment, MuSiCal, deconstructSigs, and sigminer outputs.
 
 ## Manuscript Workspace
 

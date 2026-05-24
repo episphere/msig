@@ -62,6 +62,17 @@ const publicNamespaceSpecs = [
 
 const stableNamespaces = publicNamespaceSpecs.map((spec) => spec.name);
 
+const hiddenAdapterDocNames = new Set([
+  "parseSigProfilerExtractorOutput",
+  "parseSigProfilerMatrixGeneratorOutput",
+  "prepareSigProfilerClustersInput",
+  "prepareSigProfilerExtractorInput",
+  "prepareSigProfilerMatrixGeneratorInput",
+  "prepareSigProfilerPlottingInput",
+  "prepareSigProfilerSimulatorInput",
+  "runSigProfilerExtractor",
+]);
+
 const namespaceLabels = {
   mSigPortal: "mSigPortal",
   machineLearning: "Machine learning",
@@ -105,30 +116,33 @@ const namespaceSummaries = {
   presentation: "Publication-context summaries and tooltip text for generated figures.",
   quickstart: "Small-option entry points for MAF, cohort, panel, and report workflows.",
   runners: "Optional Pyodide and WebR execution helpers for compatible packages.",
-  adapters: "SigProfiler, deconstructSigs, sigminer, MuSiCal, COSMIC, and generic TSV handoffs.",
+  adapters: "Exact package adapters for SigProfilerAssignment, MuSiCal, deconstructSigs, and sigminer.",
   advisor: "Decision guidance for reporting mode, warnings, and recommended next actions.",
   pipelines: "Full-control workflow APIs with validation, QC, reporting, and provenance blocks.",
 };
 
 function runDocumentation() {
-  const executable = path.join(
+  const documentationBin = path.join(
     rootDir,
     "node_modules",
-    ".bin",
-    process.platform === "win32" ? "documentation.cmd" : "documentation",
+    "documentation",
+    "bin",
+    "documentation.js",
   );
+  const args = [
+    documentationBin,
+    "build",
+    ...sourceFiles,
+    "--shallow",
+    "--format",
+    "json",
+    "--sort-order",
+    "source",
+  ];
 
   return execFileSync(
-    executable,
-    [
-      "build",
-      ...sourceFiles,
-      "--shallow",
-      "--format",
-      "json",
-      "--sort-order",
-      "source",
-    ],
+    process.execPath,
+    args,
     {
       cwd: rootDir,
       encoding: "utf8",
@@ -279,6 +293,7 @@ function collectNamespaces(rawDocs) {
           ? functionDocsByName.get(docOrName) || fallbackFunction(docOrName)
           : docOrName;
       if (!doc?.name || seen.has(doc.name)) return;
+      if (spec.name === "adapters" && hiddenAdapterDocNames.has(doc.name)) return;
       seen.add(doc.name);
       functions.push(normalizeFunction(doc));
     }

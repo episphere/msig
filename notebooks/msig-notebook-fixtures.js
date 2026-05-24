@@ -110,6 +110,7 @@ const defaultPublicSbs96Dataset = {
   matrixSize: 96,
   signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
   sampleLimit: 8,
+  signatureNames: null,
 };
 
 const alternatePublicSbs96Dataset = {
@@ -120,6 +121,7 @@ const alternatePublicSbs96Dataset = {
   matrixSize: 96,
   signatureSetName: "COSMIC_v3_Signatures_GRCh37_SBS96",
   sampleLimit: 8,
+  signatureNames: null,
   sampleNames: [
     "SP53810",
     "SP55142",
@@ -280,11 +282,16 @@ async function loadPublicSbs96Dataset(mSigSDK, options = {}) {
       "signatureName"
     );
     const availableSamples = sampleNames.filter((sample) => allSpectra[sample]);
-    const signatureCandidates = selection.signatureNames || publicSbs96SignatureNames;
+    const signatureCandidates =
+      selection.signatureNames === null
+        ? Object.keys(allSignatures)
+        : Array.isArray(selection.signatureNames)
+          ? selection.signatureNames
+          : publicSbs96SignatureNames;
     const availableSignatures = signatureCandidates.filter((signature) => allSignatures[signature]);
     const selectedSignatureNames = availableSignatures.length
       ? availableSignatures
-      : Object.keys(allSignatures).slice(0, 9);
+      : Object.keys(allSignatures);
 
     if (availableSamples.length < Math.min(2, sampleLimit) || selectedSignatureNames.length < 3) {
       throw new Error(

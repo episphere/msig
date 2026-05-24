@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "msig.manuscript.experiment.v1",
+  "generatedAt": "2026-05-22T00:16:23.859Z",
+  "experimentId": "e1_zero_install_demo",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "browser": {
+      "id": "chrome",
+      "label": "Chrome",
+      "engine": "chromium",
+      "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+    },
+    "freshProfile": true,
+    "cachePolicy": "fresh profile plus no-store local server headers"
+  },
+  "inputs": {
+    "publicSpectrum": "PCAWG Lung-AdenoCA SBS96",
+    "signatureCatalog": "COSMIC_v3_Signatures_GRCh37_SBS96",
+    "workflow": [
+      "blank harness page",
+      "import main.js",
+      "fetch public spectrum",
+      "fetch COSMIC catalog",
+      "fit one sample with SDK NNLS against the full COSMIC SBS96 catalog",
+      "generate SDK analysis report"
+    ]
+  },
+  "rows": [
+    {
+      "browser": "Chrome",
+      "browserId": "chrome",
+      "status": "completed",
+      "elapsedSeconds": 1.8937800000011922,
+      "sampleCount": 1,
+      "signatureCount": 67,
+      "activeSignatures": 33,
+      "reportBytes": 8931,
+      "sourceSpectrumUrl": "https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=PCAWG&cancer=Lung-AdenoCA&strategy=WGS&profile=SBS&matrix=96&offset=0",
+      "sourceCatalogUrl": "https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature?source=Reference_signatures&strategy=WGS&profile=SBS&matrix=96&signatureSetName=COSMIC_v3_Signatures_GRCh37_SBS96&limit=10000&offset=0",
+      "steps": [
+        {
+          "name": "Page loaded",
+          "elapsedSeconds": 0.0002749999985098839
+        },
+        {
+          "name": "SDK imported",
+          "elapsedSeconds": 1.5477299999967218
+        },
+        {
+          "name": "mSigPortal data fetched",
+          "elapsedSeconds": 1.8738500000014902
+        },
+        {
+          "name": "Single-sample fit completed",
+          "elapsedSeconds": 1.891439999997616
+        },
+        {
+          "name": "SDK report generated",
+          "elapsedSeconds": 1.8935399999991058
+        }
+      ]
+    }
+  ],
+  "artifacts": {
+    "json": "docs/manuscript/experiments/e1_zero_install_demo/data/zero-install-results.json",
+    "csv": "docs/manuscript/experiments/e1_zero_install_demo/data/zero-install-summary.csv",
+    "harness": "docs/manuscript/experiments/e1_zero_install_demo/zero-install-harness.html",
+    "screenshots": {
+      "start": "docs/manuscript/experiments/e1_zero_install_demo/screenshots/zero-install-start.png",
+      "report": "docs/manuscript/experiments/e1_zero_install_demo/screenshots/zero-install-report-ready.png"
+    }
+  },
+  "status": "completed",
+  "notes": []
+}

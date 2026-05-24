@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>E2 adapter fidelity harness</title>
+  </head>
+  <body>
+    <pre id="status">Loading SDK...</pre>
+    <script type="module">
+      const { mSigSDK } = await import("/main.js?e2=" + Date.now());
+      document.querySelector("#status").textContent = "Ready";
+      window.__MSIG_ADAPTER_READY__ = true;
+      const wheelUrl = (pathname) => new URL(pathname, location.origin).href;
+      const pyodideScientificPackages = ["numpy", "scipy", "pandas", "matplotlib", "scikit-learn", "statsmodels", "pillow"];
+      const sigProfilerAssignmentWheels = [
+        "/docs/package-repos/pyodide/sigprofilerassignment-1.1.3-py3-none-any.whl",
+        "/docs/package-repos/pyodide/sigprofilermatrixgenerator-1.3.6-py3-none-any.whl",
+        "/docs/package-repos/pyodide/sigprofilerplotting-1.4.3-py3-none-any.whl",
+        "/docs/package-repos/pyodide/alive_progress-3.3.0-py3-none-any.whl",
+        "/docs/package-repos/pyodide/about_time-4.2.1-py3-none-any.whl",
+        "/docs/package-repos/pyodide/graphemeu-0.7.2-py3-none-any.whl",
+        "/docs/package-repos/pyodide/pdf2image-1.17.0-py3-none-any.whl",
+        "/docs/package-repos/pyodide/pypdf-6.11.0-py3-none-any.whl",
+        "/docs/package-repos/pyodide/reportlab-4.5.1-py3-none-any.whl"
+      ].map((pathname) => ({ spec: wheelUrl(pathname), options: { deps: false } }));
+      const webR46 = {
+        repositoryUrl: new URL("/docs/package-repos/webr", location.origin).href,
+        binaryRVersion: "4.6",
+        packageIndexUrls: [new URL("/docs/package-repos/webr/bin/emscripten/contrib/4.6/PACKAGES", location.origin).href]
+      };
+      window.__runAdapterFidelity = async function runAdapter(tool, input, timeoutMs) {
+        try {
+          let output;
+          if (tool === "deconstructsigs") {
+            output = await mSigSDK.adapters.runDeconstructSigsWebR(input, {
+              contexts: input.contexts,
+              signatureCutoff: 0,
+              ...webR46,
+              timeoutMs
+            });
+          } else if (tool === "sigminer") {
+            output = await mSigSDK.adapters.runSigminerWebR(input, {
+              contexts: input.contexts,
+              method: "NNLS",
+              exposureType: "relative",
+              relThreshold: 0,
+              ...webR46,
+              timeoutMs
+            });
+          } else if (tool === "sigprofilerassignment") {
+            output = await mSigSDK.adapters.runSigProfilerAssignment(input, {
+              contexts: input.contexts,
+              pyodidePackages: pyodideScientificPackages,
+              micropipPackages: sigProfilerAssignmentWheels,
+              timeoutMs
+            });
+          } else if (tool === "musical") {
+            output = await mSigSDK.adapters.runMuSiCalRefit(input, {
+              contexts: input.contexts,
+              pyodidePackages: pyodideScientificPackages,
+              micropipPackages: [
+                { spec: wheelUrl("/docs/package-repos/pyodide/musical-1.0.0-py3-none-any.whl"), options: { deps: false } },
+                { spec: wheelUrl("/docs/package-repos/pyodide/seaborn-0.13.2-py3-none-any.whl"), options: { deps: false } }
+              ],
+              timeoutMs
+            });
+          } else {
+            throw new Error("Unknown adapter " + tool);
+          }
+          return {
+            status: output.status || "completed",
+            runtime: output.runtime,
+            packageVersion: output.provenance?.packageVersion || null,
+            exposures: output.exposures || null
+          };
+        } catch (error) {
+          return {
+            status: "blocked",
+            runtime: tool === "deconstructsigs" || tool === "sigminer" ? "webr" : "pyodide",
+            error: error.message,
+            code: error.code || null
+          };
+        }
+      };
+    </script>
+  </body>
+</html>

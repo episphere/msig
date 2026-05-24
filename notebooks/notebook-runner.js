@@ -44,7 +44,7 @@ const DEFAULT_NOTEBOOKS = [
   {
     file: "msig-sdk-nmf-extraction.onb.html",
     title: "Discovery extraction (NMF)",
-    summary: "Screen demo spectra with browser-scale NMF, rank checks, and external handoff files.",
+    summary: "Screen demo spectra with native mSigSDK NMF, rank checks, and review bundle exports.",
     workflowGroup: "core",
     workflowGroupLabel: "Analyze Data",
   },
@@ -298,7 +298,7 @@ async function loadNotebook(entry) {
       hint.textContent = "Code is hidden by default. Open it only if you want to inspect or edit this step.";
       const dirtyBadge = document.createElement("span");
       dirtyBadge.className = "dirty-badge";
-      dirtyBadge.textContent = "Edited, not run";
+      dirtyBadge.textContent = "Edited, not evaluated";
       dirtyBadge.hidden = true;
       const labelWrap = document.createElement("div");
       labelWrap.className = "code-cell-label";
@@ -1333,7 +1333,7 @@ function markDirty(cell) {
   }
   if (!state.isRunning) {
     setStatus(
-      "You have edited code that has not run yet. Click Run edits, Run workflow, or press Ctrl/Cmd+Enter."
+      "You have edited code that has not been evaluated yet. Click Run edits, Run workflow, or press Ctrl/Cmd+Enter."
     );
   }
 }

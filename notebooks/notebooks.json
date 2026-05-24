@@ -67,7 +67,7 @@
     {
       "file": "msig-sdk-nmf-extraction.onb.html",
       "title": "Discovery extraction (NMF)",
-      "summary": "Screen demo spectra with browser-scale NMF, rank checks, and external handoff files.",
+      "summary": "Screen demo spectra with native mSigSDK NMF, rank checks, and review bundle exports.",
       "image": "images/notebook-previews/sdk-nmf-extraction.svg",
       "workflowGroup": "core",
       "workflowGroupLabel": "Analyze Data"

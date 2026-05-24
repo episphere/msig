@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "msig.package-repo.pyodide.v0.3",
+  "status": "artifacts_available",
+  "pyodideVersion": "0.27.4",
+  "note": "Compiled dependencies are loaded from the Pyodide package channel; local wheels are pure-Python package artifacts installed with micropip deps=false where needed.",
+  "packages": [
+    {
+      "tool": "SigProfilerAssignment",
+      "package": "SigProfilerAssignment",
+      "version": "1.1.3",
+      "filename": "sigprofilerassignment-1.1.3-py3-none-any.whl",
+      "available": true,
+      "installOptions": {
+        "deps": false
+      },
+      "sha256": "10520330d8c6c38c832bc1e82e15ac50ca5d7081ddd875f5f4eae7470e6dafe3"
+    },
+    {
+      "tool": "SigProfilerAssignment",
+      "package": "SigProfilerMatrixGenerator",
+      "version": "1.3.6",
+      "filename": "sigprofilermatrixgenerator-1.3.6-py3-none-any.whl",
+      "available": true,
+      "installOptions": {
+        "deps": false
+      },
+      "sha256": "d6402c41f7f6c957e0150faa81a6e0c9c1e8730dffcd205d0a9460074e19a204"
+    },
+    {
+      "tool": "SigProfilerAssignment",
+      "package": "sigProfilerPlotting",
+      "version": "1.4.3",
+      "filename": "sigprofilerplotting-1.4.3-py3-none-any.whl",
+      "available": true,
+      "installOptions": {
+        "deps": false
+      },
+      "sha256": "1faafe03c48f3591172feca3f28c0d3aba11f35def1a2aad7893771de48c932f"
+    },
+    {
+      "tool": "SigProfilerAssignment",
+      "package": "alive_progress",
+      "version": "3.3.0",
+      "filename": "alive_progress-3.3.0-py3-none-any.whl",
+      "available": true,
+      "installOptions": {
+        "deps": false
+      },
+      "sha256": "63dd33bb94cde15ad9e5b666dbba8fedf71b72a4935d6fb9a92931e69402c9ff"
+    },
+    {
+      "tool": "SigProfilerAssignment",
+      "package": "about-time",
+      "version": "4.2.1",
+      "filename": "about_time-4.2.1-py3-none-any.whl",
+      "available": true,
+      "installOptions": {
+        "deps": false
+      },
+      "sha256": "8bbf4c75fe13cbd3d72f49a03b02c5c7dca32169b6d49117c257e7eb3eaee341"
+    },
+    {
+      "tool": "SigProfilerAssignment",
+      "package": "graphemeu",
+      "version": "0.7.2",
+      "filename": "graphemeu-0.7.2-py3-none-any.whl",
+      "available": true,
+      "installOptions": {
+        "deps": false
+      },
+      "sha256": "1444520f6899fd30114fc2a39f297d86d10fa0f23bf7579f772f8bc7efaa2542"
+    },
+    {
+      "tool": "SigProfilerAssignment",
+      "package": "pdf2image",
+      "version": "1.17.0",
+      "filename": "pdf2image-1.17.0-py3-none-any.whl",
+      "available": true,
+      "installOptions": {
+        "deps": false
+      },
+      "sha256": "ecdd58d7afb810dffe21ef2b1bbc057ef434dabbac6c33778a38a3f7744a27e2"
+    },
+    {
+      "tool": "SigProfilerAssignment",
+      "package": "pypdf",
+      "version": "6.11.0",
+      "filename": "pypdf-6.11.0-py3-none-any.whl",
+      "available": true,
+      "installOptions": {
+        "deps": false
+      },
+      "sha256": "769394d5756d5b304c9b6bef88b54b1816b328e7e6fc9254e625529a15ed4ab8"
+    },
+    {
+      "tool": "SigProfilerAssignment",
+      "package": "reportlab",
+      "version": "4.5.1",
+      "filename": "reportlab-4.5.1-py3-none-any.whl",
+      "available": true,
+      "installOptions": {
+        "deps": false
+      },
+      "sha256": "06fce8cb56c83307cfa4909cdf4e6a2ddbb44e5d6ef4d2edca896d7e9769f091"
+    },
+    {
+      "tool": "MuSiCal",
+      "package": "musical",
+      "version": "1.0.0",
+      "filename": "musical-1.0.0-py3-none-any.whl",
+      "available": true,
+      "installOptions": {
+        "deps": false
+      },
+      "sha256": "c4203a10d905d17bf68678472add3677ce71a924138f63bba302f2f67bea9765"
+    }
+  ]
+}

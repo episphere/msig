@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "msig.manuscript.experiment.v1",
+  "generatedAt": "2026-05-21T16:30:49.221Z",
+  "experimentId": "e3_internal_reference_checks",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "referenceExecution": {
+      "python": {
+        "python": "3.11.15",
+        "packages": {
+          "numpy": "2.4.6"
+        },
+        "dockerImage": "python:3.11-slim"
+      },
+      "r": {
+        "dockerImage": "r-base:4.4.2",
+        "package": "nnls",
+        "elapsedMs": 28389
+      }
+    }
+  },
+  "inputs": {
+    "nnls": {
+      "samples": 12,
+      "signatures": 9,
+      "contexts": 96,
+      "acceptance": "max absolute coefficient difference <= 1e-6"
+    },
+    "nmf": {
+      "samples": 36,
+      "rank": 4,
+      "acceptance": "SDK reconstruction error within 5% of scikit-learn and median matched-component cosine >= 0.95"
+    },
+    "qc": {
+      "samples": 10,
+      "acceptance": "metric deltas <= 1e-10 except aggregate floating point tolerance <= 1e-8"
+    }
+  },
+  "rows": [
+    {
+      "checkId": "nnls_vs_scipy",
+      "component": "NNLS",
+      "reference": "scipy.optimize.nnls",
+      "sampleCount": 12,
+      "maxAbsoluteDifference": 1.6507328837178648e-9,
+      "threshold": 0.000001,
+      "status": "pass"
+    },
+    {
+      "checkId": "nnls_vs_r_nnls",
+      "component": "NNLS",
+      "reference": "R nnls::nnls",
+      "sampleCount": 12,
+      "maxAbsoluteDifference": 1.6511876310687512e-9,
+      "threshold": 0.000001,
+      "status": "pass"
+    },
+    {
+      "checkId": "nmf_vs_sklearn",
+      "component": "NMF",
+      "reference": "scikit-learn NMF",
+      "sampleCount": 36,
+      "rank": 4,
+      "sdkReconstructionError": 309.7958341078405,
+      "referenceReconstructionError": 337.4124663432821,
+      "reconstructionErrorRatio": 0.9181517134362648,
+      "medianMatchedComponentCosine": 0.9671475260412798,
+      "threshold": "error ratio <= 1.05 and median cosine >= 0.95",
+      "status": "pass"
+    },
+    {
+      "checkId": "qc_metrics_vs_python",
+      "component": "QC metrics",
+      "reference": "independent Python implementation",
+      "sampleCount": 10,
+      "maxMetricDelta": 7.771561172376096e-16,
+      "threshold": 1e-10,
+      "status": "pass"
+    }
+  ],
+  "artifacts": {
+    "json": "docs/manuscript/experiments/e3_internal_reference_checks/data/reference-check-results.json",
+    "csv": "docs/manuscript/experiments/e3_internal_reference_checks/data/reference_check_summary.csv",
+    "input": "docs/manuscript/experiments/e3_internal_reference_checks/data/reference-input.json",
+    "pythonReference": "docs/manuscript/experiments/e3_internal_reference_checks/data/python-reference.json",
+    "rReference": "docs/manuscript/experiments/e3_internal_reference_checks/data/r-nnls-reference.csv"
+  },
+  "status": "completed",
+  "notes": []
+}
