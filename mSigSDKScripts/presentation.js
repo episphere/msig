@@ -1148,9 +1148,9 @@ function panelEvidenceTable(panelWorkflowResultOrCalls, options = {}) {
       { key: "exposure", label: "Exposure" },
       {
         key: "tier",
-        label: "Evidence tier",
+        label: "Support label",
         tooltip:
-          "Panel/WES evidence tier under the configured burden, exposure, callable-territory, and fit-quality rules.",
+          "Panel/WES support label after change count, fitted share, test view, and fit checks are reviewed.",
         tooltipTerms: PANEL_TIER_TOOLTIPS,
       },
       {
@@ -1169,7 +1169,7 @@ function panelEvidenceTable(panelWorkflowResultOrCalls, options = {}) {
       title: options.title || "Panel/WES evidence review",
       caption:
         options.caption ||
-        "Shows which panel/WES evidence tier was assigned for each sample and signature, along with assessability reasons.",
+        "Shows the panel/WES support label for each sample and signature, with the review reason.",
     }
   );
 }

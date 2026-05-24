@@ -6363,46 +6363,156 @@ Renders a plot of mutational profiles in a given div element ID.
       maxWidth: options.maxWidth || "1180px",
     });
 
-    const rowHeight = publicationNumber(publication, "rowHeight", publication?.compact ? 16 : 19, { min: 12, max: 34 });
-    const cellWidth = publicationNumber(publication, "cellWidth", publication?.compact ? 54 : 60, { min: 32, max: 82 });
-    const sampleLabelWidth = publicationNumber(publication, "sampleLabelWidth", 128, { min: 86, max: 190 });
-    const burdenWidth = publicationNumber(publication, "burdenWidth", 88, { min: 60, max: 140 });
-    const fitWidth = publicationNumber(publication, "fitWidth", 92, { min: 64, max: 140 });
-    const x0 = 34;
-    const y0 = 190;
+    const compactLayout = Boolean(publication?.compact);
+    const rowHeight = publicationNumber(publication, "rowHeight", compactLayout ? 20 : 22, {
+      min: compactLayout ? 20 : 16,
+      max: 34,
+    });
+    const requestedCellWidth = publicationNumber(publication, "cellWidth", compactLayout ? 46 : 60, {
+      min: 34,
+      max: 82,
+    });
+    const sampleLabelWidth = publicationNumber(publication, "sampleLabelWidth", compactLayout ? 144 : 156, {
+      min: 112,
+      max: 220,
+    });
+    const burdenWidth = publicationNumber(publication, "burdenWidth", compactLayout ? 74 : 96, {
+      min: 60,
+      max: 140,
+    });
+    const burdenValueWidth = publicationNumber(publication, "burdenValueWidth", compactLayout ? 34 : 42, {
+      min: 28,
+      max: 56,
+    });
+    const fitWidth = publicationNumber(publication, "fitWidth", compactLayout ? 86 : 108, {
+      min: 72,
+      max: 150,
+    });
+    const x0 = publicationNumber(publication, "x0", compactLayout ? 26 : 34, { min: 18, max: 54 });
+    const y0 = publicationNumber(publication, "bodyY", compactLayout ? 222 : 224, { min: 198, max: 290 });
+    const gapSampleBurden = 10;
+    const gapBurdenHeat = 10;
+    const gapHeatFit = 16;
+    const rightPad = compactLayout ? 28 : 36;
+    const fixedWidthWithoutHeat =
+      x0 +
+      sampleLabelWidth +
+      gapSampleBurden +
+      burdenWidth +
+      burdenValueWidth +
+      gapBurdenHeat +
+      gapHeatFit +
+      fitWidth +
+      rightPad;
+    const targetWidth = publicationNumber(
+      publication,
+      "targetWidth",
+      compactLayout ? 960 : fixedWidthWithoutHeat + displaySignatures.length * requestedCellWidth,
+      { min: 760, max: 2400 }
+    );
+    const cellWidth = compactLayout
+      ? Math.min(
+          requestedCellWidth,
+          Math.max(
+            38,
+            Math.floor((targetWidth - fixedWidthWithoutHeat) / Math.max(1, displaySignatures.length))
+          )
+        )
+      : requestedCellWidth;
     const heatWidth = displaySignatures.length * cellWidth;
-    const heatHeight = Math.max(displayRows.length * rowHeight, 120);
+    const heatHeight = Math.max(displayRows.length * rowHeight, compactLayout ? 148 : 160);
     const width = publicationNumber(
       publication,
       "width",
-      x0 + sampleLabelWidth + 10 + burdenWidth + 14 + heatWidth + 16 + fitWidth + 36,
+      fixedWidthWithoutHeat + heatWidth,
       { min: 720 }
     );
-    const height = publicationNumber(publication, "height", y0 + heatHeight + 92, { min: 420 });
+    const height = publicationNumber(publication, "height", y0 + heatHeight + 104, { min: compactLayout ? 500 : 520 });
     const svg = appendResponsiveSvg(chart, width, height, "Cohort signature exposure landscape", publication);
+    if (publicationBool(publication, "scrollX", compactLayout && width > targetWidth)) {
+      const scrollFrame = document.createElement("div");
+      scrollFrame.className = "msig-d3-horizontal-scroll";
+      chart.insertBefore(scrollFrame, svg.node());
+      scrollFrame.appendChild(svg.node());
+      svg.attr("width", width).style("width", `${width}px`).style("height", "auto");
+      scrollFrame.scrollLeft = 0;
+    }
     const sampleX = x0;
-    const burdenX = sampleX + sampleLabelWidth + 10;
-    const heatX = burdenX + burdenWidth + 14;
-    const fitX = heatX + heatWidth + 16;
+    const burdenX = sampleX + sampleLabelWidth + gapSampleBurden;
+    const burdenValueX = burdenX + burdenWidth + 5;
+    const heatX = burdenX + burdenWidth + burdenValueWidth + gapBurdenHeat;
+    const fitX = heatX + heatWidth + gapHeatFit;
     const burdenScale = d3.scaleLinear().domain([0, maxBurden]).range([0, burdenWidth]);
     const cosineScale = d3.scaleLinear().domain([minCosine, 1]).range([0, fitWidth]);
     const color = d3.scaleSequential(d3.interpolateViridis).domain([0, Math.max(maxExposure, 0.2)]);
     const totalScale = d3
       .scaleLinear()
       .domain([0, d3.max(signatureSummary, (row) => row.total) || 1])
-      .range([0, 74]);
+      .range([0, compactLayout ? 64 : 76]);
 
-    svg.append("text").attr("x", sampleX).attr("y", 34).attr("font", "800 14px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.darkGray).text("Signature totals across cohort");
+    const otherSummary = signatureSummary.find((summary) => summary.hidden);
+    const otherIndex = otherSummary ? signatureSummary.indexOf(otherSummary) : -1;
+    const topPanelY = 18;
+    const topPanelHeight = y0 - 44;
+    const barBaselineY = 120;
+    const labelY = 144;
+    const prevalenceY = 160;
+    const hiddenCountY = 176;
+    const heatTitleY = y0 - 30;
+    const headerY = y0 - 12;
+    svg
+      .append("rect")
+      .attr("x", sampleX - 12)
+      .attr("y", topPanelY)
+      .attr("width", width - sampleX - 10)
+      .attr("height", topPanelHeight)
+      .attr("rx", 10)
+      .attr("fill", "#F8FAFC")
+      .attr("stroke", "#E2E8F0");
+    svg
+      .append("text")
+      .attr("x", sampleX)
+      .attr("y", 42)
+      .attr("font", "800 14px Arial, sans-serif")
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .text("Cohort signature totals");
+    svg
+      .append("text")
+      .attr("x", sampleX)
+      .attr("y", 60)
+      .attr("font", "650 10.5px Arial, sans-serif")
+      .attr("fill", SCIENTIFIC_COLORS.gray)
+      .text("Bars rank signatures by total fitted exposure; percentages show samples above cutoff.");
+    svg
+      .append("line")
+      .attr("x1", heatX)
+      .attr("x2", heatX + heatWidth)
+      .attr("y1", barBaselineY)
+      .attr("y2", barBaselineY)
+      .attr("stroke", "#CBD5E1")
+      .attr("stroke-width", 1);
     signatureSummary.forEach((summary, index) => {
       const x = heatX + index * cellWidth;
+      const barHeight = Math.max(3, totalScale(summary.total));
+      if (summary.hidden) {
+        svg
+          .append("rect")
+          .attr("x", x - 3)
+          .attr("y", topPanelY + 6)
+          .attr("width", cellWidth + 6)
+          .attr("height", topPanelHeight - 12)
+          .attr("rx", 7)
+          .attr("fill", "#ECFDF5")
+          .attr("stroke", "#A7F3D0");
+      }
       svg
         .append("rect")
         .attr("x", x + cellWidth * 0.24)
-        .attr("y", 116 - totalScale(summary.total))
+        .attr("y", barBaselineY - barHeight)
         .attr("width", cellWidth * 0.52)
-        .attr("height", totalScale(summary.total))
+        .attr("height", barHeight)
         .attr("rx", 4)
-        .attr("fill", summary.hidden ? SCIENTIFIC_COLORS.gray : SCIENTIFIC_COLORS.blue)
+        .attr("fill", summary.hidden ? SCIENTIFIC_COLORS.green : SCIENTIFIC_COLORS.blue)
         .attr("opacity", 0.82)
         .on("mousemove", (event) =>
           showTooltip(
@@ -6421,77 +6531,73 @@ Renders a plot of mutational profiles in a given div element ID.
         .append("text")
         .attr("class", "msig-cohort-signature-label")
         .attr("x", x + cellWidth / 2)
-        .attr("y", 136)
+        .attr("y", labelY)
         .attr("text-anchor", "middle")
         .attr("font", "800 11px Arial, sans-serif")
         .attr("fill", SCIENTIFIC_COLORS.darkGray)
-        .text(compactPlotLabel(summary.displayLabel, cellWidth < 48 ? 8 : 11))
+        .text(compactPlotLabel(summary.displayLabel, cellWidth < 44 ? 7 : 10))
         .append("title")
         .text(summary.hidden ? `${summary.displayLabel}: ${summary.signature}` : summary.signature);
       svg
         .append("text")
         .attr("class", "msig-cohort-prevalence-label")
         .attr("x", x + cellWidth / 2)
-        .attr("y", 152)
+        .attr("y", prevalenceY)
         .attr("text-anchor", "middle")
-        .attr("font", "700 9.5px Arial, sans-serif")
+        .attr("font", "700 9.2px Arial, sans-serif")
         .attr("fill", SCIENTIFIC_COLORS.gray)
         .text(d3.format(".0%")(summary.prevalenceFraction));
-    });
-    if (hiddenSignatures.length) {
-      const otherIndex = signatureSummary.findIndex((summary) => summary.hidden);
-      const otherBarX = heatX + Math.max(0, otherIndex) * cellWidth;
-      const otherNoteWidth = publicationNumber(publication, "otherNoteWidth", 136, {
-        min: 110,
-        max: 220,
-      });
-      const otherNoteX = Math.min(
-        otherBarX + cellWidth + 8,
-        width - 34 - otherNoteWidth
-      );
-      const otherNoteY = 54;
-      const otherNoteHeight = 58;
-      svg
-        .append("path")
-        .attr(
-          "d",
-          `M${otherNoteX + 4},${otherNoteY + otherNoteHeight / 2} L${otherBarX + cellWidth / 2},${118}`
-        )
-        .attr("fill", "none")
-        .attr("stroke", "#94A3B8")
-        .attr("stroke-width", 1)
-        .attr("stroke-dasharray", "3 3")
-        .attr("opacity", 0.8);
-      svg
-        .append("rect")
-        .attr("class", "msig-cohort-other-note-bg")
-        .attr("x", otherNoteX)
-        .attr("y", otherNoteY)
-        .attr("width", otherNoteWidth)
-        .attr("height", otherNoteHeight)
-        .attr("rx", 8)
-        .attr("fill", "#FFFFFF")
-        .attr("stroke", "#CBD5E1");
-      const otherLines = [
-        otherDisplayLabel,
-        `${hiddenSignatures.length} lower-ranked`,
-        "COSMIC SBS signatures",
-      ];
-      otherLines.forEach((line, index) => {
+      if (summary.hidden) {
         svg
           .append("text")
-          .attr("class", "msig-cohort-other-note")
-          .attr("x", otherNoteX + 10)
-          .attr("y", otherNoteY + 18 + index * 16)
-          .attr("font", index === 0 ? "800 12px Arial, sans-serif" : "700 10.5px Arial, sans-serif")
-          .attr("fill", index === 0 ? SCIENTIFIC_COLORS.darkGray : SCIENTIFIC_COLORS.gray)
-          .text(line);
-      });
+          .attr("class", "msig-cohort-hidden-count")
+          .attr("x", x + cellWidth / 2)
+          .attr("y", hiddenCountY)
+          .attr("text-anchor", "middle")
+          .attr("font", "700 8.8px Arial, sans-serif")
+          .attr("fill", SCIENTIFIC_COLORS.green)
+          .text(`${hiddenSignatures.length} grouped`);
+      }
+    });
+    svg
+      .append("rect")
+      .attr("x", heatX - 5)
+      .attr("y", y0 - 5)
+      .attr("width", heatWidth + 10)
+      .attr("height", heatHeight + 10)
+      .attr("rx", 8)
+      .attr("fill", "#FFFFFF")
+      .attr("stroke", "#E2E8F0");
+    if (otherIndex >= 0) {
+      svg
+        .append("rect")
+        .attr("x", heatX + otherIndex * cellWidth - 2)
+        .attr("y", y0 - 4)
+        .attr("width", cellWidth + 2)
+        .attr("height", heatHeight + 8)
+        .attr("rx", 5)
+        .attr("fill", "#ECFDF5")
+        .attr("stroke", "#A7F3D0");
     }
-    svg.append("text").attr("x", heatX).attr("y", 168).attr("font", "800 13px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.darkGray).text("Relative exposure per sample");
-    svg.append("text").attr("x", sampleX).attr("y", y0 - 12).attr("font", "800 12px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Sample");
-    svg.append("text").attr("x", burdenX).attr("y", y0 - 12).attr("font", "800 12px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Burden");
-    svg.append("text").attr("x", fitX).attr("y", y0 - 12).attr("font", "800 12px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Fit cosine");
+    svg
+      .append("text")
+      .attr("x", heatX)
+      .attr("y", heatTitleY)
+      .attr("font", "800 13px Arial, sans-serif")
+      .attr("fill", SCIENTIFIC_COLORS.darkGray)
+      .text("Relative exposure per sample");
+    svg
+      .append("text")
+      .attr("x", heatX + heatWidth)
+      .attr("y", heatTitleY)
+      .attr("text-anchor", "end")
+      .attr("font", "650 10px Arial, sans-serif")
+      .attr("fill", SCIENTIFIC_COLORS.gray)
+      .text("darker = lower, yellow = higher");
+    svg.append("text").attr("x", sampleX).attr("y", headerY).attr("font", "800 11px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Sample");
+    svg.append("text").attr("x", burdenX).attr("y", headerY).attr("font", "800 11px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Burden");
+    svg.append("text").attr("x", burdenValueX).attr("y", headerY).attr("font", "800 11px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("n");
+    svg.append("text").attr("x", fitX).attr("y", headerY).attr("font", "800 11px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Fit cosine");
 
     const rows = svg
       .append("g")
@@ -6628,8 +6734,9 @@ Renders a plot of mutational profiles in a given div element ID.
     svg.append("text").attr("x", legendX + legendWidth).attr("y", legendY + 30).attr("text-anchor", "end").attr("font", "700 10px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text(d3.format(".0%")(maxExposure));
     svg
       .append("text")
-      .attr("x", fitX)
+      .attr("x", width - 34)
       .attr("y", legendY + 4)
+      .attr("text-anchor", "end")
       .attr("font", "700 11px Arial, sans-serif")
       .attr("fill", SCIENTIFIC_COLORS.gray)
       .text(`Fit cosine scale: ${formatPlotNumber(minCosine, 3)} to 1`);
@@ -6693,9 +6800,9 @@ Renders a plot of mutational profiles in a given div element ID.
     const innerHeight = Math.max(260, sampleNames.length * rowHeight);
     const height = innerHeight + margin.top + margin.bottom;
     const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
-	      title: "Panel/WES review evidence matrix",
+	      title: "Panel/WES review grid",
 	      subtitle:
-	        "Evidence tiers combine exposure, burden, fit quality, and callable-territory checks.",
+	        "Labels use fitted share, change count, fit checks, and test view.",
       badges: [
         { label: "Samples", value: String(sampleNames.length) },
         { label: "Signatures", value: String(signatureNames.length) },
@@ -6708,7 +6815,7 @@ Renders a plot of mutational profiles in a given div element ID.
         assay: options.assay || panelResultOrEvidenceCalls.assay || "panel/WES",
         samples: sampleNames.length,
         signatures: signatureNames.length,
-        metric: "restricted-assay evidence tier",
+        metric: "support label",
       }),
       publication: options.publication,
     });
@@ -7346,8 +7453,21 @@ Renders a plot of mutational profiles in a given div element ID.
       observedRows,
       reconstructedRows
     );
+    const comparisonMargin = comparison.layout?.margin || {};
+    const residualWidth = Number(options.width || options.plotWidth) || 1180;
+    const residualHeight = Number(options.height || options.plotHeight) || 660;
     const layout = {
       ...comparison.layout,
+      autosize: false,
+      width: Math.max(960, residualWidth),
+      height: Math.max(560, residualHeight),
+      margin: {
+        ...comparisonMargin,
+        l: Math.max(Number(comparisonMargin.l) || 0, 76),
+        r: Math.max(Number(comparisonMargin.r) || 0, 112),
+        t: Math.max(Number(comparisonMargin.t) || 0, 108),
+        b: Math.max(Number(comparisonMargin.b) || 0, 150),
+      },
       title: `${comparison.layout?.title || ""}<br><sup>${selectedSample.sample}: observed, reconstructed, and residual difference</sup>`,
     };
     plotGraphWithPlotlyAndMakeDataDownloadable(
