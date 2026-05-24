@@ -589,37 +589,6 @@ const assets = [
     ].join(""),
   },
   {
-    file: "sdk-panel-evidence.svg",
-    title: "Panel/WES evidence review",
-    desc: "Assay coverage, support tiers, and evidence trajectory",
-    accent: color.cyan,
-    secondary: color.gold,
-    bg: ["#f9fcfb", "#edf8f6", "#fff7df"],
-    backdrop: (id) => backdrops.map(id, color.cyan, color.gold),
-    body: (id) => [
-      card(78, 112, 314, 304, [
-        circle(235, 264, 106, { fill: `${color.cyan}10`, stroke: `${color.cyan}28`, "stroke-width": 18 }),
-        circle(235, 264, 68, { fill: "none", stroke: `${color.gold}35`, "stroke-width": 14 }),
-        circle(235, 264, 30, { fill: color.cyan }),
-        line(235, 158, 235, 370, { stroke: color.cyan, "stroke-width": 4, opacity: 0.5 }),
-        line(129, 264, 341, 264, { stroke: color.cyan, "stroke-width": 4, opacity: 0.5 }),
-        spark([[154, 314], [190, 260], [234, 282], [276, 212], [320, 244]], color.gold, { width: 5 }),
-      ].join(""), { filter: `url(#${id}-shadow)`, rx: 34 }),
-      card(448, 154, 158, 230, [
-        circle(512, 212, 18, { fill: color.green }),
-        circle(512, 270, 18, { fill: color.gold }),
-        circle(512, 328, 18, { fill: color.rose }),
-        rect(548, 203, 34, 18, { rx: 9, fill: "#dfeae4" }),
-        rect(548, 261, 48, 18, { rx: 9, fill: "#dfeae4" }),
-        rect(548, 319, 28, 18, { rx: 9, fill: "#dfeae4" }),
-      ].join(""), { filter: `url(#${id}-shadow)`, rx: 30 }),
-      card(660, 166, 218, 206, [
-        heatmap(704, 206, 5, 4, 26, [color.cyan, color.blue, color.green, color.gold]),
-        path("M 704 334 C 742 294 784 350 826 306", { fill: "none", stroke: color.cyan, "stroke-width": 7, "stroke-linecap": "round" }),
-      ].join(""), { filter: `url(#${id}-shadow)`, rx: 32 }),
-    ].join(""),
-  },
-  {
     file: "sdk-nmf-extraction.svg",
     title: "Discovery extraction (NMF)",
     desc: "Spectrum matrix separated into signature and exposure factors",

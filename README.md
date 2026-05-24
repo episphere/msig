@@ -391,7 +391,6 @@ The SDK includes focused Observable Kit notebooks for browser testing without lo
 - `notebooks/msig-sdk-maf-fit-report.onb.html`: raw variant rows to checked SBS96, SBS1536, DBS78, and ID83 spectra.
 - `notebooks/msig-sdk-qc-walkthrough.onb.html`: known-signature fitting QC and cohort triage.
 - `notebooks/msig-sdk-cohort-panel-workflow.onb.html`: cohort metadata, group interpretation, and restricted-assay review.
-- `notebooks/msig-sdk-panel-evidence-tiers.onb.html`: panel/WES support tiers and assay-coverage evidence.
 - `notebooks/msig-sdk-nmf-extraction.onb.html`: browser-sized NMF extraction and rank diagnostics.
 - `notebooks/msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals and threshold sensitivity.
 - `notebooks/msig-sdk-export-report.onb.html`: report packet builder with provenance and audit checks.

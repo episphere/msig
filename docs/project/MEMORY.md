@@ -69,7 +69,6 @@ This file records durable project context for future work on the mSigSDK codebas
 - `notebooks/msig-sdk-maf-fit-report.onb.html`: raw variant rows to checked SBS96 spectra.
 - `notebooks/msig-sdk-qc-walkthrough.onb.html`: known-signature QC triage.
 - `notebooks/msig-sdk-cohort-panel-workflow.onb.html`: cohort metadata, group interpretation, and restricted-assay limits.
-- `notebooks/msig-sdk-panel-evidence-tiers.onb.html`: panel/WES support tiers and assay-coverage evidence.
 - `notebooks/msig-sdk-nmf-extraction.onb.html`: native mSigSDK discovery extraction, rank diagnostics, learned profiles, sample contributions, and review bundle exports.
 - `notebooks/msig-sdk-uncertainty-thresholds.onb.html`: bootstrap intervals, cutoff sensitivity, stability decisions, and uncertainty exports.
 - `notebooks/msig-sdk-export-report.onb.html`: focused report packet builder.

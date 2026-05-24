@@ -23,7 +23,6 @@ const previewImages = {
   mafFitReport: "images/notebook-previews/sdk-maf-fit-report.svg",
   qcTriage: "images/notebook-previews/sdk-qc-triage.svg",
   cohortPanel: "images/notebook-previews/sdk-cohort-panel-workflow.svg",
-  panelEvidence: "images/notebook-previews/sdk-panel-evidence.svg",
   nmfExtraction: "images/notebook-previews/sdk-nmf-extraction.svg",
   uncertaintyCutoffs: "images/notebook-previews/sdk-uncertainty-cutoffs.svg",
   reportPacket: "images/notebook-previews/sdk-report-packet.svg",
@@ -93,13 +92,6 @@ const overrides = {
     image: previewImages.nmfExtraction,
     workflowGroup: "core",
     order: 40,
-  },
-  "msig-sdk-panel-evidence-tiers.onb.html": {
-    title: "Panel/WES evidence review",
-    summary: "Review panel/WES support tiers with assay coverage and mutation-count evidence.",
-    image: previewImages.panelEvidence,
-    workflowGroup: "core",
-    order: 35,
   },
   "msig-sdk-multi-engine-comparison.onb.html": {
     title: "Multi-tool comparison",

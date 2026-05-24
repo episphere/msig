@@ -132,15 +132,6 @@ const NOTEBOOK_LINKS = [
     result: "Cohort-level interpretation with assay limitations kept visible.",
   },
   {
-    title: "Panel/WES evidence review",
-    file: "msig-sdk-panel-evidence-tiers.onb.html",
-    topic: "Restricted assays",
-    phase: "Check limits",
-    summary: "Explain which signatures are supported, limited, not detected, or not assessable.",
-    bestFor: "Your data came from a panel or WES assay and coverage may limit the answer.",
-    result: "Evidence tiers that explain what the assay can and cannot support.",
-  },
-  {
     title: "Discovery extraction (NMF)",
     file: "msig-sdk-nmf-extraction.onb.html",
     topic: "Discovery screening",

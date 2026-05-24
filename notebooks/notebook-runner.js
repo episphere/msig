@@ -49,13 +49,6 @@ const DEFAULT_NOTEBOOKS = [
     workflowGroupLabel: "Analyze Data",
   },
   {
-    file: "msig-sdk-panel-evidence-tiers.onb.html",
-    title: "Panel/WES evidence review",
-    summary: "Review panel/WES support tiers with assay coverage and mutation-count evidence.",
-    workflowGroup: "core",
-    workflowGroupLabel: "Analyze Data",
-  },
-  {
     file: "msig-sdk-cohort-panel-workflow.onb.html",
     title: "Cohort and panel workflow",
     summary: "Learn how cohort metadata, group interpretation, and restricted-assay limits connect in one example.",

@@ -57,17 +57,9 @@
       "workflowGroupLabel": "Analyze Data"
     },
     {
-      "file": "msig-sdk-panel-evidence-tiers.onb.html",
-      "title": "Panel/WES evidence review",
-      "summary": "Review panel/WES support tiers with assay coverage and mutation-count evidence.",
-      "image": "images/notebook-previews/sdk-panel-evidence.svg",
-      "workflowGroup": "core",
-      "workflowGroupLabel": "Analyze Data"
-    },
-    {
       "file": "msig-sdk-nmf-extraction.onb.html",
       "title": "Discovery extraction (NMF)",
-      "summary": "Screen demo spectra with native mSigSDK NMF, rank checks, and review bundle exports.",
+      "summary": "Screen demo spectra with browser-scale NMF, rank checks, and external handoff files.",
       "image": "images/notebook-previews/sdk-nmf-extraction.svg",
       "workflowGroup": "core",
       "workflowGroupLabel": "Analyze Data"

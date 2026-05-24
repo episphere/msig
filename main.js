@@ -6450,6 +6450,11 @@ Renders a plot of mutational profiles in a given div element ID.
       .domain([0, d3.max(signatureSummary, (row) => row.total) || 1])
       .range([0, compactLayout ? 64 : 76]);
 
+    svg
+      .append("desc")
+      .text(
+        `${sampleNames.length} samples by ${displaySignatures.length} displayed signatures. Top signatures are ranked by cohort total exposure; ${hiddenSignatures.length} lower-ranked signatures are grouped into Other.`
+      );
     const otherSummary = signatureSummary.find((summary) => summary.hidden);
     const otherIndex = otherSummary ? signatureSummary.indexOf(otherSummary) : -1;
     const topPanelY = 18;
@@ -6482,7 +6487,7 @@ Renders a plot of mutational profiles in a given div element ID.
       .attr("y", 60)
       .attr("font", "650 10.5px Arial, sans-serif")
       .attr("fill", SCIENTIFIC_COLORS.gray)
-      .text("Bars rank signatures by total fitted exposure; percentages show samples above cutoff.");
+      .text("Totals by signature; percent = samples above cutoff.");
     svg
       .append("line")
       .attr("x1", heatX)
@@ -6556,7 +6561,7 @@ Renders a plot of mutational profiles in a given div element ID.
           .attr("text-anchor", "middle")
           .attr("font", "700 8.8px Arial, sans-serif")
           .attr("fill", SCIENTIFIC_COLORS.green)
-          .text(`${hiddenSignatures.length} grouped`);
+          .text(`${hiddenSignatures.length} grp`);
       }
     });
     svg
@@ -6620,7 +6625,7 @@ Renders a plot of mutational profiles in a given div element ID.
       .attr("y", rowHeight / 2 + 4)
       .attr("font", "700 10.5px Arial, sans-serif")
       .attr("fill", SCIENTIFIC_COLORS.darkGray)
-      .text((row) => compactPlotLabel(row.sample, 18))
+      .text((row) => compactPlotLabel(row.sample, compactLayout ? 21 : 26))
       .append("title")
       .text((row) => row.sample);
     rows
@@ -6650,6 +6655,13 @@ Renders a plot of mutational profiles in a given div element ID.
       )
       .on("mouseleave", hideTooltip);
     rows
+      .append("text")
+      .attr("x", burdenValueX)
+      .attr("y", rowHeight / 2 + 4)
+      .attr("font", "700 9.8px Arial, sans-serif")
+      .attr("fill", SCIENTIFIC_COLORS.gray)
+      .text((row) => formatPlotNumber(row.burden, 0));
+    rows
       .selectAll("rect.msig-cohort-exposure-cell")
       .data((row) =>
         displaySignatures.map((signature) => ({
@@ -6668,9 +6680,9 @@ Renders a plot of mutational profiles in a given div element ID.
       .attr("rx", 2)
       .attr("fill", (cell) => (cell.exposure > 0 ? color(cell.exposure) : "#F8FAFC"))
       .attr("stroke", (cell) =>
-        cell.signature === cell.dominantSignature ? SCIENTIFIC_COLORS.darkGray : "#ffffff"
+        cell.signature === cell.dominantSignature ? SCIENTIFIC_COLORS.darkGray : "#E2E8F0"
       )
-      .attr("stroke-width", (cell) => (cell.signature === cell.dominantSignature ? 1.3 : 0.7))
+      .attr("stroke-width", (cell) => (cell.signature === cell.dominantSignature ? 1.4 : 0.65))
       .on("mousemove", (event, cell) =>
         showTooltip(
           event,
@@ -6694,7 +6706,10 @@ Renders a plot of mutational profiles in a given div element ID.
     rows
       .append("circle")
       .attr("cx", (row) =>
-        fitX + (Number.isFinite(row.fitCosine) ? cosineScale(row.fitCosine) : 0)
+        fitX +
+        (Number.isFinite(row.fitCosine)
+          ? Math.max(0, Math.min(fitWidth, cosineScale(row.fitCosine)))
+          : 0)
       )
       .attr("cy", rowHeight / 2)
       .attr("r", (row) => (Number.isFinite(row.fitCosine) ? 4.3 : 0))
@@ -6712,9 +6727,31 @@ Renders a plot of mutational profiles in a given div element ID.
       )
       .on("mouseleave", hideTooltip);
 
+    svg
+      .append("rect")
+      .attr("x", heatX - 5)
+      .attr("y", y0 - 5)
+      .attr("width", heatWidth + 10)
+      .attr("height", heatHeight + 10)
+      .attr("rx", 8)
+      .attr("fill", "none")
+      .attr("stroke", "#CBD5E1");
+    if (otherIndex >= 0) {
+      svg
+        .append("line")
+        .attr("x1", heatX + otherIndex * cellWidth - 2)
+        .attr("x2", heatX + otherIndex * cellWidth - 2)
+        .attr("y1", y0 - 5)
+        .attr("y2", y0 + heatHeight + 5)
+        .attr("stroke", "#059669")
+        .attr("stroke-width", 1.2)
+        .attr("stroke-dasharray", "2 3")
+        .attr("opacity", 0.75);
+    }
+
     const legendX = heatX;
-    const legendY = height - 38;
-    const legendWidth = Math.min(240, heatWidth);
+    const legendY = height - 56;
+    const legendWidth = Math.min(220, heatWidth);
     const gradientId = `msig-cohort-exposure-gradient-${Math.random().toString(36).slice(2)}`;
     const defs = svg.append("defs");
     const gradient = defs.append("linearGradient").attr("id", gradientId).attr("x1", "0%").attr("x2", "100%");
@@ -6724,22 +6761,59 @@ Renders a plot of mutational profiles in a given div element ID.
     svg
       .append("rect")
       .attr("x", legendX)
-      .attr("y", legendY)
+      .attr("y", legendY + 8)
       .attr("width", legendWidth)
       .attr("height", 12)
       .attr("rx", 6)
       .attr("fill", `url(#${gradientId})`);
-    svg.append("text").attr("x", legendX).attr("y", legendY - 8).attr("font", "700 11px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Relative exposure");
-    svg.append("text").attr("x", legendX).attr("y", legendY + 30).attr("font", "700 10px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("0");
-    svg.append("text").attr("x", legendX + legendWidth).attr("y", legendY + 30).attr("text-anchor", "end").attr("font", "700 10px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text(d3.format(".0%")(maxExposure));
+    svg.append("text").attr("x", legendX).attr("y", legendY).attr("font", "700 11px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("Relative exposure");
+    svg.append("text").attr("x", legendX).attr("y", legendY + 36).attr("font", "700 10px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text("0");
+    svg.append("text").attr("x", legendX + legendWidth).attr("y", legendY + 36).attr("text-anchor", "end").attr("font", "700 10px Arial, sans-serif").attr("fill", SCIENTIFIC_COLORS.gray).text(d3.format(".0%")(maxExposure));
+    svg
+      .append("rect")
+      .attr("x", fitX)
+      .attr("y", legendY + 10)
+      .attr("width", fitWidth)
+      .attr("height", 8)
+      .attr("rx", 4)
+      .attr("fill", "#F0EFE3")
+      .attr("stroke", "#E2E8F0");
+    svg
+      .append("line")
+      .attr("x1", fitX)
+      .attr("x2", fitX)
+      .attr("y1", legendY + 7)
+      .attr("y2", legendY + 22)
+      .attr("stroke", "#94A3B8");
+    svg
+      .append("line")
+      .attr("x1", fitX + fitWidth)
+      .attr("x2", fitX + fitWidth)
+      .attr("y1", legendY + 7)
+      .attr("y2", legendY + 22)
+      .attr("stroke", "#94A3B8");
     svg
       .append("text")
-      .attr("x", width - 34)
-      .attr("y", legendY + 4)
-      .attr("text-anchor", "end")
+      .attr("x", fitX)
+      .attr("y", legendY)
       .attr("font", "700 11px Arial, sans-serif")
       .attr("fill", SCIENTIFIC_COLORS.gray)
-      .text(`Fit cosine scale: ${formatPlotNumber(minCosine, 3)} to 1`);
+      .text("Fit cosine");
+    svg
+      .append("text")
+      .attr("x", fitX)
+      .attr("y", legendY + 36)
+      .attr("font", "700 10px Arial, sans-serif")
+      .attr("fill", SCIENTIFIC_COLORS.gray)
+      .text(formatPlotNumber(minCosine, 3));
+    svg
+      .append("text")
+      .attr("x", fitX + fitWidth)
+      .attr("y", legendY + 36)
+      .attr("text-anchor", "end")
+      .attr("font", "700 10px Arial, sans-serif")
+      .attr("fill", SCIENTIFIC_COLORS.gray)
+      .text("1");
 
     return {
       samples: displayRows,

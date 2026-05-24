@@ -23,7 +23,6 @@ Each notebook should read as a stepwise researcher workflow. Narrative cells sho
 
 - `msig-sdk-qc-walkthrough.onb.html`: known-signature QC objects: burden, reconstruction, residuals, warnings, and review steps.
 - `msig-sdk-cohort-panel-workflow.onb.html`: panel/WES assay planning with public cohorts, real BED targets, retained burden, and signature assessability.
-- `msig-sdk-panel-evidence-tiers.onb.html`: panel/WES support tiers, assay-coverage visuals, and review reasons.
 - `msig-sdk-nmf-extraction.onb.html`: native mSigSDK discovery extraction, rank diagnostics, learned profiles, sample contributions, and review bundle exports.
 
 ### Reliability, reporting, and interoperability
