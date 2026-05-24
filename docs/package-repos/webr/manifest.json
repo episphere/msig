@@ -45,6 +45,30 @@
       "filename": "bin/emscripten/contrib/4.6/GenSA_1.1.15.tgz",
       "available": true,
       "sha256": "61a190dbe7c92461803c266341a46f7ad6f396f344eecc398e8d6cf87bc67452"
+    },
+    {
+      "tool": "sigminer",
+      "package": "NMF",
+      "version": "0.28",
+      "filename": "bin/emscripten/contrib/4.6/NMF_0.28.tgz",
+      "available": true,
+      "sha256": "39bab2a4b95d0343bccddb6a8e06ea4b86315611bbaa840bb1c6576661db3b76"
+    },
+    {
+      "tool": "sigminer",
+      "package": "Biobase",
+      "version": "2.72.0",
+      "filename": "bin/emscripten/contrib/4.6/Biobase_2.72.0.tgz",
+      "available": true,
+      "sha256": "c59eb04c41086568dbe4c70a2b48ad85290230a0bdfa6a419dba6fbe26aef789"
+    },
+    {
+      "tool": "sigminer",
+      "package": "BiocGenerics",
+      "version": "0.58.1",
+      "filename": "bin/emscripten/contrib/4.6/BiocGenerics_0.58.1.tgz",
+      "available": true,
+      "sha256": "554cead72191da24b40085393223075c2144eaabdb351b5842b782d07fe479f1"
     }
   ]
 }

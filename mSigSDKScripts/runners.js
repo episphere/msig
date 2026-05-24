@@ -37,6 +37,13 @@ function trimTrailingSlash(value) {
   return String(value || "").replace(/\/+$/, "");
 }
 
+function normalizeRepositoryUrls(value) {
+  const repositories = normalizeArray(value)
+    .map((entry) => trimTrailingSlash(entry))
+    .filter(Boolean);
+  return repositories.length ? repositories : [DEFAULT_WEBR_REPOSITORY_URL];
+}
+
 function createPyodideWorkerSource() {
   return `
 let pyodideReadyPromise = null;
@@ -563,10 +570,11 @@ function webRPackageIndexUrls({
   binaryRVersion = DEFAULT_WEBR_BINARY_R_VERSION,
   packageIndexUrls = [],
 } = {}) {
-  const base = trimTrailingSlash(repositoryUrl);
   return unique([
     ...normalizeArray(packageIndexUrls),
-    `${base}/bin/emscripten/contrib/${binaryRVersion}/PACKAGES`,
+    ...normalizeRepositoryUrls(repositoryUrl).map(
+      (base) => `${base}/bin/emscripten/contrib/${binaryRVersion}/PACKAGES`
+    ),
   ]);
 }
 

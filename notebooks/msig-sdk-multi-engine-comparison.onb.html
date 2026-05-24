@@ -24,6 +24,10 @@ const {
 } = mSigSDK.presentation;
 
 const engineDataBase = "../docs/manuscript/experiments/e2_adapter_fidelity/data/";
+const engineWebRRepositoryUrls = Object.freeze([
+  new URL("../docs/package-repos/webr", location.href).href,
+  "https://repo.r-wasm.org",
+]);
 const PACKAGE_RUNTIME_ROWS = mSigSDK.adapters.listPackageRuntimes().map((tool) => ({
   tool: tool.tool,
   version: tool.packageVersion,
@@ -1045,6 +1049,8 @@ async function engineRunDeconstructSigsEngine(spectra, signatures, contexts) {
     {
       contexts,
       signatureCutoff: 0.01,
+      repositoryUrl: [...engineWebRRepositoryUrls],
+      binaryRVersion: "4.6",
       timeoutMs: 300000
     }
   );

@@ -47,6 +47,16 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
       bundledPyodideWheelPackage("musical-1.0.0-py3-none-any.whl"),
       bundledPyodideWheelPackage("seaborn-0.13.2-py3-none-any.whl"),
     ]);
+    const DEFAULT_WEBR_REPOSITORY_URL = new URL("../docs/package-repos/webr", location.href).href;
+    const DEFAULT_WEBR_DEPENDENCY_REPOSITORY_URL = "https://repo.r-wasm.org";
+    const DEFAULT_WEBR_BINARY_R_VERSION = "4.6";
+
+    function webRRepositoryUrls() {
+      const repositoryUrl = workflowState.parameters.webrRepositoryUrl || DEFAULT_WEBR_REPOSITORY_URL;
+      return repositoryUrl === DEFAULT_WEBR_REPOSITORY_URL
+        ? [DEFAULT_WEBR_REPOSITORY_URL, DEFAULT_WEBR_DEPENDENCY_REPOSITORY_URL]
+        : repositoryUrl;
+    }
 
     const workflowState = {
       contexts: sbs96Contexts(),
@@ -74,8 +84,8 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
         pyodideTimeoutMs: 300000,
         webrTimeoutMs: 300000,
         webrModuleUrl: "https://webr.r-wasm.org/latest/webr.mjs",
-        webrRepositoryUrl: "https://repo.r-wasm.org",
-        webrBinaryRVersion: "4.5",
+        webrRepositoryUrl: DEFAULT_WEBR_REPOSITORY_URL,
+        webrBinaryRVersion: DEFAULT_WEBR_BINARY_R_VERSION,
         sigProfilerAssignmentPackage: "SigProfilerAssignment==1.1.3",
         sigProfilerGenomeBuild: "GRCh37",
         sigProfilerCosmicVersion: 3.5,
@@ -1465,7 +1475,7 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
             contexts: workflowState.contexts,
             signatureCutoff: workflowState.parameters.exposureThreshold,
             webRModuleURL: workflowState.parameters.webrModuleUrl,
-            repositoryUrl: workflowState.parameters.webrRepositoryUrl,
+            repositoryUrl: webRRepositoryUrls(),
             binaryRVersion: workflowState.parameters.webrBinaryRVersion,
             timeoutMs: workflowState.parameters.webrTimeoutMs,
           }
@@ -1482,7 +1492,7 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
             contexts: workflowState.contexts,
             method: workflowState.parameters.sigminerMethod,
             webRModuleURL: workflowState.parameters.webrModuleUrl,
-            repositoryUrl: workflowState.parameters.webrRepositoryUrl,
+            repositoryUrl: webRRepositoryUrls(),
             binaryRVersion: workflowState.parameters.webrBinaryRVersion,
             timeoutMs: workflowState.parameters.webrTimeoutMs,
           }
@@ -2763,7 +2773,7 @@ These controls choose the fitting engine and package settings. Check the input f
     const webRRepositoryField = field(
       "WebR package repository",
       webRRepositoryInput,
-      "Exact R-package execution installs packages from this WebAssembly package repository."
+      "Exact R-package execution installs adapter packages from the bundled repository and dependencies from repo.r-wasm.org."
     );
     const webRBinaryVersionField = field(
       "WebR R binary version",
@@ -2793,8 +2803,8 @@ These controls choose the fitting engine and package settings. Check the input f
       workflowState.parameters.pyodideTimeoutMs = parseNumber(pyodideTimeoutInput.value, 300000);
       workflowState.parameters.webrTimeoutMs = parseNumber(webRTimeoutInput.value, 300000);
       workflowState.parameters.webrModuleUrl = webRModuleInput.value.trim() || "https://webr.r-wasm.org/latest/webr.mjs";
-      workflowState.parameters.webrRepositoryUrl = webRRepositoryInput.value.trim() || "https://repo.r-wasm.org";
-      workflowState.parameters.webrBinaryRVersion = webRBinaryVersionInput.value.trim() || "4.5";
+      workflowState.parameters.webrRepositoryUrl = webRRepositoryInput.value.trim() || DEFAULT_WEBR_REPOSITORY_URL;
+      workflowState.parameters.webrBinaryRVersion = webRBinaryVersionInput.value.trim() || DEFAULT_WEBR_BINARY_R_VERSION;
       workflowState.parameters.musicalPackage = musicalPackageInput.value.trim();
       workflowState.parameters.musicalMethod = musicalMethodInput.value.trim() || "likelihood_bidirectional";
       workflowState.parameters.musicalThreshold = parseNumber(musicalThresholdInput.value, 0.001);

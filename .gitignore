@@ -48,7 +48,10 @@ docs/package-repos/**/PACKAGES*
 !docs/package-repos/webr/bin/emscripten/contrib/4.6/PACKAGES
 !docs/package-repos/webr/bin/emscripten/contrib/4.6/PACKAGES.gz
 !docs/package-repos/webr/bin/emscripten/contrib/4.6/PACKAGES.rds
+!docs/package-repos/webr/bin/emscripten/contrib/4.6/Biobase_2.72.0.tgz
+!docs/package-repos/webr/bin/emscripten/contrib/4.6/BiocGenerics_0.58.1.tgz
 !docs/package-repos/webr/bin/emscripten/contrib/4.6/deconstructSigs_1.8.0.tgz
+!docs/package-repos/webr/bin/emscripten/contrib/4.6/NMF_0.28.tgz
 !docs/package-repos/webr/bin/emscripten/contrib/4.6/sigminer_2.3.1.tgz
 !docs/package-repos/webr/bin/emscripten/contrib/4.6/nnls_1.6.tgz
 !docs/package-repos/webr/bin/emscripten/contrib/4.6/quadprog_1.5-8.tgz
