@@ -14,7 +14,7 @@ Read the outputs as disagreement triage, not a leaderboard. The useful result is
 </script>
 
 <script type="module" pinned>
-const engineSdkUrl = new URL("../main.js?v=2026-05-20-multi-engine-triage", location.href).href;
+const engineSdkUrl = new URL("../main.js?v=2026-05-24-package-assets", location.href).href;
 const { mSigSDK } = await import(engineSdkUrl);
 
 const {
@@ -27,6 +27,25 @@ const engineDataBase = "../docs/manuscript/experiments/e2_adapter_fidelity/data/
 const engineWebRRepositoryUrls = Object.freeze([
   new URL("../docs/package-repos/webr", location.href).href,
   "https://repo.r-wasm.org",
+]);
+const enginePyodideWheelPackage = (filename) => ({
+  spec: new URL(`../docs/package-repos/pyodide/${filename}`, location.href).href,
+  options: { deps: false },
+});
+const engineSigProfilerAssignmentMicropipPackages = Object.freeze([
+  "sigprofilerassignment-1.1.3-py3-none-any.whl",
+  "sigprofilermatrixgenerator-1.3.6-py3-none-any.whl",
+  "sigprofilerplotting-1.4.3-py3-none-any.whl",
+  "alive_progress-3.3.0-py3-none-any.whl",
+  "about_time-4.2.1-py3-none-any.whl",
+  "graphemeu-0.7.2-py3-none-any.whl",
+  "pdf2image-1.17.0-py3-none-any.whl",
+  "pypdf-6.11.0-py3-none-any.whl",
+  "reportlab-4.5.1-py3-none-any.whl",
+].map(enginePyodideWheelPackage));
+const engineMusicalMicropipPackages = Object.freeze([
+  enginePyodideWheelPackage("musical-1.0.0-py3-none-any.whl"),
+  enginePyodideWheelPackage("seaborn-0.13.2-py3-none-any.whl"),
 ]);
 const PACKAGE_RUNTIME_ROWS = mSigSDK.adapters.listPackageRuntimes().map((tool) => ({
   tool: tool.tool,
@@ -825,19 +844,25 @@ const ENGINE_ROSTER = [
     name: "deconstructSigs",
     runtime: "Imported WebR package output",
     loadedOutput: "E2 browser deconstructSigs v1.8.0 exposure table",
-    unavailable: "Benchmark cache only"
+    dynamicRuntime: "R package through WebR",
+    dynamicLoadedOutput: "Computed automatically from the active spectra and reference catalog",
+    unavailable: "Package run not loaded"
   },
   {
     name: "sigminer",
     runtime: "Imported WebR package output",
     loadedOutput: "E2 browser sigminer v2.3.1 exposure table",
-    unavailable: "Benchmark cache only"
+    dynamicRuntime: "R package through WebR",
+    dynamicLoadedOutput: "Computed automatically from the active spectra and reference catalog",
+    unavailable: "Package run not loaded"
   },
   {
     name: "SigProfilerAssignment",
     runtime: "Imported Pyodide package output",
     loadedOutput: "E2 browser SigProfilerAssignment v1.1.3 exposure table",
-    unavailable: "Package run not requested"
+    dynamicRuntime: "Python package through Pyodide",
+    dynamicLoadedOutput: "Computed automatically from the active spectra and reference catalog",
+    unavailable: "Package run not loaded"
   },
   {
     name: "MuSiCal",
@@ -845,7 +870,7 @@ const ENGINE_ROSTER = [
     loadedOutput: "E2 browser MuSiCal v1.0.0 exposure table",
     dynamicRuntime: "Python package through Pyodide",
     dynamicLoadedOutput: "Computed automatically from the active spectra and reference catalog",
-    unavailable: "Package run not requested"
+    unavailable: "Package run not loaded"
   }
 ];
 
@@ -1056,6 +1081,19 @@ async function engineRunDeconstructSigsEngine(spectra, signatures, contexts) {
   );
 }
 
+async function engineRunSigminerEngine(spectra, signatures, contexts) {
+  return await mSigSDK.adapters.sigminer.run(
+    { spectra, signatures },
+    {
+      contexts,
+      method: "NNLS",
+      repositoryUrl: [...engineWebRRepositoryUrls],
+      binaryRVersion: "4.6",
+      timeoutMs: 300000
+    }
+  );
+}
+
 function enginePackageJobs() {
   return [
     {
@@ -1064,6 +1102,13 @@ function enginePackageJobs() {
       running: "Running deconstructSigs in WebR.",
       loadedOutput: "Computed by deconstructSigs in WebR for the active data",
       run: () => engineRunDeconstructSigsEngine(engineSpectra, engineReferenceSignatures, engineContextNames)
+    },
+    {
+      name: "sigminer",
+      runtime: "R package through WebR",
+      running: "Running sigminer in WebR.",
+      loadedOutput: "Computed by sigminer in WebR for the active data",
+      run: () => engineRunSigminerEngine(engineSpectra, engineReferenceSignatures, engineContextNames)
     },
     {
       name: "SigProfilerAssignment",
@@ -1077,6 +1122,7 @@ function enginePackageJobs() {
           genomeBuild: "GRCh37",
           cosmicVersion: 3.5,
           exome: false,
+          micropipPackages: [...engineSigProfilerAssignmentMicropipPackages],
           timeoutMs: 300000
         }
       )
@@ -1092,6 +1138,7 @@ function enginePackageJobs() {
           contexts: engineContextNames,
           runtime: "pyodide",
           threshold: 0.01,
+          micropipPackages: [...engineMusicalMicropipPackages],
           timeoutMs: 300000
         }
       )

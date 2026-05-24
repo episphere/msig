@@ -25,8 +25,10 @@ import {
 } from "./packageRuntimes.js";
 
 const ADAPTER_SCHEMA_VERSION = "msig.adapters.v0.3";
+const bundledPyodideWheelUrl = (filename) =>
+  new URL(`../docs/package-repos/pyodide/${filename}`, import.meta.url).href;
 const DEFAULT_SPA_PACKAGE =
-  "docs/package-repos/pyodide/sigprofilerassignment-1.1.3-py3-none-any.whl";
+  bundledPyodideWheelUrl("sigprofilerassignment-1.1.3-py3-none-any.whl");
 const DEFAULT_SPA_VERSION = "1.1.3";
 const DEFAULT_SPE_PACKAGE = "SigProfilerExtractor==1.2.6";
 const DEFAULT_SPMG_PACKAGE = "SigProfilerMatrixGenerator==1.3.6";
@@ -36,9 +38,9 @@ const DEFAULT_SPP_PACKAGE = "sigProfilerPlotting==1.4.3";
 const DEFAULT_DECONSTRUCTSIGS_WEBR_PACKAGES = ["deconstructSigs"];
 const DEFAULT_SIGMINER_WEBR_PACKAGES = ["sigminer"];
 const DEFAULT_MUSICAL_PACKAGE =
-  "docs/package-repos/pyodide/musical-1.0.0-py3-none-any.whl";
+  bundledPyodideWheelUrl("musical-1.0.0-py3-none-any.whl");
 const DEFAULT_SEABORN_PACKAGE =
-  "docs/package-repos/pyodide/seaborn-0.13.2-py3-none-any.whl";
+  bundledPyodideWheelUrl("seaborn-0.13.2-py3-none-any.whl");
 const DEFAULT_PYODIDE_SCIENTIFIC_PACKAGES = [
   "numpy",
   "scipy",
@@ -54,14 +56,14 @@ const DEFAULT_MUSICAL_MICROPIP_PACKAGES = [
 ].map((spec) => ({ spec, options: { deps: false } }));
 const DEFAULT_SPA_MICROPIP_PACKAGES = [
   DEFAULT_SPA_PACKAGE,
-  "docs/package-repos/pyodide/sigprofilermatrixgenerator-1.3.6-py3-none-any.whl",
-  "docs/package-repos/pyodide/sigprofilerplotting-1.4.3-py3-none-any.whl",
-  "docs/package-repos/pyodide/alive_progress-3.3.0-py3-none-any.whl",
-  "docs/package-repos/pyodide/about_time-4.2.1-py3-none-any.whl",
-  "docs/package-repos/pyodide/graphemeu-0.7.2-py3-none-any.whl",
-  "docs/package-repos/pyodide/pdf2image-1.17.0-py3-none-any.whl",
-  "docs/package-repos/pyodide/pypdf-6.11.0-py3-none-any.whl",
-  "docs/package-repos/pyodide/reportlab-4.5.1-py3-none-any.whl",
+  bundledPyodideWheelUrl("sigprofilermatrixgenerator-1.3.6-py3-none-any.whl"),
+  bundledPyodideWheelUrl("sigprofilerplotting-1.4.3-py3-none-any.whl"),
+  bundledPyodideWheelUrl("alive_progress-3.3.0-py3-none-any.whl"),
+  bundledPyodideWheelUrl("about_time-4.2.1-py3-none-any.whl"),
+  bundledPyodideWheelUrl("graphemeu-0.7.2-py3-none-any.whl"),
+  bundledPyodideWheelUrl("pdf2image-1.17.0-py3-none-any.whl"),
+  bundledPyodideWheelUrl("pypdf-6.11.0-py3-none-any.whl"),
+  bundledPyodideWheelUrl("reportlab-4.5.1-py3-none-any.whl"),
 ].map((spec) => ({ spec, options: { deps: false } }));
 
 function normalizeArray(value) {

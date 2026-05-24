@@ -43,6 +43,17 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
       spec: new URL(`../docs/package-repos/pyodide/${filename}`, location.href).href,
       options: { deps: false },
     });
+    const DEFAULT_SPA_MICROPIP_PACKAGES = Object.freeze([
+      "sigprofilerassignment-1.1.3-py3-none-any.whl",
+      "sigprofilermatrixgenerator-1.3.6-py3-none-any.whl",
+      "sigprofilerplotting-1.4.3-py3-none-any.whl",
+      "alive_progress-3.3.0-py3-none-any.whl",
+      "about_time-4.2.1-py3-none-any.whl",
+      "graphemeu-0.7.2-py3-none-any.whl",
+      "pdf2image-1.17.0-py3-none-any.whl",
+      "pypdf-6.11.0-py3-none-any.whl",
+      "reportlab-4.5.1-py3-none-any.whl",
+    ].map(bundledPyodideWheelPackage));
     const DEFAULT_MUSICAL_MICROPIP_PACKAGES = Object.freeze([
       bundledPyodideWheelPackage("musical-1.0.0-py3-none-any.whl"),
       bundledPyodideWheelPackage("seaborn-0.13.2-py3-none-any.whl"),
@@ -86,7 +97,7 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
         webrModuleUrl: "https://webr.r-wasm.org/latest/webr.mjs",
         webrRepositoryUrl: DEFAULT_WEBR_REPOSITORY_URL,
         webrBinaryRVersion: DEFAULT_WEBR_BINARY_R_VERSION,
-        sigProfilerAssignmentPackage: "SigProfilerAssignment==1.1.3",
+        sigProfilerAssignmentPackage: "",
         sigProfilerGenomeBuild: "GRCh37",
         sigProfilerCosmicVersion: 3.5,
         sigProfilerExome: false,
@@ -1435,7 +1446,7 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
             contexts: workflowState.contexts,
             micropipPackages: parsePackageList(
               workflowState.parameters.sigProfilerAssignmentPackage,
-              ["SigProfilerAssignment==1.1.3"]
+              DEFAULT_SPA_MICROPIP_PACKAGES
             ),
             genomeBuild: workflowState.parameters.sigProfilerGenomeBuild,
             cosmicVersion: workflowState.parameters.sigProfilerCosmicVersion,
@@ -2756,9 +2767,9 @@ These controls choose the fitting engine and package settings. Check the input f
 	    const exposureThresholdField = parameterControl("exposureThreshold", { autoRefresh: false });
 	    const groupKeyField = parameterControl("groupKey", { autoRefresh: false });
     const spaPackageField = field(
-      "SigProfilerAssignment package name",
+      "SigProfilerAssignment package name or wheel URL",
       spaPackageInput,
-      "Package name or wheel URL used by browser Python. Default: SigProfilerAssignment==1.1.3."
+      "Package name or wheel URL used by browser Python. Leave blank to use the bundled SigProfilerAssignment wheels."
     );
     const spaGenomeField = field("SigProfiler genome build", spaGenomeInput);
     const spaCosmicField = field("COSMIC version", spaCosmicInput);
@@ -2796,7 +2807,7 @@ These controls choose the fitting engine and package settings. Check the input f
 	    function readParameters() {
       syncParametersFromControls();
       workflowState.parameters.fitEngine = engineSelect.value;
-      workflowState.parameters.sigProfilerAssignmentPackage = spaPackageInput.value.trim() || "SigProfilerAssignment==1.1.3";
+      workflowState.parameters.sigProfilerAssignmentPackage = spaPackageInput.value.trim();
       workflowState.parameters.sigProfilerGenomeBuild = spaGenomeInput.value.trim() || "GRCh37";
       workflowState.parameters.sigProfilerCosmicVersion = parseNumber(spaCosmicInput.value, 3.5);
       workflowState.parameters.sigProfilerExome = Boolean(spaExomeInput.checked);
