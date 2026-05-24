@@ -11,7 +11,7 @@
   </script>
 
   <script type="module" pinned id="setup">
-    const publicSdkUrl = new URL("../main.js?v=2026-05-15-gdc-context-fast-path", location.href).href;
+    const publicSdkUrl = new URL("../main.js?v=2026-05-24-figure-readability", location.href).href;
     const { mSigSDK } = await import(publicSdkUrl);
     const {
       burdenSampleRows,
@@ -364,14 +364,17 @@
       return { subset, selectedRows };
     }
 
-    async function plotCard(grid, title, renderer, fallback = null) {
+    async function plotCard(grid, title, renderer, fallback = null, options = {}) {
       const section = document.createElement("section");
       section.className = "workflow-plot-section";
+      const plotKind = options.plotKind || options.kind || "";
+      if (plotKind) section.classList.add(plotKind);
       const heading = document.createElement("h3");
       heading.textContent = title;
       const host = document.createElement("div");
       host.id = `public-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Math.random().toString(36).slice(2)}`;
       host.className = "workflow-plot-host";
+      if (plotKind) host.classList.add(plotKind);
       section.append(heading, host);
       grid.append(section);
       try {
@@ -975,31 +978,84 @@
       );
 
       if (sampleNames.length >= 2) {
-        await plotCard(plotGrid, "Cosine similarity", (host) =>
-          mSigSDK.mSigPortal.mSigPortalPlots.plotCosineSimilarityHeatMap(
-            active.spectra,
-            active.selection.study,
-            active.selection.strategy,
-            active.selection.cancer,
-            host,
-            true,
-            "Viridis",
-            false
-          )
+        await plotCard(
+          plotGrid,
+          "Cosine similarity",
+          (host) =>
+            mSigSDK.mSigPortal.mSigPortalPlots.plotCosineSimilarityHeatMap(
+              active.spectra,
+              active.selection.study,
+              active.selection.strategy,
+              active.selection.cancer,
+              host,
+              true,
+              "Viridis",
+              false,
+              {
+                cellSize: 18,
+                minPlotWidth: 1160,
+                minPlotHeight: 840,
+              }
+            ),
+          null,
+          { plotKind: "matrix" }
         );
       }
 
       if (sampleNames.length >= 3) {
-        await plotCard(plotGrid, "UMAP cohort projection", (host) =>
-          mSigSDK.mSigPortal.mSigPortalPlots.plotUMAPVisualization(
-            active.spectra,
-            label,
-            host.id,
-            sampleNames.length >= 4 ? 3 : 2,
-            0.1,
-            Math.max(2, Math.min(15, sampleNames.length - 1))
-          )
+        await plotCard(
+          plotGrid,
+          "UMAP cohort projection (2D)",
+          (host) =>
+            mSigSDK.mSigPortal.mSigPortalPlots.plotUMAPVisualization(
+              active.spectra,
+              label,
+              host.id,
+              2,
+              0.1,
+              Math.max(2, Math.min(15, sampleNames.length - 1)),
+              {
+                width: 980,
+                height: 640,
+                markerSize: 8,
+                markerOpacity: 0.86,
+              }
+            ),
+          null,
+          { plotKind: "projection" }
         );
+
+        if (sampleNames.length >= 4) {
+          await plotCard(
+            plotGrid,
+            "UMAP cohort projection (3D)",
+            (host) =>
+              mSigSDK.mSigPortal.mSigPortalPlots.plotUMAPVisualization(
+                active.spectra,
+                label,
+                host.id,
+                3,
+                0.1,
+                Math.max(2, Math.min(15, sampleNames.length - 1)),
+                {
+                  width: 1040,
+                  height: 760,
+                  markerSize: 5,
+                  markerOpacity: 0.88,
+                }
+              ),
+            null,
+            { plotKind: "projection" }
+          );
+        } else {
+          await plotCard(
+            plotGrid,
+            "UMAP cohort projection (3D)",
+            (host) => host.replaceChildren(placeholder("3D UMAP needs at least 4 samples. The 2D projection above is available for this cohort.")),
+            null,
+            { plotKind: "projection" }
+          );
+        }
 
         await plotCard(plotGrid, "Force-directed similarity tree", (host) =>
           mSigSDK.mSigPortal.mSigPortalPlots.plotForceDirectedTree(

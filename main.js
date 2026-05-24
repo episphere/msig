@@ -1173,6 +1173,138 @@ const mSigSDK = (function () {
     };
   }
 
+  function positivePlotNumber(value, fallback, { min = 1, max = Infinity } = {}) {
+    const numeric = Number(value);
+    const resolved = Number.isFinite(numeric) && numeric > 0 ? numeric : fallback;
+    return Math.max(min, Math.min(max, resolved));
+  }
+
+  function maxPlotLabelLength(labels = []) {
+    return Math.max(
+      0,
+      ...(labels || []).map((label) => String(label ?? "").length)
+    );
+  }
+
+  function denseMatrixPlotSize(rowNames = [], colNames = [], options = {}) {
+    const cellSize = positivePlotNumber(options.cellSize, 18, { min: 10, max: 42 });
+    const rowCount = Math.max(1, rowNames.length);
+    const colCount = Math.max(1, colNames.length);
+    const left = positivePlotNumber(
+      options.marginLeft,
+      Math.min(280, Math.max(120, 42 + maxPlotLabelLength(rowNames) * 6)),
+      { min: 80, max: 420 }
+    );
+    const bottom = positivePlotNumber(
+      options.marginBottom,
+      Math.min(360, Math.max(130, 58 + maxPlotLabelLength(colNames) * 5.5)),
+      { min: 90, max: 460 }
+    );
+    const top = positivePlotNumber(options.marginTop, 96, { min: 60, max: 180 });
+    const right = positivePlotNumber(options.marginRight, 108, { min: 72, max: 180 });
+    return {
+      cellSize,
+      margin: { l: left, r: right, t: top, b: bottom },
+      width: Math.ceil(
+        Math.max(
+          positivePlotNumber(options.minPlotWidth ?? options.width, 980, { min: 420 }),
+          left + right + colCount * cellSize
+        )
+      ),
+      height: Math.ceil(
+        Math.max(
+          positivePlotNumber(options.minPlotHeight ?? options.height, 720, { min: 360 }),
+          top + bottom + rowCount * cellSize
+        )
+      ),
+    };
+  }
+
+  function denseMatrixAxisLayout(labels = [], axisTitle, axis = "x", options = {}) {
+    const maxTickLabelLength = Number(options.maxTickLabelLength);
+    const ticktext =
+      Number.isFinite(maxTickLabelLength) && maxTickLabelLength > 0
+        ? labels.map((label) => compactPlotLabel(label, maxTickLabelLength))
+        : labels;
+    return {
+      title: axisTitle,
+      type: "category",
+      tickmode: "array",
+      tickvals: labels,
+      ticktext,
+      tickfont: { size: 10 },
+      automargin: true,
+      fixedrange: false,
+      ...(axis === "x"
+        ? { tickangle: 90, side: "bottom" }
+        : { autorange: "reversed" }),
+    };
+  }
+
+  function plotlyConfigFromLayout(layout = {}, publicationInfo = {}) {
+    const layoutConfig = layout?.meta?.plotlyConfig || {};
+    return {
+      displaylogo: false,
+      responsive: true,
+      scrollZoom: true,
+      toImageButtonOptions: {
+        filename: downloadSafeName(publicationInfo.title, "msigsdk-figure"),
+        format: "png",
+        scale: 2,
+      },
+      ...layoutConfig,
+      toImageButtonOptions: {
+        filename: downloadSafeName(publicationInfo.title, "msigsdk-figure"),
+        format: "png",
+        scale: 2,
+        ...(layoutConfig.toImageButtonOptions || {}),
+      },
+    };
+  }
+
+  function applyPlotlyContainerSizing(container, layout = {}) {
+    const width = Number(layout?.width);
+    const height = Number(layout?.height);
+    const isNotebookPlotHost = container.classList.contains("workflow-plot-host");
+    container.style.position = "relative";
+    container.style.boxSizing = "border-box";
+    container.style.maxWidth = "none";
+    if (!isNotebookPlotHost && Number.isFinite(width) && width > 0) {
+      container.style.width = `${Math.ceil(width)}px`;
+      container.style.minWidth = `${Math.ceil(width)}px`;
+    } else {
+      container.style.width = "100%";
+      container.style.minWidth = "0";
+    }
+    if (Number.isFinite(height) && height > 0) {
+      container.style.minHeight = `${Math.ceil(height)}px`;
+    }
+  }
+
+  function restoreNotebookPlotHostSizing(container) {
+    if (!container.classList.contains("workflow-plot-host")) return;
+    container.style.width = "100%";
+    container.style.minWidth = "0";
+    container.style.maxWidth = "100%";
+  }
+
+  function schedulePlotlyResize(plotly, container, layout = {}) {
+    const hasFixedSize = Number(layout?.width) > 0 || Number(layout?.height) > 0;
+    if (hasFixedSize || !plotly?.Plots?.resize) return;
+    const resize = () => {
+      try {
+        plotly.Plots.resize(container);
+      } catch (_error) {
+        // Plotly can reject resize while a graph is being removed.
+      }
+    };
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => requestAnimationFrame(resize));
+    } else {
+      setTimeout(resize, 0);
+    }
+  }
+
   function addStandaloneJsonDownloadControls(chart, payload, label) {
     if (!chart || chart.querySelector(".msig-d3-downloads")) return;
     const controls = document.createElement("div");
@@ -1213,25 +1345,31 @@ const mSigSDK = (function () {
       publication: resolvePlotPublication(publication),
     });
     const plotLayout = plotlyLayoutWithPublication(layout, publicationInfo);
+    const plotConfig = plotlyConfigFromLayout(plotLayout, publicationInfo);
+
+    container.classList.add("msig-publication-figure");
+    const figureClass = plotLayout?.meta?.figureClass;
+    if (figureClass) {
+      String(figureClass)
+        .split(/\s+/)
+        .filter(Boolean)
+        .forEach((className) => container.classList.add(className));
+    }
+    applyPlotlyContainerSizing(container, plotLayout);
 
     // Plot the graph using Plotly
-    plotly.newPlot(container, data, plotLayout, {
-      displaylogo: false,
-      responsive: true,
-      toImageButtonOptions: {
-        filename: downloadSafeName(publicationInfo.title, "msigsdk-figure"),
-        format: "png",
-        scale: 2,
-      },
-    });
+    const plotPromise = plotly.newPlot(container, data, plotLayout, plotConfig);
 
     // Get the container of the Plotly graph
     // Ensure the container has a relative position
-    container.style.position = "relative";
-    container.classList.add("msig-publication-figure");
-
     addPlotlyDownloadControls(container, plotly, data, plotLayout, publicationInfo);
     renderFigureFooter(container, publicationInfo);
+    Promise.resolve(plotPromise)
+      .then(() => {
+        restoreNotebookPlotHostSizing(container);
+        schedulePlotlyResize(plotly, container, plotLayout);
+      })
+      .catch(() => {});
 
     return container;
   }
@@ -1291,7 +1429,16 @@ const mSigSDK = (function () {
       .msig-publication-figure {
         position: relative;
         box-sizing: border-box;
+        min-width: 0;
         font-family: Inter, Arial, sans-serif;
+      }
+      .msig-publication-figure.msig-plotly-scrollable {
+        max-width: none;
+      }
+      .msig-publication-figure .plot-container,
+      .msig-publication-figure .svg-container,
+      .msig-publication-figure .main-svg {
+        max-width: none !important;
       }
       .msig-d3-header {
         display: flex;
@@ -1443,11 +1590,13 @@ const mSigSDK = (function () {
         max-width: none;
       }
       .msig-plotly-downloads {
-        position: absolute;
-        top: 8px;
-        right: 8px;
+        position: sticky;
+        top: 0;
+        right: 0;
         z-index: 10;
-        margin: 0;
+        width: fit-content;
+        max-width: 100%;
+        margin: 0 0 8px auto;
         border: 1px solid #e2e8f0;
         border-radius: 6px;
         background: rgba(255, 255, 255, 0.94);
@@ -1745,7 +1894,7 @@ const mSigSDK = (function () {
     });
 
     controls.append(labelNode, pngButton, svgButton, jsonButton);
-    container.appendChild(controls);
+    container.insertBefore(controls, container.firstChild);
   }
 
   function svgDownloadMarkup(svgNode, publication = null) {
@@ -3161,11 +3310,13 @@ Renders a plot of mutational profiles in a given div element ID.
     container.style.flexDirection = showTable ? 'row' : 'column';
     container.style.gap = '20px';
     container.style.width = '100%';
-    container.style.alignItems = 'center'; // Center items vertically
+    container.style.alignItems = 'stretch';
+    container.style.justifyContent = 'flex-start';
+    container.classList.add("msig-plotly-matrix-wrapper");
 
     const heatmapDiv = document.createElement('div');
     heatmapDiv.id = `${container.id || "cosineSimilarityHeatMap"}-heatmap`;
-    heatmapDiv.style.flex = showTable ? '1' : '1';
+    heatmapDiv.style.flex = showTable ? '0 0 auto' : '0 0 auto';
     container.appendChild(heatmapDiv);
 
     groupedData = extractMutationalSpectra(groupedData);
@@ -3199,27 +3350,51 @@ Renders a plot of mutational profiles in a given div element ID.
     let plotlyData = [
       {
         z: reorderedData.matrix,
-        x: reorderedData.rowNames,
-        y: reorderedData.colNames,
+        x: reorderedData.colNames,
+        y: reorderedData.rowNames,
         type: "heatmap",
         colorscale: colorscale,
+        zmin: 0,
+        zmax: 1,
+        hoverongaps: false,
+        hovertemplate:
+          "<b>Row:</b> %{y}<br><b>Column:</b> %{x}<br><b>Cosine similarity:</b> %{z:.3f}<extra></extra>",
+        colorbar: {
+          title: "Cosine",
+          lenmode: "pixels",
+          len: Math.max(280, Math.min(620, reorderedData.rowNames.length * 12)),
+        },
       },
     ];
 
-    const containerWidth = container.offsetWidth || container.clientWidth || 800;
+    const matrixSize = denseMatrixPlotSize(
+      reorderedData.rowNames,
+      reorderedData.colNames,
+      {
+        cellSize: options.cellSize ?? 18,
+        minPlotWidth: options.minPlotWidth ?? options.width ?? 1100,
+        minPlotHeight: options.minPlotHeight ?? options.height ?? 820,
+        marginTop: options.marginTop ?? 104,
+        marginRight: options.marginRight ?? 118,
+        marginLeft: options.marginLeft,
+        marginBottom: options.marginBottom,
+      }
+    );
     let layout = {
       title: `${studyName} ${cancerType} ${genomeDataType} Cosine Similarity Heatmap`,
-      height: 800,
-      width: showTable ? containerWidth * 0.6 : containerWidth,
-      xaxis: {
-        title: "Sample",
-        type: "category",
-        nticks: Object.keys(groupedData).length,
-      },
-      yaxis: {
-        title: "Sample",
-        type: "category",
-        nticks: Object.keys(groupedData).length,
+      autosize: false,
+      height: matrixSize.height,
+      width: matrixSize.width,
+      margin: matrixSize.margin,
+      xaxis: denseMatrixAxisLayout(reorderedData.colNames, "Sample", "x", options),
+      yaxis: denseMatrixAxisLayout(reorderedData.rowNames, "Sample", "y", options),
+      hovermode: "closest",
+      meta: {
+        figureClass: "msig-plotly-scrollable msig-plotly-matrix",
+        plotlyConfig: {
+          scrollZoom: true,
+          responsive: false,
+        },
       },
     };
 
@@ -3239,10 +3414,11 @@ Renders a plot of mutational profiles in a given div element ID.
       const tableDiv = document.createElement('div');
       tableDiv.id = `${container.id || "cosineSimilarityHeatMap"}-table`;
       tableDiv.style.flex = '1';
-      tableDiv.style.overflowX = 'auto';
+      tableDiv.style.minWidth = '360px';
+      tableDiv.style.overflow = 'auto';
       tableDiv.style.display = 'flex';  // Add flex display
-      tableDiv.style.alignItems = 'center';  // Center vertically
-      tableDiv.style.height = '800px';  // Match heatmap height
+      tableDiv.style.alignItems = 'flex-start';
+      tableDiv.style.maxHeight = `${matrixSize.height}px`;
       container.appendChild(tableDiv);
 
       const tableWrapper = document.createElement('div');  // Add wrapper for table
@@ -3539,39 +3715,108 @@ Renders a plot of mutational profiles in a given div element ID.
     );
     let plotType = nComponents === 3 ? "scatter3d" : "scatter";
     let axisLabels = nComponents === 3 ? ["X", "Y", "Z"] : ["X", "Y"];
+    const sampleNames = Object.keys(data);
+    const markerSize = positivePlotNumber(
+      options.markerSize,
+      nComponents === 3 ? 5 : 8,
+      { min: 2, max: 18 }
+    );
+    const markerOpacity = positivePlotNumber(options.markerOpacity, 0.86, {
+      min: 0.05,
+      max: 1,
+    });
+    const plotWidth = positivePlotNumber(
+      options.width ?? options.minPlotWidth,
+      nComponents === 3 ? 1040 : 980,
+      { min: 520 }
+    );
+    const plotHeight = positivePlotNumber(
+      options.height ?? options.minPlotHeight,
+      nComponents === 3 ? 760 : 640,
+      { min: 420 }
+    );
 
     let trace = [
       {
         x: embeddings.map((d) => d[0]),
         y: embeddings.map((d) => d[1]),
-        text: Object.keys(data),
+        text: sampleNames,
         mode: "markers",
         type: plotType,
-        marker: { size: 6 },
+        marker: {
+          size: markerSize,
+          opacity: markerOpacity,
+          color: embeddings.map((d) => d[0]),
+          colorscale: "Viridis",
+          line: { color: "rgba(15, 23, 42, 0.28)", width: 0.5 },
+        },
+        hovertemplate:
+          "<b>%{text}</b><br>UMAP 1: %{x:.3f}<br>UMAP 2: %{y:.3f}<extra></extra>",
       },
     ];
 
     if (nComponents === 3) {
       trace[0].z = embeddings.map((d) => d[2]);
+      trace[0].hovertemplate =
+        "<b>%{text}</b><br>UMAP 1: %{x:.3f}<br>UMAP 2: %{y:.3f}<br>UMAP 3: %{z:.3f}<extra></extra>";
 
       trace.push({
         alphahull: 7,
-        opacity: 0.1,
+        opacity: Number.isFinite(Number(options.meshOpacity))
+          ? Number(options.meshOpacity)
+          : 0.08,
         type: "mesh3d",
         x: embeddings.map((d) => d[0]),
         y: embeddings.map((d) => d[1]),
         z: embeddings.map((d) => d[2]),
+        hoverinfo: "skip",
+        showscale: false,
+        showlegend: false,
       });
     }
 
     let layout = {
       title: `${nComponents} Component UMAP Projection of ${datasetName} Dataset`,
-      xaxis: { title: axisLabels[0] },
-      yaxis: { title: axisLabels[1] },
+      autosize: false,
+      width: plotWidth,
+      height: plotHeight,
+      margin: { l: 74, r: 32, t: 96, b: 72 },
+      xaxis: {
+        title: axisLabels[0],
+        zeroline: false,
+        automargin: true,
+      },
+      yaxis: {
+        title: axisLabels[1],
+        zeroline: false,
+        automargin: true,
+        scaleanchor: nComponents === 2 ? "x" : undefined,
+        scaleratio: nComponents === 2 ? 1 : undefined,
+      },
+      hovermode: "closest",
+      dragmode: nComponents === 3 ? "turntable" : "pan",
+      meta: {
+        figureClass: "msig-plotly-scrollable msig-plotly-projection",
+        plotlyConfig: {
+          scrollZoom: true,
+          responsive: false,
+          ...(options.plotlyConfig || {}),
+        },
+      },
     };
 
     if (nComponents === 3) {
-      layout.scene = { zaxis: { title: axisLabels[2] } };
+      layout.margin = { l: 20, r: 20, t: 96, b: 28 };
+      layout.scene = {
+        xaxis: { title: axisLabels[0], zeroline: false },
+        yaxis: { title: axisLabels[1], zeroline: false },
+        zaxis: { title: axisLabels[2], zeroline: false },
+        aspectmode: "cube",
+        camera: {
+          eye: { x: 1.45, y: 1.45, z: 1.05 },
+          up: { x: 0, y: 0, z: 1 },
+        },
+      };
     }
 
     plotGraphWithPlotlyAndMakeDataDownloadable(divID, trace, layout, {
@@ -3916,7 +4161,7 @@ Renders a plot of mutational profiles in a given div element ID.
         colNames: Object.keys(dataset[Object.keys(dataset)[0]]),
       };
     }
-    if (colorscale == "custom") {
+    if (String(colorscale).toLowerCase() == "custom") {
       colorscale = [
         ["0.0", "rgb(49,54,149)"],
         ["0.025", "rgb(69,117,180)"],
@@ -3937,19 +4182,45 @@ Renders a plot of mutational profiles in a given div element ID.
       y: reorderedData.rowNames,
       type: "heatmap",
       colorscale: colorscale,
+      hoverongaps: false,
+      hovertemplate:
+        "<b>Sample:</b> %{y}<br><b>Signature:</b> %{x}<br><b>Exposure:</b> %{z:.4f}<extra></extra>",
     };
 
+    const exposureMatrixSize = denseMatrixPlotSize(
+      reorderedData.rowNames,
+      reorderedData.colNames,
+      {
+        cellSize: options.cellSize ?? 22,
+        minPlotWidth: options.minPlotWidth ?? options.width ?? 980,
+        minPlotHeight: options.minPlotHeight ?? options.height ?? 720,
+        marginTop: options.marginTop ?? 104,
+        marginRight: options.marginRight ?? 118,
+        marginLeft: options.marginLeft,
+        marginBottom: options.marginBottom,
+      }
+    );
     let layout = {
       title: `Mutational Signature Exposure for ${datasetName} Dataset`,
-      xaxis: {
-        title: "Samples",
-        nticks: Object.keys(dataset[Object.keys(dataset)[0]]).length,
+      autosize: false,
+      width: exposureMatrixSize.width,
+      height: exposureMatrixSize.height,
+      margin: exposureMatrixSize.margin,
+      xaxis: denseMatrixAxisLayout(
+        reorderedData.colNames,
+        "Mutational signature",
+        "x",
+        options
+      ),
+      yaxis: denseMatrixAxisLayout(reorderedData.rowNames, "Sample", "y", options),
+      hovermode: "closest",
+      meta: {
+        figureClass: "msig-plotly-scrollable msig-plotly-matrix",
+        plotlyConfig: {
+          scrollZoom: true,
+          responsive: false,
+        },
       },
-      yaxis: {
-        title: "Mutational Signatures",
-        nticks: Object.keys(dataset).length,
-      },
-      height: 800,
     };
 
     plotGraphWithPlotlyAndMakeDataDownloadable(divID, [data], layout, {

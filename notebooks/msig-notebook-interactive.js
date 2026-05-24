@@ -578,11 +578,14 @@ function renderDownloads(items) {
 async function plotCard(grid, label, renderer, fallback = null, options = {}) {
   const section = document.createElement("section");
   section.className = "workflow-plot-section";
+  const plotKind = options.plotKind || options.kind || "";
+  if (plotKind) section.classList.add(plotKind);
   const heading = document.createElement("h3");
   heading.textContent = label;
   const host = document.createElement("div");
   host.id = `interactive-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Math.random().toString(36).slice(2)}`;
   host.className = "workflow-plot-host";
+  if (plotKind) host.classList.add(plotKind);
   section.append(heading, host);
   grid.append(section);
   try {
@@ -595,6 +598,8 @@ async function plotCard(grid, label, renderer, fallback = null, options = {}) {
 async function plotSampleCard(grid, label, samples, initialSample, renderer, fallback = null, help = "", options = {}) {
   const section = document.createElement("section");
   section.className = "workflow-plot-section";
+  const plotKind = options.plotKind || options.kind || "";
+  if (plotKind) section.classList.add(plotKind);
   const heading = document.createElement("h3");
   heading.textContent = label;
   const controls = document.createElement("div");
@@ -614,6 +619,7 @@ async function plotSampleCard(grid, label, samples, initialSample, renderer, fal
   const host = document.createElement("div");
   host.id = `interactive-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Math.random().toString(36).slice(2)}`;
   host.className = "workflow-plot-host";
+  if (plotKind) host.classList.add(plotKind);
   section.append(heading, controls, status, host);
   grid.append(section);
 
@@ -780,17 +786,23 @@ async function runSpectraExplorer(app) {
     mSigSDK.qcPlots.plotMutationBurdenSummary(host, burden),
     presentation.table(presentation.burdenSampleRows(burden))
   );
-  await plotCard(outputs.plots, "Cosine similarity", (host) =>
-    mSigSDK.mSigPortal.mSigPortalPlots.plotCosineSimilarityHeatMap(
-      spectra,
-      "User data",
-      "WGS",
-      "SBS96 cohort",
-      host,
-      true,
-      "Viridis",
-      false
-    )
+  await plotCard(
+    outputs.plots,
+    "Cosine similarity",
+    (host) =>
+      mSigSDK.mSigPortal.mSigPortalPlots.plotCosineSimilarityHeatMap(
+        spectra,
+        "User data",
+        "WGS",
+        "SBS96 cohort",
+        host,
+        true,
+        "Viridis",
+        false,
+        { cellSize: 18, minPlotWidth: 1120, minPlotHeight: 820 }
+      ),
+    null,
+    { plotKind: "matrix" }
   );
   outputs.exports.append(renderDownloads([
     { filename: "interactive_spectra.tsv", text: mSigSDK.io.exportSigProfilerMatrix(spectra, { contexts }), label: "Download spectra TSV" },

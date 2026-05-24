@@ -5,19 +5,13 @@
 <script type="text/markdown">
 # End-to-end workflow
 
-Each tumor has a pattern of mutation types, and the workflow asks which known signature patterns could be mixed together to explain that observed pattern.
+Load data -> Run fit -> Review results -> Save report.
 
-One way to think about it is a mystery-drink problem. The observed mutation spectrum is the drink you taste. The reference signatures are possible ingredients. The fitting method guesses a recipe, such as "40% apple, 30% cherry, 30% banana." The reconstruction check then asks: if we mix the ingredients using that guessed recipe, does it recreate the original drink? If the reconstruction is close, the guess is more plausible; if it is not close, the result needs review.
-
-Start by loading a real public cohort through the mSigPortal APIs. The default selection is TCGA WES Lung-AdenoCa SBS96, but the menu lets you choose the public study, cancer type, sequencing strategy, mutation-pattern table, table size, and compatible reference signature catalog. You can also paste or upload your own spectra and signature catalog when adapting the workflow.
-
-The fitting method menu can run the built-in SDK fit plus the four executable external package adapters in the SDK runtime manifest: SigProfilerAssignment and MuSiCal through Pyodide, and deconstructSigs and sigminer through WebR. Native JavaScript NMF remains the SDK discovery workflow in the NMF notebook rather than an external package adapter. The downstream mSigSDK checks, plots, reports, and exports stay the same around whichever fitting method produced the contribution table.
-
-A close reconstruction is useful, but it is not the whole analysis. Some reference signatures look similar to each other, like two ingredients with similar flavor. The workflow also checks mutation counts, leftover pattern after fitting, uncertainty, cutoff sensitivity, and reference-signature similarity. These are review diagnostics: they tell you what deserves inspection before making a claim.
+This guided notebook keeps the default path short: load a real public TCGA Lung-AdenoCa SBS96 example, run the built-in mSigSDK fit, inspect the review cues, then save a report. Advanced dataset, engine, runtime, and review-threshold settings stay available in collapsed drawers.
 </script>
 
   <script type="module" pinned id="1">
-	    const workflowSdkUrl = new URL("../main.js?v=2026-05-17-webr-r-adapters", location.href).href;
+	    const workflowSdkUrl = new URL("../main.js?v=2026-05-24-figure-readability", location.href).href;
     const { mSigSDK } = await import(workflowSdkUrl);
     const {
       crossToolSummary,
@@ -123,6 +117,8 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
       interoperability: null,
       provenance: null,
       exposureEngineResult: null,
+      guidePreset: "quick_demo",
+      guideRunning: false,
     };
 
     const REVIEW_PARAMETER_KEYS = Object.freeze([
@@ -931,6 +927,18 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
         stack.append(node instanceof Node ? node : document.createTextNode(String(node)));
       }
       detail.append(summary, stack);
+      return detail;
+    }
+
+    function workflowAdvancedDrawer(label, content = [], options = {}) {
+      const detail = collapsibleOutput(label, content, options);
+      detail.classList.add("workflow-advanced-drawer");
+      if (options.description) {
+        const description = document.createElement("p");
+        description.className = "workflow-drawer-description";
+        description.textContent = options.description;
+        detail.querySelector(".workflow-output-stack")?.prepend(description);
+      }
       return detail;
     }
 
@@ -1817,12 +1825,172 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
       return workflowState.analysis;
     }
 
-	    display(metrics([
-	      { label: "SDK", value: mSigSDK.version, note: "Imported from ../main.js" },
-	      { label: "Mutation context type", value: "Selected by data", note: "Defaults to TCGA WES Lung-AdenoCa SBS96" },
-	      { label: "Fitting method", value: "Selectable", note: "Built-in mSigSDK, SigProfilerAssignment, MuSiCal, deconstructSigs, or sigminer" },
-	      { label: "Status", value: "Waiting for data", note: "Use the next cell" },
-	    ]));
+    const GUIDED_WORKFLOW_STEPS = Object.freeze([
+      {
+        key: "data",
+        label: "Load data",
+        help: "Use the TCGA Lung-AdenoCa example or open advanced inputs.",
+      },
+      {
+        key: "fit",
+        label: "Run fit",
+        help: "Use a preset, then run the selected fitting method.",
+      },
+      {
+        key: "review",
+        label: "Review results",
+        help: "Inspect priority samples, plots, and interpretation tables.",
+      },
+      {
+        key: "export",
+        label: "Save report",
+        help: "Download the reviewable workflow report first.",
+      },
+    ]);
+    const guidedWorkflowNodes = {
+      root: null,
+      next: null,
+      action: null,
+      steps: new Map(),
+    };
+
+    function guidedWorkflowSnapshot() {
+      const hasData = Boolean(workflowState.spectra && workflowState.signatures);
+      const hasAnalysis = Boolean(workflowState.analysis);
+      const current = workflowState.guideRunning
+        ? "fit"
+        : !hasData
+          ? "data"
+          : !hasAnalysis
+            ? "fit"
+            : "review";
+      const nextText = workflowState.guideRunning
+        ? "Running the selected fitting method and review checks."
+        : !hasData
+          ? "Next: choose Load example data in Step 1."
+          : !hasAnalysis
+            ? "Next: choose Run fit and review in Step 2."
+            : "Next: inspect review cues in Step 3, then download the workflow report in Step 4.";
+      const statuses = {
+        data: hasData ? "done" : current === "data" ? "current" : "locked",
+        fit: hasAnalysis ? "done" : current === "fit" ? "current" : hasData ? "ready" : "locked",
+        review: hasAnalysis ? "current" : "locked",
+        export: hasAnalysis ? "ready" : "locked",
+      };
+      return { current, hasData, hasAnalysis, nextText, statuses };
+    }
+
+    function syncGuidedWorkflowHeader() {
+      if (!guidedWorkflowNodes.root) return;
+      const snapshot = guidedWorkflowSnapshot();
+      guidedWorkflowNodes.next.textContent = snapshot.nextText;
+      if (guidedWorkflowNodes.action) {
+        guidedWorkflowNodes.action.disabled = workflowState.guideRunning;
+        guidedWorkflowNodes.action.textContent = workflowState.guideRunning
+          ? "Running..."
+          : !snapshot.hasData
+            ? "Load example data"
+            : !snapshot.hasAnalysis
+              ? "Run fit and review"
+              : "Review results";
+      }
+      GUIDED_WORKFLOW_STEPS.forEach((step, index) => {
+        const node = guidedWorkflowNodes.steps.get(step.key);
+        if (!node) return;
+        const status = snapshot.statuses[step.key] || "locked";
+        node.className = `workflow-guide-step ${status}`.trim();
+        node.setAttribute("aria-current", status === "current" ? "step" : "false");
+        node.querySelector("[data-guide-step-status]").textContent =
+          status === "done"
+            ? "Done"
+            : status === "current"
+              ? "Now"
+              : status === "ready"
+                ? "Ready"
+                : "Locked";
+        node.querySelector("[data-guide-step-index]").textContent =
+          status === "done" ? "OK" : String(index + 1);
+      });
+    }
+
+    function renderGuidedWorkflowHeader() {
+      const section = document.createElement("section");
+      section.className = "workflow-guide-shell";
+      const intro = document.createElement("div");
+      intro.className = "workflow-guide-intro";
+      const eyebrow = document.createElement("span");
+      eyebrow.textContent = "Guided workflow";
+      const heading = document.createElement("h2");
+      heading.textContent = "Load data -> Run fit -> Review results -> Save report";
+      const copy = document.createElement("p");
+      copy.textContent = "The default path uses a small public TCGA Lung-AdenoCa SBS96 cohort and the built-in mSigSDK quick fit. Open advanced drawers only when you need custom data, external engines, or study-specific review thresholds.";
+      intro.append(eyebrow, heading, copy);
+
+      const steps = document.createElement("ol");
+      steps.className = "workflow-guide-steps";
+      GUIDED_WORKFLOW_STEPS.forEach((step) => {
+        const item = document.createElement("li");
+        item.className = "workflow-guide-step locked";
+        item.dataset.guideStep = step.key;
+        const index = document.createElement("span");
+        index.className = "workflow-guide-step-index";
+        index.dataset.guideStepIndex = "true";
+        const body = document.createElement("div");
+        const top = document.createElement("div");
+        top.className = "workflow-guide-step-top";
+        const label = document.createElement("strong");
+        label.textContent = step.label;
+        const status = document.createElement("span");
+        status.dataset.guideStepStatus = "true";
+        const help = document.createElement("p");
+        help.textContent = step.help;
+        top.append(label, status);
+        body.append(top, help);
+        item.append(index, body);
+        steps.append(item);
+        guidedWorkflowNodes.steps.set(step.key, item);
+      });
+
+      const nextRow = document.createElement("div");
+      nextRow.className = "workflow-guide-next-row";
+      const next = document.createElement("p");
+      next.className = "workflow-guide-next";
+      const action = document.createElement("button");
+      action.type = "button";
+      action.className = "workflow-button primary workflow-guide-action";
+      action.addEventListener("click", () => {
+        const snapshot = guidedWorkflowSnapshot();
+        if (!snapshot.hasData) {
+          document.dispatchEvent(new CustomEvent("msig:endToEndLoadExampleRequest"));
+          return;
+        }
+        if (!snapshot.hasAnalysis) {
+          document.dispatchEvent(new CustomEvent("msig:endToEndRunRequest"));
+          return;
+        }
+        document.getElementById("workflow-review")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      guidedWorkflowNodes.root = section;
+      guidedWorkflowNodes.next = next;
+      guidedWorkflowNodes.action = action;
+      nextRow.append(next, action);
+      section.append(intro, steps, nextRow);
+      syncGuidedWorkflowHeader();
+      return section;
+    }
+
+    document.addEventListener("msig:endToEndInputs", syncGuidedWorkflowHeader);
+    document.addEventListener("msig:endToEndParameterRefresh", syncGuidedWorkflowHeader);
+    document.addEventListener("msig:endToEndStart", () => {
+      workflowState.guideRunning = true;
+      syncGuidedWorkflowHeader();
+    });
+    document.addEventListener("msig:endToEndRun", () => {
+      workflowState.guideRunning = false;
+      syncGuidedWorkflowHeader();
+    });
+
+	    display(renderGuidedWorkflowHeader());
 	    display(collapsibleOutput("Concept map", workflowOutputGuide(
 	      "Concept map",
 	      "Signature fitting is a recipe problem. Start with an observed mutation pattern, choose possible reference ingredients, let a fitting method guess the mixture, and then check whether that mixture recreates the observed pattern well enough to report cautiously.",
@@ -1839,9 +2007,7 @@ A close reconstruction is useful, but it is not the whole analysis. Some referen
 <script type="text/markdown">
 ## Step 1. Load or replace data
 
-Use **Load selected public dataset** to retrieve real public mutation-pattern tables and a compatible reference signature catalog through the mSigPortal APIs. The default is TCGA WES Lung-AdenoCa SBS96 with a small sample cap for responsive browser execution; change the menu to load another public study, cancer type, sequencing strategy, mutation-pattern type, table size, or signature catalog.
-
-Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 12 } }` or a SigProfiler-style TSV table. Each row or object records how many mutations of each type were seen in each sample. Your signatures can be a JSON object keyed by signature name or a COSMIC-style TSV table. Sample details are optional CSV, TSV, or JSON, but if supplied they should include a `sample` column that matches the spectra sample names.
+Start with the public example unless you already have prepared spectra and signatures. Dataset menus and custom uploads are available below for later runs.
 </script>
 
   <script type="module" pinned id="2">
@@ -1941,15 +2107,16 @@ Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 
     maxSamplesInput.step = "1";
     maxSamplesInput.value = "8";
 
-    const loadPublic = button("Load selected public dataset", "primary");
+    const loadPublic = button("Load example data", "primary");
     const refreshPublic = button("Refresh dataset menu");
     const applyInput = button("Apply my pasted/uploaded data", "primary");
     const clearInput = button("Clear inputs");
+    clearInput.hidden = true;
     const publicOption = document.createElement("div");
-    publicOption.className = "workflow-source-option";
+    publicOption.className = "workflow-source-option workflow-primary-action-card";
 	    publicOption.innerHTML = `
-	      <strong>Load public API data</strong>
-	      <p>Choose a public study, cancer type, sequencing strategy, mutation-pattern type, table size, signature set, and sample count. The default loads real TCGA WES Lung-AdenoCa SBS96 mutation spectra.</p>
+	      <strong>Load the guided example</strong>
+	      <p>Fetch a small real TCGA WES Lung-AdenoCa SBS96 cohort plus a compatible COSMIC reference catalog.</p>
 	    `;
     const ownOption = document.createElement("div");
     ownOption.className = "workflow-source-option";
@@ -1959,10 +2126,10 @@ Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 
 	    `;
     const publicButtonRow = document.createElement("div");
     publicButtonRow.className = "workflow-button-row";
-    publicButtonRow.append(loadPublic, refreshPublic);
+    publicButtonRow.append(loadPublic);
     publicOption.append(publicButtonRow);
     ownOption.append(applyInput);
-    sourceChoice.append(publicOption, ownOption);
+    sourceChoice.append(publicOption);
 
     const publicOptionsState = {
       spectra: [],
@@ -2241,6 +2408,10 @@ Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 
       ]));
     }
 
+    function syncInputActions() {
+      clearInput.hidden = !(workflowState.spectra || workflowState.signatures);
+    }
+
     for (const select of [studySelect, cancerSelect, strategySelect, profileSelect, matrixSelect, signatureSetSelect]) {
       select.addEventListener("change", () => {
         if (select !== signatureSetSelect) populatePublicMenus();
@@ -2267,6 +2438,9 @@ Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 
         loadPublic.disabled = false;
         loadPublic.textContent = originalText;
       }
+    });
+    document.addEventListener("msig:endToEndLoadExampleRequest", () => {
+      if (!loadPublic.disabled) loadPublic.click();
     });
 
     applyInput.addEventListener("click", () => {
@@ -2329,11 +2503,37 @@ Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 
       field("Upload signatures", fileInput(signaturesText)),
       field("Upload sample details", fileInput(metadataText))
     );
-    document.addEventListener("msig:endToEndInputs", renderInputSummary);
+    document.addEventListener("msig:endToEndInputs", () => {
+      renderInputSummary();
+      syncInputActions();
+    });
     inputSummary.append(placeholder("No active dataset yet. Load a public API dataset or apply your own matrices."));
     publicStatus.textContent = "Loading public dataset options from mSigPortal APIs...";
+    const publicAdvancedActions = document.createElement("div");
+    publicAdvancedActions.className = "workflow-button-row";
+    publicAdvancedActions.append(refreshPublic);
+    const publicSettings = workflowAdvancedDrawer(
+      "Advanced: change public dataset",
+      [publicGrid, publicStatus, publicAdvancedActions],
+      {
+        description:
+          "Use these menus when the default TCGA WES Lung-AdenoCa SBS96 example is not the cohort you want.",
+      }
+    );
+    const localInputActions = document.createElement("div");
+    localInputActions.className = "workflow-button-row";
+    localInputActions.append(applyInput);
+    const localInputDrawer = workflowAdvancedDrawer(
+      "Advanced: use my own data",
+      [inputGrid, localInputActions],
+      {
+        description:
+          "Paste or upload spectra, signatures, and optional sample details when adapting the workflow to your own prepared inputs.",
+      }
+    );
     inputActions.append(clearInput);
-    inputPanel.append(sourceChoice, publicGrid, publicStatus, inputGrid, inputActions, inputSummary);
+    inputPanel.append(sourceChoice, publicSettings, localInputDrawer, inputActions, inputSummary);
+    syncInputActions();
     display(inputPanel);
     loadPublicMenus();
   </script>
@@ -2341,7 +2541,7 @@ Your own spectra can still be a JSON object such as `{ "sample_1": { "A[C>A]A": 
 <script type="text/markdown">
 ## Step 2. Choose settings and run
 
-These controls choose the fitting engine and package settings. Check the input first, then choose which method should guess the signature recipe. You can use mSigSDK's built-in fit, SigProfilerAssignment or MuSiCal where Pyodide is available, and deconstructSigs or sigminer where WebR package builds are available. Use the separate NMF notebook for mSigSDK native de novo discovery.
+Pick an analysis preset, then run the fit and review checks. External engines and package settings are tucked into advanced settings.
 </script>
 
   <script type="module" pinned id="3">
@@ -2349,8 +2549,12 @@ These controls choose the fitting engine and package settings. Check the input f
     runPanel.className = "workflow-panel";
     const parameterGrid = document.createElement("div");
     parameterGrid.className = "workflow-control-grid compact";
+    const presetPanel = document.createElement("section");
+    presetPanel.className = "workflow-preset-panel";
     const runButtons = document.createElement("div");
     runButtons.className = "workflow-button-row";
+    const advancedRunActions = document.createElement("div");
+    advancedRunActions.className = "workflow-button-row";
     const runOutput = document.createElement("div");
     runOutput.id = "workflow-run-status";
     runOutput.className = "workflow-output-stack";
@@ -2803,6 +3007,102 @@ These controls choose the fitting engine and package settings. Check the input f
       sigminerMethodInput,
       "The selected sigminer method controls which WebR solver package is required."
     );
+    const RUN_PRESETS = Object.freeze([
+      {
+        id: "quick_demo",
+        label: "Quick demo",
+        description: "Built-in mSigSDK fit with browser-sized defaults.",
+        fitEngine: "sdk_nnls",
+        parameters: {
+          bootstrapIterations: 100,
+          exposureThreshold: 0.01,
+          thresholdGrid: [0, 0.01, 0.03, 0.05, 0.1],
+        },
+      },
+      {
+        id: "careful_review",
+        label: "Careful review",
+        description: "More uncertainty refits for slower but steadier review cues.",
+        fitEngine: "sdk_nnls",
+        parameters: {
+          bootstrapIterations: 250,
+          exposureThreshold: 0.01,
+          thresholdGrid: [0, 0.01, 0.03, 0.05, 0.1],
+        },
+      },
+      {
+        id: "external_tool",
+        label: "External tool comparison",
+        description: "Reveal engine/runtime settings and start from SigProfilerAssignment.",
+        fitEngine: "sigprofilerassignment_pyodide",
+        parameters: {
+          bootstrapIterations: 100,
+          exposureThreshold: 0.01,
+          thresholdGrid: [0, 0.01, 0.03, 0.05, 0.1],
+        },
+        openAdvanced: true,
+      },
+    ]);
+    let fitSettingsDrawer = null;
+    const presetButtons = new Map();
+
+    function renderPresetPanel() {
+      const heading = document.createElement("div");
+      heading.className = "workflow-preset-heading";
+      const title = document.createElement("strong");
+      title.textContent = "Analysis preset";
+      const summary = document.createElement("span");
+      summary.textContent = "Choose how much setup to expose before running.";
+      heading.append(title, summary);
+      const group = document.createElement("div");
+      group.className = "workflow-preset-options";
+      RUN_PRESETS.forEach((preset) => {
+        const buttonNode = button(preset.label);
+        buttonNode.classList.add("workflow-preset-option");
+        buttonNode.type = "button";
+        buttonNode.setAttribute("aria-pressed", "false");
+        const help = document.createElement("span");
+        help.textContent = preset.description;
+        buttonNode.append(help);
+        buttonNode.addEventListener("click", () => applyRunPreset(preset.id));
+        presetButtons.set(preset.id, buttonNode);
+        group.append(buttonNode);
+      });
+      presetPanel.append(heading, group);
+      syncPresetButtons();
+    }
+
+    function syncPresetButtons() {
+      presetButtons.forEach((buttonNode, id) => {
+        const selected = workflowState.guidePreset === id;
+        buttonNode.classList.toggle("selected", selected);
+        buttonNode.setAttribute("aria-pressed", String(selected));
+      });
+    }
+
+    function applyRunPreset(presetId) {
+      const preset = RUN_PRESETS.find((entry) => entry.id === presetId) || RUN_PRESETS[0];
+      workflowState.guidePreset = preset.id;
+      workflowState.parameters.fitEngine = preset.fitEngine;
+      Object.entries(preset.parameters || {}).forEach(([key, value]) => {
+        workflowState.parameters[key] = value;
+        syncWorkflowParameterControls(key);
+      });
+      engineSelect.value = preset.fitEngine;
+      renderEngineSummary();
+      syncPresetButtons();
+      if (preset.openAdvanced && fitSettingsDrawer) {
+        fitSettingsDrawer.open = true;
+      }
+      setRunFeedback(
+        workflowState.spectra && workflowState.signatures ? "idle" : "warning",
+        `${preset.label} selected`,
+        workflowState.spectra && workflowState.signatures
+          ? "Run the fit when you are ready."
+          : "Load data in Step 1 before running.",
+        preset.description
+      );
+    }
 
 	    function readParameters() {
       syncParametersFromControls();
@@ -2872,13 +3172,51 @@ These controls choose the fitting engine and package settings. Check the input f
     }
 
     const validateButton = button("Check current input");
-    const runButton = button("Run selected fitting method", "primary");
+    const runButton = button("Run fit and review", "primary");
     setRunFeedback(
-      "idle",
-      "Ready to run",
-      "Load data, adjust settings, then run the workflow.",
-      "After a run finishes, this panel will show when the results were updated."
+      "warning",
+      "Waiting for data",
+      "Load the example data in Step 1 before running.",
+      "After data loads, this button runs fitting, reconstruction checks, review diagnostics, plots, and exports."
     );
+
+    function hasRunnableData() {
+      return Boolean(workflowState.spectra && workflowState.signatures);
+    }
+
+    function syncRunControls() {
+      if (workflowState.guideRunning) return;
+      const ready = hasRunnableData();
+      presetPanel.hidden = !ready;
+      runButtons.hidden = !ready;
+      if (fitSettingsDrawer) fitSettingsDrawer.hidden = !ready;
+      runButton.disabled = !ready;
+      if (!ready) {
+        runButton.textContent = "Load data before running";
+        runButton.classList.remove("success");
+        setRunFeedback(
+          "warning",
+          "Waiting for data",
+          "Load the example data in Step 1 before running.",
+          "Advanced data inputs stay available in Step 1."
+        );
+        return;
+      }
+      if (!workflowState.analysis) {
+        runButton.textContent = "Run fit and review";
+        runButton.classList.remove("success");
+        setRunFeedback(
+          "idle",
+          "Ready to run",
+          "Data is loaded. Use the selected preset or open advanced settings.",
+          "The default preset runs the built-in mSigSDK quick fit."
+        );
+        return;
+      }
+      if (!runButton.classList.contains("success")) {
+        runButton.textContent = "Run again with current settings";
+      }
+    }
 
     validateButton.addEventListener("click", () => {
       readParameters();
@@ -2917,6 +3255,10 @@ These controls choose the fitting engine and package settings. Check the input f
     });
 
     runButton.addEventListener("click", async () => {
+      if (!hasRunnableData()) {
+        syncRunControls();
+        return;
+      }
       const reviewModeForRun = reviewParameterDraftDiffers()
         ? (reviewDraftMatchesAdaptiveDefaults() ? "adaptive" : "manual")
         : workflowState.reviewSettingsMode;
@@ -2993,6 +3335,8 @@ These controls choose the fitting engine and package settings. Check the input f
           }
         }, 1600);
       } catch (error) {
+        workflowState.guideRunning = false;
+        syncGuidedWorkflowHeader();
         const pre = document.createElement("pre");
         pre.className = "output-error";
         pre.textContent = error.stack || error.message;
@@ -3007,9 +3351,13 @@ These controls choose the fitting engine and package settings. Check the input f
       } finally {
         runButton.disabled = false;
         if (!runButton.classList.contains("success")) {
-          runButton.textContent = "Run selected fitting method";
+          runButton.disabled = !hasRunnableData();
+          runButton.textContent = hasRunnableData() ? "Run fit and review" : "Load data before running";
         }
       }
+    });
+    document.addEventListener("msig:endToEndRunRequest", () => {
+      if (!runButton.disabled && hasRunnableData()) runButton.click();
     });
 
     document.addEventListener("msig:endToEndProgress", (event) => {
@@ -3020,6 +3368,14 @@ These controls choose the fitting engine and package settings. Check the input f
         detail.message || `Running ${currentFitEngine().label}.`,
         detail.details || "The workflow is still working."
       );
+    });
+
+    document.addEventListener("msig:endToEndInputs", () => {
+      runOutput.dataset.state = "waiting";
+      runOutput.replaceChildren(
+        placeholder(hasRunnableData() ? "Data is loaded. Choose a preset or run the default fit." : "Load data in Step 1, then run the selected preset.")
+      );
+      syncRunControls();
     });
 
 	    parameterGrid.append(
@@ -3040,25 +3396,48 @@ These controls choose the fitting engine and package settings. Check the input f
       webRRepositoryField,
       webRBinaryVersionField
     );
-    runButtons.append(validateButton, runButton);
-    engineSelect.addEventListener("change", renderEngineSummary);
+    advancedRunActions.append(validateButton);
+    runButtons.append(runButton);
+    engineSelect.addEventListener("change", () => {
+      workflowState.guidePreset = "custom";
+      syncPresetButtons();
+      renderEngineSummary();
+    });
+    renderPresetPanel();
     renderEngineSummary();
-    runOutput.append(placeholder("Load a public API dataset or apply local input tables, check inputs, then run the workflow stages described above."));
+    const methodDetails = workflowAdvancedDrawer(
+      "Method details and runtime checks",
+      engineSummary,
+      {
+        description:
+          "These tables explain the selected fitting method and any browser runtime package settings.",
+      }
+    );
+    fitSettingsDrawer = workflowAdvancedDrawer(
+      "Advanced fitting settings",
+      [parameterGrid, advancedRunActions, methodDetails],
+      {
+        description:
+          "Change the fitting engine, package/runtime fields, contribution threshold, or metadata group column.",
+      }
+    );
+    runOutput.append(placeholder("Load data in Step 1, then run the selected preset."));
 		    runPanel.append(
-		      collapsibleOutput("Run guide", workflowRunGuide()),
-		      parameterGrid,
-		      engineSummary,
+          presetPanel,
 		      runButtons,
 		      runFeedback,
-	      runOutput
+	      runOutput,
+          fitSettingsDrawer,
+		      collapsibleOutput("Run guide", workflowRunGuide())
 	    );
+    syncRunControls();
     display(runPanel);
   </script>
 
 <script type="text/markdown">
 ## Step 3. Inspect visual checks and interpretation tables
 
-Read these before using the fitted signature recipe as evidence. The plots answer practical questions: did the sample have enough mutations to fit, did the guessed recipe recreate the observed pattern, what was left over, how stable was the recipe, and did small cutoff changes alter the result? Review settings are study-specific diagnostics and refresh the cached analysis only after you apply them or rerun the workflow.
+After the run, start with the review summary. Open detailed plots, tables, and thresholds only when a cue needs inspection.
 </script>
 
   <script type="module" pinned id="4">
@@ -3751,33 +4130,32 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 	    }
 
 	    function renderEmptyReview() {
-	      plotGrid.replaceChildren(
-	        placeholderPlotSection("Review summary", [], "Run the workflow to see this plot.", [], reviewSettingsPanel()),
-	        placeholderPlotSection("Mutation count", [], "Run the workflow to see this plot."),
-	        placeholderPlotSection("Reconstruction quality", []),
-	        placeholderPlotSection("Residual spectrum", [], "Run the workflow to see this plot."),
-	        placeholderPlotSection("Uncertainty intervals", [], "Run the workflow to see this plot."),
-	        placeholderPlotSection("Cutoff sensitivity", [], "Run the workflow to see this plot.")
-	      );
-	      tableStack.replaceChildren(placeholder("Review tables will refresh after the workflow runs."));
+	      plotGrid.replaceChildren(placeholder("Run the fit in Step 2 to unlock the review summary, plots, and interpretation tables."));
+	      tableStack.replaceChildren();
 	      markWorkflowUpdated(reviewPanel);
 	    }
 
     async function plotSection(label, renderer, fallback, explanation = "", options = {}) {
       const section = document.createElement("section");
       section.className = "workflow-plot-section";
+      const plotKind = options.plotKind || options.kind || "";
+      if (plotKind) section.classList.add(plotKind);
       const heading = document.createElement("h3");
       heading.textContent = label;
       const host = document.createElement("div");
       host.id = `workflow-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Math.random().toString(36).slice(2)}`;
       host.className = "workflow-plot-host";
+      if (plotKind) host.classList.add(plotKind);
       const status = document.createElement("p");
       status.className = "workflow-plot-sample-status";
       section.append(heading);
       if (explanation) {
         section.append(collapsibleOutput(options.interpretLabel || "How to interpret this plot", paragraphNode(explanation, "workflow-plot-explanation")));
       }
-	      appendPlotParameters(section, options);
+      const deferParameterPanel = options.parameterPanelPosition === "after";
+	      if (!deferParameterPanel) {
+	        appendPlotParameters(section, options);
+	      }
       let selectedSample = options.sample || null;
       let sampleSelect = null;
       if (options.sampleControl) {
@@ -3811,6 +4189,9 @@ Read these before using the fitted signature recipe as evidence. The plots answe
         });
       }
       section.append(host);
+      if (deferParameterPanel) {
+        appendPlotParameters(section, options);
+      }
       plotGrid.append(section);
       async function renderPlot() {
         const renderingStatus = selectedSample
@@ -3857,7 +4238,7 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 		          caption: "Lists the sample-level cues used in the compact review panel.",
 		        }),
 		        "Ranks samples by review cues so the highest-priority fits are inspected first."
-		        , { parameterPanel: reviewSettingsPanel(), interpretLabel: "How to read this panel" }
+		        , { parameterPanel: reviewSettingsPanel(), parameterPanelPosition: "after", interpretLabel: "How to read this panel" }
 		      );
 		      await plotSection(
 		        "Full-COSMIC cohort exposure landscape",
@@ -4102,7 +4483,7 @@ Read these before using the fitted signature recipe as evidence. The plots answe
 <script type="text/markdown">
 ## Step 4. Save files needed to rerun or review
 
-A complete result should preserve more than the fitted recipe. Save the input tables, signature recipe estimates, reconstruction and review evidence, uncertainty results, warnings, suggested review steps, report fields, a run record, and files that help compare or rerun the analysis in other tools.
+Download the workflow report first. Supporting spectra, signatures, contribution, and external-tool files are available below it.
 </script>
 
   <script type="module" pinned id="5">
@@ -4198,14 +4579,18 @@ A complete result should preserve more than the fitted recipe. Save the input ta
         standaloneToolHandoffs: workflowState.interoperability?.standaloneTools || {},
         crossToolReferenceSummary: crossToolSummary,
       };
-	      exportStack.append(note("The download links are the main thing here. Supporting file-format and report-section tables are collapsed below.", "info"));
+	      exportStack.append(note("Start with the workflow report JSON. It preserves the fitted contributions together with checks, cautions, review settings, and provenance.", "info"));
+	      exportStack.append(downloadMany([
+	        { filename: "end_to_end_workflow_report.json", type: "json", value: reportBundle, label: "Download workflow report JSON" },
+	      ]));
 	      exportStack.append(note("Do not share the signature contributions CSV by itself when the run has warnings or needs cautious interpretation. Share the workflow report JSON with it so collaborators can see the reconstruction checks and caveats.", "warning"));
-      exportStack.append(downloadMany([
-        { filename: "end_to_end_spectra.tsv", text: spectraTsv, label: "Download spectra TSV" },
-        { filename: "end_to_end_signatures.tsv", text: signaturesTsv, label: "Download signatures TSV" },
-        { filename: "end_to_end_exposures.csv", text: exposuresCsv, label: "Download signature contributions CSV" },
-        { filename: "end_to_end_workflow_report.json", type: "json", value: reportBundle, label: "Download workflow report JSON" },
-        { filename: "end_to_end_interoperability_bundle.json", type: "json", value: workflowState.interoperability, label: "Download tool export bundle JSON" },
+      exportStack.append(collapsibleOutput("Supporting files", [
+        downloadMany([
+          { filename: "end_to_end_spectra.tsv", text: spectraTsv, label: "Download spectra TSV" },
+          { filename: "end_to_end_signatures.tsv", text: signaturesTsv, label: "Download signatures TSV" },
+          { filename: "end_to_end_exposures.csv", text: exposuresCsv, label: "Download signature contributions CSV" },
+          { filename: "end_to_end_interoperability_bundle.json", type: "json", value: workflowState.interoperability, label: "Download tool export bundle JSON" },
+        ]),
       ]));
       exportStack.append(collapsibleOutput("What each download preserves", [
         table([
