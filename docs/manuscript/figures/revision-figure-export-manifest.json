@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "msig.figure_export.v1",
+  "generatedAt": "2026-06-28T12:31:32.470Z",
+  "generator": "scripts/manuscript/export-main-figure-assets.mjs",
+  "upstreamGenerator": "scripts/manuscript/generate-main-assets.mjs",
+  "regenerationCommand": "node scripts/manuscript/generate-main-assets.mjs && node scripts/manuscript/export-main-figure-assets.mjs",
+  "browser": {
+    "id": "chrome",
+    "label": "Chrome",
+    "engine": "chromium",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+  },
+  "figures": [
+    {
+      "id": "figure1",
+      "title": "Figure 1 - Architecture and data-residency boundary",
+      "sourceHtml": "figures/figure1-architecture-data-residency.html",
+      "outputBase": "figure1-architecture-data-residency",
+      "sourceUrl": "http://127.0.0.1:55646/figures/figure1-architecture-data-residency.html",
+      "width": 1180,
+      "height": 600,
+      "html": "docs/manuscript/figures/figure1-architecture-data-residency.html",
+      "svg": "docs/manuscript/figures/figure1-architecture-data-residency.svg",
+      "pdf": "docs/manuscript/figures/figure1-architecture-data-residency.pdf",
+      "png": "docs/manuscript/figures/figure1-architecture-data-residency.png"
+    },
+    {
+      "id": "figure2",
+      "title": "Figure 2 - Zero-install cumulative timing",
+      "sourceHtml": "figures/figure2-zero-install-workflow.html",
+      "outputBase": "figure2-zero-install-cumulative-timing",
+      "sourceUrl": "http://127.0.0.1:55646/figures/figure2-zero-install-workflow.html",
+      "width": 1280,
+      "height": 680,
+      "html": "docs/manuscript/figures/figure2-zero-install-cumulative-timing.html",
+      "svg": "docs/manuscript/figures/figure2-zero-install-cumulative-timing.svg",
+      "pdf": "docs/manuscript/figures/figure2-zero-install-cumulative-timing.pdf",
+      "png": "docs/manuscript/figures/figure2-zero-install-cumulative-timing.png"
+    },
+    {
+      "id": "figure3",
+      "title": "Figure 3 - Public-cohort capability",
+      "sourceHtml": "figures/figure3-public-cohort-capabilities.html",
+      "outputBase": "figure3-public-cohort-capability",
+      "sourceUrl": "http://127.0.0.1:55646/figures/figure3-public-cohort-capabilities.html",
+      "width": 1280,
+      "height": 820,
+      "html": "docs/manuscript/figures/figure3-public-cohort-capability.html",
+      "svg": "docs/manuscript/figures/figure3-public-cohort-capability.svg",
+      "pdf": "docs/manuscript/figures/figure3-public-cohort-capability.pdf",
+      "png": "docs/manuscript/figures/figure3-public-cohort-capability.png"
+    },
+    {
+      "id": "figure4",
+      "title": "Figure 4 - Exposure-solve benchmarks",
+      "sourceHtml": "figures/figure4-runtime-benchmarks.html",
+      "outputBase": "figure4-exposure-solve-benchmarks",
+      "sourceUrl": "http://127.0.0.1:55646/figures/figure4-runtime-benchmarks.html",
+      "width": 1280,
+      "height": 820,
+      "html": "docs/manuscript/figures/figure4-exposure-solve-benchmarks.html",
+      "svg": "docs/manuscript/figures/figure4-exposure-solve-benchmarks.svg",
+      "pdf": "docs/manuscript/figures/figure4-exposure-solve-benchmarks.pdf",
+      "png": "docs/manuscript/figures/figure4-exposure-solve-benchmarks.png"
+    }
+  ]
+}

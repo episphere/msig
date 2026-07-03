@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Figure 4. Browser runtime benchmarks</title>
+    <title>Figure 4. Exposure-solve benchmarks</title>
     <script src="../assets/d3.min.js"></script>
     <style>
       body { margin: 0; font-family: Arial, sans-serif; color: #172026; background: #f7faf9; }
@@ -20,25 +20,25 @@
   <body>
     <main>
       <div class="figure-frame">
-
+        
         <div id="chart"></div>
       </div>
     </main>
     <script>
-      const spec = {"rows":[{"scenario":"single_sample_fit_report","scenarioLabel":"Single sample","scenarioFull":"One SBS96 synthetic sample, 9-signature NNLS fit plus report generation.","browser":"chrome","browserLabel":"Chrome","medianMs":4.079999998211861,"repeatCount":5},{"scenario":"single_sample_fit_report","scenarioLabel":"Single sample","scenarioFull":"One SBS96 synthetic sample, 9-signature NNLS fit plus report generation.","browser":"edge","browserLabel":"Edge","medianMs":3.4600000008940697,"repeatCount":5},{"scenario":"single_sample_fit_report","scenarioLabel":"Single sample","scenarioFull":"One SBS96 synthetic sample, 9-signature NNLS fit plus report generation.","browser":"firefox","browserLabel":"Firefox","medianMs":2.259999999999991,"repeatCount":5},{"scenario":"medium_cohort_120","scenarioLabel":"120-sample cohort","scenarioFull":"120 SBS96 synthetic samples x 9 signatures.","browser":"chrome","browserLabel":"Chrome","medianMs":22.570000000298023,"repeatCount":5},{"scenario":"medium_cohort_120","scenarioLabel":"120-sample cohort","scenarioFull":"120 SBS96 synthetic samples x 9 signatures.","browser":"edge","browserLabel":"Edge","medianMs":22.5,"repeatCount":5},{"scenario":"medium_cohort_120","scenarioLabel":"120-sample cohort","scenarioFull":"120 SBS96 synthetic samples x 9 signatures.","browser":"firefox","browserLabel":"Firefox","medianMs":28.38000000000011,"repeatCount":5},{"scenario":"portal_scale_300x40","scenarioLabel":"300 x 40 refit","scenarioFull":"300 SBS96 synthetic samples x 40 signatures.","browser":"chrome","browserLabel":"Chrome","medianMs":1554.9150000065565,"repeatCount":5},{"scenario":"portal_scale_300x40","scenarioLabel":"300 x 40 refit","scenarioFull":"300 SBS96 synthetic samples x 40 signatures.","browser":"edge","browserLabel":"Edge","medianMs":1561.7950000017881,"repeatCount":5},{"scenario":"portal_scale_300x40","scenarioLabel":"300 x 40 refit","scenarioFull":"300 SBS96 synthetic samples x 40 signatures.","browser":"firefox","browserLabel":"Firefox","medianMs":2845,"repeatCount":5},{"scenario":"bootstrap_500","scenarioLabel":"Bootstrap 500","scenarioFull":"500 multinomial resamples of one SBS96 sample, NNLS refit per resample, exposure-interval workflow.","browser":"chrome","browserLabel":"Chrome","medianMs":255.9949999973178,"repeatCount":5},{"scenario":"bootstrap_500","scenarioLabel":"Bootstrap 500","scenarioFull":"500 multinomial resamples of one SBS96 sample, NNLS refit per resample, exposure-interval workflow.","browser":"edge","browserLabel":"Edge","medianMs":252.64499999582767,"repeatCount":5},{"scenario":"bootstrap_500","scenarioLabel":"Bootstrap 500","scenarioFull":"500 multinomial resamples of one SBS96 sample, NNLS refit per resample, exposure-interval workflow.","browser":"firefox","browserLabel":"Firefox","medianMs":222.83999999999992,"repeatCount":5},{"scenario":"nmf_rank_selection_rank4","scenarioLabel":"NMF rank/extract","scenarioFull":"80 SBS96 samples, rank grid plus rank-4 extraction.","browser":"chrome","browserLabel":"Chrome","medianMs":3178.1949999928474,"repeatCount":5},{"scenario":"nmf_rank_selection_rank4","scenarioLabel":"NMF rank/extract","scenarioFull":"80 SBS96 samples, rank grid plus rank-4 extraction.","browser":"edge","browserLabel":"Edge","medianMs":3151.89999999851,"repeatCount":5},{"scenario":"nmf_rank_selection_rank4","scenarioLabel":"NMF rank/extract","scenarioFull":"80 SBS96 samples, rank grid plus rank-4 extraction.","browser":"firefox","browserLabel":"Firefox","medianMs":2257.54,"repeatCount":5}],"scenarios":["single_sample_fit_report","medium_cohort_120","portal_scale_300x40","bootstrap_500","nmf_rank_selection_rank4"],"scenarioInfo":{"single_sample_fit_report":{"short":"Single sample","full":"One SBS96 synthetic sample, 9-signature NNLS fit plus report generation."},"medium_cohort_120":{"short":"120-sample cohort","full":"120 SBS96 synthetic samples x 9 signatures."},"portal_scale_300x40":{"short":"300 x 40 refit","full":"300 SBS96 synthetic samples x 40 signatures."},"bootstrap_500":{"short":"Bootstrap 500","full":"500 multinomial resamples of one SBS96 sample, NNLS refit per resample, exposure-interval workflow."},"nmf_rank_selection_rank4":{"short":"NMF rank/extract","full":"80 SBS96 samples, rank grid plus rank-4 extraction."}},"browsers":["chrome","edge","firefox"],"browserLabels":{"chrome":"Chrome","edge":"Edge","firefox":"Firefox"},"environment":{"node":"v24.13.0","platform":"win32","arch":"x64","hostname":"Aaron","cpus":32,"memoryGb":31.2,"cwd":"C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig","browsers":[{"id":"chrome","label":"Chrome","engine":"chromium","executablePath":"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"},{"id":"edge","label":"Edge","engine":"chromium","executablePath":"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"},{"id":"firefox","label":"Firefox","engine":"firefox","executablePath":"C:\\Program Files\\Mozilla Firefox\\firefox.exe"}],"requestedBrowsers":["chrome","edge","firefox"],"repeats":5,"timeoutMs":240000},"firefoxNmfNote":"","palette":{"ink":"#111827","muted":"#4b5563","hairline":"#d1d5db","panel":"#ffffff","paper":"#f8fafc","blue":"#0072B2","sky":"#56B4E9","green":"#009E73","orange":"#E69F00","vermillion":"#D55E00","purple":"#CC79A7","yellow":"#F0E442","gray":"#6B7280","paleBlue":"#E7F3FA","paleGreen":"#E8F5F1","paleOrange":"#FFF4DB"}};
-
-      const width = 1280, height = 760;
+      const spec = {"rows":[{"scenario":"single_sample_fit_report","scenarioLabel":"Single sample","scenarioFull":"One SBS96 synthetic sample, 9-signature NNLS fit plus report generation.","browser":"chrome","browserLabel":"Chrome","medianMs":1.1974999904632568,"q1Ms":1.0087500214576721,"q3Ms":1.4549999237060547,"minMs":0.9149999618530273,"maxMs":2.200000047683716,"repeatCount":20},{"scenario":"single_sample_fit_report","scenarioLabel":"Single sample","scenarioFull":"One SBS96 synthetic sample, 9-signature NNLS fit plus report generation.","browser":"edge","browserLabel":"Edge","medianMs":1.067500114440918,"q1Ms":0.9712499976158142,"q3Ms":1.2162498831748962,"minMs":0.8899998664855957,"maxMs":1.5199999809265137,"repeatCount":20},{"scenario":"single_sample_fit_report","scenarioLabel":"Single sample","scenarioFull":"One SBS96 synthetic sample, 9-signature NNLS fit plus report generation.","browser":"firefox","browserLabel":"Firefox","medianMs":2.8900000000001,"q1Ms":2.7399999999999523,"q3Ms":2.955000000000041,"minMs":2.6200000000003456,"maxMs":3.6599999999998545,"repeatCount":20},{"scenario":"medium_cohort_120","scenarioLabel":"120-sample cohort","scenarioFull":"120 SBS96 synthetic samples x 9 signatures.","browser":"chrome","browserLabel":"Chrome","medianMs":18.18250000476837,"q1Ms":17.833749890327454,"q3Ms":18.56749987602234,"minMs":16.90000009536743,"maxMs":18.980000019073486,"repeatCount":20},{"scenario":"medium_cohort_120","scenarioLabel":"120-sample cohort","scenarioFull":"120 SBS96 synthetic samples x 9 signatures.","browser":"edge","browserLabel":"Edge","medianMs":17.305000066757202,"q1Ms":16.757500171661377,"q3Ms":18.161250054836273,"minMs":16.569999933242798,"maxMs":24.424999952316284,"repeatCount":20},{"scenario":"medium_cohort_120","scenarioLabel":"120-sample cohort","scenarioFull":"120 SBS96 synthetic samples x 9 signatures.","browser":"firefox","browserLabel":"Firefox","medianMs":25.279999999999973,"q1Ms":25.025000000000148,"q3Ms":26.585000000000036,"minMs":23.460000000000036,"maxMs":27.1400000000001,"repeatCount":20},{"scenario":"portal_scale_300x40","scenarioLabel":"300 x 40 refit","scenarioFull":"300 SBS96 synthetic samples x 40 signatures.","browser":"chrome","browserLabel":"Chrome","medianMs":1748.8650000095367,"q1Ms":1653.5699999332428,"q3Ms":1885.653749883175,"minMs":1605.045000076294,"maxMs":1945.8849999904633,"repeatCount":20},{"scenario":"portal_scale_300x40","scenarioLabel":"300 x 40 refit","scenarioFull":"300 SBS96 synthetic samples x 40 signatures.","browser":"edge","browserLabel":"Edge","medianMs":1652.6150000095367,"q1Ms":1611.5150000452995,"q3Ms":1700.5675000548363,"minMs":1563.4449999332428,"maxMs":1881.8499999046326,"repeatCount":20},{"scenario":"portal_scale_300x40","scenarioLabel":"300 x 40 refit","scenarioFull":"300 SBS96 synthetic samples x 40 signatures.","browser":"firefox","browserLabel":"Firefox","medianMs":2884.4,"q1Ms":2835.7299999999996,"q3Ms":2947.6499999999996,"minMs":2800.6800000000003,"maxMs":3070.12,"repeatCount":20},{"scenario":"bootstrap_500","scenarioLabel":"Bootstrap 500","scenarioFull":"500 multinomial resamples of one SBS96 sample, NNLS refit per resample, exposure-interval workflow.","browser":"chrome","browserLabel":"Chrome","medianMs":237.88750004768372,"q1Ms":228.7849999666214,"q3Ms":273.3787500858307,"minMs":218.7849998474121,"maxMs":296.25999999046326,"repeatCount":20},{"scenario":"bootstrap_500","scenarioLabel":"Bootstrap 500","scenarioFull":"500 multinomial resamples of one SBS96 sample, NNLS refit per resample, exposure-interval workflow.","browser":"edge","browserLabel":"Edge","medianMs":232.85250008106232,"q1Ms":222.3687500357628,"q3Ms":245.9549999833107,"minMs":214.99000000953674,"maxMs":289.4450001716614,"repeatCount":20},{"scenario":"bootstrap_500","scenarioLabel":"Bootstrap 500","scenarioFull":"500 multinomial resamples of one SBS96 sample, NNLS refit per resample, exposure-interval workflow.","browser":"firefox","browserLabel":"Firefox","medianMs":238.57000000000005,"q1Ms":235.50000000000006,"q3Ms":240.89999999999986,"minMs":231.27999999999997,"maxMs":268.4200000000001,"repeatCount":20},{"scenario":"nmf_rank_selection_rank4","scenarioLabel":"NMF rank/extract","scenarioFull":"80 SBS96 samples, rank grid plus rank-4 extraction.","browser":"chrome","browserLabel":"Chrome","medianMs":3196.1200000047684,"q1Ms":3016.5837500095367,"q3Ms":3285.0887499451637,"minMs":2888.2300000190735,"maxMs":3624.7249999046326,"repeatCount":20},{"scenario":"nmf_rank_selection_rank4","scenarioLabel":"NMF rank/extract","scenarioFull":"80 SBS96 samples, rank grid plus rank-4 extraction.","browser":"edge","browserLabel":"Edge","medianMs":3051.8150000572205,"q1Ms":2986.353749871254,"q3Ms":3102.410000026226,"minMs":2828.0099999904633,"maxMs":3170.039999961853,"repeatCount":20},{"scenario":"nmf_rank_selection_rank4","scenarioLabel":"NMF rank/extract","scenarioFull":"80 SBS96 samples, rank grid plus rank-4 extraction.","browser":"firefox","browserLabel":"Firefox","medianMs":2268.3699999999994,"q1Ms":2251.745,"q3Ms":2332.51,"minMs":2185.7400000000002,"maxMs":2400.6400000000003,"repeatCount":20}],"scenarios":["single_sample_fit_report","medium_cohort_120","portal_scale_300x40","bootstrap_500","nmf_rank_selection_rank4"],"scenarioInfo":{"single_sample_fit_report":{"short":"Single sample","full":"One SBS96 synthetic sample, 9-signature NNLS fit plus report generation."},"medium_cohort_120":{"short":"120-sample cohort","full":"120 SBS96 synthetic samples x 9 signatures."},"portal_scale_300x40":{"short":"300 x 40 refit","full":"300 SBS96 synthetic samples x 40 signatures."},"bootstrap_500":{"short":"Bootstrap 500","full":"500 multinomial resamples of one SBS96 sample, NNLS refit per resample, exposure-interval workflow."},"nmf_rank_selection_rank4":{"short":"NMF rank/extract","full":"80 SBS96 samples, rank grid plus rank-4 extraction."}},"browsers":["chrome","edge","firefox"],"browserLabels":{"chrome":"Chrome","edge":"Edge","firefox":"Firefox"},"environment":{"node":"v24.13.0","platform":"win32","arch":"x64","hostname":"Aaron","cpus":32,"memoryGb":31.2,"cwd":"C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig","browsers":[{"id":"chrome","label":"Chrome","engine":"chromium","executablePath":"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"},{"id":"edge","label":"Edge","engine":"chromium","executablePath":"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"},{"id":"firefox","label":"Firefox","engine":"firefox","executablePath":"C:\\Program Files\\Mozilla Firefox\\firefox.exe"}],"requestedBrowsers":["chrome","edge","firefox"],"repeats":20,"timeoutMs":240000},"firefoxNmfNote":"","palette":{"ink":"#111827","muted":"#4b5563","hairline":"#d1d5db","panel":"#ffffff","paper":"#f8fafc","blue":"#0072B2","sky":"#56B4E9","green":"#009E73","orange":"#E69F00","vermillion":"#D55E00","purple":"#CC79A7","yellow":"#F0E442","gray":"#6B7280","paleBlue":"#E7F3FA","paleGreen":"#E8F5F1","paleOrange":"#FFF4DB"}};
+      
+      const width = 1280, height = 820;
       const p = spec.palette;
       const svg = d3.select("#chart").append("svg").attr("viewBox", [0, 0, width, height]);
       svg.append("rect").attr("width", width).attr("height", height).attr("fill", p.paper);
-      const margin = { top: 58, right: 42, bottom: 244, left: 102 };
+      const margin = { top: 58, right: 42, bottom: 304, left: 102 };
       const completed = spec.rows;
       const color = d3.scaleOrdinal().domain(spec.browsers).range([p.blue, p.green, p.orange]);
 
       const x0 = d3.scaleBand().domain(spec.scenarios).range([margin.left, width - margin.right]).padding(0.22);
       const x1 = d3.scaleBand().domain(spec.browsers).range([0, x0.bandwidth()]).padding(0.14);
-      const minVal = d3.min(completed, (row) => row.medianMs) || 0.1;
-      const maxVal = d3.max(completed, (row) => row.medianMs) || 1000;
+      const minVal = d3.min(completed, (row) => Math.min(row.q1Ms || row.medianMs, row.medianMs)) || 0.1;
+      const maxVal = d3.max(completed, (row) => Math.max(row.q3Ms || row.medianMs, row.medianMs)) || 1000;
       const y = d3.scaleLog().domain([Math.max(0.05, minVal / 4), maxVal * 2.3]).range([height - margin.bottom, margin.top]);
 
       svg.append("rect").attr("x", margin.left).attr("y", margin.top).attr("width", width - margin.left - margin.right).attr("height", height - margin.top - margin.bottom).attr("fill", "#ffffff").attr("stroke", p.hairline);
@@ -53,7 +53,7 @@
         .call(d3.axisLeft(y).ticks(8, "~g"));
       svg.append("text").attr("transform", "rotate(-90)").attr("x", -(margin.top + (height - margin.bottom - margin.top) / 2)).attr("y", 34)
         .attr("text-anchor", "middle").attr("font-size", 14).attr("font-weight", 700).attr("fill", p.muted)
-        .text("Median elapsed time (ms, log scale)");
+        .text("Warm-start median elapsed time (ms, log scale)");
 
       svg.selectAll("rect.bar").data(completed).join("rect")
         .attr("class", "bar")
@@ -62,6 +62,24 @@
         .attr("width", x1.bandwidth())
         .attr("height", (row) => Math.max(3, height - margin.bottom - y(row.medianMs)))
         .attr("fill", (row) => color(row.browser));
+      const whiskers = svg.selectAll("g.iqr").data(completed).join("g")
+        .attr("class", "iqr")
+        .attr("transform", (row) => "translate(" + (x0(row.scenario) + x1(row.browser) + x1.bandwidth() / 2) + ",0)");
+      whiskers.append("line")
+        .attr("x1", 0).attr("x2", 0)
+        .attr("y1", (row) => y(row.q1Ms || row.medianMs))
+        .attr("y2", (row) => y(row.q3Ms || row.medianMs))
+        .attr("stroke", p.ink).attr("stroke-width", 1.7).attr("stroke-linecap", "round");
+      whiskers.append("line")
+        .attr("x1", -8).attr("x2", 8)
+        .attr("y1", (row) => y(row.q1Ms || row.medianMs))
+        .attr("y2", (row) => y(row.q1Ms || row.medianMs))
+        .attr("stroke", p.ink).attr("stroke-width", 1.7).attr("stroke-linecap", "round");
+      whiskers.append("line")
+        .attr("x1", -8).attr("x2", 8)
+        .attr("y1", (row) => y(row.q3Ms || row.medianMs))
+        .attr("y2", (row) => y(row.q3Ms || row.medianMs))
+        .attr("stroke", p.ink).attr("stroke-width", 1.7).attr("stroke-linecap", "round");
       svg.selectAll("text.value").data(completed).join("text")
         .attr("class", "value")
         .attr("x", (row) => x0(row.scenario) + x1(row.browser) + x1.bandwidth() / 2)
@@ -79,7 +97,7 @@
         item.append("text").attr("x", 23).attr("y", 13).attr("font-size", 13).attr("font-weight", 700).attr("fill", p.muted).text(spec.browserLabels[browser]);
       });
 
-      const notes = svg.append("g").attr("transform", "translate(" + margin.left + "," + (height - 194) + ")");
+      const notes = svg.append("g").attr("transform", "translate(" + margin.left + "," + (height - 254) + ")");
       notes.append("text").attr("x", 0).attr("y", 0).attr("font-size", 14).attr("font-weight", 700).attr("fill", p.ink).text("Benchmark operations");
       spec.scenarios.forEach((scenario, i) => {
         const x = i < 3 ? 0 : 558;
@@ -89,6 +107,8 @@
         const detail = notes.append("text").attr("x", x + 142).attr("y", y0).attr("font-size", 12.5).attr("fill", p.muted);
         wrapDetail(detail, spec.scenarioInfo[scenario].full, i < 3 ? 46 : 42);
       });
+      svg.append("text").attr("x", margin.left).attr("y", height - 62).attr("font-size", 12).attr("font-weight", 700).attr("fill", p.muted)
+        .text("Bars show warm-start medians; black whiskers show IQR. These are exposure-solve scenarios only.");
       svg.append("text").attr("x", margin.left).attr("y", height - 42).attr("font-size", 12).attr("fill", p.muted)
         .text("Host: " + (spec.environment.cpus || "n/a") + " CPU threads, " + (spec.environment.memoryGb || "n/a") + " GB RAM, Node " + (spec.environment.node || "n/a") + ". Firefox uses the Playwright-managed browser binary for reproducible automation.");
       if (spec.firefoxNmfNote) {
@@ -119,7 +139,7 @@
         if (ms < 1000) return d3.format(".0f")(ms) + " ms";
         return d3.format(".2f")(ms / 1000) + " s";
       }
-
+    
     </script>
   </body>
 </html>

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "msig.network_endpoint_audit.v1",
+  "generatedAt": "2026-06-28T12:31:51.158Z",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "commit": "10c5ecfd1eb3394bd72c5027d7d6f5f9090a9be9",
+    "generator": "scripts/manuscript/generate-revision-assets.mjs",
+    "seed": 20260521
+  },
+  "rows": [
+    {
+      "host": "mSigPortal API",
+      "used_for": "Public spectra and signature catalogs",
+      "information_sent": "Public cohort/catalog filters or selected sample identifiers",
+      "user_derived_data": "No for public-resource fetches",
+      "strict_local_mode": "Sample-specific fetches are disabled"
+    },
+    {
+      "host": "GDC API",
+      "used_for": "Public TCGA/GDC helper queries",
+      "information_sent": "Public gene, project, file, and query identifiers",
+      "user_derived_data": "Public identifiers only",
+      "strict_local_mode": "All GDC calls are disabled"
+    },
+    {
+      "host": "UCSC sequence API",
+      "used_for": "Online MAF sequence-context lookup",
+      "information_sent": "Genome build and mutation coordinates",
+      "user_derived_data": "Yes, when converting user MAF rows online",
+      "strict_local_mode": "Disabled; row-supplied or offline contexts required"
+    },
+    {
+      "host": "Runtime/CDN hosts",
+      "used_for": "Pinned JavaScript, Pyodide, and WebR assets",
+      "information_sent": "Asset URLs only",
+      "user_derived_data": "No",
+      "strict_local_mode": "Avoidable by local hosting where assets are bundled"
+    },
+    {
+      "host": "Bundled package repositories",
+      "used_for": "Pyodide wheels and WebR package artifacts",
+      "information_sent": "Same-origin local artifact requests when hosted",
+      "user_derived_data": "No",
+      "strict_local_mode": "Compatible with local hosting"
+    }
+  ]
+}

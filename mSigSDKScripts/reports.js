@@ -37,6 +37,9 @@ const FAIR_REFERENCE = {
   url: "https://doi.org/10.1038/sdata.2016.18",
 };
 
+const REPORT_SCHEMA_VERSION = "msig.report.v0.3";
+const REPORT_VERSION = "0.3.0";
+
 function collectReferences(value, seen = new Set()) {
   if (!value || typeof value !== "object") {
     return [];
@@ -122,7 +125,8 @@ function createAnalysisReport(
   ];
   const deduplicatedCitations = collectReferences({ references: collectedCitations });
   const report = {
-    schemaVersion: "msig.report.v0.3",
+    schemaVersion: REPORT_SCHEMA_VERSION,
+    version: REPORT_VERSION,
     title,
     summary,
     generatedAt: new Date().toISOString(),

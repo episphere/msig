@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "msig.report.v0.3",
+  "version": "0.3.0",
+  "title": "Full mSigSDK Report Fixture",
+  "summary": "Representative report fixture with validation, QC, exposure, extraction, and provenance fields.",
+  "generatedAt": "2026-06-24T00:00:00.000Z",
+  "workflowRole": "signature_fitting_and_extraction",
+  "scopeStatement": "Fixture values are illustrative schema-validation records, not biological results.",
+  "methodBasis": {
+    "method": "native_js_nnls_nmf",
+    "references": [
+      {
+        "key": "FixtureReference",
+        "citation": "Representative fixture citation.",
+        "url": "https://episphere.github.io/msig/"
+      }
+    ]
+  },
+  "primaryInterpretationFields": [
+    "validation.valid",
+    "qc.reconstruction.samples[0].cosineSimilarity",
+    "extraction.rank"
+  ],
+  "reproducibilityStatement": "Fixture generated for schema validation; no external data were used.",
+  "parameters": {
+    "profile": "SBS",
+    "matrix": 96,
+    "exposureType": "relative",
+    "strictLocal": true,
+    "seed": 17
+  },
+  "validation": {
+    "valid": true,
+    "issues": [],
+    "warnings": []
+  },
+  "qc": {
+    "mutationBurden": {
+      "sampleCount": 1
+    },
+    "reconstruction": {
+      "samples": [
+        {
+          "sample": "FixtureSample",
+          "cosineSimilarity": 1,
+          "rmse": 0
+        }
+      ]
+    }
+  },
+  "signatures": {
+    "type": "object",
+    "keys": 2
+  },
+  "exposures": {
+    "type": "object",
+    "keys": 1
+  },
+  "extraction": {
+    "rank": 1,
+    "reconstructionError": 0,
+    "converged": true
+  },
+  "provenance": {
+    "sdkVersion": "0.3.0",
+    "runtime": "node"
+  },
+  "citations": [
+    {
+      "key": "FixtureReference",
+      "citation": "Representative fixture citation.",
+      "url": "https://episphere.github.io/msig/"
+    }
+  ],
+  "notes": [
+    "Intentional schema-validation fixture."
+  ]
+}

@@ -20,7 +20,7 @@
       <div id="chart"></div>
     </main>
     <script>
-      const spec = {"kind":"timeline","subtitle":"Seconds from blank harness page load to SDK report-ready event.","xLabel":"Elapsed seconds","data":[{"label":"Page loaded","value":0.0002749999985098839},{"label":"SDK imported","value":1.5477299999967218},{"label":"mSigPortal data fetched","value":1.8738500000014902},{"label":"Single-sample fit completed","value":1.891439999997616},{"label":"SDK report generated","value":1.8935399999991058}]};
+      const spec = {"kind":"timeline","subtitle":"Seconds from blank harness page load to SDK report-ready event.","xLabel":"Elapsed seconds","data":[{"label":"Page loaded","value":0.00018499994277954102},{"label":"SDK imported","value":4.7130350000858305},{"label":"mSigPortal data fetched","value":4.96947000002861},{"label":"Single-sample fit completed","value":4.990539999961853},{"label":"SDK report generated","value":4.993}]};
       const colors = { pass: "#0b6b4f", completed: "#2f6f73", failed: "#b4473a", missing: "#69737f", blocked: "#b4473a", "not available": "#69737f" };
       if (spec.kind === "matrix") renderMatrix(spec);
       else if (spec.kind === "status") renderStatus(spec);

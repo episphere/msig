@@ -1,0 +1,25 @@
+# Suggested Commands
+
+- Install deps: `npm install`.
+- Regenerate public docs/API metadata: `npm run docs`.
+- Regenerate API metadata only: `npm run docs:api`.
+- Regenerate feature reference HTML only: `npm run docs:feature-reference`.
+- Validate report schema and examples: `npm run test:report-schema`.
+- Verify plot/publication context: `npm run test:plot-context`.
+- Verify bundled runtime integrity: `npm run verify:runtime-integrity`.
+- Smoke external adapters: `npm run smoke:adapters`.
+- Smoke advisor/guidance paths: `npm run smoke:guidance`.
+- Smoke profile conversions: `npm run smoke:profile-conversions`.
+- Smoke strict-local/no-egress behavior: `npm run smoke:strict-local`.
+- Smoke parallel bootstrap: `npm run smoke:parallel-bootstrap`.
+- Smoke TCGA contexts: `npm run smoke:tcga-contexts`.
+- Smoke WebR browser adapters: `npm run smoke:webr-adapters`.
+- Verify exact adapter boundaries: `npm run test:exact-adapters`.
+- Rebuild notebook manifest: `npm run notebooks:manifest`.
+- Rebuild notebook preview assets: `npm run assets:notebook-previews`.
+- Serve Observable-style notebooks locally: `npm run serve:observable`; index URL usually `http://127.0.0.1:8080/notebooks/msig-sdk-notebooks.onb.html`.
+- Run quick Node example: `node examples/node-console-fit.mjs`.
+- Run headless report example: `node examples/node-headless-fit.mjs --output examples/node-headless-report.json`.
+- Manuscript assets: `npm run assets:manuscript`; main/revision subsets: `npm run assets:main-manuscript`, `npm run assets:revision-figures`.
+- Experiments declared in `package.json`: `npm run experiment:e1-zero-install`, `npm run experiment:e2-adapter-fidelity`, `npm run experiment:e3-reference-checks`, `npm run experiment:e4-browser-benchmarks`, `npm run experiment:e6-compatibility`, `npm run experiment:all`.
+- Windows search: prefer `rg` / `rg --files`; PowerShell paths with spaces need quotes, e.g. `cd "C:\Users\Aaron Ge\Documents\GitHub\msig"`.

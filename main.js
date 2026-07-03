@@ -2,8 +2,10 @@ import * as UMAP from "https://esm.sh/umap-js@1.3.3";
 import * as Plotly from "https://esm.sh/plotly.js-dist-min@3.5.1";
 import * as d3 from "https://esm.sh/d3@7.9.0";
 
-import * as am5 from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/+esm";
-import * as am5hierarchy from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5/hierarchy/+esm";
+// Browser ESM dynamic imports do not accept SRI metadata; pin exact versions and
+// integrity-verify bundled runtime artifacts before install instead.
+import * as am5 from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5@5.3.7/+esm";
+import * as am5hierarchy from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5@5.3.7/hierarchy/+esm";
 
 import * as am5themes_Animated from "https://cdn.jsdelivr.net/npm/@amcharts/amcharts5@5.3.7/themes/Animated.js/+esm";
 
@@ -154,6 +156,9 @@ const {
 } = userDataModule;
 
 const {
+  RUNTIME_OPTIONS_DEFAULTS = {},
+  configureRuntimeOptions = missingDependency("configureRuntimeOptions"),
+  getRuntimeOptions = missingDependency("getRuntimeOptions"),
   linspace,
   deepCopy,
   nnls,
@@ -212,7 +217,9 @@ const {
 const {
   QC_DEFAULTS = {},
   QC_WARNING_CODES = {},
+  bootstrapCohortSignatureFitParallel,
   bootstrapSignatureFit,
+  bootstrapSignatureFitParallel,
   calculateFitResiduals,
   calculateReconstructionError,
   fitSpectraWithNNLS,
@@ -302,7 +309,7 @@ const {
 const {
   DEFAULT_PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.27.4/full/",
   DEFAULT_WEBR_BINARY_R_VERSION = "4.6",
-  DEFAULT_WEBR_MODULE_URL = "https://webr.r-wasm.org/latest/webr.mjs",
+  DEFAULT_WEBR_MODULE_URL = "https://webr.r-wasm.org/v0.6.0/webr.mjs",
   DEFAULT_WEBR_REPOSITORY_URL = "https://repo.r-wasm.org",
   PYODIDE_RUNNER_SCHEMA_VERSION = "msig.runner.pyodide.v0.3",
   WEBR_RUNNER_SCHEMA_VERSION = "msig.runner.webr.v0.3",
@@ -315,6 +322,7 @@ const {
   runPython = missingDependency("runPython"),
   runPyodide = missingDependency("runPyodide"),
   runWebR = missingDependency("runWebR"),
+  verifyBundledWebRRepository = missingDependency("verifyBundledWebRRepository"),
 } = runnersModule;
 
 const {
@@ -9838,7 +9846,15 @@ Renders a plot of mutational profiles in a given div element ID.
     convertTCGAProjectIntoJSON,
   };
   const tools = {
+    configureRuntimeOptions,
+    getRuntimeOptions,
     groupBy,
+  };
+
+  const runtime = {
+    defaults: RUNTIME_OPTIONS_DEFAULTS,
+    configure: configureRuntimeOptions,
+    getOptions: getRuntimeOptions,
   };
 
   const signatureFitting = {
@@ -9872,7 +9888,9 @@ Renders a plot of mutational profiles in a given div element ID.
   const qc = {
     QC_DEFAULTS,
     QC_WARNING_CODES,
+    bootstrapCohortSignatureFitParallel,
     bootstrapSignatureFit,
+    bootstrapSignatureFitParallel,
     calculateFitResiduals,
     calculateReconstructionError,
     fitSpectraWithNNLS,
@@ -10036,6 +10054,7 @@ Renders a plot of mutational profiles in a given div element ID.
       createRunner: createWebRRunner,
       detect: detectWebRRuntime,
       run: runWebR,
+      verifyBundledRepository: verifyBundledWebRRepository,
     },
     checkWebRPackageAvailability,
     createPyodideWorkerRunner,
@@ -10045,6 +10064,7 @@ Renders a plot of mutational profiles in a given div element ID.
     runPython,
     runPyodide,
     runWebR,
+    verifyBundledWebRRepository,
   };
 
   const adapters = {
@@ -10133,6 +10153,7 @@ Renders a plot of mutational profiles in a given div element ID.
     mSigPortal,
     userData,
     tools,
+    runtime,
     machineLearning,
     signatureFitting,
     TCGA,

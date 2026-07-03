@@ -1,0 +1,13 @@
+# Table B. Principal QC review defaults
+
+Generated at: 2026-06-28T12:31:51.158Z
+
+| evidence_area | default_rule | interpretation |
+| --- | --- | --- |
+| Mutation burden | WGS: low <100; moderate <1000. Panel/WES: low <30; moderate <150. | Low-burden samples receive more cautious reporting. |
+| Context coverage | Observed contexts must match the selected profile. | Missing or extra contexts are treated as input-format issues. |
+| Reconstruction and residuals | Review when cosine <0.9, unexplained fraction >=0.07, or residual-reference cosine >=0.85. | Poor fit or structured residuals suggest caveated interpretation or catalog review. |
+| Exposure-threshold sensitivity | Evaluate cutoffs 0, 1%, 3%, 5%, and 10%; review cosine drops >=0.02. | Highlights fits whose active signatures change across reporting cutoffs. |
+| Bootstrap stability | 200 iterations by default; 500 for stable-interval review; 1000 recommended for publication use. | Reports sampling uncertainty conditional on the observed spectrum and catalog. |
+| Signature ambiguity | Review similar signatures at cosine >=0.9; stronger ambiguity at >=0.95. | Marks exposure estimates that may redistribute among similar signatures. |
+| Catalog sufficiency | Review when unexplained fraction >=0.12 or catalog cosine <0.9. | Identifies cases where the reference catalog may not explain observed structure. |

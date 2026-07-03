@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "msig.end_to_end_notebook_benchmark_status.v1",
+  "generatedAt": "2026-06-28T12:31:51.158Z",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "commit": "10c5ecfd1eb3394bd72c5027d7d6f5f9090a9be9",
+    "generator": "scripts/manuscript/generate-revision-assets.mjs",
+    "seed": 20260521
+  },
+  "status": "not_possible",
+  "requestedBenchmark": "Demo notebook default fit-and-review path at 120 and 500 TCGA Lung-AdenoCA SBS96 samples in Firefox, network excluded.",
+  "reason": "The requested 120- and 500-sample TCGA Lung-AdenoCA SBS96 input was not available from local repository artifacts or tested public mSigPortal TCGA queries on this host.",
+  "attemptedQueries": [
+    "study=TCGA&cancer=Lung-AdenoCA&strategy=WGS&profile=SBS&matrix=96",
+    "study=TCGA&cancer=Lung-AdenoCA&strategy=WES&profile=SBS&matrix=96",
+    "study=TCGA&cancer=LUAD&strategy=WES&profile=SBS&matrix=96"
+  ],
+  "figure5": "not generated; do not use a synthetic replacement for manuscript claims"
+}

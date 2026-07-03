@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "msig.cross_platform_status.v1",
+  "generatedAt": "2026-06-28T12:31:51.158Z",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "commit": "10c5ecfd1eb3394bd72c5027d7d6f5f9090a9be9",
+    "generator": "scripts/manuscript/generate-revision-assets.mjs",
+    "seed": 20260521
+  },
+  "status": "not_possible",
+  "reason": "Only the Windows host represented by this Codex workspace was available. No macOS or Linux host was available for direct benchmark execution."
+}

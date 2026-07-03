@@ -1,187 +1,63 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Figure 1. Architecture and data-residency boundary</title>
-    <script src="../assets/d3.min.js"></script>
-    <style>
-      body { margin: 0; font-family: Arial, sans-serif; color: #172026; background: #f7faf9; }
-      main { max-width: 1320px; margin: 0 auto; padding: 28px; }
-      .figure-frame { background: #ffffff; border: 1px solid #d8e2dc; border-radius: 8px; padding: 22px; box-shadow: 0 8px 24px rgba(16, 32, 27, 0.08); }
-      h1 { margin: 0 0 8px; font-size: 25px; letter-spacing: 0; }
-      .caption { margin: 0 0 20px; color: #53616f; max-width: 1120px; line-height: 1.45; font-size: 15px; }
-      svg { width: 100%; height: auto; display: block; }
-      .svg-shell svg { max-height: 760px; }
-      .tick text { fill: #53616f; font-size: 11px; }
-      .domain, .tick line { stroke: #aab6c2; }
-    </style>
-  </head>
-  <body>
-    <main>
-      <div class="figure-frame">
-
-        <div class="svg-shell"><svg xmlns="http://www.w3.org/2000/svg" width="1180" height="600" viewBox="0 0 1180 600" role="img" aria-labelledby="figure1-title figure1-desc">
-  <title id="figure1-title">Figure 1. Architecture and data-residency boundary</title>
-  <desc id="figure1-desc">Architecture diagram showing selected public spectra, catalogs, and runtime assets entering a private browser workspace while user spectra, signature exposures, QC outputs, plots, and reports remain local.</desc>
-  <defs>
-    <marker id="fig1-arrow-blue" viewBox="0 -5 10 10" refX="9" refY="0" markerWidth="8" markerHeight="8" orient="auto">
-      <path d="M0,-5L10,0L0,5" fill="#0072B2"/>
-    </marker>
-    <filter id="fig1-shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#111827" flood-opacity="0.09"/>
-    </filter>
-    <style>
-      .fig1-text{font-family:Arial,sans-serif;fill:#111827}
-      .fig1-muted{font-family:Arial,sans-serif;fill:#4b5563}
-      .fig1-title{font-size:29px;font-weight:700}
-      .fig1-section{font-size:22px;font-weight:700}
-      .fig1-label{font-size:16px;font-weight:700}
-      .fig1-small{font-size:15px}
-      .fig1-mini{font-size:12px}
-      .fig1-chip{font-size:14px;font-weight:700}
-    </style>
-  </defs>
-  <rect width="1180" height="600" fill="#f8fafc"/>
-
-  <g transform="translate(0 -64)">
-  <rect x="48" y="126" width="300" height="500" rx="20" fill="#ffffff" stroke="#d1d5db" filter="url(#fig1-shadow)"/>
-  <text x="78" y="166" class="fig1-text fig1-section">Public signature inputs</text>
-  <text x="78" y="192" class="fig1-muted fig1-small">Fetched only when requested</text>
-  <g transform="translate(82 222)">
-    <path d="M50 34c7-26 31-45 62-45 27 0 50 16 62 39 27 5 47 27 47 56 0 31-26 57-59 57H49c-31 0-57-25-57-57 0-29 24-53 54-53 2 0 3 0 4 0z" fill="#E7F3FA" stroke="#0072B2" stroke-width="2.4"/>
-    <text x="108" y="78" text-anchor="middle" class="fig1-text" font-size="19" font-weight="700">mSigPortal</text>
-    <text x="108" y="102" text-anchor="middle" class="fig1-muted fig1-mini">public cancer spectra</text>
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:white;}svg{display:block;}</style></head><body><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="950" viewBox="0 0 1400 950" role="img">
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill: #16212f; letter-spacing: 0; }
+    .white { fill: #ffffff !important; }
+    .title { font-size: 34px; font-weight: 700; }
+    .subtitle { font-size: 18px; fill: #5d6978; }
+    .label { font-size: 17px; }
+    .small { font-size: 14px; fill: #5d6978; }
+    .strong { font-weight: 700; fill: #16212f; }
+    .value { font-size: 20px; font-weight: 700; }
+    .axis-title { font-size: 15px; font-weight: 700; fill: #5d6978; }
+  </style>
+  <rect width="1400" height="950" fill="#ffffff"/>
+  <text x="70" y="64" class="title">Figure 1. Architecture and data-residency boundary</text><text x="70" y="96" class="subtitle">Three residency classes are separated from browser execution paths and external hosts.</text>
+  <rect x="40" y="100" width="680" height="640" rx="18" fill="#f8fbfd" stroke="#0072b2" stroke-width="3"/>
+  <text x="70" y="802" class="label">Class i local-only: spectra, exposures, QC outputs, plots, and reports.</text>
+  <rect x="765" y="100" width="570" height="640" rx="18" fill="#fffdf8" stroke="#e69f00" stroke-width="3" stroke-dasharray="14 10"/>
+  <text x="795" y="802" class="label">Classes ii-iii: explicit fetches only; strictLocal blocks user-derived egress.</text>
+  <g>
+    <rect x="70" y="135" width="380" height="215" rx="14" fill="#ffffff" stroke="#0072b2" stroke-width="3"/>
+    <text x="94" y="177" class="label strong">Native JavaScript tier</text>
+    <text x="98" y="217" class="label">Matrix conversion</text><text x="98" y="247" class="label">NNLS / NMF native paths</text><text x="98" y="277" class="label">QC summaries</text><text x="98" y="307" class="label">JSON reports and plots</text>
   </g>
-  <g transform="translate(90 366)">
-    <rect width="226" height="48" rx="10" fill="#ffffff" stroke="#0072B2" stroke-width="1.8"/>
-    <rect x="12" y="11" width="60" height="26" rx="5" fill="#E7F3FA" stroke="#b7d8e8"/>
-    <rect x="14" y="27" width="2.3" height="8" rx="1" fill="#0072B2"/><rect x="17" y="19" width="2.3" height="16" rx="1" fill="#0072B2"/><rect x="20" y="24" width="2.3" height="11" rx="1" fill="#0072B2"/><rect x="23" y="13" width="2.3" height="22" rx="1" fill="#111827"/><rect x="26" y="21" width="2.3" height="14" rx="1" fill="#111827"/><rect x="29" y="16" width="2.3" height="19" rx="1" fill="#111827"/><rect x="32" y="28" width="2.3" height="7" rx="1" fill="#D55E00"/><rect x="35" y="20" width="2.3" height="15" rx="1" fill="#D55E00"/><rect x="38" y="25" width="2.3" height="10" rx="1" fill="#D55E00"/><rect x="41" y="18" width="2.3" height="17" rx="1" fill="#9CA3AF"/><rect x="44" y="14" width="2.3" height="21" rx="1" fill="#9CA3AF"/><rect x="47" y="26" width="2.3" height="9" rx="1" fill="#9CA3AF"/><rect x="50" y="22" width="2.3" height="13" rx="1" fill="#009E73"/><rect x="53" y="17" width="2.3" height="18" rx="1" fill="#009E73"/><rect x="56" y="23" width="2.3" height="12" rx="1" fill="#009E73"/><rect x="59" y="27" width="2.3" height="8" rx="1" fill="#CC79A7"/><rect x="62" y="20" width="2.3" height="15" rx="1" fill="#CC79A7"/><rect x="65" y="15" width="2.3" height="20" rx="1" fill="#CC79A7"/>
-    <text x="86" y="20" class="fig1-text fig1-label">SBS96 spectra</text>
-    <text x="86" y="36" class="fig1-muted" font-size="12">mutation counts</text>
+  <g>
+    <rect x="70" y="405" width="380" height="215" rx="14" fill="#ffffff" stroke="#6f4aa2" stroke-width="3"/>
+    <text x="94" y="447" class="label strong">Pyodide / WebR worker tier</text>
+    <text x="98" y="487" class="label">Pinned runtime URLs</text><text x="98" y="517" class="label">Bundled wheels and R tgz</text><text x="98" y="547" class="label">SHA-256 verified installs</text><text x="98" y="577" class="label">Adapter execution</text>
   </g>
-  <g transform="translate(90 430)">
-    <rect width="226" height="48" rx="10" fill="#ffffff" stroke="#E69F00" stroke-width="1.8"/>
-    <rect x="10" y="8" width="66" height="34" rx="6" fill="#FFF4DB" stroke="#efd7a2"/>
-    <rect x="13" y="11" width="15" height="10" rx="2" fill="#0072B2"/>
-        <text x="20.5" y="31" text-anchor="middle" font-family="Arial,sans-serif" font-size="5.5" font-weight="700" fill="#111827">C&gt;A</text><rect x="33" y="11" width="15" height="10" rx="2" fill="#111827"/>
-        <text x="40.5" y="31" text-anchor="middle" font-family="Arial,sans-serif" font-size="5.5" font-weight="700" fill="#111827">C&gt;G</text><rect x="53" y="11" width="15" height="10" rx="2" fill="#D55E00"/>
-        <text x="60.5" y="31" text-anchor="middle" font-family="Arial,sans-serif" font-size="5.5" font-weight="700" fill="#111827">C&gt;T</text><rect x="13" y="25" width="15" height="10" rx="2" fill="#9CA3AF"/>
-        <text x="20.5" y="45" text-anchor="middle" font-family="Arial,sans-serif" font-size="5.5" font-weight="700" fill="#111827">T&gt;A</text><rect x="33" y="25" width="15" height="10" rx="2" fill="#009E73"/>
-        <text x="40.5" y="45" text-anchor="middle" font-family="Arial,sans-serif" font-size="5.5" font-weight="700" fill="#111827">T&gt;C</text><rect x="53" y="25" width="15" height="10" rx="2" fill="#CC79A7"/>
-        <text x="60.5" y="45" text-anchor="middle" font-family="Arial,sans-serif" font-size="5.5" font-weight="700" fill="#111827">T&gt;G</text>
-    <text x="86" y="20" class="fig1-text fig1-label">COSMIC catalog</text>
-    <text x="86" y="36" class="fig1-muted" font-size="12">reference signatures</text>
+  <g>
+    <rect x="825" y="115" width="445" height="170" rx="14" fill="#ffffff" stroke="#009e73" stroke-width="3"/>
+    <text x="849" y="157" class="label strong">Public-data fetchers</text>
+    <text x="853" y="197" class="label">mSigPortal public cohort/catalog APIs</text><text x="853" y="227" class="label">GDC project/gene/file queries</text><text x="853" y="257" class="label">Only public identifiers when invoked</text>
   </g>
-  <g transform="translate(90 494)">
-    <rect width="226" height="48" rx="10" fill="#ffffff" stroke="#CC79A7" stroke-width="1.8"/>
-    <rect x="12" y="10" width="56" height="28" rx="6" fill="#f7e9f1" stroke="#e0b3ce"/>
-    <text x="22" y="29" font-family="Consolas,monospace" font-size="17" font-weight="700" fill="#CC79A7">&lt;/&gt;</text>
-    <circle cx="54" cy="24" r="4" fill="#0072B2"/>
-    <text x="86" y="20" class="fig1-text fig1-label">Runtime assets</text>
-    <text x="86" y="36" class="fig1-muted" font-size="12">D3, WebR, Pyodide</text>
+  <g>
+    <rect x="825" y="342" width="445" height="155" rx="14" fill="#ffffff" stroke="#e69f00" stroke-width="3"/>
+    <text x="849" y="384" class="label strong">UCSC live context lookup</text>
+    <text x="853" y="424" class="label">Genome build, chromosome, coordinate</text><text x="853" y="454" class="label">Disabled in strictLocal mode</text><text x="853" y="484" class="label">Use row or bundled contexts instead</text>
   </g>
-  <text x="198" y="574" text-anchor="middle" class="fig1-muted fig1-mini">No patient-specific spectra are uploaded.</text>
-
-  <path d="M348 436 H414" fill="none" stroke="#0072B2" stroke-width="3" marker-end="url(#fig1-arrow-blue)"/>
-
-  <rect x="414" y="112" width="720" height="524" rx="28" fill="#E8F5F1" stroke="#009E73" stroke-width="3" filter="url(#fig1-shadow)"/>
-  <text x="456" y="154" class="fig1-text fig1-section">Private browser / device boundary</text>
-  <text x="456" y="180" class="fig1-muted fig1-small">Mutational-signature computation runs locally in the browser.</text>
-
-  <rect x="456" y="216" width="374" height="260" rx="18" fill="#ffffff" stroke="#b7d8cd"/>
-  <text x="486" y="252" class="fig1-text fig1-section">mSigSDK analysis core</text>
-  <text x="486" y="277" class="fig1-muted fig1-small">JavaScript signature workflows</text>
-  <g transform="translate(486 312)">
-    <rect width="166" height="34" rx="9" fill="#f8fafc" stroke="#0072B2" stroke-width="1.6"/>
-    <circle cx="19" cy="17" r="12" fill="#0072B2"/>
-    <text x="19" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#ffffff">1</text>
-    <text x="40" y="22" class="fig1-text" font-size="13" font-weight="700">Validate spectra</text>
+  <g>
+    <rect x="825" y="555" width="445" height="155" rx="14" fill="#ffffff" stroke="#8a939d" stroke-width="3"/>
+    <text x="849" y="597" class="label strong">CDN/runtime module hosts</text>
+    <text x="853" y="637" class="label">Version-pinned ESM modules</text><text x="853" y="667" class="label">No spectra/exposures/QC/reports sent</text><text x="853" y="697" class="label">Bundled package artifacts verified locally</text>
   </g>
-  <g transform="translate(658 312)">
-    <rect width="166" height="34" rx="9" fill="#f8fafc" stroke="#E69F00" stroke-width="1.6"/>
-    <circle cx="19" cy="17" r="12" fill="#E69F00"/>
-    <text x="19" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#ffffff">2</text>
-    <text x="40" y="22" class="fig1-text" font-size="13" font-weight="700">Fit signatures</text>
-  </g>
-  <g transform="translate(486 356)">
-    <rect width="166" height="34" rx="9" fill="#f8fafc" stroke="#009E73" stroke-width="1.6"/>
-    <circle cx="19" cy="17" r="12" fill="#009E73"/>
-    <text x="19" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#ffffff">3</text>
-    <text x="40" y="22" class="fig1-text" font-size="13" font-weight="700">NMF extraction</text>
-  </g>
-  <g transform="translate(658 356)">
-    <rect width="166" height="34" rx="9" fill="#f8fafc" stroke="#CC79A7" stroke-width="1.6"/>
-    <circle cx="19" cy="17" r="12" fill="#CC79A7"/>
-    <text x="19" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#ffffff">4</text>
-    <text x="40" y="22" class="fig1-text" font-size="13" font-weight="700">QC evidence</text>
-  </g>
-  <g transform="translate(486 402)">
-    <text x="0" y="11" class="fig1-muted" font-size="12" font-weight="700">Example exposure output</text>
-    <text x="0" y="29" class="fig1-muted" font-size="11" font-weight="700">SBS4</text>
-        <rect x="48" y="19" width="110" height="10" rx="5" fill="#e5edf4"/>
-        <rect x="48" y="19" width="90.19999999999999" height="10" rx="5" fill="#009E73"/>
-        <text x="168" y="29" class="fig1-muted" font-size="10">82%</text><text x="0" y="47" class="fig1-muted" font-size="11" font-weight="700">SBS18</text>
-        <rect x="48" y="37" width="110" height="10" rx="5" fill="#e5edf4"/>
-        <rect x="48" y="37" width="6.6" height="10" rx="5" fill="#0072B2"/>
-        <text x="168" y="47" class="fig1-muted" font-size="10">6%</text><text x="0" y="65" class="fig1-muted" font-size="11" font-weight="700">SBS40</text>
-        <rect x="48" y="55" width="110" height="10" rx="5" fill="#e5edf4"/>
-        <rect x="48" y="55" width="5.5" height="10" rx="5" fill="#6B7280"/>
-        <text x="168" y="65" class="fig1-muted" font-size="10">5%</text>
-  </g>
-
-  <rect x="846" y="216" width="266" height="306" rx="18" fill="#ffffff" stroke="#d7c8de"/>
-  <text x="870" y="252" class="fig1-text fig1-section">Package adapters</text>
-  <text x="870" y="277" class="fig1-muted fig1-small">Pinned external packages in-browser</text>
-  <text x="870" y="307" class="fig1-muted" font-size="11" font-weight="700">R / WebR</text>
-  <g transform="translate(870 318)">
-    <rect width="224" height="28" rx="8" fill="#f8fafc" stroke="#CC79A7" stroke-width="1.5"/>
-    <circle cx="18" cy="14" r="11" fill="#CC79A7"/>
-    <text x="18" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="#ffffff">R</text>
-    <text x="36" y="18" class="fig1-text" font-size="11.3" font-weight="700">deconstructSigs</text>
-    <text x="204" y="18" text-anchor="end" class="fig1-muted" font-size="9.6" font-weight="700">1.8.0</text>
-  </g>
-  <g transform="translate(870 354)">
-    <rect width="224" height="28" rx="8" fill="#f8fafc" stroke="#CC79A7" stroke-width="1.5"/>
-    <circle cx="18" cy="14" r="11" fill="#CC79A7"/>
-    <text x="18" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="#ffffff">R</text>
-    <text x="36" y="18" class="fig1-text" font-size="11.3" font-weight="700">sigminer</text>
-    <text x="204" y="18" text-anchor="end" class="fig1-muted" font-size="9.6" font-weight="700">2.3.1</text>
-  </g>
-  <text x="870" y="397" class="fig1-muted" font-size="11" font-weight="700">Python / Pyodide</text>
-  <g transform="translate(870 408)">
-    <rect width="224" height="28" rx="8" fill="#f8fafc" stroke="#E69F00" stroke-width="1.5"/>
-    <circle cx="18" cy="14" r="11" fill="#E69F00"/>
-    <text x="18" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="#ffffff">Py</text>
-    <text x="36" y="18" class="fig1-text" font-size="11.3" font-weight="700">SigProfilerAssignment</text>
-    <text x="204" y="18" text-anchor="end" class="fig1-muted" font-size="9.6" font-weight="700">1.1.3</text>
-  </g>
-  <g transform="translate(870 444)">
-    <rect width="224" height="28" rx="8" fill="#f8fafc" stroke="#E69F00" stroke-width="1.5"/>
-    <circle cx="18" cy="14" r="11" fill="#E69F00"/>
-    <text x="18" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="#ffffff">Py</text>
-    <text x="36" y="18" class="fig1-text" font-size="11.3" font-weight="700">MuSiCal</text>
-    <text x="204" y="18" text-anchor="end" class="fig1-muted" font-size="9.6" font-weight="700">1.0.0</text>
-  </g>
-  <rect x="876" y="486" width="212" height="26" rx="13" fill="#f8fafc" stroke="#d1d5db"/>
-  <text x="982" y="504" text-anchor="middle" class="fig1-muted" font-size="11" font-weight="700">File-format bridges</text>
-
-  <rect x="514" y="526" width="470" height="76" rx="16" fill="#ffffff" stroke="#009E73" stroke-width="2.4"/>
-  <text x="749" y="558" text-anchor="middle" class="fig1-text" font-size="20" font-weight="700">Local signature results</text>
-  <text x="749" y="584" text-anchor="middle" class="fig1-muted fig1-small">exposures, extracted signatures, QC, plots, and reports</text>
-  <g transform="translate(1018 500)">
-    <path d="M46 8 L84 24 V56 C84 84 66 106 46 116 C26 106 8 84 8 56 V24 Z" fill="#ffffff" stroke="#009E73" stroke-width="3"/>
-    <rect x="30" y="56" width="32" height="28" rx="5" fill="#009E73"/>
-    <path d="M36 56v-12c0-18 20-18 20 0v12" fill="none" stroke="#009E73" stroke-width="5" stroke-linecap="round"/>
-  </g>
-  <text x="1064" y="632" text-anchor="middle" class="fig1-text fig1-label" style="fill:#009E73">stays local</text>
-  </g>
-</svg></div>
-      </div>
-    </main>
-    <script>
-      const spec = {};
-
-    </script>
-  </body>
-</html>
+  <defs><marker id="arrow-450-240" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#009e73"/></marker></defs>
+    <line x1="450" y1="240" x2="825" y2="200" stroke="#009e73" stroke-width="3" marker-end="url(#arrow-450-240)"/>
+    <text x="637.5" y="208" text-anchor="middle" class="small">public identifiers only when public fetcher is invoked</text>
+  <defs><marker id="arrow-450-510" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#e69f00"/></marker></defs>
+    <line x1="450" y1="510" x2="825" y2="425" stroke="#e69f00" stroke-width="3" marker-end="url(#arrow-450-510)"/>
+    <text x="637.5" y="455.5" text-anchor="middle" class="small">coordinates only for live MAF context lookup</text>
+  <defs><marker id="arrow-450-560" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8a939d"/></marker></defs>
+    <line x1="450" y1="560" x2="825" y2="630" stroke="#8a939d" stroke-width="3" marker-end="url(#arrow-450-560)"/>
+    <text x="637.5" y="583" text-anchor="middle" class="small">runtime module/artifact retrieval; no user-derived analysis data</text>
+  <line x1="720" y1="118" x2="720" y2="740" stroke="#d55e00" stroke-width="4"/>
+  <text x="744" y="430" text-anchor="middle" class="axis-title" style="fill:#d55e00" transform="rotate(90 744 430)">Data-residency boundary</text>
+  <g transform="translate(90 665)">
+      <rect x="0" y="0" width="560" height="45" rx="8" fill="#ffffff" stroke="#e4e9ef"/>
+      <circle cx="28" cy="23" r="8" fill="#009e73"/><text x="45" y="28" class="small">public IDs</text>
+      <circle cx="178" cy="23" r="8" fill="#e69f00"/><text x="195" y="28" class="small">MAF coordinates</text>
+      <circle cx="370" cy="23" r="8" fill="#0072b2"/><text x="387" y="28" class="small">local-only outputs</text>
+    </g>
+</svg>
+</body></html>

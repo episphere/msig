@@ -1,6 +1,6 @@
 {
   "schemaVersion": "msig.manuscript.experiment.v1",
-  "generatedAt": "2026-05-22T00:57:26.178Z",
+  "generatedAt": "2026-06-27T22:48:55.381Z",
   "experimentId": "e2_adapter_fidelity",
   "environment": {
     "node": "v24.13.0",
@@ -10,8 +10,8 @@
     "cpus": 32,
     "memoryGb": 31.2,
     "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
-    "browserTimeoutMs": 900000,
-    "localComparator": "local Rscript (C:\\Program Files\\R\\R-4.6.0\\bin\\Rscript.exe)",
+    "browserTimeoutMs": 600000,
+    "localComparator": "local Rscript (Rscript)",
     "localRLibrary": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\r-library\\R-4.6",
     "webRRepository": "docs/package-repos/webr/bin/emscripten/contrib/4.6",
     "pyodideRepository": "docs/package-repos/pyodide",
@@ -35,7 +35,7 @@
     {
       "tool": "deconstructsigs",
       "browserRuntime": "webr",
-      "localRuntime": "local:Rscript.exe",
+      "localRuntime": "local:Rscript",
       "browserPackageVersion": "1.8.0",
       "localPackageVersion": "deconstructSigs 1.8.0",
       "sampleCount": 38,
@@ -51,7 +51,7 @@
     {
       "tool": "sigminer",
       "browserRuntime": "webr",
-      "localRuntime": "local:Rscript.exe",
+      "localRuntime": "local:Rscript",
       "browserPackageVersion": "2.3.1",
       "localPackageVersion": "sigminer 2.3.1; nnls 1.6",
       "sampleCount": 38,

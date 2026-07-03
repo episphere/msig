@@ -1,0 +1,217 @@
+{
+  "schemaVersion": "msig.runtime_integrity_manifest.v1",
+  "generatedAt": "2026-06-28T12:31:51.158Z",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "commit": "10c5ecfd1eb3394bd72c5027d7d6f5f9090a9be9",
+    "generator": "scripts/manuscript/generate-revision-assets.mjs",
+    "seed": 20260521
+  },
+  "pinnedRuntimes": {
+    "pyodide": "v0.27.4",
+    "webR": "v0.6.0",
+    "amCharts": "5.3.7",
+    "pako": "2.1.0",
+    "PapaParse": "5.5.3"
+  },
+  "sha256VerifiedBeforeInstall": {
+    "pyodidePackages": [
+      {
+        "tool": "SigProfilerAssignment",
+        "package": "SigProfilerAssignment",
+        "version": "1.1.3",
+        "filename": "sigprofilerassignment-1.1.3-py3-none-any.whl",
+        "available": true,
+        "installOptions": {
+          "deps": false
+        },
+        "sha256": "10520330d8c6c38c832bc1e82e15ac50ca5d7081ddd875f5f4eae7470e6dafe3"
+      },
+      {
+        "tool": "SigProfilerAssignment",
+        "package": "SigProfilerMatrixGenerator",
+        "version": "1.3.6",
+        "filename": "sigprofilermatrixgenerator-1.3.6-py3-none-any.whl",
+        "available": true,
+        "installOptions": {
+          "deps": false
+        },
+        "sha256": "d6402c41f7f6c957e0150faa81a6e0c9c1e8730dffcd205d0a9460074e19a204"
+      },
+      {
+        "tool": "SigProfilerAssignment",
+        "package": "sigProfilerPlotting",
+        "version": "1.4.3",
+        "filename": "sigprofilerplotting-1.4.3-py3-none-any.whl",
+        "available": true,
+        "installOptions": {
+          "deps": false
+        },
+        "sha256": "1faafe03c48f3591172feca3f28c0d3aba11f35def1a2aad7893771de48c932f"
+      },
+      {
+        "tool": "SigProfilerAssignment",
+        "package": "alive_progress",
+        "version": "3.3.0",
+        "filename": "alive_progress-3.3.0-py3-none-any.whl",
+        "available": true,
+        "installOptions": {
+          "deps": false
+        },
+        "sha256": "63dd33bb94cde15ad9e5b666dbba8fedf71b72a4935d6fb9a92931e69402c9ff"
+      },
+      {
+        "tool": "SigProfilerAssignment",
+        "package": "about-time",
+        "version": "4.2.1",
+        "filename": "about_time-4.2.1-py3-none-any.whl",
+        "available": true,
+        "installOptions": {
+          "deps": false
+        },
+        "sha256": "8bbf4c75fe13cbd3d72f49a03b02c5c7dca32169b6d49117c257e7eb3eaee341"
+      },
+      {
+        "tool": "SigProfilerAssignment",
+        "package": "graphemeu",
+        "version": "0.7.2",
+        "filename": "graphemeu-0.7.2-py3-none-any.whl",
+        "available": true,
+        "installOptions": {
+          "deps": false
+        },
+        "sha256": "1444520f6899fd30114fc2a39f297d86d10fa0f23bf7579f772f8bc7efaa2542"
+      },
+      {
+        "tool": "SigProfilerAssignment",
+        "package": "pdf2image",
+        "version": "1.17.0",
+        "filename": "pdf2image-1.17.0-py3-none-any.whl",
+        "available": true,
+        "installOptions": {
+          "deps": false
+        },
+        "sha256": "ecdd58d7afb810dffe21ef2b1bbc057ef434dabbac6c33778a38a3f7744a27e2"
+      },
+      {
+        "tool": "SigProfilerAssignment",
+        "package": "pypdf",
+        "version": "6.11.0",
+        "filename": "pypdf-6.11.0-py3-none-any.whl",
+        "available": true,
+        "installOptions": {
+          "deps": false
+        },
+        "sha256": "769394d5756d5b304c9b6bef88b54b1816b328e7e6fc9254e625529a15ed4ab8"
+      },
+      {
+        "tool": "SigProfilerAssignment",
+        "package": "reportlab",
+        "version": "4.5.1",
+        "filename": "reportlab-4.5.1-py3-none-any.whl",
+        "available": true,
+        "installOptions": {
+          "deps": false
+        },
+        "sha256": "06fce8cb56c83307cfa4909cdf4e6a2ddbb44e5d6ef4d2edca896d7e9769f091"
+      },
+      {
+        "tool": "MuSiCal",
+        "package": "musical",
+        "version": "1.0.0",
+        "filename": "musical-1.0.0-py3-none-any.whl",
+        "available": true,
+        "installOptions": {
+          "deps": false
+        },
+        "sha256": "c4203a10d905d17bf68678472add3677ce71a924138f63bba302f2f67bea9765"
+      },
+      {
+        "tool": "MuSiCal",
+        "package": "seaborn",
+        "version": "0.13.2",
+        "filename": "seaborn-0.13.2-py3-none-any.whl",
+        "available": true,
+        "installOptions": {
+          "deps": false
+        },
+        "sha256": "636f8336facf092165e27924f223d3c62ca560b1f2bb5dff7ab7fad265361987"
+      }
+    ],
+    "webRPackages": [
+      {
+        "tool": "deconstructSigs",
+        "package": "deconstructSigs",
+        "version": "1.8.0",
+        "filename": "bin/emscripten/contrib/4.6/deconstructSigs_1.8.0.tgz",
+        "available": true,
+        "sha256": "db13d3147aa675dfc253014cdaada45b70a82a02857d3c7ac337a55974cc1f8c"
+      },
+      {
+        "tool": "sigminer",
+        "package": "sigminer",
+        "version": "2.3.1",
+        "filename": "bin/emscripten/contrib/4.6/sigminer_2.3.1.tgz",
+        "available": true,
+        "sha256": "1f32a789428a9f71c31fbbae02074c9c83f0c020326ac65401a883603f706d1c"
+      },
+      {
+        "tool": "sigminer",
+        "package": "nnls",
+        "version": "1.6",
+        "filename": "bin/emscripten/contrib/4.6/nnls_1.6.tgz",
+        "available": true,
+        "sha256": "b9d4558aefa2de4fe3af59d1337276d0368337c1b2a961fb8008942250ccf69a"
+      },
+      {
+        "tool": "sigminer",
+        "package": "quadprog",
+        "version": "1.5-8",
+        "filename": "bin/emscripten/contrib/4.6/quadprog_1.5-8.tgz",
+        "available": true,
+        "sha256": "8163218c163c0c99a19a6eed245c127b7b5af3387f50142d3377c82c2283fff6"
+      },
+      {
+        "tool": "sigminer",
+        "package": "GenSA",
+        "version": "1.1.15",
+        "filename": "bin/emscripten/contrib/4.6/GenSA_1.1.15.tgz",
+        "available": true,
+        "sha256": "61a190dbe7c92461803c266341a46f7ad6f396f344eecc398e8d6cf87bc67452"
+      },
+      {
+        "tool": "sigminer",
+        "package": "NMF",
+        "version": "0.28",
+        "filename": "bin/emscripten/contrib/4.6/NMF_0.28.tgz",
+        "available": true,
+        "sha256": "39bab2a4b95d0343bccddb6a8e06ea4b86315611bbaa840bb1c6576661db3b76"
+      },
+      {
+        "tool": "sigminer",
+        "package": "Biobase",
+        "version": "2.72.0",
+        "filename": "bin/emscripten/contrib/4.6/Biobase_2.72.0.tgz",
+        "available": true,
+        "sha256": "c59eb04c41086568dbe4c70a2b48ad85290230a0bdfa6a419dba6fbe26aef789"
+      },
+      {
+        "tool": "sigminer",
+        "package": "BiocGenerics",
+        "version": "0.58.1",
+        "filename": "bin/emscripten/contrib/4.6/BiocGenerics_0.58.1.tgz",
+        "available": true,
+        "sha256": "554cead72191da24b40085393223075c2144eaabdb351b5842b782d07fe479f1"
+      }
+    ]
+  },
+  "pinnedOnlyNotSriVerifiedBySdk": [
+    "CDN ESM/module URLs for amCharts, pako, PapaParse, Pyodide runtime, and WebR runtime are version-pinned but not SHA-256/SRI-verified by the SDK."
+  ]
+}

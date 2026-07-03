@@ -43,7 +43,9 @@ function downsampleWGSArray(WGSArray, panelArray) {
 
 // Create a function that reads a csv file and returns a nested array of the data
 async function readCSV(csvFile) {
-  const Papa = await import("https://cdn.jsdelivr.net/npm/papaparse/+esm");
+  // Browser ESM dynamic imports do not provide a portable SRI hook; pinning is
+  // the integrity fallback for this CDN import.
+  const Papa = await import("https://cdn.jsdelivr.net/npm/papaparse@5.5.3/+esm");
   return new Promise((resolve, reject) => {
     Papa.default.parse(csvFile, {
       download: true,

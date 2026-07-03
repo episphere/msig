@@ -1,0 +1,4036 @@
+{
+  "schemaVersion": "msig.figure3.public_cohort.v1",
+  "generatedAt": "2026-06-28T12:31:51.158Z",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "commit": "10c5ecfd1eb3394bd72c5027d7d6f5f9090a9be9",
+    "generator": "scripts/manuscript/generate-revision-assets.mjs",
+    "seed": 20260521
+  },
+  "provenance": {
+    "script": "scripts/manuscript/generate-revision-assets.mjs",
+    "input": "docs/manuscript/experiments/e2_adapter_fidelity/data/adapter-fidelity-input.json",
+    "commit": "10c5ecfd1eb3394bd72c5027d7d6f5f9090a9be9",
+    "seed": 20260521,
+    "sdkOperations": [
+      "fitSpectraWithNNLS",
+      "summarizeMutationBurden",
+      "calculateReconstructionError",
+      "runThresholdSensitivity",
+      "selectNMFRank",
+      "extractSignaturesNMF"
+    ]
+  },
+  "inputs": {
+    "cohort": "PCAWG Lung-AdenoCA SBS96",
+    "signatureCatalog": "COSMIC_v3_Signatures_GRCh37_SBS96",
+    "sampleCount": 38,
+    "contextCount": 96,
+    "signatureCount": 67
+  },
+  "exposurePanel": [
+    {
+      "signature": "SBS4",
+      "meanExposure": 0.24041381712705046,
+      "prevalence": 0.5526315789473685
+    },
+    {
+      "signature": "SBS40",
+      "meanExposure": 0.07661619047583759,
+      "prevalence": 0.5526315789473685
+    },
+    {
+      "signature": "SBS8",
+      "meanExposure": 0.05761895958053122,
+      "prevalence": 0.5263157894736842
+    },
+    {
+      "signature": "SBS2",
+      "meanExposure": 0.05661769022949531,
+      "prevalence": 0.2894736842105263
+    },
+    {
+      "signature": "SBS13",
+      "meanExposure": 0.05524751879922204,
+      "prevalence": 0.3157894736842105
+    },
+    {
+      "signature": "SBS18",
+      "meanExposure": 0.04966508753929703,
+      "prevalence": 0.39473684210526316
+    },
+    {
+      "signature": "SBS1",
+      "meanExposure": 0.04922782442766179,
+      "prevalence": 0.3157894736842105
+    },
+    {
+      "signature": "SBS39",
+      "meanExposure": 0.04679730166864743,
+      "prevalence": 0.42105263157894735
+    },
+    {
+      "signature": "SBS30",
+      "meanExposure": 0.0300811927304954,
+      "prevalence": 0.15789473684210525
+    },
+    {
+      "signature": "Other",
+      "meanExposure": 0.3377144174217616,
+      "prevalence": null
+    }
+  ],
+  "burdenRows": [
+    {
+      "sample": "SP50263",
+      "totalMutations": 10313,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP50317",
+      "totalMutations": 16156,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP50321",
+      "totalMutations": 12669,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP50406",
+      "totalMutations": 587,
+      "burdenClass": "moderate"
+    },
+    {
+      "sample": "SP50412",
+      "totalMutations": 2099,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP50485",
+      "totalMutations": 2322,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP50518",
+      "totalMutations": 6317,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP50592",
+      "totalMutations": 5066,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP50611",
+      "totalMutations": 53404,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP50713",
+      "totalMutations": 14053,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP50827",
+      "totalMutations": 40159,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP51037",
+      "totalMutations": 4261,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP51446",
+      "totalMutations": 5589,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP51824",
+      "totalMutations": 24299,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP52232",
+      "totalMutations": 25936,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP52284",
+      "totalMutations": 5233,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP52607",
+      "totalMutations": 4008,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP52667",
+      "totalMutations": 33457,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP52779",
+      "totalMutations": 38395,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP53073",
+      "totalMutations": 23381,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP53387",
+      "totalMutations": 42320,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP53460",
+      "totalMutations": 53534,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP53548",
+      "totalMutations": 10088,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP53618",
+      "totalMutations": 61322,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP53810",
+      "totalMutations": 185584,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP54113",
+      "totalMutations": 110327,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP54363",
+      "totalMutations": 42875,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP54745",
+      "totalMutations": 47720,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP55004",
+      "totalMutations": 568,
+      "burdenClass": "moderate"
+    },
+    {
+      "sample": "SP55142",
+      "totalMutations": 157043,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP55235",
+      "totalMutations": 113803,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP55309",
+      "totalMutations": 1798,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP55387",
+      "totalMutations": 20258,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP55509",
+      "totalMutations": 66135,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP55711",
+      "totalMutations": 7859,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP56079",
+      "totalMutations": 48259,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP56168",
+      "totalMutations": 33038,
+      "burdenClass": "high"
+    },
+    {
+      "sample": "SP56303",
+      "totalMutations": 15716,
+      "burdenClass": "high"
+    }
+  ],
+  "fitRows": [
+    {
+      "sample": "SP50263",
+      "cosineSimilarity": 0.9968134194786908,
+      "rmse": 0.0010674250597942983
+    },
+    {
+      "sample": "SP50317",
+      "cosineSimilarity": 0.9988276748937202,
+      "rmse": 0.000992539448017191
+    },
+    {
+      "sample": "SP50321",
+      "cosineSimilarity": 0.9952300434202915,
+      "rmse": 0.001474795226598862
+    },
+    {
+      "sample": "SP50406",
+      "cosineSimilarity": 0.9856626030585288,
+      "rmse": 0.002829348845580374
+    },
+    {
+      "sample": "SP50412",
+      "cosineSimilarity": 0.9871682673584193,
+      "rmse": 0.002165032651919652
+    },
+    {
+      "sample": "SP50485",
+      "cosineSimilarity": 0.9941169553264434,
+      "rmse": 0.0016272830255864195
+    },
+    {
+      "sample": "SP50518",
+      "cosineSimilarity": 0.9973377646491803,
+      "rmse": 0.0009789646909546623
+    },
+    {
+      "sample": "SP50592",
+      "cosineSimilarity": 0.9955415778890327,
+      "rmse": 0.001355122268278691
+    },
+    {
+      "sample": "SP50611",
+      "cosineSimilarity": 0.9964579896577236,
+      "rmse": 0.0013744976649224699
+    },
+    {
+      "sample": "SP50713",
+      "cosineSimilarity": 0.9969188827748147,
+      "rmse": 0.0013665371864325835
+    },
+    {
+      "sample": "SP50827",
+      "cosineSimilarity": 0.9973856368723926,
+      "rmse": 0.0011165301871684913
+    },
+    {
+      "sample": "SP51037",
+      "cosineSimilarity": 0.9941783527125176,
+      "rmse": 0.0016659872566968036
+    },
+    {
+      "sample": "SP51446",
+      "cosineSimilarity": 0.9969774118958822,
+      "rmse": 0.0010953643530688467
+    },
+    {
+      "sample": "SP51824",
+      "cosineSimilarity": 0.9983866534952884,
+      "rmse": 0.0007965616162634807
+    },
+    {
+      "sample": "SP52232",
+      "cosineSimilarity": 0.9976298605912152,
+      "rmse": 0.0010284244142921787
+    },
+    {
+      "sample": "SP52284",
+      "cosineSimilarity": 0.9912731739105323,
+      "rmse": 0.0017827046919464394
+    },
+    {
+      "sample": "SP52607",
+      "cosineSimilarity": 0.9949547746026289,
+      "rmse": 0.0015572497163672018
+    },
+    {
+      "sample": "SP52667",
+      "cosineSimilarity": 0.9983536230747948,
+      "rmse": 0.0008759111485120349
+    },
+    {
+      "sample": "SP52779",
+      "cosineSimilarity": 0.9968586104837264,
+      "rmse": 0.0012286130892883963
+    },
+    {
+      "sample": "SP53073",
+      "cosineSimilarity": 0.9975980745503891,
+      "rmse": 0.0009367101588469239
+    },
+    {
+      "sample": "SP53387",
+      "cosineSimilarity": 0.9984863488574102,
+      "rmse": 0.001062355029669178
+    },
+    {
+      "sample": "SP53460",
+      "cosineSimilarity": 0.9952541786261465,
+      "rmse": 0.0015358414390688002
+    },
+    {
+      "sample": "SP53548",
+      "cosineSimilarity": 0.9948374487461293,
+      "rmse": 0.0022648069421653777
+    },
+    {
+      "sample": "SP53618",
+      "cosineSimilarity": 0.9968822289616833,
+      "rmse": 0.0013117264108471098
+    },
+    {
+      "sample": "SP53810",
+      "cosineSimilarity": 0.9993667189852892,
+      "rmse": 0.0006392288582588792
+    },
+    {
+      "sample": "SP54113",
+      "cosineSimilarity": 0.9955417302543533,
+      "rmse": 0.001360919998373115
+    },
+    {
+      "sample": "SP54363",
+      "cosineSimilarity": 0.9968995698376666,
+      "rmse": 0.0012958501522870962
+    },
+    {
+      "sample": "SP54745",
+      "cosineSimilarity": 0.9988798405924898,
+      "rmse": 0.000936888278928361
+    },
+    {
+      "sample": "SP55004",
+      "cosineSimilarity": 0.9839016926413601,
+      "rmse": 0.0026393662211373265
+    },
+    {
+      "sample": "SP55142",
+      "cosineSimilarity": 0.9968015308859186,
+      "rmse": 0.0012164340312700679
+    },
+    {
+      "sample": "SP55235",
+      "cosineSimilarity": 0.9974834389793524,
+      "rmse": 0.0010311814746276542
+    },
+    {
+      "sample": "SP55309",
+      "cosineSimilarity": 0.9912166392130827,
+      "rmse": 0.002158817541232287
+    },
+    {
+      "sample": "SP55387",
+      "cosineSimilarity": 0.993289778547483,
+      "rmse": 0.0018224282298245028
+    },
+    {
+      "sample": "SP55509",
+      "cosineSimilarity": 0.9952341359522922,
+      "rmse": 0.0016000315729859434
+    },
+    {
+      "sample": "SP55711",
+      "cosineSimilarity": 0.9959490804039681,
+      "rmse": 0.0013964634322981922
+    },
+    {
+      "sample": "SP56079",
+      "cosineSimilarity": 0.9984547021460002,
+      "rmse": 0.0008464748952311257
+    },
+    {
+      "sample": "SP56168",
+      "cosineSimilarity": 0.9993743397230729,
+      "rmse": 0.0010052545210851645
+    },
+    {
+      "sample": "SP56303",
+      "cosineSimilarity": 0.99754210738771,
+      "rmse": 0.0009907609000145239
+    }
+  ],
+  "thresholdRows": [
+    {
+      "threshold": 0,
+      "meanActiveSignatures": 29.07894736842105,
+      "meanReconstructionCosine": 0.9956070226694111,
+      "meanRmse": 0.0013797482271010713
+    },
+    {
+      "threshold": 0.01,
+      "meanActiveSignatures": 17.394736842105264,
+      "meanReconstructionCosine": 0.9944998160263419,
+      "meanRmse": 0.0016254528889898146
+    },
+    {
+      "threshold": 0.03,
+      "meanActiveSignatures": 8.18421052631579,
+      "meanReconstructionCosine": 0.9806922430490917,
+      "meanRmse": 0.003541141856854267
+    },
+    {
+      "threshold": 0.05,
+      "meanActiveSignatures": 4.684210526315789,
+      "meanReconstructionCosine": 0.9565273932054476,
+      "meanRmse": 0.005669269190547711
+    },
+    {
+      "threshold": 0.1,
+      "meanActiveSignatures": 1.894736842105263,
+      "meanReconstructionCosine": 0.8958240330473727,
+      "meanRmse": 0.01036732934071299
+    }
+  ],
+  "rankRows": [
+    {
+      "rank": 2,
+      "reconstructionError": 7724.0609583042415,
+      "averageSampleCosineSimilarity": 0.8767716516193674,
+      "copheneticCorrelation": 0.47824603992117476,
+      "averageSilhouette": 0.4843805899548361
+    },
+    {
+      "rank": 3,
+      "reconstructionError": 6321.728323104729,
+      "averageSampleCosineSimilarity": 0.8963137031340477,
+      "copheneticCorrelation": 0.5998138037389622,
+      "averageSilhouette": 0.359214874024016
+    },
+    {
+      "rank": 4,
+      "reconstructionError": 4444.186624699719,
+      "averageSampleCosineSimilarity": 0.9127083040736516,
+      "copheneticCorrelation": 0.5124783828710202,
+      "averageSilhouette": 0.02353933613877988
+    },
+    {
+      "rank": 5,
+      "reconstructionError": 3121.807214681276,
+      "averageSampleCosineSimilarity": 0.922156824788215,
+      "copheneticCorrelation": 0.48097039822534154,
+      "averageSilhouette": 0.07469389270622959
+    },
+    {
+      "rank": 6,
+      "reconstructionError": 2612.368659849861,
+      "averageSampleCosineSimilarity": 0.933718632213571,
+      "copheneticCorrelation": 0.5441017601955142,
+      "averageSilhouette": 0.08219620649752857
+    }
+  ],
+  "nmf": {
+    "rank": 6,
+    "selectedRankByLowestReconstructionError": 6,
+    "reconstructionError": 2520.884412904356,
+    "averageSampleCosineSimilarity": 0.9319665842754806,
+    "profiles": [
+      {
+        "signature": "NMF1",
+        "values": [
+          {
+            "context": "A[C>A]A",
+            "index": 0,
+            "mutationClass": "C>A",
+            "value": 0.032388793654133316
+          },
+          {
+            "context": "A[C>A]C",
+            "index": 1,
+            "mutationClass": "C>A",
+            "value": 0.015980714706000862
+          },
+          {
+            "context": "A[C>A]G",
+            "index": 2,
+            "mutationClass": "C>A",
+            "value": 0.00575253792182994
+          },
+          {
+            "context": "A[C>A]T",
+            "index": 3,
+            "mutationClass": "C>A",
+            "value": 0.02012346288388215
+          },
+          {
+            "context": "A[C>G]A",
+            "index": 4,
+            "mutationClass": "C>G",
+            "value": 0.0199894181078219
+          },
+          {
+            "context": "A[C>G]C",
+            "index": 5,
+            "mutationClass": "C>G",
+            "value": 0.008286785890787376
+          },
+          {
+            "context": "A[C>G]G",
+            "index": 6,
+            "mutationClass": "C>G",
+            "value": 0.003426733893857708
+          },
+          {
+            "context": "A[C>G]T",
+            "index": 7,
+            "mutationClass": "C>G",
+            "value": 0.013159485258240832
+          },
+          {
+            "context": "A[C>T]A",
+            "index": 8,
+            "mutationClass": "C>T",
+            "value": 0.020825347344619
+          },
+          {
+            "context": "A[C>T]C",
+            "index": 9,
+            "mutationClass": "C>T",
+            "value": 0.009307809240133877
+          },
+          {
+            "context": "A[C>T]G",
+            "index": 10,
+            "mutationClass": "C>T",
+            "value": 0.009595892752186688
+          },
+          {
+            "context": "A[C>T]T",
+            "index": 11,
+            "mutationClass": "C>T",
+            "value": 0.01509720060735156
+          },
+          {
+            "context": "A[T>A]A",
+            "index": 12,
+            "mutationClass": "T>A",
+            "value": 0.008557500779899245
+          },
+          {
+            "context": "A[T>A]C",
+            "index": 13,
+            "mutationClass": "T>A",
+            "value": 0.0035169086631172343
+          },
+          {
+            "context": "A[T>A]G",
+            "index": 14,
+            "mutationClass": "T>A",
+            "value": 0.00852039130872436
+          },
+          {
+            "context": "A[T>A]T",
+            "index": 15,
+            "mutationClass": "T>A",
+            "value": 0.007158355751589597
+          },
+          {
+            "context": "A[T>C]A",
+            "index": 16,
+            "mutationClass": "T>C",
+            "value": 0.032230274181471744
+          },
+          {
+            "context": "A[T>C]C",
+            "index": 17,
+            "mutationClass": "T>C",
+            "value": 0.005547525732891629
+          },
+          {
+            "context": "A[T>C]G",
+            "index": 18,
+            "mutationClass": "T>C",
+            "value": 0.02275498009555237
+          },
+          {
+            "context": "A[T>C]T",
+            "index": 19,
+            "mutationClass": "T>C",
+            "value": 0.017141415096233834
+          },
+          {
+            "context": "A[T>G]A",
+            "index": 20,
+            "mutationClass": "T>G",
+            "value": 0.003693137028693556
+          },
+          {
+            "context": "A[T>G]C",
+            "index": 21,
+            "mutationClass": "T>G",
+            "value": 0.0008867066453976015
+          },
+          {
+            "context": "A[T>G]G",
+            "index": 22,
+            "mutationClass": "T>G",
+            "value": 0.002203640107405601
+          },
+          {
+            "context": "A[T>G]T",
+            "index": 23,
+            "mutationClass": "T>G",
+            "value": 7.763541242964916e-11
+          },
+          {
+            "context": "C[C>A]A",
+            "index": 24,
+            "mutationClass": "C>A",
+            "value": 0.03234999033577915
+          },
+          {
+            "context": "C[C>A]C",
+            "index": 25,
+            "mutationClass": "C>A",
+            "value": 0.01650930211927396
+          },
+          {
+            "context": "C[C>A]G",
+            "index": 26,
+            "mutationClass": "C>A",
+            "value": 0.00415332633438088
+          },
+          {
+            "context": "C[C>A]T",
+            "index": 27,
+            "mutationClass": "C>A",
+            "value": 0.01305334560778446
+          },
+          {
+            "context": "C[C>G]A",
+            "index": 28,
+            "mutationClass": "C>G",
+            "value": 0.013724737564870053
+          },
+          {
+            "context": "C[C>G]C",
+            "index": 29,
+            "mutationClass": "C>G",
+            "value": 0.008967050896793274
+          },
+          {
+            "context": "C[C>G]G",
+            "index": 30,
+            "mutationClass": "C>G",
+            "value": 0.0038513951275123068
+          },
+          {
+            "context": "C[C>G]T",
+            "index": 31,
+            "mutationClass": "C>G",
+            "value": 0.011826848253512299
+          },
+          {
+            "context": "C[C>T]A",
+            "index": 32,
+            "mutationClass": "C>T",
+            "value": 0.028006281248156614
+          },
+          {
+            "context": "C[C>T]C",
+            "index": 33,
+            "mutationClass": "C>T",
+            "value": 0.02062218580720522
+          },
+          {
+            "context": "C[C>T]G",
+            "index": 34,
+            "mutationClass": "C>T",
+            "value": 0.0100721369737006
+          },
+          {
+            "context": "C[C>T]T",
+            "index": 35,
+            "mutationClass": "C>T",
+            "value": 0.031799586326480785
+          },
+          {
+            "context": "C[T>A]A",
+            "index": 36,
+            "mutationClass": "T>A",
+            "value": 0.012486447646459677
+          },
+          {
+            "context": "C[T>A]C",
+            "index": 37,
+            "mutationClass": "T>A",
+            "value": 0.007409941904363731
+          },
+          {
+            "context": "C[T>A]G",
+            "index": 38,
+            "mutationClass": "T>A",
+            "value": 0.015294855625541014
+          },
+          {
+            "context": "C[T>A]T",
+            "index": 39,
+            "mutationClass": "T>A",
+            "value": 0.010835564069158114
+          },
+          {
+            "context": "C[T>C]A",
+            "index": 40,
+            "mutationClass": "T>C",
+            "value": 0.017067862631839056
+          },
+          {
+            "context": "C[T>C]C",
+            "index": 41,
+            "mutationClass": "T>C",
+            "value": 0.0053514907156916305
+          },
+          {
+            "context": "C[T>C]G",
+            "index": 42,
+            "mutationClass": "T>C",
+            "value": 0.01499738099756617
+          },
+          {
+            "context": "C[T>C]T",
+            "index": 43,
+            "mutationClass": "T>C",
+            "value": 0.00893097061487451
+          },
+          {
+            "context": "C[T>G]A",
+            "index": 44,
+            "mutationClass": "T>G",
+            "value": 0.0029043136017071268
+          },
+          {
+            "context": "C[T>G]C",
+            "index": 45,
+            "mutationClass": "T>G",
+            "value": 0.0017321767628050342
+          },
+          {
+            "context": "C[T>G]G",
+            "index": 46,
+            "mutationClass": "T>G",
+            "value": 0.004016387629306415
+          },
+          {
+            "context": "C[T>G]T",
+            "index": 47,
+            "mutationClass": "T>G",
+            "value": 5.775761014828737e-27
+          },
+          {
+            "context": "G[C>A]A",
+            "index": 48,
+            "mutationClass": "C>A",
+            "value": 0.019936563652086865
+          },
+          {
+            "context": "G[C>A]C",
+            "index": 49,
+            "mutationClass": "C>A",
+            "value": 0.015106285045222687
+          },
+          {
+            "context": "G[C>A]G",
+            "index": 50,
+            "mutationClass": "C>A",
+            "value": 0.005087271504226948
+          },
+          {
+            "context": "G[C>A]T",
+            "index": 51,
+            "mutationClass": "C>A",
+            "value": 0.015642067883073235
+          },
+          {
+            "context": "G[C>G]A",
+            "index": 52,
+            "mutationClass": "C>G",
+            "value": 0.011886495487695223
+          },
+          {
+            "context": "G[C>G]C",
+            "index": 53,
+            "mutationClass": "C>G",
+            "value": 0.007732163440327121
+          },
+          {
+            "context": "G[C>G]G",
+            "index": 54,
+            "mutationClass": "C>G",
+            "value": 0.0031295883754560855
+          },
+          {
+            "context": "G[C>G]T",
+            "index": 55,
+            "mutationClass": "C>G",
+            "value": 0.00866187261072177
+          },
+          {
+            "context": "G[C>T]A",
+            "index": 56,
+            "mutationClass": "C>T",
+            "value": 0.01558711073011925
+          },
+          {
+            "context": "G[C>T]C",
+            "index": 57,
+            "mutationClass": "C>T",
+            "value": 0.01026625572530321
+          },
+          {
+            "context": "G[C>T]G",
+            "index": 58,
+            "mutationClass": "C>T",
+            "value": 0.008067877254435026
+          },
+          {
+            "context": "G[C>T]T",
+            "index": 59,
+            "mutationClass": "C>T",
+            "value": 0.012965026875653827
+          },
+          {
+            "context": "G[T>A]A",
+            "index": 60,
+            "mutationClass": "T>A",
+            "value": 0.0077307618054124234
+          },
+          {
+            "context": "G[T>A]C",
+            "index": 61,
+            "mutationClass": "T>A",
+            "value": 0.0029081494748768185
+          },
+          {
+            "context": "G[T>A]G",
+            "index": 62,
+            "mutationClass": "T>A",
+            "value": 0.010587751052480558
+          },
+          {
+            "context": "G[T>A]T",
+            "index": 63,
+            "mutationClass": "T>A",
+            "value": 0.006121453948722241
+          },
+          {
+            "context": "G[T>C]A",
+            "index": 64,
+            "mutationClass": "T>C",
+            "value": 0.015492422760095943
+          },
+          {
+            "context": "G[T>C]C",
+            "index": 65,
+            "mutationClass": "T>C",
+            "value": 0.002975844511428945
+          },
+          {
+            "context": "G[T>C]G",
+            "index": 66,
+            "mutationClass": "T>C",
+            "value": 0.010800350438858542
+          },
+          {
+            "context": "G[T>C]T",
+            "index": 67,
+            "mutationClass": "T>C",
+            "value": 0.01026305090762868
+          },
+          {
+            "context": "G[T>G]A",
+            "index": 68,
+            "mutationClass": "T>G",
+            "value": 0.0023055979568061915
+          },
+          {
+            "context": "G[T>G]C",
+            "index": 69,
+            "mutationClass": "T>G",
+            "value": 0.0007169569568574011
+          },
+          {
+            "context": "G[T>G]G",
+            "index": 70,
+            "mutationClass": "T>G",
+            "value": 0.0025936345216924415
+          },
+          {
+            "context": "G[T>G]T",
+            "index": 71,
+            "mutationClass": "T>G",
+            "value": 0.0000018729607421878975
+          },
+          {
+            "context": "T[C>A]A",
+            "index": 72,
+            "mutationClass": "C>A",
+            "value": 0.017772766059790834
+          },
+          {
+            "context": "T[C>A]C",
+            "index": 73,
+            "mutationClass": "C>A",
+            "value": 0.0182109543175639
+          },
+          {
+            "context": "T[C>A]G",
+            "index": 74,
+            "mutationClass": "C>A",
+            "value": 0.0031214091018627313
+          },
+          {
+            "context": "T[C>A]T",
+            "index": 75,
+            "mutationClass": "C>A",
+            "value": 0.016459249934058007
+          },
+          {
+            "context": "T[C>G]A",
+            "index": 76,
+            "mutationClass": "C>G",
+            "value": 0.000007341066701319514
+          },
+          {
+            "context": "T[C>G]C",
+            "index": 77,
+            "mutationClass": "C>G",
+            "value": 0.01041334744332899
+          },
+          {
+            "context": "T[C>G]G",
+            "index": 78,
+            "mutationClass": "C>G",
+            "value": 0.001991115602791489
+          },
+          {
+            "context": "T[C>G]T",
+            "index": 79,
+            "mutationClass": "C>G",
+            "value": 0.005211176852691387
+          },
+          {
+            "context": "T[C>T]A",
+            "index": 80,
+            "mutationClass": "C>T",
+            "value": 0.012718194645175866
+          },
+          {
+            "context": "T[C>T]C",
+            "index": 81,
+            "mutationClass": "C>T",
+            "value": 0.020775399051398722
+          },
+          {
+            "context": "T[C>T]G",
+            "index": 82,
+            "mutationClass": "C>T",
+            "value": 0.004995496033822842
+          },
+          {
+            "context": "T[C>T]T",
+            "index": 83,
+            "mutationClass": "C>T",
+            "value": 0.020915399476900225
+          },
+          {
+            "context": "T[T>A]A",
+            "index": 84,
+            "mutationClass": "T>A",
+            "value": 0.009335850316844817
+          },
+          {
+            "context": "T[T>A]C",
+            "index": 85,
+            "mutationClass": "T>A",
+            "value": 0.0034242601041804513
+          },
+          {
+            "context": "T[T>A]G",
+            "index": 86,
+            "mutationClass": "T>A",
+            "value": 0.006308305884008158
+          },
+          {
+            "context": "T[T>A]T",
+            "index": 87,
+            "mutationClass": "T>A",
+            "value": 0.00830469416540816
+          },
+          {
+            "context": "T[T>C]A",
+            "index": 88,
+            "mutationClass": "T>C",
+            "value": 0.016471541871508483
+          },
+          {
+            "context": "T[T>C]C",
+            "index": 89,
+            "mutationClass": "T>C",
+            "value": 0.0041488759269483555
+          },
+          {
+            "context": "T[T>C]G",
+            "index": 90,
+            "mutationClass": "T>C",
+            "value": 0.00883687622834824
+          },
+          {
+            "context": "T[T>C]T",
+            "index": 91,
+            "mutationClass": "T>C",
+            "value": 0.010826729127844001
+          },
+          {
+            "context": "T[T>G]A",
+            "index": 92,
+            "mutationClass": "T>G",
+            "value": 0.004258812747496136
+          },
+          {
+            "context": "T[T>G]C",
+            "index": 93,
+            "mutationClass": "T>G",
+            "value": 0.001736102126486414
+          },
+          {
+            "context": "T[T>G]G",
+            "index": 94,
+            "mutationClass": "T>G",
+            "value": 0.005069621937555769
+          },
+          {
+            "context": "T[T>G]T",
+            "index": 95,
+            "mutationClass": "T>G",
+            "value": 0.000011457573141490623
+          }
+        ]
+      },
+      {
+        "signature": "NMF2",
+        "values": [
+          {
+            "context": "A[C>A]A",
+            "index": 0,
+            "mutationClass": "C>A",
+            "value": 0.014293231820021894
+          },
+          {
+            "context": "A[C>A]C",
+            "index": 1,
+            "mutationClass": "C>A",
+            "value": 0.00743386730041455
+          },
+          {
+            "context": "A[C>A]G",
+            "index": 2,
+            "mutationClass": "C>A",
+            "value": 0.003066722047881679
+          },
+          {
+            "context": "A[C>A]T",
+            "index": 3,
+            "mutationClass": "C>A",
+            "value": 0.008433649231739412
+          },
+          {
+            "context": "A[C>G]A",
+            "index": 4,
+            "mutationClass": "C>G",
+            "value": 0.00470439590663665
+          },
+          {
+            "context": "A[C>G]C",
+            "index": 5,
+            "mutationClass": "C>G",
+            "value": 0.002363349442128199
+          },
+          {
+            "context": "A[C>G]G",
+            "index": 6,
+            "mutationClass": "C>G",
+            "value": 0.0004724456503746357
+          },
+          {
+            "context": "A[C>G]T",
+            "index": 7,
+            "mutationClass": "C>G",
+            "value": 0.0029757194815188443
+          },
+          {
+            "context": "A[C>T]A",
+            "index": 8,
+            "mutationClass": "C>T",
+            "value": 0.007554711965985138
+          },
+          {
+            "context": "A[C>T]C",
+            "index": 9,
+            "mutationClass": "C>T",
+            "value": 0.004284907439438937
+          },
+          {
+            "context": "A[C>T]G",
+            "index": 10,
+            "mutationClass": "C>T",
+            "value": 0.005936795185850164
+          },
+          {
+            "context": "A[C>T]T",
+            "index": 11,
+            "mutationClass": "C>T",
+            "value": 0.0037465137893370882
+          },
+          {
+            "context": "A[T>A]A",
+            "index": 12,
+            "mutationClass": "T>A",
+            "value": 0.0027392238300939743
+          },
+          {
+            "context": "A[T>A]C",
+            "index": 13,
+            "mutationClass": "T>A",
+            "value": 0.002806785948959776
+          },
+          {
+            "context": "A[T>A]G",
+            "index": 14,
+            "mutationClass": "T>A",
+            "value": 0.002353348804168075
+          },
+          {
+            "context": "A[T>A]T",
+            "index": 15,
+            "mutationClass": "T>A",
+            "value": 0.006893677686533051
+          },
+          {
+            "context": "A[T>C]A",
+            "index": 16,
+            "mutationClass": "T>C",
+            "value": 0.008911185202111437
+          },
+          {
+            "context": "A[T>C]C",
+            "index": 17,
+            "mutationClass": "T>C",
+            "value": 0.00462910822007481
+          },
+          {
+            "context": "A[T>C]G",
+            "index": 18,
+            "mutationClass": "T>C",
+            "value": 0.006075940147606438
+          },
+          {
+            "context": "A[T>C]T",
+            "index": 19,
+            "mutationClass": "T>C",
+            "value": 0.008104043598646245
+          },
+          {
+            "context": "A[T>G]A",
+            "index": 20,
+            "mutationClass": "T>G",
+            "value": 0.0019943872039978805
+          },
+          {
+            "context": "A[T>G]C",
+            "index": 21,
+            "mutationClass": "T>G",
+            "value": 0.005170778899722978
+          },
+          {
+            "context": "A[T>G]G",
+            "index": 22,
+            "mutationClass": "T>G",
+            "value": 0.002306996252882621
+          },
+          {
+            "context": "A[T>G]T",
+            "index": 23,
+            "mutationClass": "T>G",
+            "value": 0.047596986053638116
+          },
+          {
+            "context": "C[C>A]A",
+            "index": 24,
+            "mutationClass": "C>A",
+            "value": 0.011776110005711021
+          },
+          {
+            "context": "C[C>A]C",
+            "index": 25,
+            "mutationClass": "C>A",
+            "value": 0.003965293105773847
+          },
+          {
+            "context": "C[C>A]G",
+            "index": 26,
+            "mutationClass": "C>A",
+            "value": 0.0015006690693657307
+          },
+          {
+            "context": "C[C>A]T",
+            "index": 27,
+            "mutationClass": "C>A",
+            "value": 0.0020101377076194
+          },
+          {
+            "context": "C[C>G]A",
+            "index": 28,
+            "mutationClass": "C>G",
+            "value": 0.001969531548483359
+          },
+          {
+            "context": "C[C>G]C",
+            "index": 29,
+            "mutationClass": "C>G",
+            "value": 0.0015074389297529715
+          },
+          {
+            "context": "C[C>G]G",
+            "index": 30,
+            "mutationClass": "C>G",
+            "value": 0.0008317064838849514
+          },
+          {
+            "context": "C[C>G]T",
+            "index": 31,
+            "mutationClass": "C>G",
+            "value": 0.0016233238122275444
+          },
+          {
+            "context": "C[C>T]A",
+            "index": 32,
+            "mutationClass": "C>T",
+            "value": 0.007814451647599724
+          },
+          {
+            "context": "C[C>T]C",
+            "index": 33,
+            "mutationClass": "C>T",
+            "value": 0.006993374460295991
+          },
+          {
+            "context": "C[C>T]G",
+            "index": 34,
+            "mutationClass": "C>T",
+            "value": 0.006471025139481787
+          },
+          {
+            "context": "C[C>T]T",
+            "index": 35,
+            "mutationClass": "C>T",
+            "value": 0.005214099983011185
+          },
+          {
+            "context": "C[T>A]A",
+            "index": 36,
+            "mutationClass": "T>A",
+            "value": 0.0019285492865331831
+          },
+          {
+            "context": "C[T>A]C",
+            "index": 37,
+            "mutationClass": "T>A",
+            "value": 0.008037440700144026
+          },
+          {
+            "context": "C[T>A]G",
+            "index": 38,
+            "mutationClass": "T>A",
+            "value": 0.0044378649452068075
+          },
+          {
+            "context": "C[T>A]T",
+            "index": 39,
+            "mutationClass": "T>A",
+            "value": 0.019416309886154726
+          },
+          {
+            "context": "C[T>C]A",
+            "index": 40,
+            "mutationClass": "T>C",
+            "value": 0.008023113194773251
+          },
+          {
+            "context": "C[T>C]C",
+            "index": 41,
+            "mutationClass": "T>C",
+            "value": 0.029055951593474554
+          },
+          {
+            "context": "C[T>C]G",
+            "index": 42,
+            "mutationClass": "T>C",
+            "value": 0.021182197097728624
+          },
+          {
+            "context": "C[T>C]T",
+            "index": 43,
+            "mutationClass": "T>C",
+            "value": 0.07111887469833873
+          },
+          {
+            "context": "C[T>G]A",
+            "index": 44,
+            "mutationClass": "T>G",
+            "value": 0.003046870275417209
+          },
+          {
+            "context": "C[T>G]C",
+            "index": 45,
+            "mutationClass": "T>G",
+            "value": 0.01345512853809476
+          },
+          {
+            "context": "C[T>G]G",
+            "index": 46,
+            "mutationClass": "T>G",
+            "value": 0.00825500080561821
+          },
+          {
+            "context": "C[T>G]T",
+            "index": 47,
+            "mutationClass": "T>G",
+            "value": 0.16750553188201794
+          },
+          {
+            "context": "G[C>A]A",
+            "index": 48,
+            "mutationClass": "C>A",
+            "value": 0.010131830015201532
+          },
+          {
+            "context": "G[C>A]C",
+            "index": 49,
+            "mutationClass": "C>A",
+            "value": 0.005904789044374012
+          },
+          {
+            "context": "G[C>A]G",
+            "index": 50,
+            "mutationClass": "C>A",
+            "value": 0.0033781933895905203
+          },
+          {
+            "context": "G[C>A]T",
+            "index": 51,
+            "mutationClass": "C>A",
+            "value": 0.0059276516442397535
+          },
+          {
+            "context": "G[C>G]A",
+            "index": 52,
+            "mutationClass": "C>G",
+            "value": 0.002163404555321591
+          },
+          {
+            "context": "G[C>G]C",
+            "index": 53,
+            "mutationClass": "C>G",
+            "value": 0.001306676002309854
+          },
+          {
+            "context": "G[C>G]G",
+            "index": 54,
+            "mutationClass": "C>G",
+            "value": 0.0011963388288094448
+          },
+          {
+            "context": "G[C>G]T",
+            "index": 55,
+            "mutationClass": "C>G",
+            "value": 0.001691250739345836
+          },
+          {
+            "context": "G[C>T]A",
+            "index": 56,
+            "mutationClass": "C>T",
+            "value": 0.004744386079978444
+          },
+          {
+            "context": "G[C>T]C",
+            "index": 57,
+            "mutationClass": "C>T",
+            "value": 0.005522177241718776
+          },
+          {
+            "context": "G[C>T]G",
+            "index": 58,
+            "mutationClass": "C>T",
+            "value": 0.004178406702818489
+          },
+          {
+            "context": "G[C>T]T",
+            "index": 59,
+            "mutationClass": "C>T",
+            "value": 0.005036725276146139
+          },
+          {
+            "context": "G[T>A]A",
+            "index": 60,
+            "mutationClass": "T>A",
+            "value": 0.0011599643820127442
+          },
+          {
+            "context": "G[T>A]C",
+            "index": 61,
+            "mutationClass": "T>A",
+            "value": 0.003536173686273574
+          },
+          {
+            "context": "G[T>A]G",
+            "index": 62,
+            "mutationClass": "T>A",
+            "value": 0.0016617242375225852
+          },
+          {
+            "context": "G[T>A]T",
+            "index": 63,
+            "mutationClass": "T>A",
+            "value": 0.005085617393051832
+          },
+          {
+            "context": "G[T>C]A",
+            "index": 64,
+            "mutationClass": "T>C",
+            "value": 0.004854360610302403
+          },
+          {
+            "context": "G[T>C]C",
+            "index": 65,
+            "mutationClass": "T>C",
+            "value": 0.0050203770070677755
+          },
+          {
+            "context": "G[T>C]G",
+            "index": 66,
+            "mutationClass": "T>C",
+            "value": 0.0052500220645980145
+          },
+          {
+            "context": "G[T>C]T",
+            "index": 67,
+            "mutationClass": "T>C",
+            "value": 0.008507977484199156
+          },
+          {
+            "context": "G[T>G]A",
+            "index": 68,
+            "mutationClass": "T>G",
+            "value": 0.0010879045729665583
+          },
+          {
+            "context": "G[T>G]C",
+            "index": 69,
+            "mutationClass": "T>G",
+            "value": 0.00344879609644515
+          },
+          {
+            "context": "G[T>G]G",
+            "index": 70,
+            "mutationClass": "T>G",
+            "value": 0.0022911374415291582
+          },
+          {
+            "context": "G[T>G]T",
+            "index": 71,
+            "mutationClass": "T>G",
+            "value": 0.044438714615070506
+          },
+          {
+            "context": "T[C>A]A",
+            "index": 72,
+            "mutationClass": "C>A",
+            "value": 0.011449636572143778
+          },
+          {
+            "context": "T[C>A]C",
+            "index": 73,
+            "mutationClass": "C>A",
+            "value": 0.007311784478762405
+          },
+          {
+            "context": "T[C>A]G",
+            "index": 74,
+            "mutationClass": "C>A",
+            "value": 0.0019994516199352192
+          },
+          {
+            "context": "T[C>A]T",
+            "index": 75,
+            "mutationClass": "C>A",
+            "value": 0.009879998243574483
+          },
+          {
+            "context": "T[C>G]A",
+            "index": 76,
+            "mutationClass": "C>G",
+            "value": 0.009190832945761234
+          },
+          {
+            "context": "T[C>G]C",
+            "index": 77,
+            "mutationClass": "C>G",
+            "value": 0.0004512455039267502
+          },
+          {
+            "context": "T[C>G]G",
+            "index": 78,
+            "mutationClass": "C>G",
+            "value": 0.0019560473320053297
+          },
+          {
+            "context": "T[C>G]T",
+            "index": 79,
+            "mutationClass": "C>G",
+            "value": 0.012225335110659744
+          },
+          {
+            "context": "T[C>T]A",
+            "index": 80,
+            "mutationClass": "C>T",
+            "value": 0.0231520288772397
+          },
+          {
+            "context": "T[C>T]C",
+            "index": 81,
+            "mutationClass": "C>T",
+            "value": 0.009910509482756671
+          },
+          {
+            "context": "T[C>T]G",
+            "index": 82,
+            "mutationClass": "C>T",
+            "value": 0.009182415592581239
+          },
+          {
+            "context": "T[C>T]T",
+            "index": 83,
+            "mutationClass": "C>T",
+            "value": 0.015483162053360623
+          },
+          {
+            "context": "T[T>A]A",
+            "index": 84,
+            "mutationClass": "T>A",
+            "value": 0.002934800322668431
+          },
+          {
+            "context": "T[T>A]C",
+            "index": 85,
+            "mutationClass": "T>A",
+            "value": 0.003490092007047631
+          },
+          {
+            "context": "T[T>A]G",
+            "index": 86,
+            "mutationClass": "T>A",
+            "value": 0.0020631833783802834
+          },
+          {
+            "context": "T[T>A]T",
+            "index": 87,
+            "mutationClass": "T>A",
+            "value": 0.011261092458467388
+          },
+          {
+            "context": "T[T>C]A",
+            "index": 88,
+            "mutationClass": "T>C",
+            "value": 0.007549377449153426
+          },
+          {
+            "context": "T[T>C]C",
+            "index": 89,
+            "mutationClass": "T>C",
+            "value": 0.011788483675021473
+          },
+          {
+            "context": "T[T>C]G",
+            "index": 90,
+            "mutationClass": "T>C",
+            "value": 0.006028341575229067
+          },
+          {
+            "context": "T[T>C]T",
+            "index": 91,
+            "mutationClass": "T>C",
+            "value": 0.014929068444785207
+          },
+          {
+            "context": "T[T>G]A",
+            "index": 92,
+            "mutationClass": "T>G",
+            "value": 0.0032075372681221207
+          },
+          {
+            "context": "T[T>G]C",
+            "index": 93,
+            "mutationClass": "T>G",
+            "value": 0.009817724222064733
+          },
+          {
+            "context": "T[T>G]G",
+            "index": 94,
+            "mutationClass": "T>G",
+            "value": 0.0046641959252714665
+          },
+          {
+            "context": "T[T>G]T",
+            "index": 95,
+            "mutationClass": "T>G",
+            "value": 0.10056029044371556
+          }
+        ]
+      },
+      {
+        "signature": "NMF3",
+        "values": [
+          {
+            "context": "A[C>A]A",
+            "index": 0,
+            "mutationClass": "C>A",
+            "value": 0.03065941839004298
+          },
+          {
+            "context": "A[C>A]C",
+            "index": 1,
+            "mutationClass": "C>A",
+            "value": 0.011476608297961755
+          },
+          {
+            "context": "A[C>A]G",
+            "index": 2,
+            "mutationClass": "C>A",
+            "value": 0.001955607179399211
+          },
+          {
+            "context": "A[C>A]T",
+            "index": 3,
+            "mutationClass": "C>A",
+            "value": 0.017792317684375454
+          },
+          {
+            "context": "A[C>G]A",
+            "index": 4,
+            "mutationClass": "C>G",
+            "value": 0.011116639040746779
+          },
+          {
+            "context": "A[C>G]C",
+            "index": 5,
+            "mutationClass": "C>G",
+            "value": 0.004379878801798052
+          },
+          {
+            "context": "A[C>G]G",
+            "index": 6,
+            "mutationClass": "C>G",
+            "value": 0.001891149162209954
+          },
+          {
+            "context": "A[C>G]T",
+            "index": 7,
+            "mutationClass": "C>G",
+            "value": 0.00875925646858151
+          },
+          {
+            "context": "A[C>T]A",
+            "index": 8,
+            "mutationClass": "C>T",
+            "value": 0.016320844327475048
+          },
+          {
+            "context": "A[C>T]C",
+            "index": 9,
+            "mutationClass": "C>T",
+            "value": 0.003016496139454141
+          },
+          {
+            "context": "A[C>T]G",
+            "index": 10,
+            "mutationClass": "C>T",
+            "value": 0.00013423334464336044
+          },
+          {
+            "context": "A[C>T]T",
+            "index": 11,
+            "mutationClass": "C>T",
+            "value": 0.016085914094933228
+          },
+          {
+            "context": "A[T>A]A",
+            "index": 12,
+            "mutationClass": "T>A",
+            "value": 0.008058666323416066
+          },
+          {
+            "context": "A[T>A]C",
+            "index": 13,
+            "mutationClass": "T>A",
+            "value": 0.000928057240582576
+          },
+          {
+            "context": "A[T>A]G",
+            "index": 14,
+            "mutationClass": "T>A",
+            "value": 0.004591349700174654
+          },
+          {
+            "context": "A[T>A]T",
+            "index": 15,
+            "mutationClass": "T>A",
+            "value": 0.006199453780234145
+          },
+          {
+            "context": "A[T>C]A",
+            "index": 16,
+            "mutationClass": "T>C",
+            "value": 0.031272249701191
+          },
+          {
+            "context": "A[T>C]C",
+            "index": 17,
+            "mutationClass": "T>C",
+            "value": 0.005066519031472243
+          },
+          {
+            "context": "A[T>C]G",
+            "index": 18,
+            "mutationClass": "T>C",
+            "value": 0.01661139827858746
+          },
+          {
+            "context": "A[T>C]T",
+            "index": 19,
+            "mutationClass": "T>C",
+            "value": 0.00875310882975804
+          },
+          {
+            "context": "A[T>G]A",
+            "index": 20,
+            "mutationClass": "T>G",
+            "value": 0.000875322635468059
+          },
+          {
+            "context": "A[T>G]C",
+            "index": 21,
+            "mutationClass": "T>G",
+            "value": 0.0014709657897304068
+          },
+          {
+            "context": "A[T>G]G",
+            "index": 22,
+            "mutationClass": "T>G",
+            "value": 0.0021844208801731647
+          },
+          {
+            "context": "A[T>G]T",
+            "index": 23,
+            "mutationClass": "T>G",
+            "value": 0.0011790536834950089
+          },
+          {
+            "context": "C[C>A]A",
+            "index": 24,
+            "mutationClass": "C>A",
+            "value": 0.014873723089630555
+          },
+          {
+            "context": "C[C>A]C",
+            "index": 25,
+            "mutationClass": "C>A",
+            "value": 0.0075708414331623385
+          },
+          {
+            "context": "C[C>A]G",
+            "index": 26,
+            "mutationClass": "C>A",
+            "value": 0.000037456735631730724
+          },
+          {
+            "context": "C[C>A]T",
+            "index": 27,
+            "mutationClass": "C>A",
+            "value": 0.016051507957515847
+          },
+          {
+            "context": "C[C>G]A",
+            "index": 28,
+            "mutationClass": "C>G",
+            "value": 0.004067182525093917
+          },
+          {
+            "context": "C[C>G]C",
+            "index": 29,
+            "mutationClass": "C>G",
+            "value": 0.0017194805090980842
+          },
+          {
+            "context": "C[C>G]G",
+            "index": 30,
+            "mutationClass": "C>G",
+            "value": 0.0010682893878232677
+          },
+          {
+            "context": "C[C>G]T",
+            "index": 31,
+            "mutationClass": "C>G",
+            "value": 0.012135033450060815
+          },
+          {
+            "context": "C[C>T]A",
+            "index": 32,
+            "mutationClass": "C>T",
+            "value": 0.009211295282090609
+          },
+          {
+            "context": "C[C>T]C",
+            "index": 33,
+            "mutationClass": "C>T",
+            "value": 0.0048648694170781255
+          },
+          {
+            "context": "C[C>T]G",
+            "index": 34,
+            "mutationClass": "C>T",
+            "value": 2.050649566131411e-7
+          },
+          {
+            "context": "C[C>T]T",
+            "index": 35,
+            "mutationClass": "C>T",
+            "value": 0.01826042869392467
+          },
+          {
+            "context": "C[T>A]A",
+            "index": 36,
+            "mutationClass": "T>A",
+            "value": 0.004673909703205424
+          },
+          {
+            "context": "C[T>A]C",
+            "index": 37,
+            "mutationClass": "T>A",
+            "value": 0.0011229022582831254
+          },
+          {
+            "context": "C[T>A]G",
+            "index": 38,
+            "mutationClass": "T>A",
+            "value": 0.00026476245661490136
+          },
+          {
+            "context": "C[T>A]T",
+            "index": 39,
+            "mutationClass": "T>A",
+            "value": 0.0018312056370314146
+          },
+          {
+            "context": "C[T>C]A",
+            "index": 40,
+            "mutationClass": "T>C",
+            "value": 0.013613264738681578
+          },
+          {
+            "context": "C[T>C]C",
+            "index": 41,
+            "mutationClass": "T>C",
+            "value": 0.0031119939642647787
+          },
+          {
+            "context": "C[T>C]G",
+            "index": 42,
+            "mutationClass": "T>C",
+            "value": 0.005254270909452491
+          },
+          {
+            "context": "C[T>C]T",
+            "index": 43,
+            "mutationClass": "T>C",
+            "value": 0.003374618684844902
+          },
+          {
+            "context": "C[T>G]A",
+            "index": 44,
+            "mutationClass": "T>G",
+            "value": 0.0003523892799511956
+          },
+          {
+            "context": "C[T>G]C",
+            "index": 45,
+            "mutationClass": "T>G",
+            "value": 0.0006403724619911123
+          },
+          {
+            "context": "C[T>G]G",
+            "index": 46,
+            "mutationClass": "T>G",
+            "value": 0.004004517113216439
+          },
+          {
+            "context": "C[T>G]T",
+            "index": 47,
+            "mutationClass": "T>G",
+            "value": 7.176264649474875e-33
+          },
+          {
+            "context": "G[C>A]A",
+            "index": 48,
+            "mutationClass": "C>A",
+            "value": 0.01143895092225332
+          },
+          {
+            "context": "G[C>A]C",
+            "index": 49,
+            "mutationClass": "C>A",
+            "value": 0.00015110661228409858
+          },
+          {
+            "context": "G[C>A]G",
+            "index": 50,
+            "mutationClass": "C>A",
+            "value": 0.001090143601695059
+          },
+          {
+            "context": "G[C>A]T",
+            "index": 51,
+            "mutationClass": "C>A",
+            "value": 0.005508542316705068
+          },
+          {
+            "context": "G[C>G]A",
+            "index": 52,
+            "mutationClass": "C>G",
+            "value": 0.0018410623582618014
+          },
+          {
+            "context": "G[C>G]C",
+            "index": 53,
+            "mutationClass": "C>G",
+            "value": 0.0037838056287684994
+          },
+          {
+            "context": "G[C>G]G",
+            "index": 54,
+            "mutationClass": "C>G",
+            "value": 0.00010561115336937025
+          },
+          {
+            "context": "G[C>G]T",
+            "index": 55,
+            "mutationClass": "C>G",
+            "value": 0.0035814433229536266
+          },
+          {
+            "context": "G[C>T]A",
+            "index": 56,
+            "mutationClass": "C>T",
+            "value": 0.00781637016787441
+          },
+          {
+            "context": "G[C>T]C",
+            "index": 57,
+            "mutationClass": "C>T",
+            "value": 0.002758770405815583
+          },
+          {
+            "context": "G[C>T]G",
+            "index": 58,
+            "mutationClass": "C>T",
+            "value": 1.2367903013282605e-7
+          },
+          {
+            "context": "G[C>T]T",
+            "index": 59,
+            "mutationClass": "C>T",
+            "value": 0.008401346598321131
+          },
+          {
+            "context": "G[T>A]A",
+            "index": 60,
+            "mutationClass": "T>A",
+            "value": 0.007622463464359324
+          },
+          {
+            "context": "G[T>A]C",
+            "index": 61,
+            "mutationClass": "T>A",
+            "value": 0.00015896354604387266
+          },
+          {
+            "context": "G[T>A]G",
+            "index": 62,
+            "mutationClass": "T>A",
+            "value": 0.0016482604955368096
+          },
+          {
+            "context": "G[T>A]T",
+            "index": 63,
+            "mutationClass": "T>A",
+            "value": 0.002703581959060756
+          },
+          {
+            "context": "G[T>C]A",
+            "index": 64,
+            "mutationClass": "T>C",
+            "value": 0.015298403004084379
+          },
+          {
+            "context": "G[T>C]C",
+            "index": 65,
+            "mutationClass": "T>C",
+            "value": 0.00444931630513453
+          },
+          {
+            "context": "G[T>C]G",
+            "index": 66,
+            "mutationClass": "T>C",
+            "value": 0.0083869222799383
+          },
+          {
+            "context": "G[T>C]T",
+            "index": 67,
+            "mutationClass": "T>C",
+            "value": 0.007774600366965017
+          },
+          {
+            "context": "G[T>G]A",
+            "index": 68,
+            "mutationClass": "T>G",
+            "value": 0.0009157369292442884
+          },
+          {
+            "context": "G[T>G]C",
+            "index": 69,
+            "mutationClass": "T>G",
+            "value": 0.0005511252565199614
+          },
+          {
+            "context": "G[T>G]G",
+            "index": 70,
+            "mutationClass": "T>G",
+            "value": 0.00119970897198412
+          },
+          {
+            "context": "G[T>G]T",
+            "index": 71,
+            "mutationClass": "T>G",
+            "value": 2.669088448690314e-8
+          },
+          {
+            "context": "T[C>A]A",
+            "index": 72,
+            "mutationClass": "C>A",
+            "value": 0.03824920011218875
+          },
+          {
+            "context": "T[C>A]C",
+            "index": 73,
+            "mutationClass": "C>A",
+            "value": 0.012779626869680592
+          },
+          {
+            "context": "T[C>A]G",
+            "index": 74,
+            "mutationClass": "C>A",
+            "value": 0.0007634672170554138
+          },
+          {
+            "context": "T[C>A]T",
+            "index": 75,
+            "mutationClass": "C>A",
+            "value": 0.03386570511461906
+          },
+          {
+            "context": "T[C>G]A",
+            "index": 76,
+            "mutationClass": "C>G",
+            "value": 0.1487279444710522
+          },
+          {
+            "context": "T[C>G]C",
+            "index": 77,
+            "mutationClass": "C>G",
+            "value": 0.03729517572891705
+          },
+          {
+            "context": "T[C>G]G",
+            "index": 78,
+            "mutationClass": "C>G",
+            "value": 0.005154239622778686
+          },
+          {
+            "context": "T[C>G]T",
+            "index": 79,
+            "mutationClass": "C>G",
+            "value": 0.15949283663097147
+          },
+          {
+            "context": "T[C>T]A",
+            "index": 80,
+            "mutationClass": "C>T",
+            "value": 0.03639991248321167
+          },
+          {
+            "context": "T[C>T]C",
+            "index": 81,
+            "mutationClass": "C>T",
+            "value": 0.007351374117214561
+          },
+          {
+            "context": "T[C>T]G",
+            "index": 82,
+            "mutationClass": "C>T",
+            "value": 0.0006496706925113138
+          },
+          {
+            "context": "T[C>T]T",
+            "index": 83,
+            "mutationClass": "C>T",
+            "value": 0.02205957378644777
+          },
+          {
+            "context": "T[T>A]A",
+            "index": 84,
+            "mutationClass": "T>A",
+            "value": 0.006192899385444976
+          },
+          {
+            "context": "T[T>A]C",
+            "index": 85,
+            "mutationClass": "T>A",
+            "value": 0.0025745111649661083
+          },
+          {
+            "context": "T[T>A]G",
+            "index": 86,
+            "mutationClass": "T>A",
+            "value": 0.004036132057420809
+          },
+          {
+            "context": "T[T>A]T",
+            "index": 87,
+            "mutationClass": "T>A",
+            "value": 0.00485099778996247
+          },
+          {
+            "context": "T[T>C]A",
+            "index": 88,
+            "mutationClass": "T>C",
+            "value": 0.013857578512617489
+          },
+          {
+            "context": "T[T>C]C",
+            "index": 89,
+            "mutationClass": "T>C",
+            "value": 0.005598071393190503
+          },
+          {
+            "context": "T[T>C]G",
+            "index": 90,
+            "mutationClass": "T>C",
+            "value": 0.0069504446395216605
+          },
+          {
+            "context": "T[T>C]T",
+            "index": 91,
+            "mutationClass": "T>C",
+            "value": 0.008069861092202799
+          },
+          {
+            "context": "T[T>G]A",
+            "index": 92,
+            "mutationClass": "T>G",
+            "value": 0.0024689482222162613
+          },
+          {
+            "context": "T[T>G]C",
+            "index": 93,
+            "mutationClass": "T>G",
+            "value": 0.000756579457843684
+          },
+          {
+            "context": "T[T>G]G",
+            "index": 94,
+            "mutationClass": "T>G",
+            "value": 0.0004694250983703003
+          },
+          {
+            "context": "T[T>G]T",
+            "index": 95,
+            "mutationClass": "T>G",
+            "value": 0.005315988742998091
+          }
+        ]
+      },
+      {
+        "signature": "NMF4",
+        "values": [
+          {
+            "context": "A[C>A]A",
+            "index": 0,
+            "mutationClass": "C>A",
+            "value": 0.015608369976824694
+          },
+          {
+            "context": "A[C>A]C",
+            "index": 1,
+            "mutationClass": "C>A",
+            "value": 0.020796033997505306
+          },
+          {
+            "context": "A[C>A]G",
+            "index": 2,
+            "mutationClass": "C>A",
+            "value": 0.009644870337341058
+          },
+          {
+            "context": "A[C>A]T",
+            "index": 3,
+            "mutationClass": "C>A",
+            "value": 0.010205889538720479
+          },
+          {
+            "context": "A[C>G]A",
+            "index": 4,
+            "mutationClass": "C>G",
+            "value": 0.0001268081489377155
+          },
+          {
+            "context": "A[C>G]C",
+            "index": 5,
+            "mutationClass": "C>G",
+            "value": 0.0010510725987887646
+          },
+          {
+            "context": "A[C>G]G",
+            "index": 6,
+            "mutationClass": "C>G",
+            "value": 0.0021610073296310377
+          },
+          {
+            "context": "A[C>G]T",
+            "index": 7,
+            "mutationClass": "C>G",
+            "value": 0.000028161968398389477
+          },
+          {
+            "context": "A[C>T]A",
+            "index": 8,
+            "mutationClass": "C>T",
+            "value": 0.005029832717950733
+          },
+          {
+            "context": "A[C>T]C",
+            "index": 9,
+            "mutationClass": "C>T",
+            "value": 0.004666139070724102
+          },
+          {
+            "context": "A[C>T]G",
+            "index": 10,
+            "mutationClass": "C>T",
+            "value": 0.000004432205042423917
+          },
+          {
+            "context": "A[C>T]T",
+            "index": 11,
+            "mutationClass": "C>T",
+            "value": 0.0016291679151106788
+          },
+          {
+            "context": "A[T>A]A",
+            "index": 12,
+            "mutationClass": "T>A",
+            "value": 0.012135262146549435
+          },
+          {
+            "context": "A[T>A]C",
+            "index": 13,
+            "mutationClass": "T>A",
+            "value": 0.004176268910666281
+          },
+          {
+            "context": "A[T>A]G",
+            "index": 14,
+            "mutationClass": "T>A",
+            "value": 0.016106993085461416
+          },
+          {
+            "context": "A[T>A]T",
+            "index": 15,
+            "mutationClass": "T>A",
+            "value": 0.0062551506752849375
+          },
+          {
+            "context": "A[T>C]A",
+            "index": 16,
+            "mutationClass": "T>C",
+            "value": 0.001179432209452344
+          },
+          {
+            "context": "A[T>C]C",
+            "index": 17,
+            "mutationClass": "T>C",
+            "value": 0.0006551186523469677
+          },
+          {
+            "context": "A[T>C]G",
+            "index": 18,
+            "mutationClass": "T>C",
+            "value": 0.0017220378096836435
+          },
+          {
+            "context": "A[T>C]T",
+            "index": 19,
+            "mutationClass": "T>C",
+            "value": 0.00008940757310372337
+          },
+          {
+            "context": "A[T>G]A",
+            "index": 20,
+            "mutationClass": "T>G",
+            "value": 0.0005261972952197777
+          },
+          {
+            "context": "A[T>G]C",
+            "index": 21,
+            "mutationClass": "T>G",
+            "value": 5.713585238050755e-7
+          },
+          {
+            "context": "A[T>G]G",
+            "index": 22,
+            "mutationClass": "T>G",
+            "value": 0.003864516565214428
+          },
+          {
+            "context": "A[T>G]T",
+            "index": 23,
+            "mutationClass": "T>G",
+            "value": 0.00008480276189952625
+          },
+          {
+            "context": "C[C>A]A",
+            "index": 24,
+            "mutationClass": "C>A",
+            "value": 0.08000584757396159
+          },
+          {
+            "context": "C[C>A]C",
+            "index": 25,
+            "mutationClass": "C>A",
+            "value": 0.09435267838245497
+          },
+          {
+            "context": "C[C>A]G",
+            "index": 26,
+            "mutationClass": "C>A",
+            "value": 0.027179389086077147
+          },
+          {
+            "context": "C[C>A]T",
+            "index": 27,
+            "mutationClass": "C>A",
+            "value": 0.09738554724921464
+          },
+          {
+            "context": "C[C>G]A",
+            "index": 28,
+            "mutationClass": "C>G",
+            "value": 0.006871856576023776
+          },
+          {
+            "context": "C[C>G]C",
+            "index": 29,
+            "mutationClass": "C>G",
+            "value": 0.00885089829102772
+          },
+          {
+            "context": "C[C>G]G",
+            "index": 30,
+            "mutationClass": "C>G",
+            "value": 0.0037931263498407887
+          },
+          {
+            "context": "C[C>G]T",
+            "index": 31,
+            "mutationClass": "C>G",
+            "value": 0.007048630172884176
+          },
+          {
+            "context": "C[C>T]A",
+            "index": 32,
+            "mutationClass": "C>T",
+            "value": 0.008208372820252947
+          },
+          {
+            "context": "C[C>T]C",
+            "index": 33,
+            "mutationClass": "C>T",
+            "value": 0.010030759417864564
+          },
+          {
+            "context": "C[C>T]G",
+            "index": 34,
+            "mutationClass": "C>T",
+            "value": 0.0009028165468059703
+          },
+          {
+            "context": "C[C>T]T",
+            "index": 35,
+            "mutationClass": "C>T",
+            "value": 0.01062257975622744
+          },
+          {
+            "context": "C[T>A]A",
+            "index": 36,
+            "mutationClass": "T>A",
+            "value": 0.024156984613682105
+          },
+          {
+            "context": "C[T>A]C",
+            "index": 37,
+            "mutationClass": "T>A",
+            "value": 0.02308154246964418
+          },
+          {
+            "context": "C[T>A]G",
+            "index": 38,
+            "mutationClass": "T>A",
+            "value": 0.06192245436149235
+          },
+          {
+            "context": "C[T>A]T",
+            "index": 39,
+            "mutationClass": "T>A",
+            "value": 0.02120669311458197
+          },
+          {
+            "context": "C[T>C]A",
+            "index": 40,
+            "mutationClass": "T>C",
+            "value": 0.004901301540362317
+          },
+          {
+            "context": "C[T>C]C",
+            "index": 41,
+            "mutationClass": "T>C",
+            "value": 0.0020263250152097474
+          },
+          {
+            "context": "C[T>C]G",
+            "index": 42,
+            "mutationClass": "T>C",
+            "value": 0.003803432726403136
+          },
+          {
+            "context": "C[T>C]T",
+            "index": 43,
+            "mutationClass": "T>C",
+            "value": 0.0026107505214510076
+          },
+          {
+            "context": "C[T>G]A",
+            "index": 44,
+            "mutationClass": "T>G",
+            "value": 0.00111536426923285
+          },
+          {
+            "context": "C[T>G]C",
+            "index": 45,
+            "mutationClass": "T>G",
+            "value": 0.0005054209879170399
+          },
+          {
+            "context": "C[T>G]G",
+            "index": 46,
+            "mutationClass": "T>G",
+            "value": 0.005307977438412905
+          },
+          {
+            "context": "C[T>G]T",
+            "index": 47,
+            "mutationClass": "T>G",
+            "value": 8.706734720931999e-20
+          },
+          {
+            "context": "G[C>A]A",
+            "index": 48,
+            "mutationClass": "C>A",
+            "value": 0.024990680476213202
+          },
+          {
+            "context": "G[C>A]C",
+            "index": 49,
+            "mutationClass": "C>A",
+            "value": 0.03290574525682561
+          },
+          {
+            "context": "G[C>A]G",
+            "index": 50,
+            "mutationClass": "C>A",
+            "value": 0.011401234972084744
+          },
+          {
+            "context": "G[C>A]T",
+            "index": 51,
+            "mutationClass": "C>A",
+            "value": 0.018012017635367507
+          },
+          {
+            "context": "G[C>G]A",
+            "index": 52,
+            "mutationClass": "C>G",
+            "value": 0.003617928408412646
+          },
+          {
+            "context": "G[C>G]C",
+            "index": 53,
+            "mutationClass": "C>G",
+            "value": 0.0037721653775507078
+          },
+          {
+            "context": "G[C>G]G",
+            "index": 54,
+            "mutationClass": "C>G",
+            "value": 0.0022672777393286598
+          },
+          {
+            "context": "G[C>G]T",
+            "index": 55,
+            "mutationClass": "C>G",
+            "value": 0.0018135616462497492
+          },
+          {
+            "context": "G[C>T]A",
+            "index": 56,
+            "mutationClass": "C>T",
+            "value": 0.004709736689765909
+          },
+          {
+            "context": "G[C>T]C",
+            "index": 57,
+            "mutationClass": "C>T",
+            "value": 0.003645352199404361
+          },
+          {
+            "context": "G[C>T]G",
+            "index": 58,
+            "mutationClass": "C>T",
+            "value": 3.2256817904355857e-9
+          },
+          {
+            "context": "G[C>T]T",
+            "index": 59,
+            "mutationClass": "C>T",
+            "value": 0.001687238726473094
+          },
+          {
+            "context": "G[T>A]A",
+            "index": 60,
+            "mutationClass": "T>A",
+            "value": 0.015311500471446422
+          },
+          {
+            "context": "G[T>A]C",
+            "index": 61,
+            "mutationClass": "T>A",
+            "value": 0.0050818214935705605
+          },
+          {
+            "context": "G[T>A]G",
+            "index": 62,
+            "mutationClass": "T>A",
+            "value": 0.022364235446160653
+          },
+          {
+            "context": "G[T>A]T",
+            "index": 63,
+            "mutationClass": "T>A",
+            "value": 0.008204133468598137
+          },
+          {
+            "context": "G[T>C]A",
+            "index": 64,
+            "mutationClass": "T>C",
+            "value": 0.001644043757347413
+          },
+          {
+            "context": "G[T>C]C",
+            "index": 65,
+            "mutationClass": "T>C",
+            "value": 0.00164169857688633
+          },
+          {
+            "context": "G[T>C]G",
+            "index": 66,
+            "mutationClass": "T>C",
+            "value": 0.0010258658868250025
+          },
+          {
+            "context": "G[T>C]T",
+            "index": 67,
+            "mutationClass": "T>C",
+            "value": 1.0923681875797899e-7
+          },
+          {
+            "context": "G[T>G]A",
+            "index": 68,
+            "mutationClass": "T>G",
+            "value": 0.00046548576094946454
+          },
+          {
+            "context": "G[T>G]C",
+            "index": 69,
+            "mutationClass": "T>G",
+            "value": 0.00015410405549997887
+          },
+          {
+            "context": "G[T>G]G",
+            "index": 70,
+            "mutationClass": "T>G",
+            "value": 0.005175671994239324
+          },
+          {
+            "context": "G[T>G]T",
+            "index": 71,
+            "mutationClass": "T>G",
+            "value": 0.000979205093360177
+          },
+          {
+            "context": "T[C>A]A",
+            "index": 72,
+            "mutationClass": "C>A",
+            "value": 0.03128978669019477
+          },
+          {
+            "context": "T[C>A]C",
+            "index": 73,
+            "mutationClass": "C>A",
+            "value": 0.04386056322275883
+          },
+          {
+            "context": "T[C>A]G",
+            "index": 74,
+            "mutationClass": "C>A",
+            "value": 0.007923251818880626
+          },
+          {
+            "context": "T[C>A]T",
+            "index": 75,
+            "mutationClass": "C>A",
+            "value": 0.04750021665998089
+          },
+          {
+            "context": "T[C>G]A",
+            "index": 76,
+            "mutationClass": "C>G",
+            "value": 0.00016141333197533097
+          },
+          {
+            "context": "T[C>G]C",
+            "index": 77,
+            "mutationClass": "C>G",
+            "value": 0.004955429917969859
+          },
+          {
+            "context": "T[C>G]G",
+            "index": 78,
+            "mutationClass": "C>G",
+            "value": 0.0018387304373514131
+          },
+          {
+            "context": "T[C>G]T",
+            "index": 79,
+            "mutationClass": "C>G",
+            "value": 0.00032149109116797576
+          },
+          {
+            "context": "T[C>T]A",
+            "index": 80,
+            "mutationClass": "C>T",
+            "value": 0.0010892787331793156
+          },
+          {
+            "context": "T[C>T]C",
+            "index": 81,
+            "mutationClass": "C>T",
+            "value": 0.0044357796958784095
+          },
+          {
+            "context": "T[C>T]G",
+            "index": 82,
+            "mutationClass": "C>T",
+            "value": 0.00041574925646033776
+          },
+          {
+            "context": "T[C>T]T",
+            "index": 83,
+            "mutationClass": "C>T",
+            "value": 0.005842049463655426
+          },
+          {
+            "context": "T[T>A]A",
+            "index": 84,
+            "mutationClass": "T>A",
+            "value": 0.015807848065030654
+          },
+          {
+            "context": "T[T>A]C",
+            "index": 85,
+            "mutationClass": "T>A",
+            "value": 0.00820729601816545
+          },
+          {
+            "context": "T[T>A]G",
+            "index": 86,
+            "mutationClass": "T>A",
+            "value": 0.019708537243681577
+          },
+          {
+            "context": "T[T>A]T",
+            "index": 87,
+            "mutationClass": "T>A",
+            "value": 0.006947393311385732
+          },
+          {
+            "context": "T[T>C]A",
+            "index": 88,
+            "mutationClass": "T>C",
+            "value": 6.365175878123867e-7
+          },
+          {
+            "context": "T[T>C]C",
+            "index": 89,
+            "mutationClass": "T>C",
+            "value": 0.00037835686534138155
+          },
+          {
+            "context": "T[T>C]G",
+            "index": 90,
+            "mutationClass": "T>C",
+            "value": 0.00019372968206752148
+          },
+          {
+            "context": "T[T>C]T",
+            "index": 91,
+            "mutationClass": "T>C",
+            "value": 3.4360876264183276e-8
+          },
+          {
+            "context": "T[T>G]A",
+            "index": 92,
+            "mutationClass": "T>G",
+            "value": 0.00032633514520795875
+          },
+          {
+            "context": "T[T>G]C",
+            "index": 93,
+            "mutationClass": "T>G",
+            "value": 1.3281073472914004e-7
+          },
+          {
+            "context": "T[T>G]G",
+            "index": 94,
+            "mutationClass": "T>G",
+            "value": 0.0042868444846343315
+          },
+          {
+            "context": "T[T>G]T",
+            "index": 95,
+            "mutationClass": "T>G",
+            "value": 3.4513659693714626e-9
+          }
+        ]
+      },
+      {
+        "signature": "NMF5",
+        "values": [
+          {
+            "context": "A[C>A]A",
+            "index": 0,
+            "mutationClass": "C>A",
+            "value": 0.08543564943261125
+          },
+          {
+            "context": "A[C>A]C",
+            "index": 1,
+            "mutationClass": "C>A",
+            "value": 0.04269703215150258
+          },
+          {
+            "context": "A[C>A]G",
+            "index": 2,
+            "mutationClass": "C>A",
+            "value": 0.020296853445563135
+          },
+          {
+            "context": "A[C>A]T",
+            "index": 3,
+            "mutationClass": "C>A",
+            "value": 0.060646323292660044
+          },
+          {
+            "context": "A[C>G]A",
+            "index": 4,
+            "mutationClass": "C>G",
+            "value": 0.011209247218884699
+          },
+          {
+            "context": "A[C>G]C",
+            "index": 5,
+            "mutationClass": "C>G",
+            "value": 0.0036179902213844058
+          },
+          {
+            "context": "A[C>G]G",
+            "index": 6,
+            "mutationClass": "C>G",
+            "value": 0.0005317099016654878
+          },
+          {
+            "context": "A[C>G]T",
+            "index": 7,
+            "mutationClass": "C>G",
+            "value": 0.0065710217066968606
+          },
+          {
+            "context": "A[C>T]A",
+            "index": 8,
+            "mutationClass": "C>T",
+            "value": 0.012382814238568608
+          },
+          {
+            "context": "A[C>T]C",
+            "index": 9,
+            "mutationClass": "C>T",
+            "value": 0.00535566182960094
+          },
+          {
+            "context": "A[C>T]G",
+            "index": 10,
+            "mutationClass": "C>T",
+            "value": 0.003473707763801352
+          },
+          {
+            "context": "A[C>T]T",
+            "index": 11,
+            "mutationClass": "C>T",
+            "value": 0.005073193360189886
+          },
+          {
+            "context": "A[T>A]A",
+            "index": 12,
+            "mutationClass": "T>A",
+            "value": 0.009795779402595304
+          },
+          {
+            "context": "A[T>A]C",
+            "index": 13,
+            "mutationClass": "T>A",
+            "value": 0.004298818745103651
+          },
+          {
+            "context": "A[T>A]G",
+            "index": 14,
+            "mutationClass": "T>A",
+            "value": 0.009018970639079265
+          },
+          {
+            "context": "A[T>A]T",
+            "index": 15,
+            "mutationClass": "T>A",
+            "value": 0.005562159550773384
+          },
+          {
+            "context": "A[T>C]A",
+            "index": 16,
+            "mutationClass": "T>C",
+            "value": 0.007506580329499155
+          },
+          {
+            "context": "A[T>C]C",
+            "index": 17,
+            "mutationClass": "T>C",
+            "value": 0.00012830285587536147
+          },
+          {
+            "context": "A[T>C]G",
+            "index": 18,
+            "mutationClass": "T>C",
+            "value": 0.0026337399833324007
+          },
+          {
+            "context": "A[T>C]T",
+            "index": 19,
+            "mutationClass": "T>C",
+            "value": 0.0025769553503479084
+          },
+          {
+            "context": "A[T>G]A",
+            "index": 20,
+            "mutationClass": "T>G",
+            "value": 0.0012738104852619316
+          },
+          {
+            "context": "A[T>G]C",
+            "index": 21,
+            "mutationClass": "T>G",
+            "value": 0.00019071407882782318
+          },
+          {
+            "context": "A[T>G]G",
+            "index": 22,
+            "mutationClass": "T>G",
+            "value": 0.00017699142092316615
+          },
+          {
+            "context": "A[T>G]T",
+            "index": 23,
+            "mutationClass": "T>G",
+            "value": 0.0012394694902386257
+          },
+          {
+            "context": "C[C>A]A",
+            "index": 24,
+            "mutationClass": "C>A",
+            "value": 0.07838060564704838
+          },
+          {
+            "context": "C[C>A]C",
+            "index": 25,
+            "mutationClass": "C>A",
+            "value": 0.06320647374793391
+          },
+          {
+            "context": "C[C>A]G",
+            "index": 26,
+            "mutationClass": "C>A",
+            "value": 0.01680664560264136
+          },
+          {
+            "context": "C[C>A]T",
+            "index": 27,
+            "mutationClass": "C>A",
+            "value": 0.05919814705470726
+          },
+          {
+            "context": "C[C>G]A",
+            "index": 28,
+            "mutationClass": "C>G",
+            "value": 0.004866566380006972
+          },
+          {
+            "context": "C[C>G]C",
+            "index": 29,
+            "mutationClass": "C>G",
+            "value": 0.004037825470007861
+          },
+          {
+            "context": "C[C>G]G",
+            "index": 30,
+            "mutationClass": "C>G",
+            "value": 0.001567811394177414
+          },
+          {
+            "context": "C[C>G]T",
+            "index": 31,
+            "mutationClass": "C>G",
+            "value": 0.0032734297259652567
+          },
+          {
+            "context": "C[C>T]A",
+            "index": 32,
+            "mutationClass": "C>T",
+            "value": 0.010429144239599716
+          },
+          {
+            "context": "C[C>T]C",
+            "index": 33,
+            "mutationClass": "C>T",
+            "value": 0.007094694301168094
+          },
+          {
+            "context": "C[C>T]G",
+            "index": 34,
+            "mutationClass": "C>T",
+            "value": 0.0024651440566528554
+          },
+          {
+            "context": "C[C>T]T",
+            "index": 35,
+            "mutationClass": "C>T",
+            "value": 0.012146530325603373
+          },
+          {
+            "context": "C[T>A]A",
+            "index": 36,
+            "mutationClass": "T>A",
+            "value": 0.003152872319922968
+          },
+          {
+            "context": "C[T>A]C",
+            "index": 37,
+            "mutationClass": "T>A",
+            "value": 0.0007769689124347127
+          },
+          {
+            "context": "C[T>A]G",
+            "index": 38,
+            "mutationClass": "T>A",
+            "value": 0.004158506387066091
+          },
+          {
+            "context": "C[T>A]T",
+            "index": 39,
+            "mutationClass": "T>A",
+            "value": 0.0033955592936141324
+          },
+          {
+            "context": "C[T>C]A",
+            "index": 40,
+            "mutationClass": "T>C",
+            "value": 0.000017987576423497413
+          },
+          {
+            "context": "C[T>C]C",
+            "index": 41,
+            "mutationClass": "T>C",
+            "value": 0.0012248979745778231
+          },
+          {
+            "context": "C[T>C]G",
+            "index": 42,
+            "mutationClass": "T>C",
+            "value": 0.00002103233771230532
+          },
+          {
+            "context": "C[T>C]T",
+            "index": 43,
+            "mutationClass": "T>C",
+            "value": 0.0003681814957325004
+          },
+          {
+            "context": "C[T>G]A",
+            "index": 44,
+            "mutationClass": "T>G",
+            "value": 0.000017803586005032282
+          },
+          {
+            "context": "C[T>G]C",
+            "index": 45,
+            "mutationClass": "T>G",
+            "value": 0.00025464427308152733
+          },
+          {
+            "context": "C[T>G]G",
+            "index": 46,
+            "mutationClass": "T>G",
+            "value": 0.0007686489277163806
+          },
+          {
+            "context": "C[T>G]T",
+            "index": 47,
+            "mutationClass": "T>G",
+            "value": 2.522571512292669e-22
+          },
+          {
+            "context": "G[C>A]A",
+            "index": 48,
+            "mutationClass": "C>A",
+            "value": 0.053801547774992124
+          },
+          {
+            "context": "G[C>A]C",
+            "index": 49,
+            "mutationClass": "C>A",
+            "value": 0.03793141322316387
+          },
+          {
+            "context": "G[C>A]G",
+            "index": 50,
+            "mutationClass": "C>A",
+            "value": 0.015294346176513405
+          },
+          {
+            "context": "G[C>A]T",
+            "index": 51,
+            "mutationClass": "C>A",
+            "value": 0.03454556618462
+          },
+          {
+            "context": "G[C>G]A",
+            "index": 52,
+            "mutationClass": "C>G",
+            "value": 0.0048708234273694695
+          },
+          {
+            "context": "G[C>G]C",
+            "index": 53,
+            "mutationClass": "C>G",
+            "value": 0.005398335013859651
+          },
+          {
+            "context": "G[C>G]G",
+            "index": 54,
+            "mutationClass": "C>G",
+            "value": 0.002555623967019906
+          },
+          {
+            "context": "G[C>G]T",
+            "index": 55,
+            "mutationClass": "C>G",
+            "value": 0.00430592031391257
+          },
+          {
+            "context": "G[C>T]A",
+            "index": 56,
+            "mutationClass": "C>T",
+            "value": 0.0022587371785836277
+          },
+          {
+            "context": "G[C>T]C",
+            "index": 57,
+            "mutationClass": "C>T",
+            "value": 0.005261294946490429
+          },
+          {
+            "context": "G[C>T]G",
+            "index": 58,
+            "mutationClass": "C>T",
+            "value": 0.0023441839569276843
+          },
+          {
+            "context": "G[C>T]T",
+            "index": 59,
+            "mutationClass": "C>T",
+            "value": 0.0052555254780452965
+          },
+          {
+            "context": "G[T>A]A",
+            "index": 60,
+            "mutationClass": "T>A",
+            "value": 0.0027672447842935505
+          },
+          {
+            "context": "G[T>A]C",
+            "index": 61,
+            "mutationClass": "T>A",
+            "value": 0.002704517513663013
+          },
+          {
+            "context": "G[T>A]G",
+            "index": 62,
+            "mutationClass": "T>A",
+            "value": 0.0021163861978336063
+          },
+          {
+            "context": "G[T>A]T",
+            "index": 63,
+            "mutationClass": "T>A",
+            "value": 0.002253446275346657
+          },
+          {
+            "context": "G[T>C]A",
+            "index": 64,
+            "mutationClass": "T>C",
+            "value": 0.00010999333321132564
+          },
+          {
+            "context": "G[T>C]C",
+            "index": 65,
+            "mutationClass": "T>C",
+            "value": 0.0007650077997530964
+          },
+          {
+            "context": "G[T>C]G",
+            "index": 66,
+            "mutationClass": "T>C",
+            "value": 0.00008290632800912893
+          },
+          {
+            "context": "G[T>C]T",
+            "index": 67,
+            "mutationClass": "T>C",
+            "value": 0.00005751049314734383
+          },
+          {
+            "context": "G[T>G]A",
+            "index": 68,
+            "mutationClass": "T>G",
+            "value": 0.00006208796637561143
+          },
+          {
+            "context": "G[T>G]C",
+            "index": 69,
+            "mutationClass": "T>G",
+            "value": 0.00037789252719561996
+          },
+          {
+            "context": "G[T>G]G",
+            "index": 70,
+            "mutationClass": "T>G",
+            "value": 0.00006920895937461441
+          },
+          {
+            "context": "G[T>G]T",
+            "index": 71,
+            "mutationClass": "T>G",
+            "value": 0.0001299043872509471
+          },
+          {
+            "context": "T[C>A]A",
+            "index": 72,
+            "mutationClass": "C>A",
+            "value": 0.06149366085699455
+          },
+          {
+            "context": "T[C>A]C",
+            "index": 73,
+            "mutationClass": "C>A",
+            "value": 0.056990122247087986
+          },
+          {
+            "context": "T[C>A]G",
+            "index": 74,
+            "mutationClass": "C>A",
+            "value": 0.010517617634094284
+          },
+          {
+            "context": "T[C>A]T",
+            "index": 75,
+            "mutationClass": "C>A",
+            "value": 0.06366013404104022
+          },
+          {
+            "context": "T[C>G]A",
+            "index": 76,
+            "mutationClass": "C>G",
+            "value": 0.000003807825317333485
+          },
+          {
+            "context": "T[C>G]C",
+            "index": 77,
+            "mutationClass": "C>G",
+            "value": 0.0025594131857239527
+          },
+          {
+            "context": "T[C>G]G",
+            "index": 78,
+            "mutationClass": "C>G",
+            "value": 0.0008515424712678523
+          },
+          {
+            "context": "T[C>G]T",
+            "index": 79,
+            "mutationClass": "C>G",
+            "value": 0.0011753411445748524
+          },
+          {
+            "context": "T[C>T]A",
+            "index": 80,
+            "mutationClass": "C>T",
+            "value": 0.003370134155983169
+          },
+          {
+            "context": "T[C>T]C",
+            "index": 81,
+            "mutationClass": "C>T",
+            "value": 0.004835885451205485
+          },
+          {
+            "context": "T[C>T]G",
+            "index": 82,
+            "mutationClass": "C>T",
+            "value": 0.0003406626114722439
+          },
+          {
+            "context": "T[C>T]T",
+            "index": 83,
+            "mutationClass": "C>T",
+            "value": 0.0062123287348347855
+          },
+          {
+            "context": "T[T>A]A",
+            "index": 84,
+            "mutationClass": "T>A",
+            "value": 0.0051938792333221595
+          },
+          {
+            "context": "T[T>A]C",
+            "index": 85,
+            "mutationClass": "T>A",
+            "value": 0.0024362504784341825
+          },
+          {
+            "context": "T[T>A]G",
+            "index": 86,
+            "mutationClass": "T>A",
+            "value": 0.002460518264363118
+          },
+          {
+            "context": "T[T>A]T",
+            "index": 87,
+            "mutationClass": "T>A",
+            "value": 0.006769947602826668
+          },
+          {
+            "context": "T[T>C]A",
+            "index": 88,
+            "mutationClass": "T>C",
+            "value": 0.0008501457464592598
+          },
+          {
+            "context": "T[T>C]C",
+            "index": 89,
+            "mutationClass": "T>C",
+            "value": 0.0011811672293319585
+          },
+          {
+            "context": "T[T>C]G",
+            "index": 90,
+            "mutationClass": "T>C",
+            "value": 0.0004958352162977537
+          },
+          {
+            "context": "T[T>C]T",
+            "index": 91,
+            "mutationClass": "T>C",
+            "value": 0.000010315501654161872
+          },
+          {
+            "context": "T[T>G]A",
+            "index": 92,
+            "mutationClass": "T>G",
+            "value": 0.0002715958180765618
+          },
+          {
+            "context": "T[T>G]C",
+            "index": 93,
+            "mutationClass": "T>G",
+            "value": 0.0004165542415529425
+          },
+          {
+            "context": "T[T>G]G",
+            "index": 94,
+            "mutationClass": "T>G",
+            "value": 0.00044812871395756375
+          },
+          {
+            "context": "T[T>G]T",
+            "index": 95,
+            "mutationClass": "T>G",
+            "value": 0.002811969462387821
+          }
+        ]
+      },
+      {
+        "signature": "NMF6",
+        "values": [
+          {
+            "context": "A[C>A]A",
+            "index": 0,
+            "mutationClass": "C>A",
+            "value": 0.0030570732808896358
+          },
+          {
+            "context": "A[C>A]C",
+            "index": 1,
+            "mutationClass": "C>A",
+            "value": 0.003822971368919077
+          },
+          {
+            "context": "A[C>A]G",
+            "index": 2,
+            "mutationClass": "C>A",
+            "value": 0.0000017563065067701502
+          },
+          {
+            "context": "A[C>A]T",
+            "index": 3,
+            "mutationClass": "C>A",
+            "value": 0.0035080708252966815
+          },
+          {
+            "context": "A[C>G]A",
+            "index": 4,
+            "mutationClass": "C>G",
+            "value": 0.00015282331484484676
+          },
+          {
+            "context": "A[C>G]C",
+            "index": 5,
+            "mutationClass": "C>G",
+            "value": 0.0013718821504261776
+          },
+          {
+            "context": "A[C>G]G",
+            "index": 6,
+            "mutationClass": "C>G",
+            "value": 0.0000027022573239707813
+          },
+          {
+            "context": "A[C>G]T",
+            "index": 7,
+            "mutationClass": "C>G",
+            "value": 0.0031147335256981956
+          },
+          {
+            "context": "A[C>T]A",
+            "index": 8,
+            "mutationClass": "C>T",
+            "value": 0.009704034970377444
+          },
+          {
+            "context": "A[C>T]C",
+            "index": 9,
+            "mutationClass": "C>T",
+            "value": 0.005016715069433467
+          },
+          {
+            "context": "A[C>T]G",
+            "index": 10,
+            "mutationClass": "C>T",
+            "value": 0.009052237856521001
+          },
+          {
+            "context": "A[C>T]T",
+            "index": 11,
+            "mutationClass": "C>T",
+            "value": 0.0026203752377579955
+          },
+          {
+            "context": "A[T>A]A",
+            "index": 12,
+            "mutationClass": "T>A",
+            "value": 0.004183352783093737
+          },
+          {
+            "context": "A[T>A]C",
+            "index": 13,
+            "mutationClass": "T>A",
+            "value": 0.0038259151602041993
+          },
+          {
+            "context": "A[T>A]G",
+            "index": 14,
+            "mutationClass": "T>A",
+            "value": 0.0029962390857910474
+          },
+          {
+            "context": "A[T>A]T",
+            "index": 15,
+            "mutationClass": "T>A",
+            "value": 0.005566720147470536
+          },
+          {
+            "context": "A[T>C]A",
+            "index": 16,
+            "mutationClass": "T>C",
+            "value": 0.000013826763609706753
+          },
+          {
+            "context": "A[T>C]C",
+            "index": 17,
+            "mutationClass": "T>C",
+            "value": 0.0014321359252176798
+          },
+          {
+            "context": "A[T>C]G",
+            "index": 18,
+            "mutationClass": "T>C",
+            "value": 0.00019309174569677
+          },
+          {
+            "context": "A[T>C]T",
+            "index": 19,
+            "mutationClass": "T>C",
+            "value": 0.00508150199717153
+          },
+          {
+            "context": "A[T>G]A",
+            "index": 20,
+            "mutationClass": "T>G",
+            "value": 0.002742461684395394
+          },
+          {
+            "context": "A[T>G]C",
+            "index": 21,
+            "mutationClass": "T>G",
+            "value": 0.0007069563700542506
+          },
+          {
+            "context": "A[T>G]G",
+            "index": 22,
+            "mutationClass": "T>G",
+            "value": 0.0014745168239834103
+          },
+          {
+            "context": "A[T>G]T",
+            "index": 23,
+            "mutationClass": "T>G",
+            "value": 0.002024235273197302
+          },
+          {
+            "context": "C[C>A]A",
+            "index": 24,
+            "mutationClass": "C>A",
+            "value": 0.004906761341795591
+          },
+          {
+            "context": "C[C>A]C",
+            "index": 25,
+            "mutationClass": "C>A",
+            "value": 0.005061481010053088
+          },
+          {
+            "context": "C[C>A]G",
+            "index": 26,
+            "mutationClass": "C>A",
+            "value": 0.000463341312494155
+          },
+          {
+            "context": "C[C>A]T",
+            "index": 27,
+            "mutationClass": "C>A",
+            "value": 0.006126856127728674
+          },
+          {
+            "context": "C[C>G]A",
+            "index": 28,
+            "mutationClass": "C>G",
+            "value": 0.002543976792269676
+          },
+          {
+            "context": "C[C>G]C",
+            "index": 29,
+            "mutationClass": "C>G",
+            "value": 0.001762314062244239
+          },
+          {
+            "context": "C[C>G]G",
+            "index": 30,
+            "mutationClass": "C>G",
+            "value": 0.0000575330170963185
+          },
+          {
+            "context": "C[C>G]T",
+            "index": 31,
+            "mutationClass": "C>G",
+            "value": 0.0016791774836061996
+          },
+          {
+            "context": "C[C>T]A",
+            "index": 32,
+            "mutationClass": "C>T",
+            "value": 0.019281234486261557
+          },
+          {
+            "context": "C[C>T]C",
+            "index": 33,
+            "mutationClass": "C>T",
+            "value": 0.008122997028393263
+          },
+          {
+            "context": "C[C>T]G",
+            "index": 34,
+            "mutationClass": "C>T",
+            "value": 0.00663006493353641
+          },
+          {
+            "context": "C[C>T]T",
+            "index": 35,
+            "mutationClass": "C>T",
+            "value": 0.006843395898964441
+          },
+          {
+            "context": "C[T>A]A",
+            "index": 36,
+            "mutationClass": "T>A",
+            "value": 0.0025326052561894163
+          },
+          {
+            "context": "C[T>A]C",
+            "index": 37,
+            "mutationClass": "T>A",
+            "value": 0.003363467627689192
+          },
+          {
+            "context": "C[T>A]G",
+            "index": 38,
+            "mutationClass": "T>A",
+            "value": 0.0036555731528906984
+          },
+          {
+            "context": "C[T>A]T",
+            "index": 39,
+            "mutationClass": "T>A",
+            "value": 0.003949753779703759
+          },
+          {
+            "context": "C[T>C]A",
+            "index": 40,
+            "mutationClass": "T>C",
+            "value": 2.6001392445721857e-8
+          },
+          {
+            "context": "C[T>C]C",
+            "index": 41,
+            "mutationClass": "T>C",
+            "value": 0.0021220479877842773
+          },
+          {
+            "context": "C[T>C]G",
+            "index": 42,
+            "mutationClass": "T>C",
+            "value": 0.0003932564854725912
+          },
+          {
+            "context": "C[T>C]T",
+            "index": 43,
+            "mutationClass": "T>C",
+            "value": 0.003947457863061145
+          },
+          {
+            "context": "C[T>G]A",
+            "index": 44,
+            "mutationClass": "T>G",
+            "value": 0.0013158382008405945
+          },
+          {
+            "context": "C[T>G]C",
+            "index": 45,
+            "mutationClass": "T>G",
+            "value": 0.0011572209208703251
+          },
+          {
+            "context": "C[T>G]G",
+            "index": 46,
+            "mutationClass": "T>G",
+            "value": 0.0006066500179517645
+          },
+          {
+            "context": "C[T>G]T",
+            "index": 47,
+            "mutationClass": "T>G",
+            "value": 0.0020314903271254296
+          },
+          {
+            "context": "G[C>A]A",
+            "index": 48,
+            "mutationClass": "C>A",
+            "value": 0.004382869793361484
+          },
+          {
+            "context": "G[C>A]C",
+            "index": 49,
+            "mutationClass": "C>A",
+            "value": 0.004301953790249407
+          },
+          {
+            "context": "G[C>A]G",
+            "index": 50,
+            "mutationClass": "C>A",
+            "value": 1.2673596051045434e-7
+          },
+          {
+            "context": "G[C>A]T",
+            "index": 51,
+            "mutationClass": "C>A",
+            "value": 0.005455474700156326
+          },
+          {
+            "context": "G[C>G]A",
+            "index": 52,
+            "mutationClass": "C>G",
+            "value": 0.000009618170904826051
+          },
+          {
+            "context": "G[C>G]C",
+            "index": 53,
+            "mutationClass": "C>G",
+            "value": 0.0019562476536744483
+          },
+          {
+            "context": "G[C>G]G",
+            "index": 54,
+            "mutationClass": "C>G",
+            "value": 0.0000063700014428325105
+          },
+          {
+            "context": "G[C>G]T",
+            "index": 55,
+            "mutationClass": "C>G",
+            "value": 0.002319024178927604
+          },
+          {
+            "context": "G[C>T]A",
+            "index": 56,
+            "mutationClass": "C>T",
+            "value": 0.010315403403669996
+          },
+          {
+            "context": "G[C>T]C",
+            "index": 57,
+            "mutationClass": "C>T",
+            "value": 0.006748172255351516
+          },
+          {
+            "context": "G[C>T]G",
+            "index": 58,
+            "mutationClass": "C>T",
+            "value": 0.008308588754486115
+          },
+          {
+            "context": "G[C>T]T",
+            "index": 59,
+            "mutationClass": "C>T",
+            "value": 0.004986633627960559
+          },
+          {
+            "context": "G[T>A]A",
+            "index": 60,
+            "mutationClass": "T>A",
+            "value": 0.0002088704851886619
+          },
+          {
+            "context": "G[T>A]C",
+            "index": 61,
+            "mutationClass": "T>A",
+            "value": 0.0018717585820337823
+          },
+          {
+            "context": "G[T>A]G",
+            "index": 62,
+            "mutationClass": "T>A",
+            "value": 0.001971093948100598
+          },
+          {
+            "context": "G[T>A]T",
+            "index": 63,
+            "mutationClass": "T>A",
+            "value": 0.0021403967958238154
+          },
+          {
+            "context": "G[T>C]A",
+            "index": 64,
+            "mutationClass": "T>C",
+            "value": 0.00018069992295996357
+          },
+          {
+            "context": "G[T>C]C",
+            "index": 65,
+            "mutationClass": "T>C",
+            "value": 0.002348611949184888
+          },
+          {
+            "context": "G[T>C]G",
+            "index": 66,
+            "mutationClass": "T>C",
+            "value": 0.000500823736910118
+          },
+          {
+            "context": "G[T>C]T",
+            "index": 67,
+            "mutationClass": "T>C",
+            "value": 0.0024390755857236057
+          },
+          {
+            "context": "G[T>G]A",
+            "index": 68,
+            "mutationClass": "T>G",
+            "value": 0.0004761595942593199
+          },
+          {
+            "context": "G[T>G]C",
+            "index": 69,
+            "mutationClass": "T>G",
+            "value": 0.0005938571870964458
+          },
+          {
+            "context": "G[T>G]G",
+            "index": 70,
+            "mutationClass": "T>G",
+            "value": 0.002057104540348886
+          },
+          {
+            "context": "G[T>G]T",
+            "index": 71,
+            "mutationClass": "T>G",
+            "value": 0.0032148541657994116
+          },
+          {
+            "context": "T[C>A]A",
+            "index": 72,
+            "mutationClass": "C>A",
+            "value": 0.018758168940047316
+          },
+          {
+            "context": "T[C>A]C",
+            "index": 73,
+            "mutationClass": "C>A",
+            "value": 0.010529041549118946
+          },
+          {
+            "context": "T[C>A]G",
+            "index": 74,
+            "mutationClass": "C>A",
+            "value": 0.0016549802981945313
+          },
+          {
+            "context": "T[C>A]T",
+            "index": 75,
+            "mutationClass": "C>A",
+            "value": 0.015347305198821427
+          },
+          {
+            "context": "T[C>G]A",
+            "index": 76,
+            "mutationClass": "C>G",
+            "value": 0.07757853835712361
+          },
+          {
+            "context": "T[C>G]C",
+            "index": 77,
+            "mutationClass": "C>G",
+            "value": 0.017400252429963573
+          },
+          {
+            "context": "T[C>G]G",
+            "index": 78,
+            "mutationClass": "C>G",
+            "value": 0.004087666626627374
+          },
+          {
+            "context": "T[C>G]T",
+            "index": 79,
+            "mutationClass": "C>G",
+            "value": 0.0853546881685671
+          },
+          {
+            "context": "T[C>T]A",
+            "index": 80,
+            "mutationClass": "C>T",
+            "value": 0.2799610812065493
+          },
+          {
+            "context": "T[C>T]C",
+            "index": 81,
+            "mutationClass": "C>T",
+            "value": 0.061368274577963344
+          },
+          {
+            "context": "T[C>T]G",
+            "index": 82,
+            "mutationClass": "C>T",
+            "value": 0.02947080050146714
+          },
+          {
+            "context": "T[C>T]T",
+            "index": 83,
+            "mutationClass": "C>T",
+            "value": 0.14814428973523402
+          },
+          {
+            "context": "T[T>A]A",
+            "index": 84,
+            "mutationClass": "T>A",
+            "value": 0.004069233239777699
+          },
+          {
+            "context": "T[T>A]C",
+            "index": 85,
+            "mutationClass": "T>A",
+            "value": 0.0021981502405533965
+          },
+          {
+            "context": "T[T>A]G",
+            "index": 86,
+            "mutationClass": "T>A",
+            "value": 0.0014611898675867087
+          },
+          {
+            "context": "T[T>A]T",
+            "index": 87,
+            "mutationClass": "T>A",
+            "value": 0.004043889077546937
+          },
+          {
+            "context": "T[T>C]A",
+            "index": 88,
+            "mutationClass": "T>C",
+            "value": 0.00008776019963059797
+          },
+          {
+            "context": "T[T>C]C",
+            "index": 89,
+            "mutationClass": "T>C",
+            "value": 0.0014555908930973095
+          },
+          {
+            "context": "T[T>C]G",
+            "index": 90,
+            "mutationClass": "T>C",
+            "value": 0.00018243294603063982
+          },
+          {
+            "context": "T[T>C]T",
+            "index": 91,
+            "mutationClass": "T>C",
+            "value": 0.0029349232091748227
+          },
+          {
+            "context": "T[T>G]A",
+            "index": 92,
+            "mutationClass": "T>G",
+            "value": 0.00263422354798887
+          },
+          {
+            "context": "T[T>G]C",
+            "index": 93,
+            "mutationClass": "T>G",
+            "value": 0.0010900536226229824
+          },
+          {
+            "context": "T[T>G]G",
+            "index": 94,
+            "mutationClass": "T>G",
+            "value": 0.0023226227274943806
+          },
+          {
+            "context": "T[T>G]T",
+            "index": 95,
+            "mutationClass": "T>G",
+            "value": 0.0008502022399466755
+          }
+        ]
+      }
+    ]
+  }
+}

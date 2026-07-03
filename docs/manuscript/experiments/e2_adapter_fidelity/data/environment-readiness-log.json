@@ -1,6 +1,6 @@
 {
   "schemaVersion": "msig.manuscript.experiment.v1",
-  "generatedAt": "2026-05-22T00:57:26.178Z",
+  "generatedAt": "2026-06-27T22:48:55.381Z",
   "experimentId": "e2_adapter_fidelity",
   "rows": [
     {
@@ -38,7 +38,7 @@
     {
       "tool": "deconstructsigs",
       "path": "local",
-      "runtime": "local:Rscript.exe",
+      "runtime": "local:Rscript",
       "status": "completed",
       "reason": null,
       "packageVersion": "deconstructSigs 1.8.0"
@@ -46,7 +46,7 @@
     {
       "tool": "sigminer",
       "path": "local",
-      "runtime": "local:Rscript.exe",
+      "runtime": "local:Rscript",
       "status": "completed",
       "reason": null,
       "packageVersion": "sigminer 2.3.1; nnls 1.6"

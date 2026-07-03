@@ -1,7 +1,7 @@
 const PYODIDE_RUNNER_SCHEMA_VERSION = "msig.runner.pyodide.v0.3";
 const DEFAULT_PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.27.4/full/";
 const WEBR_RUNNER_SCHEMA_VERSION = "msig.runner.webr.v0.3";
-const DEFAULT_WEBR_MODULE_URL = "https://webr.r-wasm.org/latest/webr.mjs";
+const DEFAULT_WEBR_MODULE_URL = "https://webr.r-wasm.org/v0.6.0/webr.mjs";
 const DEFAULT_WEBR_REPOSITORY_URL = "https://repo.r-wasm.org";
 const DEFAULT_WEBR_BINARY_R_VERSION = "4.6";
 
@@ -44,12 +44,128 @@ function normalizeRepositoryUrls(value) {
   return repositories.length ? repositories : [DEFAULT_WEBR_REPOSITORY_URL];
 }
 
+function resolveSdkUrl(value) {
+  const raw = String(value || "");
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) {
+    return raw;
+  }
+  const sdkRoot = new URL("../", import.meta.url);
+  if (raw.startsWith("docs/")) {
+    return new URL(raw, sdkRoot).href;
+  }
+  return new URL(raw, import.meta.url).href;
+}
+
+function isBundledWebRRepository(repositoryUrl) {
+  try {
+    const pathname = new URL(resolveSdkUrl(repositoryUrl)).pathname.replace(/\\/g, "/");
+    return /\/docs\/package-repos\/webr\/?$/.test(pathname);
+  } catch (_error) {
+    return false;
+  }
+}
+
+async function bytesFromUrl(url) {
+  const parsed = new URL(url);
+  if (parsed.protocol === "file:") {
+    const { readFile } = await import("node:fs/promises");
+    return new Uint8Array(await readFile(parsed));
+  }
+  if (typeof fetch !== "function") {
+    throw new Error(`Cannot fetch ${url}; fetch is not available for integrity verification.`);
+  }
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Cannot fetch ${url} for integrity verification: HTTP ${response.status}.`);
+  }
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+async function jsonFromUrl(url) {
+  const bytes = await bytesFromUrl(url);
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+async function sha256Hex(bytes) {
+  if (globalThis.crypto?.subtle) {
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+  }
+  const { createHash } = await import("node:crypto");
+  return createHash("sha256").update(Buffer.from(bytes)).digest("hex");
+}
+
+const verifiedWebRRepositories = new Set();
+
+async function verifySingleBundledWebRRepository(repositoryUrl) {
+  if (!isBundledWebRRepository(repositoryUrl)) {
+    return { verified: false, packages: [] };
+  }
+  const baseUrl = trimTrailingSlash(resolveSdkUrl(repositoryUrl));
+  if (verifiedWebRRepositories.has(baseUrl)) {
+    return { verified: true, cached: true, packages: [] };
+  }
+
+  const manifestUrl = `${baseUrl}/manifest.json`;
+  const manifest = await jsonFromUrl(manifestUrl);
+  const packages = Array.isArray(manifest.packages) ? manifest.packages : [];
+  for (const entry of packages) {
+    if (entry.available === false) {
+      continue;
+    }
+    if (!entry.filename || !entry.sha256) {
+      throw new Error(
+        `Bundled webR manifest entry for ${entry.package || "unknown package"} is missing filename or sha256.`
+      );
+    }
+    const artifactUrl = new URL(entry.filename, `${baseUrl}/`).href;
+    const actual = await sha256Hex(await bytesFromUrl(artifactUrl));
+    const expected = String(entry.sha256).toLowerCase();
+    if (actual !== expected) {
+      throw new Error(
+        `SHA-256 mismatch for bundled webR artifact ${entry.filename}. Expected ${expected}, got ${actual}. Refusing to install.`
+      );
+    }
+  }
+
+  verifiedWebRRepositories.add(baseUrl);
+  return {
+    verified: true,
+    cached: false,
+    packages: packages.map((entry) => entry.package).filter(Boolean),
+  };
+}
+
+async function verifyBundledWebRRepository(repositoryUrl) {
+  const repositories = normalizeRepositoryUrls(repositoryUrl);
+  const bundledRepositories = repositories.filter((entry) =>
+    isBundledWebRRepository(entry)
+  );
+  if (bundledRepositories.length === 0) {
+    return { verified: false, packages: [] };
+  }
+
+  const results = [];
+  for (const bundledRepository of bundledRepositories) {
+    results.push(await verifySingleBundledWebRRepository(bundledRepository));
+  }
+
+  return {
+    verified: results.some((result) => result.verified),
+    cached: results.every((result) => result.cached),
+    packages: unique(results.flatMap((result) => result.packages || [])),
+  };
+}
+
 function createPyodideWorkerSource() {
   return `
 let pyodideReadyPromise = null;
 let pyodideInstance = null;
 const loadedPyodidePackages = new Set();
 const installedMicropipPackages = new Set();
+const verifiedMicropipArtifacts = new Set();
 
 function normalizeArray(value) {
   if (value === undefined || value === null) {
@@ -92,6 +208,70 @@ function bytesToBase64(bytes) {
     binary += String.fromCharCode.apply(null, chunk);
   }
   return btoa(binary);
+}
+
+function artifactFilename(url) {
+  return decodeURIComponent(String(url.pathname || "").split("/").pop() || "");
+}
+
+function bundledPyodideArtifactUrl(packageName) {
+  try {
+    const url = new URL(packageName);
+    if (url.pathname.replace(/\\\\/g, "/").includes("/docs/package-repos/pyodide/")) {
+      return url;
+    }
+  } catch (_error) {
+    return null;
+  }
+  return null;
+}
+
+async function workerSha256Hex(bytes) {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error("Bundled Pyodide artifact verification requires crypto.subtle.");
+  }
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function fetchArrayBufferForVerification(url) {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error("Cannot fetch " + url + " for integrity verification: HTTP " + response.status + ".");
+  }
+  return await response.arrayBuffer();
+}
+
+async function verifyBundledMicropipPackage(packageName) {
+  const artifactUrl = bundledPyodideArtifactUrl(packageName);
+  if (!artifactUrl) {
+    return;
+  }
+  const artifactKey = artifactUrl.href;
+  if (verifiedMicropipArtifacts.has(artifactKey)) {
+    return;
+  }
+  const manifestUrl = new URL("manifest.json", artifactUrl).href;
+  const manifestResponse = await fetch(manifestUrl, { cache: "no-store" });
+  if (!manifestResponse.ok) {
+    throw new Error("Cannot fetch bundled Pyodide manifest at " + manifestUrl + " for integrity verification.");
+  }
+  const manifest = await manifestResponse.json();
+  const filename = artifactFilename(artifactUrl);
+  const entry = (manifest.packages || []).find((item) => item.filename === filename);
+  if (!entry || !entry.sha256) {
+    throw new Error("Bundled Pyodide manifest has no SHA-256 entry for " + filename + ".");
+  }
+  const actual = await workerSha256Hex(await fetchArrayBufferForVerification(artifactUrl.href));
+  const expected = String(entry.sha256).toLowerCase();
+  if (actual !== expected) {
+    throw new Error(
+      "SHA-256 mismatch for bundled Pyodide artifact " + filename + ". Expected " + expected + ", got " + actual + ". Refusing to install."
+    );
+  }
+  verifiedMicropipArtifacts.add(artifactKey);
 }
 
 function writeInputFile(file) {
@@ -217,6 +397,7 @@ async function installMicropipPackages(packages) {
       continue;
     }
     try {
+      await verifyBundledMicropipPackage(packageName);
       await micropip.install(packageName, installOptions);
     } catch (error) {
       const message = error?.message || String(error);
@@ -826,6 +1007,7 @@ function createWebRRunner({
       return;
     }
     const instance = await ensureWebR();
+    await verifyBundledWebRRepository(options.repositoryUrl || repositoryUrl);
     await instance.installPackages(missing, {
       repos: options.repositoryUrl || repositoryUrl,
       quiet: options.quiet !== false,
@@ -968,4 +1150,5 @@ export {
   runPython,
   runPyodide,
   runWebR,
+  verifyBundledWebRRepository,
 };

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "msig.revision_asset_index.v1",
+  "generatedAt": "2026-06-28T12:31:51.158Z",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "commit": "10c5ecfd1eb3394bd72c5027d7d6f5f9090a9be9",
+    "generator": "scripts/manuscript/generate-revision-assets.mjs",
+    "seed": 20260521
+  },
+  "regenerationCommand": "node scripts/manuscript/generate-revision-assets.mjs",
+  "figures": [
+    "docs/manuscript/figures/figure1-architecture-data-residency.svg",
+    "docs/manuscript/figures/figure1-architecture-data-residency.pdf",
+    "docs/manuscript/figures/figure1-architecture-data-residency.png",
+    "docs/manuscript/figures/figure2-zero-install-cumulative-timing.svg",
+    "docs/manuscript/figures/figure2-zero-install-cumulative-timing.pdf",
+    "docs/manuscript/figures/figure2-zero-install-cumulative-timing.png",
+    "docs/manuscript/figures/figure3-public-cohort-capability.svg",
+    "docs/manuscript/figures/figure3-public-cohort-capability.pdf",
+    "docs/manuscript/figures/figure3-public-cohort-capability.png",
+    "docs/manuscript/figures/figure4-exposure-solve-benchmarks.svg",
+    "docs/manuscript/figures/figure4-exposure-solve-benchmarks.pdf",
+    "docs/manuscript/figures/figure4-exposure-solve-benchmarks.png"
+  ],
+  "figure5": "docs/manuscript/figures/figure5-end-to-end-notebook-runtime.NOT_GENERATED.md",
+  "tables": {
+    "table2": "docs/manuscript/tables/table2_executable_adapters.csv",
+    "tableA": "docs/manuscript/tables/tableA_network_endpoints.csv",
+    "tableB": "docs/manuscript/tables/tableB_qc_thresholds.csv",
+    "e2Status": "completed"
+  },
+  "supplement": [
+    "docs/manuscript/supplement/network-endpoint-data-residency-audit.md",
+    "docs/manuscript/supplement/runtime-version-integrity-manifest.md",
+    "docs/manuscript/supplement/adapter-fidelity-reproducibility-record.md",
+    "docs/manuscript/supplement/strict-local-no-egress-evidence.md",
+    "docs/manuscript/supplement/benchmark-harness-description.md",
+    "docs/manuscript/supplement/supplement-manifest.json"
+  ]
+}

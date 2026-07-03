@@ -1,6 +1,6 @@
 {
   "schemaVersion": "msig.manuscript.experiment.v1",
-  "generatedAt": "2026-05-22T00:16:23.859Z",
+  "generatedAt": "2026-06-25T02:34:05.596Z",
   "experimentId": "e1_zero_install_demo",
   "environment": {
     "node": "v24.13.0",
@@ -36,7 +36,7 @@
       "browser": "Chrome",
       "browserId": "chrome",
       "status": "completed",
-      "elapsedSeconds": 1.8937800000011922,
+      "elapsedSeconds": 4.993234999895096,
       "sampleCount": 1,
       "signatureCount": 67,
       "activeSignatures": 33,
@@ -46,23 +46,23 @@
       "steps": [
         {
           "name": "Page loaded",
-          "elapsedSeconds": 0.0002749999985098839
+          "elapsedSeconds": 0.00018499994277954102
         },
         {
           "name": "SDK imported",
-          "elapsedSeconds": 1.5477299999967218
+          "elapsedSeconds": 4.7130350000858305
         },
         {
           "name": "mSigPortal data fetched",
-          "elapsedSeconds": 1.8738500000014902
+          "elapsedSeconds": 4.96947000002861
         },
         {
           "name": "Single-sample fit completed",
-          "elapsedSeconds": 1.891439999997616
+          "elapsedSeconds": 4.990539999961853
         },
         {
           "name": "SDK report generated",
-          "elapsedSeconds": 1.8935399999991058
+          "elapsedSeconds": 4.993
         }
       ]
     }

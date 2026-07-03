@@ -1,6 +1,8 @@
 import {
   QC_DEFAULTS,
+  bootstrapCohortSignatureFitParallel,
   bootstrapSignatureFit,
+  bootstrapSignatureFitParallel,
   calculateFitResiduals,
   calculateReconstructionError,
   fitSpectraWithNNLS,
@@ -362,6 +364,10 @@ const ADVISOR_DEFAULTS = Object.freeze({
       iterations: 100,
       confidenceLevel: 0.95,
       seed: 123,
+      parallel: false,
+      workerCount: null,
+      workerChunkSize: null,
+      minIterationsForParallel: QC_DEFAULTS.bootstrap.minIterationsForParallel,
     }),
   }),
   cohortFit: Object.freeze({
@@ -2748,6 +2754,13 @@ async function runSingleSampleFit(input = {}, options = {}) {
       "minIterationsForStableIntervals",
       "publicationRecommendedIterations",
       "minMutationsForBootstrapSummary",
+      "parallel",
+      "parallelBootstrap",
+      "workerCount",
+      "bootstrapWorkerCount",
+      "workerChunkSize",
+      "bootstrapWorkerChunkSize",
+      "minIterationsForParallel",
     ]),
     {
       contexts,
@@ -2760,6 +2773,15 @@ async function runSingleSampleFit(input = {}, options = {}) {
   );
   if (bootstrapOptions.bootstrapIterations !== undefined) {
     bootstrapOptions.iterations = bootstrapOptions.bootstrapIterations;
+  }
+  if (bootstrapOptions.parallelBootstrap !== undefined) {
+    bootstrapOptions.parallel = bootstrapOptions.parallelBootstrap;
+  }
+  if (bootstrapOptions.bootstrapWorkerCount !== undefined) {
+    bootstrapOptions.workerCount = bootstrapOptions.bootstrapWorkerCount;
+  }
+  if (bootstrapOptions.bootstrapWorkerChunkSize !== undefined) {
+    bootstrapOptions.workerChunkSize = bootstrapOptions.bootstrapWorkerChunkSize;
   }
   const ambiguityOptions = mergeDefinedOptions(
     options.ambiguity,
@@ -3510,6 +3532,13 @@ async function runCohortFit(input = {}, options = {}) {
       "minIterationsForStableIntervals",
       "publicationRecommendedIterations",
       "minMutationsForBootstrapSummary",
+      "parallel",
+      "parallelBootstrap",
+      "workerCount",
+      "bootstrapWorkerCount",
+      "workerChunkSize",
+      "bootstrapWorkerChunkSize",
+      "minIterationsForParallel",
     ]),
     {
       contexts,
@@ -3522,6 +3551,15 @@ async function runCohortFit(input = {}, options = {}) {
   );
   if (bootstrapOptions.bootstrapIterations !== undefined) {
     bootstrapOptions.iterations = bootstrapOptions.bootstrapIterations;
+  }
+  if (bootstrapOptions.parallelBootstrap !== undefined) {
+    bootstrapOptions.parallel = bootstrapOptions.parallelBootstrap;
+  }
+  if (bootstrapOptions.bootstrapWorkerCount !== undefined) {
+    bootstrapOptions.workerCount = bootstrapOptions.bootstrapWorkerCount;
+  }
+  if (bootstrapOptions.bootstrapWorkerChunkSize !== undefined) {
+    bootstrapOptions.workerChunkSize = bootstrapOptions.bootstrapWorkerChunkSize;
   }
   const ambiguityOptions = mergeDefinedOptions(
     options.ambiguity,
@@ -3586,18 +3624,39 @@ async function runCohortFit(input = {}, options = {}) {
       ? null
       : await runThresholdSensitivity(signatures, spectra, thresholdOptions);
   const bootstrap = {};
+  let bootstrapParallelization = null;
   if (options.runBootstrap) {
     const bootstrapSampleLimit =
       options.bootstrapSampleLimit ?? cohortOptions.bootstrapSampleLimit;
-    for (const sampleName of Object.keys(spectra).slice(0, bootstrapSampleLimit)) {
-      bootstrap[sampleName] = await bootstrapSignatureFit(
+    const selectedBootstrapSamples = Object.keys(spectra).slice(
+      0,
+      bootstrapSampleLimit
+    );
+    if (bootstrapOptions.parallel && selectedBootstrapSamples.length > 1) {
+      const cohortBootstrap = await bootstrapCohortSignatureFitParallel(
         signatures,
-        spectra[sampleName],
+        spectra,
         {
           ...bootstrapOptions,
-          seed: bootstrapOptions.seed + Object.keys(bootstrap).length,
+          sampleNames: selectedBootstrapSamples,
         }
       );
+      Object.assign(bootstrap, cohortBootstrap.results);
+      bootstrapParallelization = cohortBootstrap.parallelization;
+    } else {
+      const bootstrapRunner = bootstrapOptions.parallel
+        ? bootstrapSignatureFitParallel
+        : bootstrapSignatureFit;
+      for (const sampleName of selectedBootstrapSamples) {
+        bootstrap[sampleName] = await bootstrapRunner(
+          signatures,
+          spectra[sampleName],
+          {
+            ...bootstrapOptions,
+            seed: bootstrapOptions.seed + Object.keys(bootstrap).length,
+          }
+        );
+      }
     }
   }
   const ambiguity = computeSignatureAmbiguity(signatures, ambiguityOptions);
@@ -3792,6 +3851,7 @@ async function runCohortFit(input = {}, options = {}) {
       burdenOptions,
       thresholdOptions,
       bootstrapOptions,
+      bootstrapParallelization,
       bootstrapScope,
       cohortOptions,
       catalogOptions,
@@ -3809,6 +3869,7 @@ async function runCohortFit(input = {}, options = {}) {
       residuals,
       thresholdSensitivity,
       bootstrap,
+      bootstrapParallelization,
       fitQualityEvidence: fitQualityEvidence.summary,
       catalogCheck: catalogCheck.summary,
       subgroups,
@@ -3830,6 +3891,7 @@ async function runCohortFit(input = {}, options = {}) {
     subgroupReviewStatus: subgroupReview.status,
     bootstrapScope,
     bootstrapAnalyzedSamples,
+    bootstrapParallelization,
     cohortSizeCaveat,
     subgroups,
     subgroupReview,

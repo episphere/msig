@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "msig.report.v0.3",
+  "version": "0.3.0",
+  "summary": "This fixture is intentionally invalid because title is required.",
+  "generatedAt": "2026-06-24T00:00:00.000Z",
+  "parameters": {},
+  "primaryInterpretationFields": [],
+  "reproducibilityStatement": "Invalid fixture.",
+  "citations": [],
+  "notes": []
+}

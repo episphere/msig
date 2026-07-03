@@ -1,0 +1,495 @@
+{
+  "generatedAt": "2026-06-27T20:14:26.303Z",
+  "environment": {
+    "os": "Windows_NT 10.0.26200 x64",
+    "platform": "win32",
+    "cpuModel": "AMD Ryzen 9 8940HX with Radeon Graphics        ",
+    "logicalCpuCount": 32,
+    "totalMemoryMiB": 31959.26171875,
+    "freeMemoryMiBAtEnd": 9373.796875,
+    "node": "v24.13.0",
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\scripts\\manuscript\\run-bootstrap-hardware-limits.mjs"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "single_500_serial",
+      "sampleCount": 1,
+      "signatureCount": 67,
+      "contextCount": 96,
+      "iterations": 500,
+      "parallel": false,
+      "workerCount": 1
+    },
+    {
+      "id": "single_500_parallel_4",
+      "sampleCount": 1,
+      "signatureCount": 67,
+      "contextCount": 96,
+      "iterations": 500,
+      "parallel": true,
+      "workerCount": 4
+    },
+    {
+      "id": "cohort_120_iter25_serial",
+      "sampleCount": 120,
+      "signatureCount": 67,
+      "contextCount": 96,
+      "iterations": 25,
+      "parallel": false,
+      "workerCount": 1
+    },
+    {
+      "id": "cohort_120_iter25_parallel_4",
+      "sampleCount": 120,
+      "signatureCount": 67,
+      "contextCount": 96,
+      "iterations": 25,
+      "parallel": true,
+      "workerCount": 4
+    },
+    {
+      "id": "cohort_300_iter10_parallel_4",
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "contextCount": 96,
+      "iterations": 10,
+      "parallel": true,
+      "workerCount": 4
+    }
+  ],
+  "records": [
+    {
+      "scenarioId": "single_500_serial",
+      "sampleCount": 1,
+      "signatureCount": 67,
+      "contextCount": 96,
+      "iterationsPerSample": 500,
+      "totalBootstrapFits": 500,
+      "parallel": false,
+      "workerCountRequested": 1,
+      "workerMode": "serial",
+      "workerCountUsed": 0,
+      "elapsedMs": 1548.8074000000001,
+      "fitsPerSecond": 322.8290360699464,
+      "peakRssMiB": 90.0546875,
+      "peakHeapUsedMiB": 18.039108276367188,
+      "bootstrapSamples": 1,
+      "repeat": 1
+    },
+    {
+      "scenarioId": "single_500_serial",
+      "sampleCount": 1,
+      "signatureCount": 67,
+      "contextCount": 96,
+      "iterationsPerSample": 500,
+      "totalBootstrapFits": 500,
+      "parallel": false,
+      "workerCountRequested": 1,
+      "workerMode": "serial",
+      "workerCountUsed": 0,
+      "elapsedMs": 1470.8472000000002,
+      "fitsPerSecond": 339.9401379014761,
+      "peakRssMiB": 142.90625,
+      "peakHeapUsedMiB": 44.858543395996094,
+      "bootstrapSamples": 1,
+      "repeat": 2
+    },
+    {
+      "scenarioId": "single_500_parallel_4",
+      "sampleCount": 1,
+      "signatureCount": 67,
+      "contextCount": 96,
+      "iterationsPerSample": 500,
+      "totalBootstrapFits": 500,
+      "parallel": true,
+      "workerCountRequested": 4,
+      "workerMode": "node_worker_threads",
+      "workerCountUsed": 4,
+      "elapsedMs": 854.6765,
+      "fitsPerSecond": 585.0166700500131,
+      "peakRssMiB": 255.9453125,
+      "peakHeapUsedMiB": 56.7777099609375,
+      "bootstrapSamples": 1,
+      "repeat": 1
+    },
+    {
+      "scenarioId": "single_500_parallel_4",
+      "sampleCount": 1,
+      "signatureCount": 67,
+      "contextCount": 96,
+      "iterationsPerSample": 500,
+      "totalBootstrapFits": 500,
+      "parallel": true,
+      "workerCountRequested": 4,
+      "workerMode": "node_worker_threads",
+      "workerCountUsed": 4,
+      "elapsedMs": 835.1916000000001,
+      "fitsPerSecond": 598.6650248877023,
+      "peakRssMiB": 261.24609375,
+      "peakHeapUsedMiB": 41.24107360839844,
+      "bootstrapSamples": 1,
+      "repeat": 2
+    },
+    {
+      "scenarioId": "cohort_120_iter25_serial",
+      "sampleCount": 120,
+      "signatureCount": 67,
+      "contextCount": 96,
+      "iterationsPerSample": 25,
+      "totalBootstrapFits": 3000,
+      "parallel": false,
+      "workerCountRequested": 1,
+      "workerMode": "serial",
+      "workerCountUsed": 0,
+      "elapsedMs": 11217.233800000002,
+      "fitsPerSecond": 267.4456156918116,
+      "peakRssMiB": 234.64453125,
+      "peakHeapUsedMiB": 46.059181213378906,
+      "bootstrapSamples": 120,
+      "repeat": 1
+    },
+    {
+      "scenarioId": "cohort_120_iter25_serial",
+      "sampleCount": 120,
+      "signatureCount": 67,
+      "contextCount": 96,
+      "iterationsPerSample": 25,
+      "totalBootstrapFits": 3000,
+      "parallel": false,
+      "workerCountRequested": 1,
+      "workerMode": "serial",
+      "workerCountUsed": 0,
+      "elapsedMs": 13335.285899999999,
+      "fitsPerSecond": 224.9670552620098,
+      "peakRssMiB": 234.54296875,
+      "peakHeapUsedMiB": 75.51472473144531,
+      "bootstrapSamples": 120,
+      "repeat": 2
+    },
+    {
+      "scenarioId": "cohort_120_iter25_parallel_4",
+      "sampleCount": 120,
+      "signatureCount": 67,
+      "contextCount": 96,
+      "iterationsPerSample": 25,
+      "totalBootstrapFits": 3000,
+      "parallel": true,
+      "workerCountRequested": 4,
+      "workerMode": "node_worker_threads",
+      "workerCountUsed": 4,
+      "elapsedMs": 4704.786700000001,
+      "fitsPerSecond": 637.6484613000626,
+      "peakRssMiB": 545.01953125,
+      "peakHeapUsedMiB": 79.80192565917969,
+      "bootstrapSamples": 120,
+      "repeat": 1
+    },
+    {
+      "scenarioId": "cohort_120_iter25_parallel_4",
+      "sampleCount": 120,
+      "signatureCount": 67,
+      "contextCount": 96,
+      "iterationsPerSample": 25,
+      "totalBootstrapFits": 3000,
+      "parallel": true,
+      "workerCountRequested": 4,
+      "workerMode": "node_worker_threads",
+      "workerCountUsed": 4,
+      "elapsedMs": 4589.393499999998,
+      "fitsPerSecond": 653.6811454498293,
+      "peakRssMiB": 547.40625,
+      "peakHeapUsedMiB": 28.16783905029297,
+      "bootstrapSamples": 120,
+      "repeat": 2
+    },
+    {
+      "scenarioId": "cohort_300_iter10_parallel_4",
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "contextCount": 96,
+      "iterationsPerSample": 10,
+      "totalBootstrapFits": 3000,
+      "parallel": true,
+      "workerCountRequested": 4,
+      "workerMode": "node_worker_threads",
+      "workerCountUsed": 4,
+      "elapsedMs": 1973.1650000000009,
+      "fitsPerSecond": 1520.3999665512,
+      "peakRssMiB": 436.8515625,
+      "peakHeapUsedMiB": 18.326438903808594,
+      "bootstrapSamples": 300,
+      "repeat": 1
+    },
+    {
+      "scenarioId": "cohort_300_iter10_parallel_4",
+      "sampleCount": 300,
+      "signatureCount": 40,
+      "contextCount": 96,
+      "iterationsPerSample": 10,
+      "totalBootstrapFits": 3000,
+      "parallel": true,
+      "workerCountRequested": 4,
+      "workerMode": "node_worker_threads",
+      "workerCountUsed": 4,
+      "elapsedMs": 2007.7944999999963,
+      "fitsPerSecond": 1494.1768193906328,
+      "peakRssMiB": 469.38671875,
+      "peakHeapUsedMiB": 22.5985107421875,
+      "bootstrapSamples": 300,
+      "repeat": 2
+    }
+  ],
+  "heapCapChecks": [
+    {
+      "checkId": "single_500_parallel_2",
+      "heapCapMiB": 128,
+      "passed": true,
+      "status": 0,
+      "signal": null,
+      "elapsedMs": 898.7398,
+      "peakRssMiB": 143.140625,
+      "peakHeapUsedMiB": 8.710121154785156,
+      "stderr": ""
+    },
+    {
+      "checkId": "single_500_parallel_2",
+      "heapCapMiB": 256,
+      "passed": true,
+      "status": 0,
+      "signal": null,
+      "elapsedMs": 892.696,
+      "peakRssMiB": 142.86328125,
+      "peakHeapUsedMiB": 8.640701293945312,
+      "stderr": ""
+    },
+    {
+      "checkId": "single_500_parallel_2",
+      "heapCapMiB": 512,
+      "passed": true,
+      "status": 0,
+      "signal": null,
+      "elapsedMs": 888.9630999999999,
+      "peakRssMiB": 138.9765625,
+      "peakHeapUsedMiB": 8.742057800292969,
+      "stderr": ""
+    },
+    {
+      "checkId": "cohort_120_iter25_parallel_4",
+      "heapCapMiB": 256,
+      "passed": true,
+      "status": 0,
+      "signal": null,
+      "elapsedMs": 2934.1781,
+      "peakRssMiB": 388.875,
+      "peakHeapUsedMiB": 19.327720642089844,
+      "stderr": ""
+    },
+    {
+      "checkId": "cohort_120_iter25_parallel_4",
+      "heapCapMiB": 512,
+      "passed": true,
+      "status": 0,
+      "signal": null,
+      "elapsedMs": 2983.6069,
+      "peakRssMiB": 390.70703125,
+      "peakHeapUsedMiB": 19.325363159179688,
+      "stderr": ""
+    },
+    {
+      "checkId": "cohort_120_iter25_parallel_4",
+      "heapCapMiB": 1024,
+      "passed": true,
+      "status": 0,
+      "signal": null,
+      "elapsedMs": 3077.6963,
+      "peakRssMiB": 395.01171875,
+      "peakHeapUsedMiB": 19.296409606933594,
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "scenarioSummaries": {
+      "single_500_serial": {
+        "repeats": 2,
+        "elapsedMs": {
+          "min": 1470.8472000000002,
+          "median": 1509.8273000000002,
+          "mean": 1509.8273000000002,
+          "max": 1548.8074000000001
+        },
+        "fitsPerSecond": {
+          "min": 322.8290360699464,
+          "median": 331.3845869857113,
+          "mean": 331.3845869857113,
+          "max": 339.9401379014761
+        },
+        "peakRssMiB": {
+          "min": 90.0546875,
+          "median": 116.48046875,
+          "mean": 116.48046875,
+          "max": 142.90625
+        },
+        "peakHeapUsedMiB": {
+          "min": 18.039108276367188,
+          "median": 31.44882583618164,
+          "mean": 31.44882583618164,
+          "max": 44.858543395996094
+        },
+        "workerMode": "serial",
+        "workerCountUsed": 0
+      },
+      "single_500_parallel_4": {
+        "repeats": 2,
+        "elapsedMs": {
+          "min": 835.1916000000001,
+          "median": 844.9340500000001,
+          "mean": 844.9340500000001,
+          "max": 854.6765
+        },
+        "fitsPerSecond": {
+          "min": 585.0166700500131,
+          "median": 591.8408474688576,
+          "mean": 591.8408474688576,
+          "max": 598.6650248877023
+        },
+        "peakRssMiB": {
+          "min": 255.9453125,
+          "median": 258.595703125,
+          "mean": 258.595703125,
+          "max": 261.24609375
+        },
+        "peakHeapUsedMiB": {
+          "min": 41.24107360839844,
+          "median": 49.00939178466797,
+          "mean": 49.00939178466797,
+          "max": 56.7777099609375
+        },
+        "workerMode": "node_worker_threads",
+        "workerCountUsed": 4
+      },
+      "cohort_120_iter25_serial": {
+        "repeats": 2,
+        "elapsedMs": {
+          "min": 11217.233800000002,
+          "median": 12276.25985,
+          "mean": 12276.25985,
+          "max": 13335.285899999999
+        },
+        "fitsPerSecond": {
+          "min": 224.9670552620098,
+          "median": 246.2063354769107,
+          "mean": 246.2063354769107,
+          "max": 267.4456156918116
+        },
+        "peakRssMiB": {
+          "min": 234.54296875,
+          "median": 234.59375,
+          "mean": 234.59375,
+          "max": 234.64453125
+        },
+        "peakHeapUsedMiB": {
+          "min": 46.059181213378906,
+          "median": 60.78695297241211,
+          "mean": 60.78695297241211,
+          "max": 75.51472473144531
+        },
+        "workerMode": "serial",
+        "workerCountUsed": 0
+      },
+      "cohort_120_iter25_parallel_4": {
+        "repeats": 2,
+        "elapsedMs": {
+          "min": 4589.393499999998,
+          "median": 4647.090099999999,
+          "mean": 4647.090099999999,
+          "max": 4704.786700000001
+        },
+        "fitsPerSecond": {
+          "min": 637.6484613000626,
+          "median": 645.6648033749459,
+          "mean": 645.6648033749459,
+          "max": 653.6811454498293
+        },
+        "peakRssMiB": {
+          "min": 545.01953125,
+          "median": 546.212890625,
+          "mean": 546.212890625,
+          "max": 547.40625
+        },
+        "peakHeapUsedMiB": {
+          "min": 28.16783905029297,
+          "median": 53.98488235473633,
+          "mean": 53.98488235473633,
+          "max": 79.80192565917969
+        },
+        "workerMode": "node_worker_threads",
+        "workerCountUsed": 4
+      },
+      "cohort_300_iter10_parallel_4": {
+        "repeats": 2,
+        "elapsedMs": {
+          "min": 1973.1650000000009,
+          "median": 1990.4797499999986,
+          "mean": 1990.4797499999986,
+          "max": 2007.7944999999963
+        },
+        "fitsPerSecond": {
+          "min": 1494.1768193906328,
+          "median": 1507.2883929709164,
+          "mean": 1507.2883929709164,
+          "max": 1520.3999665512
+        },
+        "peakRssMiB": {
+          "min": 436.8515625,
+          "median": 453.119140625,
+          "mean": 453.119140625,
+          "max": 469.38671875
+        },
+        "peakHeapUsedMiB": {
+          "min": 18.326438903808594,
+          "median": 20.462474822998047,
+          "mean": 20.462474822998047,
+          "max": 22.5985107421875
+        },
+        "workerMode": "node_worker_threads",
+        "workerCountUsed": 4
+      }
+    },
+    "heapSummary": {
+      "single_500_parallel_2": {
+        "minimumPassingNodeHeapCapMiB": 128,
+        "checkedCapsMiB": [
+          128,
+          256,
+          512
+        ],
+        "passedCapsMiB": [
+          128,
+          256,
+          512
+        ]
+      },
+      "cohort_120_iter25_parallel_4": {
+        "minimumPassingNodeHeapCapMiB": 256,
+        "checkedCapsMiB": [
+          256,
+          512,
+          1024
+        ],
+        "passedCapsMiB": [
+          256,
+          512,
+          1024
+        ]
+      }
+    },
+    "interpretation": [
+      "These are synthetic Node.js worker-thread stress tests on one Windows host; they measure the native JavaScript bootstrap path, not browser UI rendering.",
+      "The smallest passing Node heap cap is a tested lower bound for this synthetic workload, not a universal system-RAM requirement.",
+      "Browser users should treat CPU core count as the dominant scaling factor for all-sample bootstrap; public APIs are not involved in this strict local computation."
+    ]
+  }
+}

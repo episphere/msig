@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "msig.adapter_fidelity_reproducibility_record.v1",
+  "generatedAt": "2026-06-28T12:31:51.158Z",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "commit": "10c5ecfd1eb3394bd72c5027d7d6f5f9090a9be9",
+    "generator": "scripts/manuscript/generate-revision-assets.mjs",
+    "seed": 20260521
+  },
+  "status": "completed",
+  "result": {
+    "schemaVersion": "msig.manuscript.experiment.v1",
+    "generatedAt": "2026-06-27T22:48:55.381Z",
+    "experimentId": "e2_adapter_fidelity",
+    "environment": {
+      "node": "v24.13.0",
+      "platform": "win32",
+      "arch": "x64",
+      "hostname": "Aaron",
+      "cpus": 32,
+      "memoryGb": 31.2,
+      "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+      "browserTimeoutMs": 600000,
+      "localComparator": "local Rscript (Rscript)",
+      "localRLibrary": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\r-library\\R-4.6",
+      "webRRepository": "docs/package-repos/webr/bin/emscripten/contrib/4.6",
+      "pyodideRepository": "docs/package-repos/pyodide",
+      "requestedTools": [
+        "deconstructsigs",
+        "sigminer",
+        "sigprofilerassignment",
+        "musical"
+      ]
+    },
+    "inputs": {
+      "publicSpectrum": "38 PCAWG Lung-AdenoCA SBS96 spectra",
+      "signatureCatalog": "Full COSMIC_v3_Signatures_GRCh37_SBS96 catalog",
+      "selectedSignatures": null,
+      "displayPolicy": "Full-catalog exposure matrices are retained; manuscript figures may display top signatures plus an explicit Other remainder.",
+      "sampleCount": 38,
+      "contextCount": 96,
+      "signatureCount": 67
+    },
+    "rows": [
+      {
+        "tool": "deconstructsigs",
+        "browserRuntime": "webr",
+        "localRuntime": "local:Rscript",
+        "browserPackageVersion": "1.8.0",
+        "localPackageVersion": "deconstructSigs 1.8.0",
+        "sampleCount": 38,
+        "signatureCount": 67,
+        "meanExposureCosine": 1,
+        "medianExposureCosine": 1,
+        "minExposureCosine": 0.9999999999999998,
+        "maxAbsoluteExposureDifference": 0,
+        "rmse": 0,
+        "topSignatureConcordance": 1,
+        "status": "pass"
+      },
+      {
+        "tool": "sigminer",
+        "browserRuntime": "webr",
+        "localRuntime": "local:Rscript",
+        "browserPackageVersion": "2.3.1",
+        "localPackageVersion": "sigminer 2.3.1; nnls 1.6",
+        "sampleCount": 38,
+        "signatureCount": 67,
+        "meanExposureCosine": 1,
+        "medianExposureCosine": 1,
+        "minExposureCosine": 0.9999999999999998,
+        "maxAbsoluteExposureDifference": 0,
+        "rmse": 0,
+        "topSignatureConcordance": 1,
+        "status": "pass"
+      },
+      {
+        "tool": "sigprofilerassignment",
+        "browserRuntime": "pyodide",
+        "localRuntime": "docker:python:3.11-slim",
+        "browserPackageVersion": "1.1.3",
+        "localPackageVersion": "SigProfilerAssignment 1.1.3",
+        "sampleCount": 38,
+        "signatureCount": 67,
+        "meanExposureCosine": 1,
+        "medianExposureCosine": 1,
+        "minExposureCosine": 0.9999999999999998,
+        "maxAbsoluteExposureDifference": 0,
+        "rmse": 0,
+        "topSignatureConcordance": 1,
+        "status": "pass"
+      },
+      {
+        "tool": "musical",
+        "browserRuntime": "pyodide",
+        "localRuntime": "docker:python:3.11-slim",
+        "browserPackageVersion": "1.0.0",
+        "localPackageVersion": "MuSiCal 1.0.0",
+        "sampleCount": 38,
+        "signatureCount": 67,
+        "meanExposureCosine": 1,
+        "medianExposureCosine": 1,
+        "minExposureCosine": 0.9999999999999997,
+        "maxAbsoluteExposureDifference": 4.163336342344337e-15,
+        "rmse": 2.5021563225878793e-16,
+        "topSignatureConcordance": 1,
+        "status": "pass"
+      }
+    ],
+    "artifacts": {
+      "json": "docs/manuscript/experiments/e2_adapter_fidelity/data/adapter-fidelity-results.json",
+      "csv": "docs/manuscript/experiments/e2_adapter_fidelity/data/adapter_fidelity_summary.csv",
+      "exposurePairsJson": "docs/manuscript/experiments/e2_adapter_fidelity/data/adapter-fidelity-exposure-pairs.json",
+      "exposurePairsCsv": "docs/manuscript/experiments/e2_adapter_fidelity/data/adapter_fidelity_exposure_pairs.csv",
+      "readinessLog": "docs/manuscript/experiments/e2_adapter_fidelity/data/environment-readiness-log.json",
+      "input": "docs/manuscript/experiments/e2_adapter_fidelity/data/adapter-fidelity-input.json",
+      "harness": "docs/manuscript/experiments/e2_adapter_fidelity/adapter-fidelity-harness.html"
+    },
+    "status": "completed",
+    "notes": []
+  },
+  "notes": [
+    "All requested browser/local adapter-fidelity pairs completed for deconstructSigs, sigminer, SigProfilerAssignment, and MuSiCal."
+  ]
+}

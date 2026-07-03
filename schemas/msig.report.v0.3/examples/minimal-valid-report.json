@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "msig.report.v0.3",
+  "version": "0.3.0",
+  "title": "Minimal mSigSDK Report",
+  "summary": "Smallest valid report fixture for schema validation.",
+  "generatedAt": "2026-06-24T00:00:00.000Z",
+  "parameters": {},
+  "primaryInterpretationFields": [],
+  "reproducibilityStatement": "This minimal fixture records only the required report envelope.",
+  "citations": [],
+  "notes": []
+}

@@ -78,6 +78,10 @@ const QC_DEFAULTS = Object.freeze({
     maxIterations: null,
     convergenceTolerance: 1e-10,
     yieldEvery: 25,
+    parallel: false,
+    workerCount: null,
+    workerChunkSize: null,
+    minIterationsForParallel: 50,
   }),
 });
 
@@ -1509,6 +1513,458 @@ function multinomialResample(vector, random) {
   return counts;
 }
 
+function buildBootstrapSignatureFitResult({
+  signatureNames,
+  exposureRows,
+  reconstructionRows,
+  contextList,
+  totalMutations,
+  iterations,
+  confidenceLevel,
+  exposureThreshold,
+  exposureType,
+  renormalize,
+  seed,
+  minIterationsForStableIntervals,
+  publicationRecommendedIterations,
+  minMutationsForBootstrapSummary,
+  maxIterations,
+  convergenceTolerance,
+  parallelization = null,
+}) {
+  const alpha = 1 - confidenceLevel;
+  const signaturesSummary = signatureNames.map((signatureName) => {
+    const values = exposureRows.map((row) => row[signatureName] || 0);
+    const lower = quantile(values, alpha / 2);
+    const upper = quantile(values, 1 - alpha / 2);
+    return {
+      signatureName,
+      mean: values.length === 0 ? null : sum(values) / values.length,
+      median: quantile(values, 0.5),
+      lower,
+      upper,
+      ciLower: lower,
+      ciUpper: upper,
+      ciWidth:
+        Number.isFinite(lower) && Number.isFinite(upper)
+          ? upper - lower
+          : null,
+      interval: {
+        lower,
+        upper,
+        width:
+          Number.isFinite(lower) && Number.isFinite(upper)
+            ? upper - lower
+            : null,
+        level: confidenceLevel,
+        method: "empirical_quantile_multinomial_bootstrap",
+      },
+      selectionFrequency:
+        values.length === 0
+          ? null
+          : values.filter((value) => value > 0).length / values.length,
+      selectionFrequencyDefinition:
+        "Fraction of bootstrap refits where the signature exposure remained above zero after the configured threshold and renormalization settings.",
+    };
+  });
+  const warnings = [];
+  if (iterations < minIterationsForStableIntervals) {
+    warnings.push(
+      makeQcWarning(
+        QC_WARNING_CODES.LOW_BOOTSTRAP_ITERATIONS,
+        "Bootstrap interval estimates use fewer iterations than the configured stability threshold; 1000 iterations are recommended for publication-grade uncertainty intervals.",
+        { iterations, minIterationsForStableIntervals, publicationRecommendedIterations }
+      )
+    );
+  }
+  if (totalMutations < minMutationsForBootstrapSummary) {
+    warnings.push(
+      makeQcWarning(
+        QC_WARNING_CODES.LOW_BURDEN,
+        "Bootstrap exposure intervals are based on a low mutation count and may be dominated by sampling noise.",
+        { totalMutations, minMutationsForBootstrapSummary }
+      )
+    );
+  }
+
+  const result = {
+    schemaVersion: QC_RESULT_SCHEMA_VERSION,
+    workflowRole: "bootstrap_exposure_uncertainty",
+    scopeStatement: QC_SCOPE_STATEMENTS.bootstrap,
+    methodBasis: methodBasis({
+      description: QC_METHOD_BASIS.bootstrap,
+      bootstrapMethod: "parametric_multinomial",
+      intervalDefinition:
+        "Confidence intervals are empirical quantiles of bootstrap-fitted exposures. They are conditional on the observed spectrum, supplied signature catalog, threshold, and NNLS fitting routine.",
+      uncertaintyBoundary:
+        "This method estimates statistical uncertainty of the attribution procedure conditional on the observed spectrum, supplied catalog, and fitting settings; it does not estimate total attribution uncertainty.",
+      selectionFrequencyDefinition:
+        "Selection frequency is the fraction of bootstrap refits in which the thresholded signature exposure is nonzero.",
+      methodRationale:
+        "The MSA bootstrap framework supports parametric bootstrap for mutational-signature attribution and cautions against interpreting these intervals as total uncertainty.",
+      configurableDefaults: {
+        iterations,
+        confidenceLevel,
+        exposureThreshold,
+        exposureType,
+        renormalize,
+        minIterationsForStableIntervals,
+        publicationRecommendedIterations,
+        minMutationsForBootstrapSummary,
+        maxIterations,
+        convergenceTolerance,
+      },
+      references: [
+        QC_LITERATURE_REFERENCES.senkin2021,
+        QC_LITERATURE_REFERENCES.huang2018,
+        QC_LITERATURE_REFERENCES.koh2021,
+        QC_LITERATURE_REFERENCES.medo2024,
+      ],
+    }),
+    bootstrapMethod: "parametric_multinomial",
+    parameters: {
+      iterations,
+      confidenceLevel,
+      exposureThreshold,
+      exposureType,
+      renormalize,
+      seed,
+      minIterationsForStableIntervals,
+      publicationRecommendedIterations,
+      minMutationsForBootstrapSummary,
+      maxIterations,
+      convergenceTolerance,
+    },
+    inputSummary: {
+      totalMutations,
+      contextCount: contextList.length,
+    },
+    iterations,
+    confidenceLevel,
+    seed,
+    contexts: contextList,
+    signatures: signaturesSummary,
+    exposureSamples: exposureRows,
+    reconstructionError: reconstructionRows,
+    warnings,
+    reportingMode:
+      warnings.length > 0 ? "report_with_caveats" : "standard_qc_passed",
+  };
+
+  if (parallelization) {
+    result.parallelization = parallelization;
+    result.parameters.parallelization = parallelization;
+  }
+
+  return result;
+}
+
+function getDefaultBootstrapWorkerCount(iterations) {
+  const hardwareConcurrency = Number(globalThis?.navigator?.hardwareConcurrency);
+  const availableThreads = Number.isFinite(hardwareConcurrency)
+    ? Math.max(1, Math.floor(hardwareConcurrency))
+    : 2;
+  return Math.max(1, Math.min(iterations, Math.max(1, availableThreads - 1), 8));
+}
+
+function splitBootstrapIterations(iterations, workerCount, workerChunkSize = null) {
+  const safeIterations = Math.max(0, Math.floor(Number(iterations) || 0));
+  if (safeIterations === 0) {
+    return [];
+  }
+
+  const explicitChunkSize = Math.floor(Number(workerChunkSize) || 0);
+  if (explicitChunkSize > 0) {
+    const chunks = [];
+    for (let start = 0; start < safeIterations; start += explicitChunkSize) {
+      chunks.push({
+        start,
+        iterations: Math.min(explicitChunkSize, safeIterations - start),
+      });
+    }
+    return chunks;
+  }
+
+  const safeWorkerCount = Math.max(
+    1,
+    Math.min(safeIterations, Math.floor(Number(workerCount) || 1))
+  );
+  const base = Math.floor(safeIterations / safeWorkerCount);
+  const remainder = safeIterations % safeWorkerCount;
+  let start = 0;
+  return Array.from({ length: safeWorkerCount }, (_, index) => {
+    const chunkIterations = base + (index < remainder ? 1 : 0);
+    const chunk = { start, iterations: chunkIterations };
+    start += chunkIterations;
+    return chunk;
+  }).filter((chunk) => chunk.iterations > 0);
+}
+
+function serializableBootstrapOptions(options = {}) {
+  const {
+    progressCallback: _progressCallback,
+    parallel: _parallel,
+    workerCount: _workerCount,
+    workerChunkSize: _workerChunkSize,
+    minIterationsForParallel: _minIterationsForParallel,
+    ...serializable
+  } = options;
+  return serializable;
+}
+
+function canUseBrowserBootstrapWorkers() {
+  return (
+    typeof Worker !== "undefined" &&
+    typeof Blob !== "undefined" &&
+    typeof URL !== "undefined" &&
+    typeof URL.createObjectURL === "function"
+  );
+}
+
+function canUseNodeBootstrapWorkers() {
+  return (
+    typeof process !== "undefined" &&
+    !!process.versions?.node &&
+    typeof window === "undefined"
+  );
+}
+
+function runBrowserBootstrapWorkerChunk(payload) {
+  const moduleUrl = new URL("./qc.js", import.meta.url).href;
+  const workerSource = `
+    import { bootstrapSignatureFit } from ${JSON.stringify(moduleUrl)};
+
+    self.onmessage = async function (event) {
+      try {
+        const { signatures, spectrum, options, chunkIndex } = event.data;
+        const result = await bootstrapSignatureFit(signatures, spectrum, options);
+        self.postMessage({ chunkIndex, result });
+      } catch (error) {
+        self.postMessage({
+          chunkIndex: event.data?.chunkIndex ?? null,
+          error: error && error.message ? error.message : String(error),
+        });
+      }
+    };
+  `;
+  const workerUrl = URL.createObjectURL(
+    new Blob([workerSource], { type: "text/javascript" })
+  );
+  const worker = new Worker(workerUrl, { type: "module" });
+
+  return new Promise((resolve, reject) => {
+    worker.onmessage = (event) => {
+      worker.terminate();
+      URL.revokeObjectURL(workerUrl);
+      if (event.data?.error) {
+        reject(new Error(event.data.error));
+      } else {
+        resolve(event.data.result);
+      }
+    };
+
+    worker.onerror = (error) => {
+      worker.terminate();
+      URL.revokeObjectURL(workerUrl);
+      reject(error);
+    };
+
+    worker.postMessage(payload);
+  });
+}
+
+async function runNodeBootstrapWorkerChunk(payload) {
+  const { Worker: NodeWorker } = await import("node:worker_threads");
+  const moduleUrl = new URL("./qc.js", import.meta.url).href;
+  const workerSource = `
+    import { parentPort, workerData } from "node:worker_threads";
+    import { bootstrapSignatureFit } from ${JSON.stringify(moduleUrl)};
+
+    try {
+      const { signatures, spectrum, options, chunkIndex } = workerData;
+      const result = await bootstrapSignatureFit(signatures, spectrum, options);
+      parentPort.postMessage({ chunkIndex, result });
+    } catch (error) {
+      parentPort.postMessage({
+        chunkIndex: workerData?.chunkIndex ?? null,
+        error: error && error.message ? error.message : String(error),
+      });
+    }
+  `;
+
+  return new Promise((resolve, reject) => {
+    const worker = new NodeWorker(workerSource, {
+      eval: true,
+      type: "module",
+      workerData: payload,
+    });
+
+    worker.once("message", (message) => {
+      if (message?.error) {
+        reject(new Error(message.error));
+      } else {
+        resolve(message.result);
+      }
+    });
+    worker.once("error", reject);
+    worker.once("exit", (code) => {
+      if (code !== 0) {
+        reject(new Error(`Bootstrap worker exited with code ${code}.`));
+      }
+    });
+  });
+}
+
+function runBootstrapWorkerChunk(payload) {
+  if (canUseBrowserBootstrapWorkers()) {
+    return runBrowserBootstrapWorkerChunk(payload);
+  }
+  if (canUseNodeBootstrapWorkers()) {
+    return runNodeBootstrapWorkerChunk(payload);
+  }
+  return Promise.reject(
+    new Error("Bootstrap workers are not available in this JavaScript runtime.")
+  );
+}
+
+function splitArrayIntoChunks(values, chunkCount) {
+  const safeChunkCount = Math.max(
+    1,
+    Math.min(values.length, Math.floor(Number(chunkCount) || 1))
+  );
+  const base = Math.floor(values.length / safeChunkCount);
+  const remainder = values.length % safeChunkCount;
+  let start = 0;
+  return Array.from({ length: safeChunkCount }, (_, index) => {
+    const count = base + (index < remainder ? 1 : 0);
+    const chunk = values.slice(start, start + count);
+    start += count;
+    return chunk;
+  }).filter((chunk) => chunk.length > 0);
+}
+
+function runBrowserBootstrapCohortWorkerChunk(payload) {
+  const moduleUrl = new URL("./qc.js", import.meta.url).href;
+  const workerSource = `
+    import { bootstrapSignatureFit } from ${JSON.stringify(moduleUrl)};
+
+    self.onmessage = async function (event) {
+      const { signatures, entries, options, chunkIndex } = event.data;
+      const results = {};
+      try {
+        for (const entry of entries) {
+          const result = await bootstrapSignatureFit(signatures, entry.spectrum, {
+            ...options,
+            seed: entry.seed,
+          });
+          result.parallelization = {
+            mode: "cohort_worker_chunk",
+            chunkIndex,
+            sampleIndex: entry.sampleIndex,
+          };
+          results[entry.sampleName] = result;
+        }
+        self.postMessage({ chunkIndex, results });
+      } catch (error) {
+        self.postMessage({
+          chunkIndex,
+          error: error && error.message ? error.message : String(error),
+        });
+      }
+    };
+  `;
+  const workerUrl = URL.createObjectURL(
+    new Blob([workerSource], { type: "text/javascript" })
+  );
+  const worker = new Worker(workerUrl, { type: "module" });
+
+  return new Promise((resolve, reject) => {
+    worker.onmessage = (event) => {
+      worker.terminate();
+      URL.revokeObjectURL(workerUrl);
+      if (event.data?.error) {
+        reject(new Error(event.data.error));
+      } else {
+        resolve(event.data);
+      }
+    };
+
+    worker.onerror = (error) => {
+      worker.terminate();
+      URL.revokeObjectURL(workerUrl);
+      reject(error);
+    };
+
+    worker.postMessage(payload);
+  });
+}
+
+async function runNodeBootstrapCohortWorkerChunk(payload) {
+  const { Worker: NodeWorker } = await import("node:worker_threads");
+  const moduleUrl = new URL("./qc.js", import.meta.url).href;
+  const workerSource = `
+    import { parentPort, workerData } from "node:worker_threads";
+    import { bootstrapSignatureFit } from ${JSON.stringify(moduleUrl)};
+
+    const { signatures, entries, options, chunkIndex } = workerData;
+    const results = {};
+    try {
+      for (const entry of entries) {
+        const result = await bootstrapSignatureFit(signatures, entry.spectrum, {
+          ...options,
+          seed: entry.seed,
+        });
+        result.parallelization = {
+          mode: "cohort_worker_chunk",
+          chunkIndex,
+          sampleIndex: entry.sampleIndex,
+        };
+        results[entry.sampleName] = result;
+      }
+      parentPort.postMessage({ chunkIndex, results });
+    } catch (error) {
+      parentPort.postMessage({
+        chunkIndex,
+        error: error && error.message ? error.message : String(error),
+      });
+    }
+  `;
+
+  return new Promise((resolve, reject) => {
+    const worker = new NodeWorker(workerSource, {
+      eval: true,
+      type: "module",
+      workerData: payload,
+    });
+
+    worker.once("message", (message) => {
+      if (message?.error) {
+        reject(new Error(message.error));
+      } else {
+        resolve(message);
+      }
+    });
+    worker.once("error", reject);
+    worker.once("exit", (code) => {
+      if (code !== 0) {
+        reject(new Error(`Bootstrap cohort worker exited with code ${code}.`));
+      }
+    });
+  });
+}
+
+function runBootstrapCohortWorkerChunk(payload) {
+  if (canUseBrowserBootstrapWorkers()) {
+    return runBrowserBootstrapCohortWorkerChunk(payload);
+  }
+  if (canUseNodeBootstrapWorkers()) {
+    return runNodeBootstrapCohortWorkerChunk(payload);
+  }
+  return Promise.reject(
+    new Error("Bootstrap workers are not available in this JavaScript runtime.")
+  );
+}
+
 /**
  * Bootstraps one spectrum to estimate exposure uncertainty and selection frequency.
  *
@@ -1614,130 +2070,416 @@ async function bootstrapSignatureFit(
     }
   }
 
-  const alpha = 1 - confidenceLevel;
-  const signaturesSummary = signatureNames.map((signatureName) => {
-    const values = exposureRows.map((row) => row[signatureName] || 0);
-    const lower = quantile(values, alpha / 2);
-    const upper = quantile(values, 1 - alpha / 2);
-    return {
-      signatureName,
-      mean: values.length === 0 ? null : sum(values) / values.length,
-      median: quantile(values, 0.5),
-      lower,
-      upper,
-      ciLower: lower,
-      ciUpper: upper,
-      ciWidth:
-        Number.isFinite(lower) && Number.isFinite(upper)
-          ? upper - lower
-          : null,
-      interval: {
-        lower,
-        upper,
-        width:
-          Number.isFinite(lower) && Number.isFinite(upper)
-            ? upper - lower
-            : null,
-        level: confidenceLevel,
-        method: "empirical_quantile_multinomial_bootstrap",
-      },
-      selectionFrequency:
-        values.length === 0
-          ? null
-          : values.filter((value) => value > 0).length / values.length,
-      selectionFrequencyDefinition:
-        "Fraction of bootstrap refits where the signature exposure remained above zero after the configured threshold and renormalization settings.",
-    };
+  return buildBootstrapSignatureFitResult({
+    signatureNames,
+    exposureRows,
+    reconstructionRows,
+    contextList,
+    totalMutations,
+    iterations,
+    confidenceLevel,
+    exposureThreshold,
+    exposureType,
+    renormalize,
+    seed,
+    minIterationsForStableIntervals,
+    publicationRecommendedIterations,
+    minMutationsForBootstrapSummary,
+    maxIterations,
+    convergenceTolerance,
   });
-  const warnings = [];
-    if (iterations < minIterationsForStableIntervals) {
-    warnings.push(
-      makeQcWarning(
-        QC_WARNING_CODES.LOW_BOOTSTRAP_ITERATIONS,
-        "Bootstrap interval estimates use fewer iterations than the configured stability threshold; 1000 iterations are recommended for publication-grade uncertainty intervals.",
-        { iterations, minIterationsForStableIntervals, publicationRecommendedIterations }
-      )
-    );
+}
+
+/**
+ * Bootstraps one spectrum with worker parallelism when the runtime supports it.
+ *
+ * The result shape matches bootstrapSignatureFit. When browser Web Workers or
+ * Node worker_threads are unavailable, this function falls back to the serial
+ * implementation and records the fallback reason in result.parallelization.
+ *
+ * @async
+ * @function bootstrapSignatureFitParallel
+ * @memberof qc
+ * @param {Object<string,Object<string,number>>} signatures - Signature-by-context matrix.
+ * @param {Object<string,number>} spectrum - Single sample spectrum.
+ * @param {Object} [options] - Bootstrap options plus worker controls.
+ * @param {boolean} [options.parallel=true] - Use workers when supported.
+ * @param {number} [options.workerCount] - Number of workers/chunks to use.
+ * @param {number} [options.workerChunkSize] - Optional fixed iterations per worker chunk.
+ * @param {number} [options.minIterationsForParallel=50] - Below this count, run serially to avoid worker overhead.
+ * @returns {Promise<Object>} Bootstrap result with a parallelization provenance block.
+ */
+async function bootstrapSignatureFitParallel(
+  signatures,
+  spectrum,
+  {
+    iterations = QC_DEFAULTS.bootstrap.iterations,
+    confidenceLevel = QC_DEFAULTS.bootstrap.confidenceLevel,
+    exposureThreshold = QC_DEFAULTS.bootstrap.exposureThreshold,
+    exposureType = QC_DEFAULTS.bootstrap.exposureType,
+    renormalize = QC_DEFAULTS.bootstrap.renormalize,
+    seed = QC_DEFAULTS.bootstrap.seed,
+    contexts = QC_DEFAULTS.bootstrap.contexts,
+    minIterationsForStableIntervals =
+      QC_DEFAULTS.bootstrap.minIterationsForStableIntervals,
+    publicationRecommendedIterations =
+      QC_DEFAULTS.bootstrap.publicationRecommendedIterations,
+    minMutationsForBootstrapSummary =
+      QC_DEFAULTS.bootstrap.minMutationsForBootstrapSummary,
+    maxIterations = QC_DEFAULTS.bootstrap.maxIterations,
+    convergenceTolerance = QC_DEFAULTS.bootstrap.convergenceTolerance,
+    yieldEvery = QC_DEFAULTS.bootstrap.yieldEvery,
+    progressCallback = null,
+    parallel = true,
+    workerCount = QC_DEFAULTS.bootstrap.workerCount,
+    workerChunkSize = QC_DEFAULTS.bootstrap.workerChunkSize,
+    minIterationsForParallel = QC_DEFAULTS.bootstrap.minIterationsForParallel,
+  } = {}
+) {
+  const safeIterations = Math.max(0, Math.floor(Number(iterations) || 0));
+  const serialOptions = {
+    iterations: safeIterations,
+    confidenceLevel,
+    exposureThreshold,
+    exposureType,
+    renormalize,
+    seed,
+    contexts,
+    minIterationsForStableIntervals,
+    publicationRecommendedIterations,
+    minMutationsForBootstrapSummary,
+    maxIterations,
+    convergenceTolerance,
+    yieldEvery,
+    progressCallback,
+  };
+
+  const runSerialFallback = async (reason) => {
+    const result = await bootstrapSignatureFit(signatures, spectrum, serialOptions);
+    return {
+      ...result,
+      parallelization: {
+        mode: "serial",
+        requestedParallel: Boolean(parallel),
+        reason,
+        workerCount: 0,
+        chunkCount: 1,
+        iterations: safeIterations,
+      },
+    };
+  };
+
+  if (!parallel) {
+    return runSerialFallback("parallel option disabled");
   }
-  if (totalMutations < minMutationsForBootstrapSummary) {
-    warnings.push(
-      makeQcWarning(
-        QC_WARNING_CODES.LOW_BURDEN,
-        "Bootstrap exposure intervals are based on a low mutation count and may be dominated by sampling noise.",
-        { totalMutations, minMutationsForBootstrapSummary }
-      )
-    );
+  if (safeIterations < Math.max(1, Number(minIterationsForParallel) || 1)) {
+    return runSerialFallback("iteration count below worker threshold");
+  }
+  if (!canUseBrowserBootstrapWorkers() && !canUseNodeBootstrapWorkers()) {
+    return runSerialFallback("workers unavailable");
+  }
+
+  const normalizedSignatures = normalizeMatrixObject(signatures);
+  const normalizedSpectrum = normalizeMatrixObject({ sample: spectrum }).sample;
+  const prepared = prepareNNLSFitter(
+    normalizedSignatures,
+    { sample: normalizedSpectrum },
+    contexts
+  );
+  const contextList = prepared.contextList;
+  const observedVector = vectorFromRecord(normalizedSpectrum, contextList);
+  const totalMutations = sum(observedVector);
+  const signatureNames = prepared.signatureNames;
+  const requestedWorkerCount =
+    workerCount === null || workerCount === undefined
+      ? getDefaultBootstrapWorkerCount(safeIterations)
+      : Math.max(1, Math.floor(Number(workerCount) || 1));
+  const chunks = splitBootstrapIterations(
+    safeIterations,
+    requestedWorkerCount,
+    workerChunkSize
+  );
+
+  if (chunks.length <= 1) {
+    return runSerialFallback("single worker chunk");
+  }
+
+  const startedAt =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  let completedIterations = 0;
+  const workerOptions = serializableBootstrapOptions({
+    ...serialOptions,
+    yieldEvery: 0,
+  });
+  let completedChunks = 0;
+  const results = await Promise.all(
+    chunks.map((chunk, chunkIndex) =>
+      runBootstrapWorkerChunk({
+        signatures: normalizedSignatures,
+        spectrum: normalizedSpectrum,
+        options: {
+          ...workerOptions,
+          iterations: chunk.iterations,
+          seed: seed + chunk.start,
+        },
+        chunkIndex,
+      }).then((result) => {
+        completedIterations += chunk.iterations;
+        completedChunks += 1;
+        if (typeof progressCallback === "function") {
+          progressCallback({
+            iteration: completedIterations,
+            iterations: safeIterations,
+            workerCount: chunks.length,
+            completedChunks,
+          });
+        }
+        return { chunkIndex, chunk, result };
+      })
+    )
+  );
+  const endedAt =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const orderedResults = results.sort((a, b) => a.chunkIndex - b.chunkIndex);
+  const exposureRows = orderedResults.flatMap(
+    ({ result }) => result.exposureSamples || []
+  );
+  const reconstructionRows = orderedResults.flatMap(
+    ({ result }) => result.reconstructionError || []
+  );
+
+  return buildBootstrapSignatureFitResult({
+    signatureNames,
+    exposureRows,
+    reconstructionRows,
+    contextList,
+    totalMutations,
+    iterations: exposureRows.length,
+    confidenceLevel,
+    exposureThreshold,
+    exposureType,
+    renormalize,
+    seed,
+    minIterationsForStableIntervals,
+    publicationRecommendedIterations,
+    minMutationsForBootstrapSummary,
+    maxIterations,
+    convergenceTolerance,
+    parallelization: {
+      mode: canUseBrowserBootstrapWorkers()
+        ? "browser_web_workers"
+        : "node_worker_threads",
+      requestedParallel: true,
+      workerCount: chunks.length,
+      chunkCount: chunks.length,
+      requestedWorkerCount,
+      iterations: safeIterations,
+      chunkIterations: chunks.map((chunk) => chunk.iterations),
+      seeds: chunks.map((chunk) => seed + chunk.start),
+      elapsedMs: endedAt - startedAt,
+    },
+  });
+}
+
+/**
+ * Bootstraps multiple spectra by distributing samples across workers.
+ *
+ * This is the preferred path for cohort-scale uncertainty estimation because
+ * each worker processes a slice of samples and avoids recreating workers for
+ * every sample.
+ *
+ * @async
+ * @function bootstrapCohortSignatureFitParallel
+ * @memberof qc
+ * @param {Object<string,Object<string,number>>} signatures - Signature-by-context matrix.
+ * @param {Object<string,Object<string,number>>} spectra - Sample-by-context matrix.
+ * @param {Object} [options] - Bootstrap options plus cohort worker controls.
+ * @param {string[]} [options.sampleNames] - Samples to bootstrap; defaults to all samples.
+ * @param {boolean} [options.parallel=true] - Use workers when supported.
+ * @param {number} [options.workerCount] - Number of cohort workers.
+ * @returns {Promise<{results:Object, parallelization:Object}>} Sample-keyed bootstrap results plus worker provenance.
+ */
+async function bootstrapCohortSignatureFitParallel(
+  signatures,
+  spectra,
+  {
+    sampleNames = null,
+    iterations = QC_DEFAULTS.bootstrap.iterations,
+    confidenceLevel = QC_DEFAULTS.bootstrap.confidenceLevel,
+    exposureThreshold = QC_DEFAULTS.bootstrap.exposureThreshold,
+    exposureType = QC_DEFAULTS.bootstrap.exposureType,
+    renormalize = QC_DEFAULTS.bootstrap.renormalize,
+    seed = QC_DEFAULTS.bootstrap.seed,
+    contexts = QC_DEFAULTS.bootstrap.contexts,
+    minIterationsForStableIntervals =
+      QC_DEFAULTS.bootstrap.minIterationsForStableIntervals,
+    publicationRecommendedIterations =
+      QC_DEFAULTS.bootstrap.publicationRecommendedIterations,
+    minMutationsForBootstrapSummary =
+      QC_DEFAULTS.bootstrap.minMutationsForBootstrapSummary,
+    maxIterations = QC_DEFAULTS.bootstrap.maxIterations,
+    convergenceTolerance = QC_DEFAULTS.bootstrap.convergenceTolerance,
+    yieldEvery = QC_DEFAULTS.bootstrap.yieldEvery,
+    progressCallback = null,
+    parallel = true,
+    workerCount = QC_DEFAULTS.bootstrap.workerCount,
+    minIterationsForParallel = QC_DEFAULTS.bootstrap.minIterationsForParallel,
+  } = {}
+) {
+  const normalizedSignatures = normalizeMatrixObject(signatures);
+  const normalizedSpectra = normalizeMatrixObject(spectra);
+  const requestedSamples = (Array.isArray(sampleNames) && sampleNames.length > 0
+    ? sampleNames
+    : Object.keys(normalizedSpectra)
+  ).filter((sampleName) => normalizedSpectra[sampleName]);
+  const safeIterations = Math.max(0, Math.floor(Number(iterations) || 0));
+  const baseOptions = serializableBootstrapOptions({
+    iterations: safeIterations,
+    confidenceLevel,
+    exposureThreshold,
+    exposureType,
+    renormalize,
+    seed,
+    contexts,
+    minIterationsForStableIntervals,
+    publicationRecommendedIterations,
+    minMutationsForBootstrapSummary,
+    maxIterations,
+    convergenceTolerance,
+    yieldEvery,
+  });
+
+  const runSerialCohort = async (reason) => {
+    const results = {};
+    for (const [sampleIndex, sampleName] of requestedSamples.entries()) {
+      results[sampleName] = await bootstrapSignatureFit(
+        normalizedSignatures,
+        normalizedSpectra[sampleName],
+        {
+          ...baseOptions,
+          seed: seed + sampleIndex,
+        }
+      );
+      if (typeof progressCallback === "function") {
+        progressCallback({
+          samplesCompleted: sampleIndex + 1,
+          sampleCount: requestedSamples.length,
+          sampleName,
+        });
+      }
+    }
+    return {
+      results,
+      parallelization: {
+        mode: "serial",
+        requestedParallel: Boolean(parallel),
+        reason,
+        workerCount: 0,
+        sampleCount: requestedSamples.length,
+        iterationsPerSample: safeIterations,
+      },
+    };
+  };
+
+  if (requestedSamples.length === 0) {
+    return runSerialCohort("no samples");
+  }
+  if (!parallel) {
+    return runSerialCohort("parallel option disabled");
+  }
+  if (safeIterations < Math.max(1, Number(minIterationsForParallel) || 1)) {
+    return runSerialCohort("iteration count below worker threshold");
+  }
+  if (!canUseBrowserBootstrapWorkers() && !canUseNodeBootstrapWorkers()) {
+    return runSerialCohort("workers unavailable");
+  }
+
+  const requestedWorkerCount =
+    workerCount === null || workerCount === undefined
+      ? getDefaultBootstrapWorkerCount(requestedSamples.length)
+      : Math.max(1, Math.floor(Number(workerCount) || 1));
+  const sampleChunks = splitArrayIntoChunks(requestedSamples, requestedWorkerCount);
+
+  if (sampleChunks.length <= 1) {
+    return runSerialCohort("single worker chunk");
+  }
+
+  const startedAt =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  let samplesCompleted = 0;
+  let completedChunks = 0;
+  const chunkResults = await Promise.all(
+    sampleChunks.map((chunkSampleNames, chunkIndex) => {
+      const entries = chunkSampleNames.map((sampleName) => {
+        const sampleIndex = requestedSamples.indexOf(sampleName);
+        return {
+          sampleName,
+          sampleIndex,
+          spectrum: normalizedSpectra[sampleName],
+          seed: seed + sampleIndex,
+        };
+      });
+      return runBootstrapCohortWorkerChunk({
+        signatures: normalizedSignatures,
+        entries,
+        options: {
+          ...baseOptions,
+          yieldEvery: 0,
+        },
+        chunkIndex,
+      }).then((message) => {
+        samplesCompleted += entries.length;
+        completedChunks += 1;
+        if (typeof progressCallback === "function") {
+          progressCallback({
+            samplesCompleted,
+            sampleCount: requestedSamples.length,
+            workerCount: sampleChunks.length,
+            completedChunks,
+          });
+        }
+        return message;
+      });
+    })
+  );
+  const endedAt =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const results = {};
+  for (const message of chunkResults.sort((a, b) => a.chunkIndex - b.chunkIndex)) {
+    Object.assign(results, message.results || {});
   }
 
   return {
-    schemaVersion: QC_RESULT_SCHEMA_VERSION,
-    workflowRole: "bootstrap_exposure_uncertainty",
-    scopeStatement: QC_SCOPE_STATEMENTS.bootstrap,
-    methodBasis: methodBasis({
-      description: QC_METHOD_BASIS.bootstrap,
-      bootstrapMethod: "parametric_multinomial",
-      intervalDefinition:
-        "Confidence intervals are empirical quantiles of bootstrap-fitted exposures. They are conditional on the observed spectrum, supplied signature catalog, threshold, and NNLS fitting routine.",
-      uncertaintyBoundary:
-        "This method estimates statistical uncertainty of the attribution procedure conditional on the observed spectrum, supplied catalog, and fitting settings; it does not estimate total attribution uncertainty.",
-      selectionFrequencyDefinition:
-        "Selection frequency is the fraction of bootstrap refits in which the thresholded signature exposure is nonzero.",
-      methodRationale:
-        "The MSA bootstrap framework supports parametric bootstrap for mutational-signature attribution and cautions against interpreting these intervals as total uncertainty.",
-      configurableDefaults: {
-        iterations,
-        confidenceLevel,
-        exposureThreshold,
-        exposureType,
-        renormalize,
-        minIterationsForStableIntervals,
-        publicationRecommendedIterations,
-        minMutationsForBootstrapSummary,
-        maxIterations,
-        convergenceTolerance,
-      },
-      references: [
-        QC_LITERATURE_REFERENCES.senkin2021,
-        QC_LITERATURE_REFERENCES.huang2018,
-        QC_LITERATURE_REFERENCES.koh2021,
-        QC_LITERATURE_REFERENCES.medo2024,
-      ],
-    }),
-    bootstrapMethod: "parametric_multinomial",
-    parameters: {
-      iterations,
-      confidenceLevel,
-      exposureThreshold,
-      exposureType,
-      renormalize,
-      seed,
-      minIterationsForStableIntervals,
-      publicationRecommendedIterations,
-      minMutationsForBootstrapSummary,
-      maxIterations,
-      convergenceTolerance,
+    results,
+    parallelization: {
+      mode: canUseBrowserBootstrapWorkers()
+        ? "browser_web_workers"
+        : "node_worker_threads",
+      requestedParallel: true,
+      workerCount: sampleChunks.length,
+      requestedWorkerCount,
+      sampleCount: requestedSamples.length,
+      iterationsPerSample: safeIterations,
+      chunkSampleCounts: sampleChunks.map((chunk) => chunk.length),
+      elapsedMs: endedAt - startedAt,
     },
-    inputSummary: {
-      totalMutations,
-      contextCount: contextList.length,
-    },
-    iterations,
-    confidenceLevel,
-    seed,
-    contexts: contextList,
-    signatures: signaturesSummary,
-    exposureSamples: exposureRows,
-    reconstructionError: reconstructionRows,
-    warnings,
-    reportingMode:
-      warnings.length > 0 ? "report_with_caveats" : "standard_qc_passed",
   };
 }
 
 export {
   QC_DEFAULTS,
   QC_WARNING_CODES,
+  bootstrapCohortSignatureFitParallel,
   bootstrapSignatureFit,
+  bootstrapSignatureFitParallel,
   calculateFitResiduals,
   calculateReconstructionError,
   fitSpectraWithNNLS,

@@ -6,6 +6,8 @@ import {
   EXPERIMENTS,
   findAvailableBrowsers,
   launchBrowser,
+  mean,
+  median,
   numericArg,
   parseArgs,
   relativeArtifact,
@@ -24,10 +26,12 @@ import {
 const EXPERIMENT = EXPERIMENTS.e4;
 const RESULT_PATH = path.join(EXPERIMENT.dir, "data", "browser-runtime-results.json");
 const CSV_PATH = path.join(EXPERIMENT.dir, "data", "browser_runtime_results.csv");
+const SUMMARY_CSV_PATH = path.join(EXPERIMENT.dir, "data", "browser_runtime_summary.csv");
+const SUMMARY_JSON_PATH = path.join(EXPERIMENT.dir, "data", "browser-runtime-summary.json");
 const HARNESS_PATH = path.join(EXPERIMENT.dir, "browser-runtime-harness.html");
 
 const args = parseArgs();
-const repeats = numericArg(args, "repeats", 5);
+const repeats = numericArg(args, "repeats", 20);
 const timeoutMs = numericArg(args, "timeout-ms", 240000);
 const requestedBrowsers = String(args.browsers || "chrome,edge,firefox")
   .split(",")
@@ -48,7 +52,7 @@ await writeText(HARNESS_PATH, browserRuntimeHarness());
 const allBrowsers = await findAvailableBrowsers();
 const browsers = allBrowsers.filter((browser) => requestedBrowsers.includes(browser.id));
 const rows = [
-  ...unavailableBrowserRows(browsers, scenarios, { repeat: null, elapsedMs: null }),
+  ...unavailableBrowserRows(browsers, scenarios, { repeat: null, phase: null, elapsedMs: null }),
 ];
 const notes = [];
 
@@ -81,25 +85,32 @@ await withStaticServer(process.cwd(), async ({ baseUrl }) => {
             async ({ scenario, repeat, data }) => window.__runMsigBenchmark(scenario, repeat, data),
             { scenario, repeat, data: benchmarkData[scenario] }
           );
-          rows.push({
-            browser: browser.id,
-            browserLabel: browser.label,
+          const browserVersion = context.browser()?.version?.() || null;
+          rows.push(formatBenchmarkRow({
+            browser,
+            browserVersion,
             scenario,
             repeat,
-            status: output.status,
-            elapsedMs: output.elapsedMs,
-            sampleCount: output.sampleCount,
-            signatureCount: output.signatureCount,
-            details: output.details || null,
-            error: output.error || null,
-          });
+            phase: "cold",
+            output: output.cold,
+          }));
+          rows.push(formatBenchmarkRow({
+            browser,
+            browserVersion,
+            scenario,
+            repeat,
+            phase: "warm",
+            output: output.warm,
+          }));
         } catch (error) {
           notes.push(`${browser.id}/${scenario}/${repeat}: ${error.message}`);
           rows.push({
             browser: browser.id,
             browserLabel: browser.label,
+            browserVersion: null,
             scenario,
             repeat,
+            phase: "cold",
             status: "failed",
             elapsedMs: null,
             error: error.message,
@@ -112,6 +123,7 @@ await withStaticServer(process.cwd(), async ({ baseUrl }) => {
   }
 });
 
+const summaryRows = summarizeRows(rows);
 const result = createResult({
   experimentId: EXPERIMENT.id,
   environment: environmentSummary({
@@ -147,24 +159,43 @@ const result = createResult({
     syntheticDataSeed: 20260521,
   },
   rows,
+  summaries: summaryRows,
   artifacts: {
     json: relativeArtifact(RESULT_PATH),
     csv: relativeArtifact(CSV_PATH),
+    summaryCsv: relativeArtifact(SUMMARY_CSV_PATH),
+    summaryJson: relativeArtifact(SUMMARY_JSON_PATH),
     harness: relativeArtifact(HARNESS_PATH),
   },
   status: rows.some((row) => row.status === "completed") ? "completed" : "failed",
   notes,
 });
+result.summaries = summaryRows;
 
 await writeJson(RESULT_PATH, result);
+await writeJson(SUMMARY_JSON_PATH, {
+  schemaVersion: "msig.browser_runtime_summary.v1",
+  generatedAt: result.generatedAt,
+  experimentId: EXPERIMENT.id,
+  rows: summaryRows,
+});
 await writeCsv(
   CSV_PATH,
   rows.map((row) => ({
     browser: row.browser,
+    browser_version: row.browserVersion,
     scenario: row.scenario,
     repeat: row.repeat,
+    phase: row.phase,
     status: row.status,
     elapsed_ms: row.elapsedMs,
+    load_ms: row.loadMs,
+    network_fetch_ms: row.networkFetchMs,
+    module_import_ms: row.moduleImportMs,
+    runtime_init_ms: row.runtimeInitMs,
+    pure_js_compute_ms: row.pureJsComputeMs,
+    serialization_ms: row.serializationMs,
+    js_heap_bytes: row.jsHeapBytes,
     sample_count: row.sampleCount,
     signature_count: row.signatureCount,
     rank_selection_ms: row.details?.rankSelectionMs,
@@ -172,8 +203,82 @@ await writeCsv(
     error: row.error,
   }))
 );
+await writeCsv(SUMMARY_CSV_PATH, summaryRows);
 
 console.log(`Wrote ${relativeArtifact(RESULT_PATH)}`);
+
+function formatBenchmarkRow({ browser, browserVersion, scenario, repeat, phase, output }) {
+  const safeOutput = output || {};
+  return {
+    browser: browser.id,
+    browserLabel: browser.label,
+    browserVersion,
+    scenario,
+    repeat,
+    phase,
+    status: safeOutput.status,
+    elapsedMs: safeOutput.elapsedMs,
+    loadMs: safeOutput.loadMs ?? null,
+    networkFetchMs: safeOutput.networkFetchMs ?? null,
+    moduleImportMs: safeOutput.moduleImportMs ?? null,
+    runtimeInitMs: safeOutput.runtimeInitMs ?? null,
+    pureJsComputeMs: safeOutput.pureJsComputeMs ?? null,
+    serializationMs: safeOutput.serializationMs ?? null,
+    jsHeapBytes: safeOutput.jsHeapBytes ?? null,
+    sampleCount: safeOutput.sampleCount,
+    signatureCount: safeOutput.signatureCount,
+    details: safeOutput.details || null,
+    error: safeOutput.error || null,
+  };
+}
+
+function summarizeRows(rawRows) {
+  const groups = new Map();
+  for (const row of rawRows) {
+    if (row.status !== "completed") continue;
+    const key = [row.browser, row.scenario, row.phase].join("|");
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  }
+  return [...groups.entries()].map(([key, group]) => {
+    const [browser, scenario, phase] = key.split("|");
+    const elapsed = group.map((row) => Number(row.elapsedMs)).filter(Number.isFinite);
+    return {
+      browser,
+      browser_label: group[0]?.browserLabel || browser,
+      browser_version: group[0]?.browserVersion || "",
+      scenario,
+      phase,
+      repeats: elapsed.length,
+      min_ms: Math.min(...elapsed),
+      median_ms: median(elapsed),
+      mean_ms: mean(elapsed),
+      p95_ms: quantile(elapsed, 0.95),
+      max_ms: Math.max(...elapsed),
+      iqr_ms: quantile(elapsed, 0.75) - quantile(elapsed, 0.25),
+      median_load_ms: median(group.map((row) => Number(row.loadMs)).filter(Number.isFinite)),
+      median_network_fetch_ms: median(group.map((row) => Number(row.networkFetchMs)).filter(Number.isFinite)),
+      median_module_import_ms: median(group.map((row) => Number(row.moduleImportMs)).filter(Number.isFinite)),
+      median_runtime_init_ms: median(group.map((row) => Number(row.runtimeInitMs)).filter(Number.isFinite)),
+      median_pure_js_compute_ms: median(group.map((row) => Number(row.pureJsComputeMs)).filter(Number.isFinite)),
+      median_serialization_ms: median(group.map((row) => Number(row.serializationMs)).filter(Number.isFinite)),
+      max_js_heap_bytes: Math.max(
+        ...group.map((row) => Number(row.jsHeapBytes)).filter(Number.isFinite),
+        0
+      ),
+    };
+  });
+}
+
+function quantile(values, probability) {
+  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const index = (sorted.length - 1) * probability;
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) return sorted[lower];
+  return sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower);
+}
 
 function buildBenchmarkData() {
   const smallCatalog = generateSyntheticSignatures({ signatureCount: 9, seed: 20260521 });
@@ -243,11 +348,37 @@ function browserRuntimeHarness() {
     <pre id="log">Loading SDK...</pre>
     <script type="module">
       const log = document.querySelector("#log");
+      const navigationStart = performance.now();
+      const importStarted = performance.now();
       const { mSigSDK } = await import("/main.js?e4=" + Date.now());
+      const importEnded = performance.now();
+      const readyAt = performance.now();
+      window.__MSIG_LOAD_TIMING__ = {
+        loadMs: readyAt - navigationStart,
+        moduleImportMs: importEnded - importStarted,
+        runtimeInitMs: 0,
+        networkFetchMs: resourceDuration(),
+      };
       window.__MSIG_BENCH_READY__ = true;
       log.textContent = "Ready";
       window.__runMsigBenchmark = async function runBenchmark(scenario, repeat, data) {
+        const coldCompute = await runCompute(scenario, repeat, data);
+        const load = window.__MSIG_LOAD_TIMING__ || {};
+        const cold = {
+          ...coldCompute,
+          elapsedMs: (load.loadMs || 0) + (coldCompute.elapsedMs || 0),
+          loadMs: load.loadMs || null,
+          networkFetchMs: load.networkFetchMs || null,
+          moduleImportMs: load.moduleImportMs || null,
+          runtimeInitMs: load.runtimeInitMs || 0,
+        };
+        const warm = await runCompute(scenario, repeat + 100000, data);
+        return { cold, warm };
+      };
+
+      async function runCompute(scenario, repeat, data) {
         const started = performance.now();
+        let serializationMs = 0;
         try {
           let details = {};
           if (scenario === "single_sample_fit_report") {
@@ -262,12 +393,14 @@ function browserRuntimeHarness() {
               contexts: data.contexts,
               normalizeMode: "relative"
             });
+            const serializationStarted = performance.now();
             const report = mSigSDK.reports.createAnalysisReport({
               title: "Browser runtime single-sample report",
               summary: "Benchmark report generated in the browser.",
               qc,
               exposures
             }, { format: "html" });
+            serializationMs = performance.now() - serializationStarted;
             details = { reportBytes: report.length };
           } else if (scenario === "medium_cohort_120" || scenario === "portal_scale_300x40") {
             const exposures = await mSigSDK.qc.fitSpectraWithNNLS(data.signatures, data.spectra, {
@@ -277,7 +410,10 @@ function browserRuntimeHarness() {
               maxIterations: 10000,
               convergenceTolerance: 1e-12
             });
-            details = { exposureRows: Object.keys(exposures).length };
+            const serializationStarted = performance.now();
+            const exposureBytes = JSON.stringify(exposures).length;
+            serializationMs = performance.now() - serializationStarted;
+            details = { exposureRows: Object.keys(exposures).length, exposureBytes };
           } else if (scenario === "bootstrap_500") {
             const bootstrap = await mSigSDK.qc.bootstrapSignatureFit(data.signatures, data.spectrum, {
               contexts: data.contexts,
@@ -289,7 +425,10 @@ function browserRuntimeHarness() {
               maxIterations: 10000,
               convergenceTolerance: 1e-12
             });
-            details = { iterations: bootstrap.iterations, signatures: bootstrap.signatures.length };
+            const serializationStarted = performance.now();
+            const bootstrapBytes = JSON.stringify(bootstrap).length;
+            serializationMs = performance.now() - serializationStarted;
+            details = { iterations: bootstrap.iterations, signatures: bootstrap.signatures.length, bootstrapBytes };
           } else if (scenario === "nmf_rank_selection_rank4") {
             const rankStarted = performance.now();
             const rankSelection = mSigSDK.signatureExtraction.selectNMFRank(data.spectra, {
@@ -311,32 +450,57 @@ function browserRuntimeHarness() {
               tolerance: 1e-5
             });
             const extractionMs = performance.now() - extractionStarted;
+            const serializationStarted = performance.now();
+            const nmfBytes = JSON.stringify({ rankSelection, extraction }).length;
+            serializationMs = performance.now() - serializationStarted;
             details = {
               recommendedRank: rankSelection.recommendedRank,
               extractionError: extraction.reconstructionError,
               rankSelectionMs,
-              extractionMs
+              extractionMs,
+              nmfBytes
             };
           } else {
             throw new Error("Unknown scenario " + scenario);
           }
+          const elapsedMs = performance.now() - started;
+          const jsHeapBytes = performance.memory?.usedJSHeapSize || null;
           return {
             status: "completed",
-            elapsedMs: performance.now() - started,
+            elapsedMs,
+            loadMs: null,
+            networkFetchMs: 0,
+            moduleImportMs: 0,
+            runtimeInitMs: 0,
+            pureJsComputeMs: Math.max(0, elapsedMs - serializationMs),
+            serializationMs,
+            jsHeapBytes,
             sampleCount: data.spectra ? Object.keys(data.spectra).length : 1,
             signatureCount: data.signatures ? Object.keys(data.signatures).length : null,
             details
           };
         } catch (error) {
+          const elapsedMs = performance.now() - started;
           return {
             status: "failed",
-            elapsedMs: performance.now() - started,
+            elapsedMs,
             error: error.message,
+            pureJsComputeMs: elapsedMs,
+            serializationMs,
+            jsHeapBytes: performance.memory?.usedJSHeapSize || null,
             sampleCount: data.spectra ? Object.keys(data.spectra).length : 1,
             signatureCount: data.signatures ? Object.keys(data.signatures).length : null
           };
         }
-      };
+      }
+
+      function resourceDuration() {
+        const entries = performance.getEntriesByType("resource") || [];
+        const starts = entries.map((entry) => Number(entry.startTime)).filter(Number.isFinite);
+        const ends = entries.map((entry) => Number(entry.responseEnd)).filter(Number.isFinite);
+        if (!starts.length || !ends.length) return 0;
+        return Math.max(...ends) - Math.min(...starts);
+      }
     </script>
   </body>
 </html>`;

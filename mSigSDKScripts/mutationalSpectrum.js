@@ -1,4 +1,8 @@
-import { fetchURLAndCache } from "./utils.js";
+import {
+  assertNoUserDataEgress,
+  fetchURLAndCache,
+  getRuntimeOptions,
+} from "./utils.js";
 import {
   getProfileDefinition,
   listMafConvertibleProfiles,
@@ -456,6 +460,8 @@ function variantTypeIsDeletion(value) {
 }
 
 async function resolveReferenceContext(row, size, options) {
+  const runtimeOptions = getRuntimeOptions(options);
+  const localOnly = Boolean(options.offline || runtimeOptions.strictLocal);
   const lookupEntry = lookupOfflineContextEntry(
     options.contextLookupTable,
     row.chromosome,
@@ -492,16 +498,20 @@ async function resolveReferenceContext(row, size, options) {
       row.genome || options.genome || "hg19",
       row.startPosition,
       {
-        offline: Boolean(options.offline),
+        offline: localOnly,
+        strictLocal: runtimeOptions.strictLocal,
         contextLookupTable: options.contextLookupTable,
         contextSize: size,
       }
     );
     return {
       context: normalizeSequenceWindow(sequence, size),
-      source: options.offline ? "offline reference lookup" : "live reference lookup",
+      source: localOnly ? "offline reference lookup" : "live reference lookup",
     };
-  } catch (_error) {
+  } catch (error) {
+    if (runtimeOptions.strictLocal) {
+      throw error;
+    }
     return {
       context: null,
       source: "missing",
@@ -924,10 +934,12 @@ async function convertProfileRows(rows, profileDefinition, options) {
  * @param {string} [options.genome="hg19"] - Reference genome build for context lookup.
  * @param {boolean} [options.tcga=false] - Whether to read TCGA-specific MAF fields.
  * @param {boolean} [options.offline=false] - Use row-supplied or lookup-table context.
+ * @param {boolean} [options.strictLocal=false] - Block live reference lookups and use only row/bundled/offline context.
  * @param {Object} [options.contextLookupTable=null] - Position-indexed context lookup table.
  * @returns {Promise<Object>} Profile-keyed spectra, trace, audit, warnings, and registry metadata.
  */
 async function convertMafToProfileSpectra(data, options = {}) {
+  const runtimeOptions = getRuntimeOptions(options);
   const {
     profiles = ["SBS96"],
     groupBy = "project_code",
@@ -949,8 +961,9 @@ async function convertMafToProfileSpectra(data, options = {}) {
   const profileAudits = {};
   const warnings = [];
   let offlineContextLookupTable = contextLookupTable;
+  const localOnly = Boolean(offline || runtimeOptions.strictLocal);
 
-  if (offline && !offlineContextLookupTable) {
+  if (localOnly && !offlineContextLookupTable) {
     offlineContextLookupTable = await loadBundledContextLookupTable(genome);
   }
 
@@ -968,7 +981,8 @@ async function convertMafToProfileSpectra(data, options = {}) {
     const result = await convertProfileRows(rows, definition, {
       ...options,
       genome,
-      offline,
+      offline: localOnly,
+      strictLocal: runtimeOptions.strictLocal,
       contextLookupTable: offlineContextLookupTable,
     });
     spectraByProfile[definition.key] = result.spectra;
@@ -1028,6 +1042,7 @@ async function convertMafToProfileSpectra(data, options = {}) {
  * @param {boolean} [tcga=false] - Flag indicating whether the input data is in TCGA format. If true, expects TCGA-specific fields.
  * @param {Object} [options={}] - Context lookup options.
  * @param {boolean} [options.offline=false] - Use row-supplied or lookup-table contexts instead of the UCSC sequence API.
+ * @param {boolean} [options.strictLocal=false] - Block live UCSC context lookups.
  * @param {Object} [options.contextLookupTable=null] - Position-indexed trinucleotide lookup table.
  * @returns {Promise<Object>} - A promise resolving to a sample-keyed SBS96 matrix.
  *
@@ -1205,8 +1220,14 @@ async function getMutationalContext(
   chromosomeNumber,
   genome,
   startPosition,
-  { offline = false, contextLookupTable = null, contextSize = 3 } = {}
+  options = {}
 ) {
+  const runtimeOptions = getRuntimeOptions(options);
+  const {
+    offline = false,
+    contextLookupTable = null,
+    contextSize = 3,
+  } = options || {};
   const requestedContextSize = Number(contextSize) || 3;
   if (offline) {
     const sequence = lookupOfflineContext(
@@ -1215,18 +1236,34 @@ async function getMutationalContext(
       startPosition
     );
     if (!sequence) {
+      if (runtimeOptions.strictLocal) {
+        throw new Error(
+          `strictLocal could not resolve a bundled/offline ${requestedContextSize}-base context for ${normalizeGenomeBuild(genome)} chromosome ${chromosomeNumber} position ${startPosition}. Add a row-supplied trinucleotide_context/context_sequence value or pass a contextLookupTable that contains this coordinate.`
+        );
+      }
       throw new Error(
         `No offline ${requestedContextSize}-base context for ${normalizeGenomeBuild(genome)} chromosome ${chromosomeNumber} position ${startPosition}.`
       );
     }
     const normalized = normalizeSequenceWindow(sequence, requestedContextSize);
     if (!normalized) {
+      if (runtimeOptions.strictLocal) {
+        throw new Error(
+          `strictLocal could not normalize the bundled/offline ${requestedContextSize}-base context for ${normalizeGenomeBuild(genome)} chromosome ${chromosomeNumber} position ${startPosition}. Add a row-supplied trinucleotide_context/context_sequence value or pass a valid contextLookupTable entry.`
+        );
+      }
       throw new Error(
         `No offline ${requestedContextSize}-base context for ${normalizeGenomeBuild(genome)} chromosome ${chromosomeNumber} position ${startPosition}.`
       );
     }
     return normalized;
   }
+
+  assertNoUserDataEgress(
+    "UCSC reference context lookup",
+    runtimeOptions,
+    "Chromosome and coordinate values would be sent in the URL; supply row contexts or a bundled/offline contextLookupTable."
+  );
 
   const chrName = String(chromosomeNumber);
   const genomeKey = normalizeGenomeBuild(genome);
@@ -1237,7 +1274,10 @@ async function getMutationalContext(
   const alternative = await (
     await fetchURLAndCache("HG19",
       `https://api.genome.ucsc.edu/getData/sequence?genome=${genomeKey};chrom=chr${chrName};start=${startByte};end=${endByteExclusive
-      }`
+      }`,
+      null,
+      null,
+      runtimeOptions
     )
   ).json();
 

@@ -41,6 +41,12 @@ const PY_REF_PATH = path.join(EXPERIMENT.dir, "data", "python-reference.json");
 const R_REF_PATH = path.join(EXPERIMENT.dir, "data", "r-nnls-reference.csv");
 const args = parseArgs();
 const strict = args.strict !== "false";
+const pythonExecutable = args.python || process.env.MSIG_E3_PYTHON || null;
+const localRscript = args["local-rscript"] || process.env.MSIG_E3_RSCRIPT || null;
+const localRLibrary =
+  args["r-library"] ||
+  process.env.MSIG_E3_R_LIBS_USER ||
+  path.join(process.cwd(), ".tools", "r-library", "R-4.6");
 
 await ensureDir(path.dirname(RESULT_PATH));
 
@@ -208,6 +214,13 @@ async function runPythonReference(input) {
   const relInput = path.relative(process.cwd(), inputPath).replaceAll("\\", "/");
   const relOutput = path.relative(process.cwd(), outputPath).replaceAll("\\", "/");
   const relScript = path.relative(process.cwd(), scriptPath).replaceAll("\\", "/");
+  if (pythonExecutable) {
+    const local = await runCommand(pythonExecutable, [relScript, relInput, relOutput]);
+    if (local.status !== "completed") {
+      throw new Error(`Python reference run failed: ${local.stderr || local.stdout}`);
+    }
+    return JSON.parse(await (await import("node:fs/promises")).readFile(outputPath, "utf8"));
+  }
   const command = [
     "python -m pip install --quiet numpy scipy scikit-learn",
     `python ${relScript} ${relInput} ${relOutput}`,
@@ -272,6 +285,25 @@ async function runRReference(nnlsInput) {
     `source("${relScript}")`,
     `run_reference("${relSignatures}", "${relSpectra}", "${relOutput}")`,
   ].join("; ");
+  if (localRscript) {
+    const local = await runCommand(localRscript, ["-e", command], {
+      env: { R_LIBS_USER: localRLibrary },
+    });
+    if (local.status !== "completed") {
+      throw new Error(`R nnls reference run failed: ${local.stderr || local.stdout}`);
+    }
+    const csv = await (await import("node:fs/promises")).readFile(outputPath, "utf8");
+    return {
+      csv,
+      exposures: parseExposureCsv(csv),
+      environment: {
+        runtime: `local:${path.basename(localRscript)}`,
+        package: "nnls",
+        library: localRLibrary,
+        elapsedMs: local.elapsedMs,
+      },
+    };
+  }
   const docker = await runCommand("docker", [
     "run",
     "--rm",
@@ -417,6 +449,8 @@ function pythonReferenceScript() {
   return `import json
 import sys
 import numpy as np
+import scipy
+import sklearn
 from scipy.optimize import nnls
 from sklearn.decomposition import NMF
 
@@ -484,8 +518,10 @@ with open(output_path, "w", encoding="utf-8") as handle:
             "python": sys.version.split()[0],
             "packages": {
                 "numpy": np.__version__,
+                "scipy": scipy.__version__,
+                "scikit-learn": sklearn.__version__,
             },
-            "dockerImage": "python:3.11-slim"
+            "runtime": sys.executable
         },
         "nnls": nnls_out,
         "nmf": {

@@ -12,6 +12,7 @@ const schemaPath = path.join(
   "msig.report.v0.3",
   "report.schema.json"
 );
+const examplesDir = path.join(repoRoot, "schemas", "msig.report.v0.3", "examples");
 
 function typeOf(value) {
   if (value === null) {
@@ -121,15 +122,47 @@ const representativeReport = createAnalysisReport({
   notes: ["Schema validation fixture."],
 });
 
-const errors = validateSchema(schema, representativeReport);
-
-if (errors.length > 0) {
-  throw new Error(`Report schema validation failed:\n${errors.join("\n")}`);
+function validateReport(value, label) {
+  const errors = validateSchema(schema, value);
+  if (errors.length > 0) {
+    throw new Error(`${label} failed schema validation:\n${errors.join("\n")}`);
+  }
 }
 
-console.log(
-  `Validated representative createAnalysisReport output against ${path.relative(
-    repoRoot,
-    schemaPath
-  )}.`
-);
+function readReportFile(reportPath) {
+  return JSON.parse(fs.readFileSync(reportPath, "utf8"));
+}
+
+const requestedFiles = process.argv.slice(2);
+
+if (requestedFiles.length > 0) {
+  for (const requestedFile of requestedFiles) {
+    const reportPath = path.resolve(process.cwd(), requestedFile);
+    validateReport(readReportFile(reportPath), path.relative(repoRoot, reportPath));
+    console.log(`Validated ${path.relative(repoRoot, reportPath)} against ${path.relative(repoRoot, schemaPath)}.`);
+  }
+} else {
+  validateReport(representativeReport, "representative createAnalysisReport output");
+
+  const validExamples = [
+    "minimal-valid-report.json",
+    "full-valid-report.json",
+  ];
+  for (const filename of validExamples) {
+    const reportPath = path.join(examplesDir, filename);
+    validateReport(readReportFile(reportPath), path.relative(repoRoot, reportPath));
+  }
+
+  const invalidPath = path.join(examplesDir, "invalid-missing-title.json");
+  const invalidErrors = validateSchema(schema, readReportFile(invalidPath));
+  if (invalidErrors.length === 0) {
+    throw new Error(`${path.relative(repoRoot, invalidPath)} unexpectedly passed schema validation.`);
+  }
+
+  console.log(
+    `Validated representative output and ${validExamples.length} valid example reports against ${path.relative(
+      repoRoot,
+      schemaPath
+    )}; confirmed invalid example fails (${invalidErrors[0]}).`
+  );
+}

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "msig.manuscript.experiment.v1",
-  "generatedAt": "2026-05-21T16:30:49.221Z",
+  "generatedAt": "2026-06-25T02:30:59.242Z",
   "experimentId": "e3_internal_reference_checks",
   "environment": {
     "node": "v24.13.0",
@@ -12,16 +12,19 @@
     "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
     "referenceExecution": {
       "python": {
-        "python": "3.11.15",
+        "python": "3.13.5",
         "packages": {
-          "numpy": "2.4.6"
+          "numpy": "2.4.3",
+          "scipy": "1.16.1",
+          "scikit-learn": "1.7.1"
         },
-        "dockerImage": "python:3.11-slim"
+        "runtime": "D:\\Programs\\Miniconda3\\python.exe"
       },
       "r": {
-        "dockerImage": "r-base:4.4.2",
+        "runtime": "local:Rscript",
         "package": "nnls",
-        "elapsedMs": 28389
+        "library": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\r-library\\R-4.6",
+        "elapsedMs": 179
       }
     }
   },
@@ -70,7 +73,7 @@
       "sdkReconstructionError": 309.7958341078405,
       "referenceReconstructionError": 337.4124663432821,
       "reconstructionErrorRatio": 0.9181517134362648,
-      "medianMatchedComponentCosine": 0.9671475260412798,
+      "medianMatchedComponentCosine": 0.9671475260412796,
       "threshold": "error ratio <= 1.05 and median cosine >= 0.95",
       "status": "pass"
     },

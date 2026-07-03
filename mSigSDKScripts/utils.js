@@ -23,6 +23,72 @@ function linspace(a, b, n) {
   return Array.from({ length: n }, (_, i) => a + (i * (b - a)) / (n - 1));
 }
 
+const RUNTIME_OPTIONS_DEFAULTS = Object.freeze({
+  strictLocal: false,
+  debug: false,
+  cacheResponses: true,
+});
+
+const runtimeOptions = { ...RUNTIME_OPTIONS_DEFAULTS };
+
+function normalizeRuntimeOptions(options = {}) {
+  if (!options || typeof options !== "object") {
+    return {};
+  }
+  const normalized = {};
+  if (Object.prototype.hasOwnProperty.call(options, "strictLocal")) {
+    normalized.strictLocal = Boolean(options.strictLocal);
+  }
+  if (Object.prototype.hasOwnProperty.call(options, "debug")) {
+    normalized.debug = Boolean(options.debug);
+  }
+  if (Object.prototype.hasOwnProperty.call(options, "cacheResponses")) {
+    normalized.cacheResponses = Boolean(options.cacheResponses);
+  }
+  if (Object.prototype.hasOwnProperty.call(options, "cache")) {
+    normalized.cacheResponses = Boolean(options.cache);
+  }
+  return normalized;
+}
+
+function getRuntimeOptions(overrides = {}) {
+  const resolved = {
+    ...runtimeOptions,
+    ...normalizeRuntimeOptions(overrides),
+  };
+  if (resolved.strictLocal) {
+    resolved.cacheResponses = false;
+  }
+  return resolved;
+}
+
+function configureRuntimeOptions(options = {}) {
+  Object.assign(runtimeOptions, normalizeRuntimeOptions(options));
+  return getRuntimeOptions();
+}
+
+function debugLog(options, ...args) {
+  if (getRuntimeOptions(options).debug) {
+    console.log(...args);
+  }
+}
+
+function debugWarn(options, ...args) {
+  if (getRuntimeOptions(options).debug) {
+    console.warn(...args);
+  }
+}
+
+function assertNoUserDataEgress(action, options = {}, detail = "") {
+  if (!getRuntimeOptions(options).strictLocal) {
+    return;
+  }
+  const suffix = detail ? ` ${detail}` : "";
+  throw new Error(
+    `strictLocal blocked ${action} because it would transmit user-derived data outside this device.${suffix}`
+  );
+}
+
 // Deep copy an object
 function deepCopy(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -109,7 +175,14 @@ async function nnls(A, b, maxiter = 3 * A[0].length) {
   return { x, rnorm };
 }
 
-async function fetchURLAndCache(cacheName, url, header = null, ICGC = null) {
+async function fetchURLAndCache(
+  cacheName,
+  url,
+  header = null,
+  ICGC = null,
+  options = {}
+) {
+  const resolvedOptions = getRuntimeOptions(options);
   const isCacheSupported = typeof window !== "undefined" && "caches" in window;
   const matchedURL = ICGC != null ? ICGC : url;
   const fetchOptions = header || undefined;
@@ -179,7 +252,7 @@ async function fetchURLAndCache(cacheName, url, header = null, ICGC = null) {
     return response;
   }
 
-  if (!isCacheSupported) {
+  if (!isCacheSupported || resolvedOptions.cacheResponses === false) {
     return await fetchFromNetwork();
   }
 
@@ -191,7 +264,7 @@ async function fetchURLAndCache(cacheName, url, header = null, ICGC = null) {
   try {
     await cache.put(matchedURL, networkResponse.clone());
   } catch (error) {
-    console.warn(`Unable to cache fetched data from ${url}.`, error);
+    debugWarn(resolvedOptions, `Unable to cache fetched data from ${url}.`, error);
   }
 
   return networkResponse;
@@ -475,7 +548,13 @@ export {
   linspace,
   deepCopy,
   nnls,
+  RUNTIME_OPTIONS_DEFAULTS,
+  assertNoUserDataEgress,
+  configureRuntimeOptions,
+  debugLog,
+  debugWarn,
   fetchURLAndCache,
+  getRuntimeOptions,
   formatHierarchicalClustersToAM5Format,
   groupBy,
   createDistanceMatrix,

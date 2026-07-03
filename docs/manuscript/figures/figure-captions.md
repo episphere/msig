@@ -4,11 +4,11 @@ These captions are generated alongside the manuscript figures. Figure HTML pages
 
 ## Main Figures
 
-**Figure 1. mSigSDK client-side mutational-signature review architecture.** mSigSDK uses selected public resources and reusable JavaScript modules to support spectra import, validation, known-signature refitting, quality-control review, uncertainty estimation, panel/WES evidence review, plotting, reporting, and external-tool handoff in the client runtime.
+**Figure 1. mSigSDK architecture and data-residency boundary.** Optional public-data fetchers may send public sample, gene, project, or file identifiers to mSigPortal/GDC, and the live UCSC MAF-context lookup may send mutation coordinates when explicitly invoked; strictLocal disables those fetches. User spectra, exposures, QC outputs, plots, and JSON reports remain inside the private browser/device boundary unless explicitly exported.
 
 File: `figure1-architecture-data-residency.html`
 
-**Figure 2. Zero-install workflow demonstration.** Automated in-page timing measured the browser-side workflow after the demo page began loading: SDK import, public PCAWG Lung-AdenoCA SBS96 spectrum retrieval, full COSMIC v3 SBS96 catalog retrieval, single-sample refitting, and local report rendering. Browser launch, URL entry, and other human setup time are excluded from the measured interval.
+**Figure 2. Zero-install workflow demonstration.** Automated in-page timing measured cumulative time from page-load start through SDK import, public PCAWG Lung-AdenoCA SBS96 spectrum retrieval, full COSMIC v3 SBS96 catalog retrieval, single-sample refitting, and local report rendering. Browser launch, URL entry, and other human setup time are excluded from the measured interval.
 
 File: `figure2-zero-install-workflow.html`
 
@@ -16,7 +16,7 @@ File: `figure2-zero-install-workflow.html`
 
 File: `figure3-public-cohort-capabilities.html`
 
-**Figure 4. Browser runtime benchmarks.** Median elapsed runtime across isolated desktop-browser repeats for representative SDK workflows, including single-sample fitting/report generation, cohort-scale refitting, bootstrap uncertainty, and NMF rank selection/extraction. Times are shown on a log-scaled axis so fast single-sample operations and slower cohort workflows remain visible in one figure.
+**Figure 4. Exposure-solve benchmark scenarios only.** Warm-start median elapsed runtime with IQR whiskers across isolated desktop-browser repeats for representative exposure-solve workflows, including single-sample fitting/report generation, cohort-scale refitting, bootstrap uncertainty, and NMF rank selection/extraction. Cold-start rows and stage timings are retained in the benchmark data files; the log-scaled axis keeps fast single-sample operations and slower cohort workflows visible in one figure.
 
 File: `figure4-runtime-benchmarks.html`
 

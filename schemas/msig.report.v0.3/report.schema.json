@@ -1,11 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://episphere.github.io/msig/schemas/msig.report.v0.3/report.schema.json",
+  "version": "0.3.0",
   "title": "mSigSDK analysis report",
-  "description": "Structured report object returned by reports.createAnalysisReport in mSigSDK v0.3.",
+  "description": "Structured report object returned by reports.createAnalysisReport in mSigSDK v0.3. Required fields define the portable report contract; optional fields may be null when a workflow did not produce that evidence.",
   "type": "object",
   "required": [
     "schemaVersion",
+    "version",
     "title",
     "summary",
     "generatedAt",
@@ -18,59 +20,75 @@
   "additionalProperties": true,
   "properties": {
     "schemaVersion": {
-      "const": "msig.report.v0.3"
+      "const": "msig.report.v0.3",
+      "description": "Required. Stable schema identifier for the report contract."
+    },
+    "version": {
+      "const": "0.3.0",
+      "description": "Required. Semantic mSigSDK report format version represented by this schema."
     },
     "title": {
-      "type": "string"
+      "type": "string",
+      "description": "Required. Human-readable report title."
     },
     "summary": {
-      "type": "string"
+      "type": "string",
+      "description": "Required. Short human-readable workflow summary."
     },
     "generatedAt": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "Required. ISO 8601 timestamp for report generation."
     },
     "workflowRole": {
       "type": [
         "string",
         "null"
-      ]
+      ],
+      "description": "Optional. Workflow role label such as signature_fitting, extraction, or schema_validation."
     },
     "scopeStatement": {
       "type": [
         "string",
         "null"
-      ]
+      ],
+      "description": "Optional. Interpretation scope and boundary statement."
     },
     "methodBasis": {
       "type": [
         "object",
         "null"
-      ]
+      ],
+      "description": "Optional. Method metadata, assumptions, and references supporting the analysis."
     },
     "primaryInterpretationFields": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Required. Dot-path labels for fields intended to support primary interpretation."
     },
     "reproducibilityStatement": {
-      "type": "string"
+      "type": "string",
+      "description": "Required. Text describing provenance and reproducibility boundaries."
     },
     "parameters": {
-      "type": "object"
+      "type": "object",
+      "description": "Required. Analysis parameters needed to reproduce the report."
     },
     "validation": {
       "type": [
         "object",
         "null"
-      ]
+      ],
+      "description": "Optional. Input validation result object."
     },
     "qc": {
       "type": [
         "object",
         "null"
-      ]
+      ],
+      "description": "Optional. Quality-control evidence and summaries."
     },
     "signatures": {
       "type": [
@@ -79,7 +97,8 @@
         "number",
         "boolean",
         "null"
-      ]
+      ],
+      "description": "Optional. Signature matrix summary or workflow-specific signature descriptor."
     },
     "exposures": {
       "type": [
@@ -88,19 +107,22 @@
         "number",
         "boolean",
         "null"
-      ]
+      ],
+      "description": "Optional. Exposure matrix summary or workflow-specific exposure descriptor."
     },
     "extraction": {
       "type": [
         "object",
         "null"
-      ]
+      ],
+      "description": "Optional. De novo extraction result or summary."
     },
     "provenance": {
       "type": [
         "object",
         "null"
-      ]
+      ],
+      "description": "Optional. Runtime, input, code, and environment provenance."
     },
     "citations": {
       "type": "array",
@@ -124,13 +146,15 @@
             "type": "string"
           }
         }
-      }
+      },
+      "description": "Required. Citation strings or structured citation records."
     },
     "notes": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Required. Free-text caveats, user notes, or workflow notes."
     }
   }
 }

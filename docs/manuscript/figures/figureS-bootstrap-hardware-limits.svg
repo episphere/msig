@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="430" viewBox="0 0 980 430" role="img" aria-labelledby="title desc">
+<title id="title">Bootstrap worker hardware stress tests</title>
+<desc id="desc">Median runtime and peak memory for synthetic bootstrap workloads measured under Node worker threads.</desc>
+<rect width="980" height="430" fill="#ffffff"/>
+<text x="28" y="34" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#172026">Bootstrap worker stress tests</text>
+<text x="28" y="58" font-family="Arial, sans-serif" font-size="13" fill="#53616f">Synthetic Node.js native-core workloads; bars show median runtime, labels show worker peak RSS.</text>
+<line x1="260" y1="68" x2="260" y2="360" stroke="#d8dee6" stroke-width="1"/>
+<text x="260" y="382" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#53616f">0</text>
+<line x1="400.24948571244056" y1="68" x2="400.24948571244056" y2="360" stroke="#d8dee6" stroke-width="1"/>
+<text x="400.24948571244056" y="382" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#53616f">3</text>
+<line x1="540.4989714248811" y1="68" x2="540.4989714248811" y2="360" stroke="#d8dee6" stroke-width="1"/>
+<text x="540.4989714248811" y="382" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#53616f">6</text>
+<line x1="680.7484571373217" y1="68" x2="680.7484571373217" y2="360" stroke="#d8dee6" stroke-width="1"/>
+<text x="680.7484571373217" y="382" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#53616f">9</text>
+<line x1="820.9979428497622" y1="68" x2="820.9979428497622" y2="360" stroke="#d8dee6" stroke-width="1"/>
+<text x="820.9979428497622" y="382" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#53616f">12</text>
+<text x="590" y="406" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#53616f">Median runtime (seconds, lower is faster)</text>
+<text x="246" y="114" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="end" fill="#172026">Single sample bootstrap</text>
+<text x="246" y="132" font-family="Arial, sans-serif" font-size="11" text-anchor="end" fill="#53616f">67 signatures x 96 contexts; 500 iterations</text>
+<rect x="260" y="98" width="70.58416744653425" height="18" fill="#9CA3AF"/>
+<text x="338.58416744653425" y="112" font-family="Arial, sans-serif" font-size="12" fill="#53616f">1.510s serial</text>
+<rect x="260" y="124" width="39.50052199114318" height="18" fill="#0072B2"/>
+<text x="307.50052199114316" y="138" font-family="Arial, sans-serif" font-size="12" fill="#172026">0.845s, 259 MiB RSS</text>
+<text x="246" y="206" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="end" fill="#172026">120-sample cohort bootstrap</text>
+<text x="246" y="224" font-family="Arial, sans-serif" font-size="11" text-anchor="end" fill="#53616f">67 signatures x 96 contexts; 25 iterations/sample</text>
+<rect x="260" y="190" width="573.9130434782609" height="18" fill="#9CA3AF"/>
+<text x="841.9130434782609" y="204" font-family="Arial, sans-serif" font-size="12" fill="#53616f">12.276s serial</text>
+<rect x="260" y="216" width="217.25066552812464" height="18" fill="#0072B2"/>
+<text x="485.2506655281246" y="230" font-family="Arial, sans-serif" font-size="12" fill="#172026">4.647s, 546 MiB RSS</text>
+<text x="246" y="298" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="end" fill="#172026">300-sample cohort bootstrap</text>
+<text x="246" y="316" font-family="Arial, sans-serif" font-size="11" text-anchor="end" fill="#53616f">40 signatures x 96 contexts; 10 iterations/sample</text>
+<rect x="260" y="308" width="93.05458708617569" height="18" fill="#0072B2"/>
+<text x="361.0545870861757" y="322" font-family="Arial, sans-serif" font-size="12" fill="#172026">1.990s, 453 MiB RSS</text>
+<rect x="28" y="368" width="12" height="12" fill="#9CA3AF"/>
+<text x="46" y="378" font-family="Arial, sans-serif" font-size="12" fill="#53616f">Serial</text>
+<rect x="112" y="368" width="12" height="12" fill="#0072B2"/>
+<text x="130" y="378" font-family="Arial, sans-serif" font-size="12" fill="#53616f">4 workers</text>
+</svg>

@@ -20,13 +20,13 @@
   <body>
     <main>
       <div class="figure-frame">
-
+        
         <div id="chart"></div>
       </div>
     </main>
     <script>
-      const spec = {"elapsedSeconds":1.8937800000011922,"reportBytes":8931,"sampleCount":1,"signatureCount":67,"sourceSpectrumUrl":"https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=PCAWG&cancer=Lung-AdenoCA&strategy=WGS&profile=SBS&matrix=96&offset=0","sourceCatalogUrl":"https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature?source=Reference_signatures&strategy=WGS&profile=SBS&matrix=96&signatureSetName=COSMIC_v3_Signatures_GRCh37_SBS96&limit=10000&offset=0","steps":[{"id":"blank","label":"A","title":"Page starts","time":0.0002749999985098839,"note":"t=0"},{"id":"import","label":"B","title":"SDK loads","time":1.5477299999967218,"note":"in browser"},{"id":"fetch","label":"C","title":"Inputs fetched","time":1.8738500000014902,"note":"public only"},{"id":"report","label":"D","title":"Report ready","time":1.8935399999991058,"note":"no upload"}],"rawSteps":[{"name":"Page loaded","elapsedSeconds":0.0002749999985098839},{"name":"SDK imported","elapsedSeconds":1.5477299999967218},{"name":"mSigPortal data fetched","elapsedSeconds":1.8738500000014902},{"name":"Single-sample fit completed","elapsedSeconds":1.891439999997616},{"name":"SDK report generated","elapsedSeconds":1.8935399999991058}],"palette":{"ink":"#111827","muted":"#4b5563","hairline":"#d1d5db","panel":"#ffffff","paper":"#f8fafc","blue":"#0072B2","sky":"#56B4E9","green":"#009E73","orange":"#E69F00","vermillion":"#D55E00","purple":"#CC79A7","yellow":"#F0E442","gray":"#6B7280","paleBlue":"#E7F3FA","paleGreen":"#E8F5F1","paleOrange":"#FFF4DB"}};
-
+      const spec = {"elapsedSeconds":4.993234999895096,"reportBytes":8931,"sampleCount":1,"signatureCount":67,"sourceSpectrumUrl":"https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=PCAWG&cancer=Lung-AdenoCA&strategy=WGS&profile=SBS&matrix=96&offset=0","sourceCatalogUrl":"https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature?source=Reference_signatures&strategy=WGS&profile=SBS&matrix=96&signatureSetName=COSMIC_v3_Signatures_GRCh37_SBS96&limit=10000&offset=0","steps":[{"id":"blank","label":"A","title":"Page starts","time":0.00018499994277954102,"note":"page-load start"},{"id":"import","label":"B","title":"SDK loads","time":4.7130350000858305,"note":"cumulative"},{"id":"fetch","label":"C","title":"Inputs fetched","time":4.96947000002861,"note":"cumulative"},{"id":"report","label":"D","title":"Report ready","time":4.993,"note":"cumulative"}],"rawSteps":[{"name":"Page loaded","elapsedSeconds":0.00018499994277954102},{"name":"SDK imported","elapsedSeconds":4.7130350000858305},{"name":"mSigPortal data fetched","elapsedSeconds":4.96947000002861},{"name":"Single-sample fit completed","elapsedSeconds":4.990539999961853},{"name":"SDK report generated","elapsedSeconds":4.993}],"palette":{"ink":"#111827","muted":"#4b5563","hairline":"#d1d5db","panel":"#ffffff","paper":"#f8fafc","blue":"#0072B2","sky":"#56B4E9","green":"#009E73","orange":"#E69F00","vermillion":"#D55E00","purple":"#CC79A7","yellow":"#F0E442","gray":"#6B7280","paleBlue":"#E7F3FA","paleGreen":"#E8F5F1","paleOrange":"#FFF4DB"}};
+      
       const width = 1280, height = 680;
       const p = spec.palette;
       const svg = d3.select("#chart").append("svg").attr("viewBox", [0, 0, width, height]);
@@ -55,7 +55,7 @@
       metric.append("text").attr("x", 26).attr("y", 43).attr("font-size", 36).attr("font-weight", 700).attr("fill", p.green)
         .text(formatTime(spec.elapsedSeconds || 0));
       metric.append("text").attr("x", 26).attr("y", 72).attr("font-size", 15).attr("font-weight", 700).attr("fill", p.muted)
-        .text("automated runtime");
+        .text("cumulative from page load");
 
       const cardW = 254, cardH = 380, gap = 46, cardTop = 146;
       const cards = svg.selectAll("g.story-card").data(spec.steps).join("g")
@@ -87,6 +87,8 @@
       }
 
       const timeline = svg.append("g").attr("transform", "translate(108,588)");
+      timeline.append("text").attr("x", 0).attr("y", -20).attr("font-size", 13).attr("font-weight", 700).attr("fill", p.muted)
+        .text("Cumulative time from page-load start");
       timeline.append("line").attr("x1", 0).attr("x2", 1064).attr("y1", 0).attr("y2", 0).attr("stroke", p.hairline).attr("stroke-width", 2);
       const tx = d3.scalePoint().domain(spec.steps.map((d) => d.label)).range([16, 1048]).padding(0);
       timeline.selectAll("circle.tick").data(spec.steps).join("circle")
@@ -95,7 +97,7 @@
         .attr("x", (d) => tx(d.label)).attr("y", 32).attr("text-anchor", "middle").attr("font-size", 12).attr("font-weight", 700).attr("fill", p.ink)
         .text((d) => d.label + "  " + formatTime(d.time));
       svg.append("text").attr("x", 64).attr("y", 652).attr("font-size", 13).attr("font-weight", 700).attr("fill", p.muted)
-        .text("Timing excludes browser launch and URL typing.");
+        .text("All displayed step times are cumulative from page-load start; browser launch and URL typing are excluded.");
 
       function drawBrowser(g, color) {
         g.append("rect").attr("x", 18).attr("y", 4).attr("width", 194).attr("height", 152).attr("rx", 8).attr("fill", p.paleBlue).attr("stroke", color).attr("stroke-width", 2.5);
@@ -147,7 +149,7 @@
             lock.append("path").attr("d", "M-7 -1v-8c0-11 14-11 14 0v8").attr("fill", "none").attr("stroke", p.green).attr("stroke-width", 4).attr("stroke-linecap", "round");
           });
       }
-
+    
     </script>
   </body>
 </html>

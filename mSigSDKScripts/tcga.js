@@ -1,9 +1,17 @@
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-import { fetchURLAndCache } from "./utils.js";
+import {
+  assertNoUserDataEgress,
+  debugLog,
+  debugWarn,
+  fetchURLAndCache,
+  getRuntimeOptions,
+} from "./utils.js";
 
 import { convertMatrix, normalizeSequenceContext } from "./mutationalSpectrum.js";
-import * as pako from "https://cdn.jsdelivr.net/npm/pako/+esm";
+// Browser ESM dynamic imports do not provide a portable SRI hook; the exact
+// version is pinned and bundled package artifacts are hash-verified separately.
+import * as pako from "https://cdn.jsdelivr.net/npm/pako@2.1.0/+esm";
 
 function parseTsvObjects(text) {
   const lines = String(text || "")
@@ -190,7 +198,13 @@ function emitProgress(onProgress, payload) {
  * let genes = ['ENSG00000155657']
  * var result = await tcga.getProjectsByGene(genes)
  */
-async function getProjectsByGene(genes) {
+async function getProjectsByGene(genes, options = {}) {
+  const runtimeOptions = getRuntimeOptions(options);
+  assertNoUserDataEgress(
+    "GDC gene-to-project query",
+    runtimeOptions,
+    "Gene IDs are sent in the GDC query string; use local project metadata in strictLocal mode."
+  );
   var dat = {};
   var projects = [];
 
@@ -204,7 +218,7 @@ async function getProjectsByGene(genes) {
       await Promise.all(
         temp.map(async (g) => {
           var url = `https://api.gdc.cancer.gov/analysis/top_cases_counts_by_genes?gene_ids=${g}`;
-          var data = await fetchURLAndCache("TCGA", url);
+          var data = await fetchURLAndCache("TCGA", url, null, null, runtimeOptions);
           data = await data.json();
           var temp = [];
           for (var p of data["aggregations"]["projects"]["buckets"]) {
@@ -250,7 +264,13 @@ async function getProjectsByGene(genes) {
  * let projects = ['TCGA-LUSC', 'TCGA-OV']
  * var result = await tcga.getTpmCountsByGenesOnProjects(genes, projects)
  */
-async function getTpmCountsByGenesOnProjects(genes, projects) {
+async function getTpmCountsByGenesOnProjects(genes, projects, options = {}) {
+  const runtimeOptions = getRuntimeOptions(options);
+  assertNoUserDataEgress(
+    "GDC TPM file query by project",
+    runtimeOptions,
+    "Project IDs are sent in the POST body; use local GDC metadata in strictLocal mode."
+  );
   var result = {};
 
   var i = 0;
@@ -303,7 +323,9 @@ async function getTpmCountsByGenesOnProjects(genes, projects) {
               method: "POST",
               body: JSON.stringify(query),
               headers: { "Content-Type": "application/json" },
-            }
+            },
+            null,
+            runtimeOptions
           );
           data = await data.text();
           var table = data
@@ -315,7 +337,7 @@ async function getTpmCountsByGenesOnProjects(genes, projects) {
             });
           var files_ = [];
           var count_files = table.map((e) => {
-            console.log(e);
+            debugLog(runtimeOptions, e);
             var files = {};
             files["workflow_type"] = e[0];
             files["case_id"] = e[1];
@@ -368,7 +390,13 @@ async function getTpmCountsByGenesOnProjects(genes, projects) {
  * let files = ['9e5f8edc-5074-43b7-a870-594aeb36e2aa', '8d5a94c8-b3d9-4991-8ce9-f7aa9189938c', 'dedf9f52-7ded-4cc5-bba2-da89a48b5176', '3aa53aa2-97cd-43a8-b7b1-09f0bf6381dd']
  * var result = await tcga.getTpmCountsByGenesFromFiles(genes, files)
  */
-async function getTpmCountsByGenesFromFiles(genes, files) {
+async function getTpmCountsByGenesFromFiles(genes, files, options = {}) {
+  const runtimeOptions = getRuntimeOptions(options);
+  assertNoUserDataEgress(
+    "GDC TPM data fetch by file ID",
+    runtimeOptions,
+    "File IDs are sent in the GDC data URL; use local expression files in strictLocal mode."
+  );
   var result = {};
   for (var g of genes) {
     result[g] = { name: "", type: "", counts_fpkm: {}, counts_tpm: {} };
@@ -384,7 +412,10 @@ async function getTpmCountsByGenesFromFiles(genes, files) {
         temp.map(async (f) => {
           var data = await fetchURLAndCache(
             "TCGA",
-            `https://api.gdc.cancer.gov/data/${f}`
+            `https://api.gdc.cancer.gov/data/${f}`,
+            null,
+            null,
+            runtimeOptions
           );
           data = await data.text();
           data = data
@@ -393,7 +424,7 @@ async function getTpmCountsByGenesFromFiles(genes, files) {
               return e.split("\t");
             })
             .filter((e) => e.length > 1);
-          console.log(f);
+          debugLog(runtimeOptions, f);
           var col_tpm = -1;
           var col_fpkm = -1;
           var i = 0;
@@ -452,7 +483,13 @@ async function getTpmCountsByGenesFromFiles(genes, files) {
  * let projects = ['TCGA-LUSC', 'TCGA-OV']
  * var result = await tcga.getMafInformationFromProjects(projects)
  */
-async function getMafInformationFromProjects(projects) {
+async function getMafInformationFromProjects(projects, options = {}) {
+  const runtimeOptions = getRuntimeOptions(options);
+  assertNoUserDataEgress(
+    "GDC MAF file query by project",
+    runtimeOptions,
+    "Project IDs are sent in the POST body; use local MAF metadata in strictLocal mode."
+  );
   var result = {};
 
   var i = 0;
@@ -512,7 +549,9 @@ async function getMafInformationFromProjects(projects) {
               method: "POST",
               body: JSON.stringify(query),
               headers: { "Content-Type": "application/json" },
-            }
+            },
+            null,
+            runtimeOptions
           );
           data = await data.text();
           var rows = parseTsvObjects(data);
@@ -594,6 +633,12 @@ async function getMafInformationFromProjects(projects) {
  */
 async function getVariantInformationFromMafFiles(res, options = {}) {
   const settings = options && typeof options === "object" ? options : {};
+  const runtimeOptions = getRuntimeOptions(settings);
+  assertNoUserDataEgress(
+    "GDC MAF data fetch by file ID",
+    runtimeOptions,
+    "MAF file IDs are sent in the GDC data URL; pass local MAF rows to convertMatrix/convertMafToProfileSpectra in strictLocal mode."
+  );
   const {
     fileConcurrency = 4,
     includeVariantInformation = true,
@@ -646,7 +691,7 @@ async function getVariantInformationFromMafFiles(res, options = {}) {
         });
 
         try {
-          var dat = await fetchURLAndCache("TCGA", url);
+          var dat = await fetchURLAndCache("TCGA", url, null, null, runtimeOptions);
           var raw = await dat.arrayBuffer();
           emitProgress(onProgress, {
             stage: "parse",
@@ -685,7 +730,7 @@ async function getVariantInformationFromMafFiles(res, options = {}) {
             completed: completedFiles,
             total: totalFiles,
           });
-          console.warn(`Could not load GDC MAF file ${f}.`, error);
+          debugWarn(runtimeOptions, `Could not load GDC MAF file ${f}.`, error);
           return [];
         }
       },

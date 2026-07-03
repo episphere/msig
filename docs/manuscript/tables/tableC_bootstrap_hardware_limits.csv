@@ -1,0 +1,4 @@
+workload,size,serialMedianSeconds,workerMedianSeconds,speedup,workerCount,workerMedianPeakRssMiB,testedNodeHeapLowerBoundMiB,interpretation
+Single sample bootstrap,67 signatures x 96 contexts; 500 iterations,1.5098273000000002,0.8449340500000001,1.786917333962337,4,258.595703125,128,Synthetic Node worker-thread stress test; not a universal browser RAM minimum.
+120-sample cohort bootstrap,67 signatures x 96 contexts; 25 iterations/sample,12.27625985,4.6470901,2.641709023459649,4,546.212890625,256,Synthetic Node worker-thread stress test; not a universal browser RAM minimum.
+300-sample cohort bootstrap,40 signatures x 96 contexts; 10 iterations/sample,,1.9904797499999987,,4,453.119140625,,Synthetic Node worker-thread stress test; not a universal browser RAM minimum.

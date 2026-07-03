@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "msig.supplement_manifest.v1",
+  "generatedAt": "2026-06-28T12:31:51.158Z",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "commit": "10c5ecfd1eb3394bd72c5027d7d6f5f9090a9be9",
+    "generator": "scripts/manuscript/generate-revision-assets.mjs",
+    "seed": 20260521
+  },
+  "files": {
+    "networkAudit": "network-endpoint-data-residency-audit.md",
+    "runtimeIntegrity": "runtime-version-integrity-manifest.md",
+    "adapterFidelity": "adapter-fidelity-reproducibility-record.md",
+    "strictLocal": "strict-local-no-egress-evidence.md",
+    "benchmarkHarness": "benchmark-harness-description.md",
+    "tables": {
+      "table2": "docs/manuscript/tables/table2_executable_adapters.csv",
+      "tableA": "docs/manuscript/tables/tableA_network_endpoints.csv",
+      "tableB": "docs/manuscript/tables/tableB_qc_thresholds.csv",
+      "e2Status": "completed"
+    },
+    "internalReference": {
+      "json": "docs/manuscript/experiments/e3_internal_reference_checks/data/reference-check-results.json",
+      "csv": "docs/manuscript/experiments/e3_internal_reference_checks/data/reference_check_summary.csv",
+      "input": "docs/manuscript/experiments/e3_internal_reference_checks/data/reference-input.json",
+      "pythonReference": "docs/manuscript/experiments/e3_internal_reference_checks/data/python-reference.json",
+      "rReference": "docs/manuscript/experiments/e3_internal_reference_checks/data/r-nnls-reference.csv"
+    }
+  }
+}

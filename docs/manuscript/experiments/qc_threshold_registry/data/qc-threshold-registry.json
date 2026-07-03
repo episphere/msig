@@ -1,0 +1,601 @@
+{
+  "schemaVersion": "msig.qc_threshold_registry.v1",
+  "generatedAt": "2026-06-25T02:33:16.581Z",
+  "rows": [
+    {
+      "field": "QC_DEFAULTS.mutationBurden.lowBurdenThreshold",
+      "default": "50",
+      "meaning": "Mutation count below which samples receive a low-burden review cue.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:23"
+    },
+    {
+      "field": "QC_DEFAULTS.mutationBurden.lowBurdenThresholdMode",
+      "default": "fixed",
+      "meaning": "Mutation count below which samples receive a low-burden review cue.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:24"
+    },
+    {
+      "field": "QC_DEFAULTS.mutationBurden.quantile",
+      "default": "0.25",
+      "meaning": "Quantile used when threshold mode is quantile-based.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:25"
+    },
+    {
+      "field": "QC_DEFAULTS.mutationBurden.moderateBurdenThreshold",
+      "default": "1000",
+      "meaning": "Mutation count boundary used to separate low/moderate burden review context.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:26"
+    },
+    {
+      "field": "QC_DEFAULTS.sampleSelection.limit",
+      "default": "10",
+      "meaning": "Maximum number of records selected by the helper.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:29"
+    },
+    {
+      "field": "QC_DEFAULTS.sampleSelection.minTotalMutations",
+      "default": "0",
+      "meaning": "Configurable default for QC_DEFAULTS.sampleSelection.minTotalMutations; current value is 0.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:30"
+    },
+    {
+      "field": "QC_DEFAULTS.sampleSelection.maxTotalMutations",
+      "default": "Infinity",
+      "meaning": "Configurable default for QC_DEFAULTS.sampleSelection.maxTotalMutations; current value is Infinity.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:31"
+    },
+    {
+      "field": "QC_DEFAULTS.exposureNormalization.pseudocount",
+      "default": "0.000001",
+      "meaning": "Small value used to stabilize normalization.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:38"
+    },
+    {
+      "field": "QC_DEFAULTS.residuals.lowBurdenThreshold",
+      "default": "100",
+      "meaning": "Mutation count below which samples receive a low-burden review cue.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:44"
+    },
+    {
+      "field": "QC_DEFAULTS.residuals.moderateBurdenThreshold",
+      "default": "1000",
+      "meaning": "Mutation count boundary used to separate low/moderate burden review context.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:45"
+    },
+    {
+      "field": "QC_DEFAULTS.residuals.weakUnexplainedThreshold",
+      "default": "0.07",
+      "meaning": "Relative unexplained residual fraction that begins residual-structure review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:46"
+    },
+    {
+      "field": "QC_DEFAULTS.residuals.highResidualStructureCosineThreshold",
+      "default": "0.85",
+      "meaning": "Cosine threshold for matching positive residual structure to a reference signature.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:47"
+    },
+    {
+      "field": "QC_DEFAULTS.nnls.exposureThreshold",
+      "default": "0",
+      "meaning": "Relative exposure cutoff used when counting or reporting active fitted signatures.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:50"
+    },
+    {
+      "field": "QC_DEFAULTS.nnls.maxIterations",
+      "default": "null",
+      "meaning": "Maximum iterations for iterative fitting; null means the solver default is used.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/qc.js:53"
+    },
+    {
+      "field": "QC_DEFAULTS.nnls.convergenceTolerance",
+      "default": "1e-10",
+      "meaning": "Numerical convergence tolerance for iterative fitting.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/qc.js:54"
+    },
+    {
+      "field": "QC_DEFAULTS.thresholdSensitivity.thresholds",
+      "default": "[0,0.01,0.03,0.05,0.1]",
+      "meaning": "Exposure-threshold grid used for cutoff-sensitivity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:57"
+    },
+    {
+      "field": "QC_DEFAULTS.thresholdSensitivity.baselineThreshold",
+      "default": "null",
+      "meaning": "Configurable default for QC_DEFAULTS.thresholdSensitivity.baselineThreshold; current value is null.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:58"
+    },
+    {
+      "field": "QC_DEFAULTS.thresholdSensitivity.instabilityL1Threshold",
+      "default": "null",
+      "meaning": "Configured L1 exposure-drift cue for threshold-sensitivity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:59"
+    },
+    {
+      "field": "QC_DEFAULTS.thresholdSensitivity.activeSetJaccardThreshold",
+      "default": "null",
+      "meaning": "Configured active-set Jaccard cue for threshold-sensitivity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:60"
+    },
+    {
+      "field": "QC_DEFAULTS.thresholdSensitivity.maxIterations",
+      "default": "null",
+      "meaning": "Maximum iterations for iterative fitting; null means the solver default is used.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/qc.js:64"
+    },
+    {
+      "field": "QC_DEFAULTS.thresholdSensitivity.convergenceTolerance",
+      "default": "1e-10",
+      "meaning": "Numerical convergence tolerance for iterative fitting.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/qc.js:65"
+    },
+    {
+      "field": "QC_DEFAULTS.bootstrap.iterations",
+      "default": "200",
+      "meaning": "Bootstrap or iterative solver repeat count.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:68"
+    },
+    {
+      "field": "QC_DEFAULTS.bootstrap.confidenceLevel",
+      "default": "0.95",
+      "meaning": "Bootstrap interval confidence level.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/qc.js:69"
+    },
+    {
+      "field": "QC_DEFAULTS.bootstrap.exposureThreshold",
+      "default": "0",
+      "meaning": "Relative exposure cutoff used when counting or reporting active fitted signatures.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/qc.js:70"
+    },
+    {
+      "field": "QC_DEFAULTS.bootstrap.minIterationsForStableIntervals",
+      "default": "500",
+      "meaning": "Configurable default for QC_DEFAULTS.bootstrap.minIterationsForStableIntervals; current value is 500.",
+      "default_type": "publication/review recommendation",
+      "source": "mSigSDKScripts/qc.js:75"
+    },
+    {
+      "field": "QC_DEFAULTS.bootstrap.publicationRecommendedIterations",
+      "default": "1000",
+      "meaning": "Configurable default for QC_DEFAULTS.bootstrap.publicationRecommendedIterations; current value is 1000.",
+      "default_type": "publication/review recommendation",
+      "source": "mSigSDKScripts/qc.js:76"
+    },
+    {
+      "field": "QC_DEFAULTS.bootstrap.maxIterations",
+      "default": "null",
+      "meaning": "Maximum iterations for iterative fitting; null means the solver default is used.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/qc.js:78"
+    },
+    {
+      "field": "QC_DEFAULTS.bootstrap.convergenceTolerance",
+      "default": "1e-10",
+      "meaning": "Numerical convergence tolerance for iterative fitting.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/qc.js:79"
+    },
+    {
+      "field": "QC_DEFAULTS.bootstrap.yieldEvery",
+      "default": "25",
+      "meaning": "Configurable default for QC_DEFAULTS.bootstrap.yieldEvery; current value is 25.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/qc.js:80"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.analysisStrategy.wgsLowBurdenThreshold",
+      "default": "100",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.analysisStrategy.wgsLowBurdenThreshold; current value is 100.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:282"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.analysisStrategy.wgsModerateBurdenThreshold",
+      "default": "1000",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.analysisStrategy.wgsModerateBurdenThreshold; current value is 1000.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:283"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.analysisStrategy.panelLowBurdenThreshold",
+      "default": "30",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.analysisStrategy.panelLowBurdenThreshold; current value is 30.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:284"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.analysisStrategy.panelModerateBurdenThreshold",
+      "default": "150",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.analysisStrategy.panelModerateBurdenThreshold; current value is 150.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:285"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.analysisStrategy.highBurdenThreshold",
+      "default": "3000",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.analysisStrategy.highBurdenThreshold; current value is 3000.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:286"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.analysisStrategy.heterogeneityCosineThreshold",
+      "default": "0.85",
+      "meaning": "Cosine similarity boundary for signature, residual, or sample ambiguity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:290"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.signatureAmbiguity.pairReportThreshold",
+      "default": "0.9",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.signatureAmbiguity.pairReportThreshold; current value is 0.9.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:293"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.signatureAmbiguity.moderateNearestCosine",
+      "default": "0.9",
+      "meaning": "Cosine similarity boundary for signature, residual, or sample ambiguity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:294"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.signatureAmbiguity.highNearestCosine",
+      "default": "0.95",
+      "meaning": "Cosine similarity boundary for signature, residual, or sample ambiguity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:295"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.catalogSufficiency.unexplainedThreshold",
+      "default": "0.12",
+      "meaning": "Relative unexplained residual fraction used for catalog-sufficiency review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:310"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.catalogSufficiency.weakUnexplainedThreshold",
+      "default": "0.07",
+      "meaning": "Relative unexplained residual fraction that begins residual-structure review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:311"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.catalogSufficiency.cosineThreshold",
+      "default": "0.9",
+      "meaning": "Cosine similarity boundary for signature, residual, or sample ambiguity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:312"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.catalogSufficiency.structuredResidualCosineThreshold",
+      "default": "0.85",
+      "meaning": "Cosine threshold for matching positive residual structure to a reference signature.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:313"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.catalogSufficiency.moderateBurdenThreshold",
+      "default": "1000",
+      "meaning": "Mutation count boundary used to separate low/moderate burden review context.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:315"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.lowBurdenThreshold",
+      "default": "100",
+      "meaning": "Mutation count below which samples receive a low-burden review cue.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:320"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.moderateBurdenThreshold",
+      "default": "1000",
+      "meaning": "Mutation count boundary used to separate low/moderate burden review context.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:321"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.activeExposureThreshold",
+      "default": "0.05",
+      "meaning": "Relative exposure cutoff used when counting or reporting active fitted signatures.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:322"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.sampleConfusionCosineThreshold",
+      "default": "0.9",
+      "meaning": "Cosine similarity boundary for signature, residual, or sample ambiguity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:323"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.strongSampleConfusionCosineThreshold",
+      "default": "0.95",
+      "meaning": "Cosine similarity boundary for signature, residual, or sample ambiguity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:324"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.catalogReviewCosineThreshold",
+      "default": "0.9",
+      "meaning": "Cosine similarity boundary for signature, residual, or sample ambiguity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:326"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.catalogJointCosineThreshold",
+      "default": "0.94",
+      "meaning": "Cosine similarity boundary for signature, residual, or sample ambiguity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:327"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.catalogJointUnexplainedThreshold",
+      "default": "0.2",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.fitQualityEvidence.catalogJointUnexplainedThreshold; current value is 0.2.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:328"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.catalogStrongUnexplainedThreshold",
+      "default": "0.3",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.fitQualityEvidence.catalogStrongUnexplainedThreshold; current value is 0.3.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:329"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.catalogStructuredResidualUnexplainedThreshold",
+      "default": "0.18",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.fitQualityEvidence.catalogStructuredResidualUnexplainedThreshold; current value is 0.18.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:330"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.bootstrapReviewConfidenceWidthThreshold",
+      "default": "null",
+      "meaning": "Bootstrap confidence-interval width cue for exposure stability review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:331"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.bootstrapStrongConfidenceWidthThreshold",
+      "default": "null",
+      "meaning": "Bootstrap confidence-interval width cue for exposure stability review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:332"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.bootstrapReviewExposureThreshold",
+      "default": "0.05",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.fitQualityEvidence.bootstrapReviewExposureThreshold; current value is 0.05.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:333"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.bootstrapReviewSelectionFrequencyThreshold",
+      "default": "null",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.fitQualityEvidence.bootstrapReviewSelectionFrequencyThreshold; current value is null.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:334"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.bootstrapStrongSelectionFrequencyThreshold",
+      "default": "null",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.fitQualityEvidence.bootstrapStrongSelectionFrequencyThreshold; current value is null.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:335"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.thresholdReviewCosineDrop",
+      "default": "0.02",
+      "meaning": "Cosine similarity boundary for signature, residual, or sample ambiguity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:336"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.fitQualityEvidence.thresholdStrongCosineDrop",
+      "default": "0.05",
+      "meaning": "Cosine similarity boundary for signature, residual, or sample ambiguity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:337"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.groupComparison.permutationIterations",
+      "default": "0",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.groupComparison.permutationIterations; current value is 0.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:342"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.singleSampleFit.mutationBurden.lowBurdenThreshold",
+      "default": "100",
+      "meaning": "Mutation count below which samples receive a low-burden review cue.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:348"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.singleSampleFit.mutationBurden.moderateBurdenThreshold",
+      "default": "1000",
+      "meaning": "Mutation count boundary used to separate low/moderate burden review context.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:349"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.singleSampleFit.fit.exposureThreshold",
+      "default": "0",
+      "meaning": "Relative exposure cutoff used when counting or reporting active fitted signatures.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:352"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.singleSampleFit.fit.maxIterations",
+      "default": "null",
+      "meaning": "Maximum iterations for iterative fitting; null means the solver default is used.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/guidance.js:355"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.singleSampleFit.fit.convergenceTolerance",
+      "default": "1e-10",
+      "meaning": "Numerical convergence tolerance for iterative fitting.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/guidance.js:356"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.singleSampleFit.thresholdSensitivity.thresholds",
+      "default": "[0,0.01,0.03,0.05,0.1]",
+      "meaning": "Exposure-threshold grid used for cutoff-sensitivity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:359"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.singleSampleFit.bootstrap.iterations",
+      "default": "100",
+      "meaning": "Bootstrap or iterative solver repeat count.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:362"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.singleSampleFit.bootstrap.confidenceLevel",
+      "default": "0.95",
+      "meaning": "Bootstrap interval confidence level.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/guidance.js:363"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.cohortFit.mutationBurden.lowBurdenThreshold",
+      "default": "100",
+      "meaning": "Mutation count below which samples receive a low-burden review cue.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:369"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.cohortFit.mutationBurden.moderateBurdenThreshold",
+      "default": "1000",
+      "meaning": "Mutation count boundary used to separate low/moderate burden review context.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:370"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.cohortFit.bootstrapSampleLimit",
+      "default": "5",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.cohortFit.bootstrapSampleLimit; current value is 5.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:372"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.cohortFit.clusterCosineThreshold",
+      "default": "0.85",
+      "meaning": "Cosine similarity boundary for signature, residual, or sample ambiguity review.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:373"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.discoveryWorkflow.ranks",
+      "default": "[2,3,4,5]",
+      "meaning": "NMF rank setting.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/guidance.js:377"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.discoveryWorkflow.rankSelectionMaxIterations",
+      "default": "500",
+      "meaning": "NMF rank setting.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/guidance.js:378"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.discoveryWorkflow.extractionMaxIterations",
+      "default": "1000",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.discoveryWorkflow.extractionMaxIterations; current value is 1000.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/guidance.js:379"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.discoveryWorkflow.rankSelectionRuns",
+      "default": "5",
+      "meaning": "NMF rank setting.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/guidance.js:381"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.discoveryWorkflow.extractionRuns",
+      "default": "20",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.discoveryWorkflow.extractionRuns; current value is 20.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/guidance.js:382"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.discoveryWorkflow.rankSelectionCriterion",
+      "default": "reconstruction_error",
+      "meaning": "NMF rank setting.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/guidance.js:383"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.discoveryWorkflow.rank",
+      "default": "null",
+      "meaning": "NMF rank setting.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/guidance.js:385"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.discoveryWorkflow.defaultRank",
+      "default": "3",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.discoveryWorkflow.defaultRank; current value is 3.",
+      "default_type": "computational setting",
+      "source": "mSigSDKScripts/guidance.js:386"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.panelWorkflow.lowBurdenThreshold",
+      "default": "30",
+      "meaning": "Mutation count below which samples receive a low-burden review cue.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:396"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.panelWorkflow.moderateBurdenThreshold",
+      "default": "150",
+      "meaning": "Mutation count boundary used to separate low/moderate burden review context.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:397"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.panelWorkflow.higherSupportExposureThreshold",
+      "default": "0.2",
+      "meaning": "Configurable default for ADVISOR_DEFAULTS.panelWorkflow.higherSupportExposureThreshold; current value is 0.2.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:399"
+    },
+    {
+      "field": "ADVISOR_DEFAULTS.panelWorkflow.limitedSupportExposureThreshold",
+      "default": "0.05",
+      "meaning": "Maximum number of records selected by the helper.",
+      "default_type": "configurable convenience default",
+      "source": "mSigSDKScripts/guidance.js:400"
+    }
+  ]
+}

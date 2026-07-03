@@ -10,11 +10,37 @@
     <pre id="log">Loading SDK...</pre>
     <script type="module">
       const log = document.querySelector("#log");
+      const navigationStart = performance.now();
+      const importStarted = performance.now();
       const { mSigSDK } = await import("/main.js?e4=" + Date.now());
+      const importEnded = performance.now();
+      const readyAt = performance.now();
+      window.__MSIG_LOAD_TIMING__ = {
+        loadMs: readyAt - navigationStart,
+        moduleImportMs: importEnded - importStarted,
+        runtimeInitMs: 0,
+        networkFetchMs: resourceDuration(),
+      };
       window.__MSIG_BENCH_READY__ = true;
       log.textContent = "Ready";
       window.__runMsigBenchmark = async function runBenchmark(scenario, repeat, data) {
+        const coldCompute = await runCompute(scenario, repeat, data);
+        const load = window.__MSIG_LOAD_TIMING__ || {};
+        const cold = {
+          ...coldCompute,
+          elapsedMs: (load.loadMs || 0) + (coldCompute.elapsedMs || 0),
+          loadMs: load.loadMs || null,
+          networkFetchMs: load.networkFetchMs || null,
+          moduleImportMs: load.moduleImportMs || null,
+          runtimeInitMs: load.runtimeInitMs || 0,
+        };
+        const warm = await runCompute(scenario, repeat + 100000, data);
+        return { cold, warm };
+      };
+
+      async function runCompute(scenario, repeat, data) {
         const started = performance.now();
+        let serializationMs = 0;
         try {
           let details = {};
           if (scenario === "single_sample_fit_report") {
@@ -29,12 +55,14 @@
               contexts: data.contexts,
               normalizeMode: "relative"
             });
+            const serializationStarted = performance.now();
             const report = mSigSDK.reports.createAnalysisReport({
               title: "Browser runtime single-sample report",
               summary: "Benchmark report generated in the browser.",
               qc,
               exposures
             }, { format: "html" });
+            serializationMs = performance.now() - serializationStarted;
             details = { reportBytes: report.length };
           } else if (scenario === "medium_cohort_120" || scenario === "portal_scale_300x40") {
             const exposures = await mSigSDK.qc.fitSpectraWithNNLS(data.signatures, data.spectra, {
@@ -44,7 +72,10 @@
               maxIterations: 10000,
               convergenceTolerance: 1e-12
             });
-            details = { exposureRows: Object.keys(exposures).length };
+            const serializationStarted = performance.now();
+            const exposureBytes = JSON.stringify(exposures).length;
+            serializationMs = performance.now() - serializationStarted;
+            details = { exposureRows: Object.keys(exposures).length, exposureBytes };
           } else if (scenario === "bootstrap_500") {
             const bootstrap = await mSigSDK.qc.bootstrapSignatureFit(data.signatures, data.spectrum, {
               contexts: data.contexts,
@@ -56,7 +87,10 @@
               maxIterations: 10000,
               convergenceTolerance: 1e-12
             });
-            details = { iterations: bootstrap.iterations, signatures: bootstrap.signatures.length };
+            const serializationStarted = performance.now();
+            const bootstrapBytes = JSON.stringify(bootstrap).length;
+            serializationMs = performance.now() - serializationStarted;
+            details = { iterations: bootstrap.iterations, signatures: bootstrap.signatures.length, bootstrapBytes };
           } else if (scenario === "nmf_rank_selection_rank4") {
             const rankStarted = performance.now();
             const rankSelection = mSigSDK.signatureExtraction.selectNMFRank(data.spectra, {
@@ -78,32 +112,57 @@
               tolerance: 1e-5
             });
             const extractionMs = performance.now() - extractionStarted;
+            const serializationStarted = performance.now();
+            const nmfBytes = JSON.stringify({ rankSelection, extraction }).length;
+            serializationMs = performance.now() - serializationStarted;
             details = {
               recommendedRank: rankSelection.recommendedRank,
               extractionError: extraction.reconstructionError,
               rankSelectionMs,
-              extractionMs
+              extractionMs,
+              nmfBytes
             };
           } else {
             throw new Error("Unknown scenario " + scenario);
           }
+          const elapsedMs = performance.now() - started;
+          const jsHeapBytes = performance.memory?.usedJSHeapSize || null;
           return {
             status: "completed",
-            elapsedMs: performance.now() - started,
+            elapsedMs,
+            loadMs: null,
+            networkFetchMs: 0,
+            moduleImportMs: 0,
+            runtimeInitMs: 0,
+            pureJsComputeMs: Math.max(0, elapsedMs - serializationMs),
+            serializationMs,
+            jsHeapBytes,
             sampleCount: data.spectra ? Object.keys(data.spectra).length : 1,
             signatureCount: data.signatures ? Object.keys(data.signatures).length : null,
             details
           };
         } catch (error) {
+          const elapsedMs = performance.now() - started;
           return {
             status: "failed",
-            elapsedMs: performance.now() - started,
+            elapsedMs,
             error: error.message,
+            pureJsComputeMs: elapsedMs,
+            serializationMs,
+            jsHeapBytes: performance.memory?.usedJSHeapSize || null,
             sampleCount: data.spectra ? Object.keys(data.spectra).length : 1,
             signatureCount: data.signatures ? Object.keys(data.signatures).length : null
           };
         }
-      };
+      }
+
+      function resourceDuration() {
+        const entries = performance.getEntriesByType("resource") || [];
+        const starts = entries.map((entry) => Number(entry.startTime)).filter(Number.isFinite);
+        const ends = entries.map((entry) => Number(entry.responseEnd)).filter(Number.isFinite);
+        if (!starts.length || !ends.length) return 0;
+        return Math.max(...ends) - Math.min(...starts);
+      }
     </script>
   </body>
 </html>

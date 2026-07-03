@@ -1,4 +1,4 @@
-import { fetchURLAndCache } from "./utils.js";
+import { assertNoUserDataEgress, fetchURLAndCache } from "./utils.js";
 
 //#region Mutational Signatures
 
@@ -133,7 +133,8 @@ export async function getMutationalSpectrumData(
   genomeDataType = "WGS",
   cancerType = "Lung-AdenoCA",
   mutationType = "SBS",
-  matrixSize = 96
+  matrixSize = 96,
+  options = {}
 ) {
   const cacheName = "getMutationalSpectrumData";
 
@@ -143,7 +144,7 @@ export async function getMutationalSpectrumData(
   if (cancerType == '') {
     let url = `https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`;
 
-    let unformattedData = await (await fetchURLAndCache(cacheName, url)).json();
+    let unformattedData = await (await fetchURLAndCache(cacheName, url, null, null, options)).json();
 
     return unformattedData;
   }
@@ -169,10 +170,15 @@ export async function getMutationalSpectrumData(
 
     url += `&offset=0`;
 
-    let unformattedData = await (await fetchURLAndCache(cacheName, url)).json();
+    let unformattedData = await (await fetchURLAndCache(cacheName, url, null, null, options)).json();
     // let formattedData = extractMutationalSpectra(unformattedData, "sample");
     return unformattedData;
   } else {
+    assertNoUserDataEgress(
+      "mSigPortal sample-specific mutational spectrum fetch",
+      options,
+      "Remove sample IDs from the network request or run with locally supplied spectra."
+    );
     samples.forEach((sample) => {
       urls.push(
         `https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=${study}&sample=${sample}&cancer=${cancerType}&strategy=${genomeDataType}&profile=${mutationType}&matrix=${matrixSize}&offset=0`
@@ -181,7 +187,7 @@ export async function getMutationalSpectrumData(
   }
 
   urls.forEach((url) => {
-    promises.push(fetchURLAndCache(cacheName, url));
+    promises.push(fetchURLAndCache(cacheName, url, null, null, options));
   });
 
   const results = await Promise.all(promises);

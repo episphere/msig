@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "msig.strict_local_no_egress.v1",
+  "generatedAt": "2026-06-25T02:33:43.469Z",
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "win32",
+    "arch": "x64",
+    "hostname": "Aaron",
+    "cpus": 32,
+    "memoryGb": 31.2,
+    "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
+    "command": "node scripts/smoke-strict-local.mjs"
+  },
+  "workflow": "strictLocal fit + QC + NMF + report + bundled-context MAF conversion",
+  "status": "ok",
+  "strictLocal": true,
+  "networkRequests": 0,
+  "networkLog": [],
+  "blockedPaths": [
+    {
+      "label": "mSigPortal sample-specific spectrum fetch",
+      "blocked": true,
+      "message": "strictLocal blocked mSigPortal sample-specific mutational spectrum fetch because it would transmit user-derived data outside this device. Remove sample IDs from the network request or run with locally supplied spectra."
+    },
+    {
+      "label": "UCSC live context lookup",
+      "blocked": true,
+      "message": "strictLocal blocked UCSC reference context lookup because it would transmit user-derived data outside this device. Chromosome and coordinate values would be sent in the URL; supply row contexts or a bundled/offline contextLookupTable."
+    }
+  ],
+  "sourceSmoke": {
+    "status": "ok",
+    "strictLocal": true,
+    "mafConversionCount": 1,
+    "exposureSamples": [
+      "STRICT_LOCAL_SAMPLE"
+    ],
+    "burdenSamples": 1,
+    "reconstructionSamples": 1,
+    "nmfRank": 1,
+    "reportBytes": 19256,
+    "blockedPaths": [
+      {
+        "label": "mSigPortal sample-specific spectrum fetch",
+        "blocked": true,
+        "message": "strictLocal blocked mSigPortal sample-specific mutational spectrum fetch because it would transmit user-derived data outside this device. Remove sample IDs from the network request or run with locally supplied spectra."
+      },
+      {
+        "label": "UCSC live context lookup",
+        "blocked": true,
+        "message": "strictLocal blocked UCSC reference context lookup because it would transmit user-derived data outside this device. Chromosome and coordinate values would be sent in the URL; supply row contexts or a bundled/offline contextLookupTable."
+      }
+    ],
+    "networkRequests": 0,
+    "networkLog": []
+  }
+}

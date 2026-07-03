@@ -52,6 +52,18 @@ This is all you need to do to run mSigSDK. You don't need to install anything:
    )
    ```
 
+For a complete copy-paste browser-console workflow, see
+[`examples/browser-console-fit.js`](examples/browser-console-fit.js). For the
+same native fitting/QC path under Node.js, run:
+
+```bash
+node examples/node-console-fit.mjs
+```
+
+Node scripts import the native computational modules directly because the
+browser SDK entry point (`main.js`) intentionally loads browser/CDN plotting and
+runtime modules by URL.
+
 ---
 
 ## Package Usage

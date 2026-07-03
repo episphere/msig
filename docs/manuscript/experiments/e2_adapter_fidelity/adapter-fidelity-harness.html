@@ -24,9 +24,15 @@
         "/docs/package-repos/pyodide/reportlab-4.5.1-py3-none-any.whl"
       ].map((pathname) => ({ spec: wheelUrl(pathname), options: { deps: false } }));
       const webR46 = {
-        repositoryUrl: new URL("/docs/package-repos/webr", location.origin).href,
+        repositoryUrl: [
+          new URL("/docs/package-repos/webr", location.origin).href,
+          "https://repo.r-wasm.org"
+        ],
         binaryRVersion: "4.6",
-        packageIndexUrls: [new URL("/docs/package-repos/webr/bin/emscripten/contrib/4.6/PACKAGES", location.origin).href]
+        packageIndexUrls: [
+          new URL("/docs/package-repos/webr/bin/emscripten/contrib/4.6/PACKAGES", location.origin).href,
+          "https://repo.r-wasm.org/bin/emscripten/contrib/4.6/PACKAGES"
+        ]
       };
       window.__runAdapterFidelity = async function runAdapter(tool, input, timeoutMs) {
         try {

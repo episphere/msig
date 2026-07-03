@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T02:17:35.564Z",
+  "generatedAt": "2026-06-27T20:20:04.306Z",
   "generator": {
     "name": "documentation.js",
     "version": "^14.0.3"
@@ -32,8 +32,8 @@
   ],
   "stats": {
     "namespaces": 21,
-    "functions": 144,
-    "asyncFunctions": 61,
+    "functions": 146,
+    "asyncFunctions": 63,
     "functionsWithExamples": 22
   },
   "namespaces": [
@@ -73,7 +73,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3011
+            "line": 3177
           }
         },
         {
@@ -107,7 +107,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2938
+            "line": 3104
           }
         },
         {
@@ -162,7 +162,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/mSigPortalAPIs.js",
-            "line": 312
+            "line": 318
           }
         },
         {
@@ -203,7 +203,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/mSigPortalAPIs.js",
-            "line": 289
+            "line": 295
           }
         },
         {
@@ -251,7 +251,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/mSigPortalAPIs.js",
-            "line": 263
+            "line": 269
           }
         },
         {
@@ -292,7 +292,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/mSigPortalAPIs.js",
-            "line": 240
+            "line": 246
           }
         },
         {
@@ -347,7 +347,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/mSigPortalAPIs.js",
-            "line": 427
+            "line": 433
           }
         },
         {
@@ -402,7 +402,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/mSigPortalAPIs.js",
-            "line": 384
+            "line": 390
           }
         },
         {
@@ -457,7 +457,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/mSigPortalAPIs.js",
-            "line": 343
+            "line": 349
           }
         },
         {
@@ -744,7 +744,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/mSigPortalAPIs.js",
-            "line": 212
+            "line": 218
           }
         },
         {
@@ -792,7 +792,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3994
+            "line": 4282
           }
         },
         {
@@ -826,7 +826,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 4034
+            "line": 4322
           }
         },
         {
@@ -897,7 +897,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3133
+            "line": 3299
           }
         },
         {
@@ -959,7 +959,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3868
+            "line": 4130
           }
         },
         {
@@ -1014,7 +1014,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3375
+            "line": 3568
           }
         },
         {
@@ -1048,7 +1048,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 4034
+            "line": 4322
           }
         },
         {
@@ -1089,7 +1089,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3742
+            "line": 4004
           }
         },
         {
@@ -1130,7 +1130,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2837
+            "line": 3003
           }
         },
         {
@@ -1166,7 +1166,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2753
+            "line": 2919
           }
         },
         {
@@ -1221,7 +1221,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2091
+            "line": 2257
           }
         },
         {
@@ -1257,7 +1257,7 @@
           ],
           "source": {
             "file": "main.js",
-            "line": 2185
+            "line": 2351
           }
         },
         {
@@ -1298,7 +1298,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3302
+            "line": 3495
           }
         },
         {
@@ -1346,7 +1346,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3994
+            "line": 4282
           }
         },
         {
@@ -1408,7 +1408,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3513
+            "line": 3706
           }
         }
       ]
@@ -1474,6 +1474,13 @@
                   "properties": []
                 },
                 {
+                  "name": "options.strictLocal",
+                  "type": "boolean",
+                  "default": "false",
+                  "description": "Block live reference lookups and use only row/bundled/offline context.",
+                  "properties": []
+                },
+                {
                   "name": "options.contextLookupTable",
                   "type": "Object",
                   "default": "null",
@@ -1492,7 +1499,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/mutationalSpectrum.js",
-            "line": 930
+            "line": 941
           }
         },
         {
@@ -1551,6 +1558,13 @@
                   "properties": []
                 },
                 {
+                  "name": "options.strictLocal",
+                  "type": "boolean",
+                  "default": "false",
+                  "description": "Block live UCSC context lookups.",
+                  "properties": []
+                },
+                {
                   "name": "options.contextLookupTable",
                   "type": "Object",
                   "default": "null",
@@ -1571,7 +1585,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/mutationalSpectrum.js",
-            "line": 1065
+            "line": 1080
           }
         },
         {
@@ -1622,7 +1636,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/userData.js",
-            "line": 338
+            "line": 340
           }
         },
         {
@@ -1658,7 +1672,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/userData.js",
-            "line": 107
+            "line": 109
           }
         },
         {
@@ -1728,7 +1742,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/userData.js",
-            "line": 200
+            "line": 202
           }
         }
       ]
@@ -1917,7 +1931,7 @@
           ],
           "source": {
             "file": "main.js",
-            "line": 3641
+            "line": 3903
           }
         },
         {
@@ -1979,7 +1993,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3868
+            "line": 4130
           }
         },
         {
@@ -2020,7 +2034,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 3742
+            "line": 4004
           }
         }
       ]
@@ -2056,7 +2070,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/tcga.js",
-            "line": 455
+            "line": 486
           }
         },
         {
@@ -2085,7 +2099,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/tcga.js",
-            "line": 193
+            "line": 201
           }
         },
         {
@@ -2121,7 +2135,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/tcga.js",
-            "line": 371
+            "line": 393
           }
         },
         {
@@ -2157,7 +2171,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/tcga.js",
-            "line": 253
+            "line": 267
           }
         },
         {
@@ -2215,7 +2229,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/tcga.js",
-            "line": 595
+            "line": 634
           }
         }
       ]
@@ -2789,6 +2803,69 @@
       "summary": "Mutation burden, reconstruction error, bootstrap, threshold, ambiguity, and fit evidence.",
       "functions": [
         {
+          "name": "bootstrapCohortSignatureFitParallel",
+          "kind": "function",
+          "async": true,
+          "sourceNamespace": "qc",
+          "description": "Bootstraps multiple spectra by distributing samples across workers.This is the preferred path for cohort-scale uncertainty estimation because each worker processes a slice of samples and avoids recreating workers for every sample.",
+          "params": [
+            {
+              "name": "signatures",
+              "type": "Object<string, Object<string, number>>",
+              "default": null,
+              "description": "Signature-by-context matrix.",
+              "properties": []
+            },
+            {
+              "name": "spectra",
+              "type": "Object<string, Object<string, number>>",
+              "default": null,
+              "description": "Sample-by-context matrix.",
+              "properties": []
+            },
+            {
+              "name": "options",
+              "type": "Object=",
+              "default": null,
+              "description": "Bootstrap options plus cohort worker controls.",
+              "properties": [
+                {
+                  "name": "options.sampleNames",
+                  "type": "Array<string>=",
+                  "default": null,
+                  "description": "Samples to bootstrap; defaults to all samples.",
+                  "properties": []
+                },
+                {
+                  "name": "options.parallel",
+                  "type": "boolean",
+                  "default": "true",
+                  "description": "Use workers when supported.",
+                  "properties": []
+                },
+                {
+                  "name": "options.workerCount",
+                  "type": "number=",
+                  "default": null,
+                  "description": "Number of cohort workers.",
+                  "properties": []
+                }
+              ]
+            }
+          ],
+          "returns": [
+            {
+              "type": "Promise<Object>",
+              "description": "Sample-keyed bootstrap results plus worker provenance."
+            }
+          ],
+          "examples": [],
+          "source": {
+            "file": "mSigSDKScripts/qc.js",
+            "line": 2306
+          }
+        },
+        {
           "name": "bootstrapSignatureFit",
           "kind": "function",
           "async": true,
@@ -2878,7 +2955,77 @@
           ],
           "source": {
             "file": "mSigSDKScripts/qc.js",
-            "line": 1536
+            "line": 1992
+          }
+        },
+        {
+          "name": "bootstrapSignatureFitParallel",
+          "kind": "function",
+          "async": true,
+          "sourceNamespace": "qc",
+          "description": "Bootstraps one spectrum with worker parallelism when the runtime supports it.The result shape matches bootstrapSignatureFit. When browser Web Workers or Node worker_threads are unavailable, this function falls back to the serial implementation and records the fallback reason in result.parallelization.",
+          "params": [
+            {
+              "name": "signatures",
+              "type": "Object<string, Object<string, number>>",
+              "default": null,
+              "description": "Signature-by-context matrix.",
+              "properties": []
+            },
+            {
+              "name": "spectrum",
+              "type": "Object<string, number>",
+              "default": null,
+              "description": "Single sample spectrum.",
+              "properties": []
+            },
+            {
+              "name": "options",
+              "type": "Object=",
+              "default": null,
+              "description": "Bootstrap options plus worker controls.",
+              "properties": [
+                {
+                  "name": "options.parallel",
+                  "type": "boolean",
+                  "default": "true",
+                  "description": "Use workers when supported.",
+                  "properties": []
+                },
+                {
+                  "name": "options.workerCount",
+                  "type": "number=",
+                  "default": null,
+                  "description": "Number of workers/chunks to use.",
+                  "properties": []
+                },
+                {
+                  "name": "options.workerChunkSize",
+                  "type": "number=",
+                  "default": null,
+                  "description": "Optional fixed iterations per worker chunk.",
+                  "properties": []
+                },
+                {
+                  "name": "options.minIterationsForParallel",
+                  "type": "number",
+                  "default": "50",
+                  "description": "Below this count, run serially to avoid worker overhead.",
+                  "properties": []
+                }
+              ]
+            }
+          ],
+          "returns": [
+            {
+              "type": "Promise<Object>",
+              "description": "Bootstrap result with a parallelization provenance block."
+            }
+          ],
+          "examples": [],
+          "source": {
+            "file": "mSigSDKScripts/qc.js",
+            "line": 2112
           }
         },
         {
@@ -2941,7 +3088,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/qc.js",
-            "line": 736
+            "line": 740
           }
         },
         {
@@ -2989,7 +3136,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/qc.js",
-            "line": 922
+            "line": 926
           }
         },
         {
@@ -3066,7 +3213,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/qc.js",
-            "line": 1135
+            "line": 1139
           }
         },
         {
@@ -3129,7 +3276,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/qc.js",
-            "line": 613
+            "line": 617
           }
         },
         {
@@ -3201,7 +3348,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/qc.js",
-            "line": 1265
+            "line": 1269
           }
         },
         {
@@ -3280,7 +3427,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/qc.js",
-            "line": 453
+            "line": 457
           }
         },
         {
@@ -3322,7 +3469,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/qc.js",
-            "line": 522
+            "line": 526
           }
         },
         {
@@ -3394,7 +3541,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/qc.js",
-            "line": 277
+            "line": 281
           }
         }
       ]
@@ -3435,7 +3582,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7812
+            "line": 8436
           }
         },
         {
@@ -3484,7 +3631,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7408
+            "line": 8032
           }
         },
         {
@@ -3518,7 +3665,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 5995
+            "line": 6283
           }
         },
         {
@@ -3559,7 +3706,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6187
+            "line": 6475
           }
         },
         {
@@ -3636,7 +3783,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 2514
+            "line": 2680
           }
         },
         {
@@ -3734,7 +3881,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6938
+            "line": 7549
           }
         },
         {
@@ -3768,7 +3915,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 4594
+            "line": 4882
           }
         },
         {
@@ -3809,7 +3956,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7291
+            "line": 7902
           }
         },
         {
@@ -3843,7 +3990,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 4056
+            "line": 4344
           }
         },
         {
@@ -3877,7 +4024,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 6659
+            "line": 7270
           }
         },
         {
@@ -3926,7 +4073,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 4338
+            "line": 4626
           }
         },
         {
@@ -3960,7 +4107,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 8194
+            "line": 8818
           }
         },
         {
@@ -3994,7 +4141,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 7582
+            "line": 8206
           }
         }
       ]
@@ -4375,7 +4522,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 8305
+            "line": 8929
           }
         },
         {
@@ -4409,7 +4556,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 8488
+            "line": 9112
           }
         },
         {
@@ -4465,7 +4612,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 8211
+            "line": 8835
           }
         }
       ]
@@ -5154,7 +5301,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/reports.js",
-            "line": 97
+            "line": 100
           }
         },
         {
@@ -5181,7 +5328,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/reports.js",
-            "line": 166
+            "line": 170
           }
         },
         {
@@ -5215,7 +5362,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/reports.js",
-            "line": 228
+            "line": 232
           }
         }
       ]
@@ -5256,7 +5403,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 2264
+            "line": 2270
           }
         },
         {
@@ -5290,7 +5437,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 1646
+            "line": 1652
           }
         },
         {
@@ -5324,7 +5471,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 2013
+            "line": 2019
           }
         },
         {
@@ -5358,7 +5505,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 2027
+            "line": 2033
           }
         },
         {
@@ -5392,7 +5539,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 1447
+            "line": 1453
           }
         }
       ]
@@ -5433,7 +5580,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 3433
+            "line": 3455
           }
         },
         {
@@ -5467,7 +5614,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 4891
+            "line": 4953
           }
         },
         {
@@ -5501,7 +5648,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 3879
+            "line": 3941
           }
         },
         {
@@ -5535,7 +5682,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 4953
+            "line": 5015
           }
         },
         {
@@ -5569,7 +5716,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 4480
+            "line": 4542
           }
         },
         {
@@ -5603,7 +5750,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 4922
+            "line": 4984
           }
         },
         {
@@ -5637,7 +5784,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 2668
+            "line": 2674
           }
         },
         {
@@ -5671,7 +5818,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/guidance.js",
-            "line": 4861
+            "line": 4923
           }
         }
       ]
@@ -5762,7 +5909,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 8806
+            "line": 9430
           }
         },
         {
@@ -5853,7 +6000,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 8671
+            "line": 9295
           }
         },
         {
@@ -6098,7 +6245,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 8753
+            "line": 9377
           }
         }
       ]
@@ -6139,7 +6286,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 9138
+            "line": 9762
           }
         }
       ]
@@ -6209,7 +6356,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 573
+            "line": 581
           }
         },
         {
@@ -6243,7 +6390,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 742
+            "line": 750
           }
         }
       ]
@@ -6290,7 +6437,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 609
+            "line": 798
           }
         },
         {
@@ -6346,7 +6493,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 336
+            "line": 524
           }
         },
         {
@@ -6373,7 +6520,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 774
+            "line": 963
           }
         },
         {
@@ -6392,7 +6539,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 304
+            "line": 492
           }
         },
         {
@@ -6411,7 +6558,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 531
+            "line": 719
           }
         },
         {
@@ -6445,7 +6592,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 456
+            "line": 644
           }
         },
         {
@@ -6487,7 +6634,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 480
+            "line": 668
           }
         },
         {
@@ -6521,7 +6668,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/runners.js",
-            "line": 938
+            "line": 1128
           }
         }
       ]
@@ -6555,7 +6702,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1495
+            "line": 1497
           }
         },
         {
@@ -6582,7 +6729,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1509
+            "line": 1511
           }
         },
         {
@@ -6631,7 +6778,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1955
+            "line": 1957
           }
         },
         {
@@ -6680,7 +6827,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1174
+            "line": 1176
           }
         },
         {
@@ -6729,7 +6876,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1911
+            "line": 1913
           }
         },
         {
@@ -6778,7 +6925,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1330
+            "line": 1332
           }
         },
         {
@@ -6835,7 +6982,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 368
+            "line": 370
           }
         },
         {
@@ -6884,7 +7031,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1535
+            "line": 1537
           }
         },
         {
@@ -6918,7 +7065,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 2062
+            "line": 2064
           }
         },
         {
@@ -6967,7 +7114,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1631
+            "line": 1633
           }
         },
         {
@@ -7001,7 +7148,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1733
+            "line": 1735
           }
         }
       ]

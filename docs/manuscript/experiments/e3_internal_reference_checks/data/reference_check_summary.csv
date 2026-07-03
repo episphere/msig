@@ -1,5 +1,5 @@
 checkId,component,reference,sampleCount,maxAbsoluteDifference,threshold,status,rank,sdkReconstructionError,referenceReconstructionError,reconstructionErrorRatio,medianMatchedComponentCosine,maxMetricDelta
 nnls_vs_scipy,NNLS,scipy.optimize.nnls,12,1.6507328837178648e-9,0.000001,pass,,,,,,
 nnls_vs_r_nnls,NNLS,R nnls::nnls,12,1.6511876310687512e-9,0.000001,pass,,,,,,
-nmf_vs_sklearn,NMF,scikit-learn NMF,36,,error ratio <= 1.05 and median cosine >= 0.95,pass,4,309.7958341078405,337.4124663432821,0.9181517134362648,0.9671475260412798,
+nmf_vs_sklearn,NMF,scikit-learn NMF,36,,error ratio <= 1.05 and median cosine >= 0.95,pass,4,309.7958341078405,337.4124663432821,0.9181517134362648,0.9671475260412796,
 qc_metrics_vs_python,QC metrics,independent Python implementation,10,,1e-10,pass,,,,,,7.771561172376096e-16
