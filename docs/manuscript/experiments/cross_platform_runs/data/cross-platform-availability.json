@@ -13,6 +13,7 @@
     "generator": "scripts/manuscript/generate-revision-assets.mjs",
     "seed": 20260521
   },
-  "status": "not_possible",
-  "reason": "Only the Windows host represented by this Codex workspace was available. No macOS or Linux host was available for direct benchmark execution."
+  "status": "partially_completed",
+  "reason": "Windows browser benchmarks and macOS compatibility checks are available. Linux and the shipping Safari application remain untested.",
+  "macosArtifacts": "docs/manuscript/experiments/cross_platform_runs/macos/"
 }

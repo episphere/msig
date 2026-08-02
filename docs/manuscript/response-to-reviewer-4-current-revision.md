@@ -124,7 +124,9 @@ We added `docs/manuscript/experiments/e7_four_tool_comparison/reviewer4_benchmar
 
 ## Major Comment 8. Browser and platform claims exceed the evaluation
 
-We agree. The direct evaluation covers current Chrome, Edge, and Firefox on one Windows host. Safari/WebKit, macOS, and Linux were not directly tested. The manuscript will therefore say “tested in current Chrome, Edge, and Firefox on Windows” and describe broader platform independence as an architectural expectation rather than an empirically established universal compatibility claim.
+We agree. We added macOS smoke tests using Chrome 150.0.7871.187, Firefox 150.0.2, and Playwright WebKit 26.4 on an Apple-silicon Mac running macOS 26.5.2. In all three engines, the SDK module imported, the public mSigPortal request completed, native JavaScript fitting and report generation completed, and local D3 rendering completed. The Pyodide and WebR runtime capability checks also passed. We additionally ran the five native-JavaScript E4 scenarios in cold and warm phases with three isolated repeats per engine; all 90 measured observations completed. The machine-readable results are in `docs/manuscript/experiments/cross_platform_runs/macos/`.
+
+We label the WebKit result as Playwright WebKit rather than Safari because it does not establish compatibility with the shipping Safari application and its complete runtime packaging. Linux also remains untested. We therefore removed the universal “any modern desktop browser” and empirical “platform independent” claims. The manuscript now limits demonstrated compatibility to the tested Windows browsers and the macOS smoke-test engines, while describing broader portability only as an architectural expectation. This adds evidence for macOS and WebKit without treating operating-system effects as negligible or extrapolating to untested Safari and Linux configurations.
 
 ## Major Comment 9. A common matrix shape does not establish semantic comparability
 

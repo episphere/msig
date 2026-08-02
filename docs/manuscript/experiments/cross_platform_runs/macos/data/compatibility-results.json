@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "msig.manuscript.experiment.v1",
+  "generatedAt": "2026-08-02T20:02:36.425Z",
+  "experimentId": "e6_cross_browser_compatibility",
+  "environment": {
+    "node": "v25.6.1",
+    "platform": "darwin",
+    "arch": "arm64",
+    "hostname": "MacBook-Air-485.local",
+    "cpus": 8,
+    "memoryGb": 16,
+    "cwd": "/Users/aaronge/Documents/GitHub/msig",
+    "automatedBrowsers": [
+      {
+        "id": "chrome",
+        "label": "Chrome",
+        "engine": "chromium",
+        "executablePath": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+      },
+      {
+        "id": "firefox",
+        "label": "Firefox",
+        "engine": "firefox",
+        "executablePath": "/Users/aaronge/Library/Caches/ms-playwright/firefox-1522/firefox/Nightly.app/Contents/MacOS/firefox"
+      },
+      {
+        "id": "webkit",
+        "label": "WebKit (Playwright)",
+        "engine": "webkit",
+        "executablePath": "/Users/aaronge/Library/Caches/ms-playwright/webkit-2287/pw_run.sh"
+      }
+    ],
+    "manualHarness": "docs/manuscript/experiments/e6_cross_browser_compatibility/manual-compatibility-harness.html"
+  },
+  "inputs": {
+    "automatedChecks": [
+      "SDK ESM import",
+      "public mSigPortal fetch",
+      "single-sample fit and report generation",
+      "local D3 SVG render",
+      "Pyodide/WebR runtime capability detection"
+    ]
+  },
+  "rows": [
+    {
+      "source": "automated",
+      "browser": "Chrome",
+      "browserId": "chrome",
+      "device": "desktop",
+      "platform": "MacIntel",
+      "sdkImport": "pass",
+      "publicFetch": "pass",
+      "fitReport": "pass",
+      "d3Render": "pass",
+      "pyodideAdapter": "pass",
+      "webrAdapter": "pass",
+      "status": "pass",
+      "notes": ""
+    },
+    {
+      "source": "automated",
+      "browser": "Firefox",
+      "browserId": "firefox",
+      "device": "desktop",
+      "platform": "MacIntel",
+      "sdkImport": "pass",
+      "publicFetch": "pass",
+      "fitReport": "pass",
+      "d3Render": "pass",
+      "pyodideAdapter": "pass",
+      "webrAdapter": "pass",
+      "status": "pass",
+      "notes": ""
+    },
+    {
+      "source": "automated",
+      "browser": "WebKit (Playwright)",
+      "browserId": "webkit",
+      "device": "desktop",
+      "platform": "MacIntel",
+      "sdkImport": "pass",
+      "publicFetch": "pass",
+      "fitReport": "pass",
+      "d3Render": "pass",
+      "pyodideAdapter": "pass",
+      "webrAdapter": "pass",
+      "status": "pass",
+      "notes": ""
+    }
+  ],
+  "artifacts": {
+    "json": "docs/manuscript/experiments/cross_platform_runs/macos/data/compatibility-results.json",
+    "csv": "docs/manuscript/experiments/cross_platform_runs/macos/data/compatibility_matrix.csv",
+    "manualHarness": "docs/manuscript/experiments/e6_cross_browser_compatibility/manual-compatibility-harness.html"
+  },
+  "status": "completed",
+  "notes": []
+}

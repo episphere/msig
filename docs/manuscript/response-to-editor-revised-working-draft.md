@@ -107,9 +107,9 @@ We agree and will condense the Discussion to focus on the strongest supported co
 
 We expanded the browser benchmark suite on the available Windows host to Chrome, Edge, and Firefox, with 20 repeats per browser/scenario/phase. We also added synthetic bootstrap worker stress tests for the native JavaScript path. These data should be framed as observed performance on the measured host and tested Node heap-cap lower bounds, not as universal browser/system-RAM minimum requirements.
 
-No macOS or Linux host was available in this environment. A cross-platform availability artifact records this limitation rather than synthesizing results. The manuscript should distinguish browser/runtime portability in principle from direct performance measurements, which are scoped to the tested Windows Chrome/Edge/Firefox environment.
+We added macOS smoke tests in Chrome, Firefox, and Playwright WebKit, plus three repeated cold/warm runs of the five native-JavaScript benchmark scenarios per engine. Linux and the shipping Safari application remain untested. The manuscript should distinguish browser/runtime portability in principle from direct performance measurements, which remain scoped to the tested environments.
 
-**Author action - outstanding:** If cross-platform results are important for the response, they must be run on actual macOS/Linux hosts. Otherwise state the limitation plainly.
+**Author action - remaining limitation:** Do not generalize the macOS Playwright WebKit result to the shipping Safari application or to Linux.
 
 ### 2. Console-first demo and usability for non-developers
 

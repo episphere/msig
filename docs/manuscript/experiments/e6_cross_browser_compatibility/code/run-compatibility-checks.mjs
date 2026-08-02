@@ -22,11 +22,12 @@ import {
 } from "../../../../../scripts/manuscript/lib/demo-data.mjs";
 
 const EXPERIMENT = EXPERIMENTS.e6;
-const RESULT_PATH = path.join(EXPERIMENT.dir, "data", "compatibility-results.json");
-const CSV_PATH = path.join(EXPERIMENT.dir, "data", "compatibility_matrix.csv");
+const args = parseArgs();
+const outputDir = path.resolve(String(args["output-dir"] || path.join(EXPERIMENT.dir, "data")));
+const RESULT_PATH = path.join(outputDir, "compatibility-results.json");
+const CSV_PATH = path.join(outputDir, "compatibility_matrix.csv");
 const HARNESS_PATH = path.join(EXPERIMENT.dir, "manual-compatibility-harness.html");
 
-parseArgs();
 await ensureDir(path.dirname(RESULT_PATH));
 await copyD3Asset();
 

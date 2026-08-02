@@ -464,32 +464,54 @@ export function pathToLocalUrl(filePath) {
 
 export function browserCandidates() {
   const candidates = [];
-  const programFiles = [
-    process.env.ProgramFiles,
-    process.env["ProgramFiles(x86)"],
-    process.env.LOCALAPPDATA,
-  ].filter(Boolean);
-  const add = (id, label, engine, relativePaths) => {
-    for (const base of programFiles) {
-      for (const relativePath of relativePaths) {
-        candidates.push({
-          id,
-          label,
-          engine,
-          executablePath: path.join(base, relativePath),
-        });
-      }
+  const add = (id, label, engine, executablePaths) => {
+    for (const executablePath of executablePaths) {
+      candidates.push({ id, label, engine, executablePath });
     }
   };
-  add("chrome", "Chrome", "chromium", [
-    path.join("Google", "Chrome", "Application", "chrome.exe"),
-  ]);
-  add("edge", "Edge", "chromium", [
-    path.join("Microsoft", "Edge", "Application", "msedge.exe"),
-  ]);
-  add("firefox", "Firefox", "firefox", [
-    path.join("Mozilla Firefox", "firefox.exe"),
-  ]);
+  if (process.platform === "darwin") {
+    add("chrome", "Chrome", "chromium", [
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    ]);
+    add("edge", "Edge", "chromium", [
+      "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+    ]);
+    add("firefox", "Firefox", "firefox", [
+      "/Applications/Firefox.app/Contents/MacOS/firefox",
+    ]);
+  } else if (process.platform === "win32") {
+    const programFiles = [
+      process.env.ProgramFiles,
+      process.env["ProgramFiles(x86)"],
+      process.env.LOCALAPPDATA,
+    ].filter(Boolean);
+    const addWindows = (id, label, engine, relativePaths) => {
+      add(
+        id,
+        label,
+        engine,
+        programFiles.flatMap((base) => relativePaths.map((relativePath) => path.join(base, relativePath)))
+      );
+    };
+    addWindows("chrome", "Chrome", "chromium", [
+      path.join("Google", "Chrome", "Application", "chrome.exe"),
+    ]);
+    addWindows("edge", "Edge", "chromium", [
+      path.join("Microsoft", "Edge", "Application", "msedge.exe"),
+    ]);
+    addWindows("firefox", "Firefox", "firefox", [
+      path.join("Mozilla Firefox", "firefox.exe"),
+    ]);
+  } else {
+    add("chrome", "Chrome", "chromium", [
+      "/usr/bin/google-chrome",
+      "/usr/bin/google-chrome-stable",
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser",
+    ]);
+    add("edge", "Edge", "chromium", ["/usr/bin/microsoft-edge"]);
+    add("firefox", "Firefox", "firefox", ["/usr/bin/firefox"]);
+  }
   return candidates;
 }
 
@@ -504,6 +526,18 @@ export async function findAvailableBrowsers() {
       browsers.push(candidate);
       if (["chrome", "edge", "firefox"].filter((id) => browsers.some((b) => b.id === id)).length === 3) {
         break;
+      }
+    }
+  }
+  if (process.platform === "darwin") {
+    const playwright = await loadPlaywright();
+    const managedBrowsers = [
+      { id: "firefox", label: "Firefox", engine: "firefox", executablePath: playwright.firefox.executablePath() },
+      { id: "webkit", label: "WebKit (Playwright)", engine: "webkit", executablePath: playwright.webkit.executablePath() },
+    ];
+    for (const browser of managedBrowsers) {
+      if (!browsers.some((candidate) => candidate.id === browser.id) && existsSync(browser.executablePath)) {
+        browsers.push(browser);
       }
     }
   }
@@ -536,7 +570,11 @@ export async function loadPlaywright() {
 
 export async function launchBrowser(browser, options = {}) {
   const playwright = await loadPlaywright();
-  const type = browser.engine === "firefox" ? playwright.firefox : playwright.chromium;
+  const type = browser.engine === "firefox"
+    ? playwright.firefox
+    : browser.engine === "webkit"
+      ? playwright.webkit
+      : playwright.chromium;
   const userDataDir = options.userDataDir || tempDir(`${browser.id}-profile`);
   await ensureDir(userDataDir);
   let executablePath = browser.executablePath;

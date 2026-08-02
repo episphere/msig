@@ -1,4 +1,7 @@
 # Cross-Platform Runs
 
-Status: not_possible
-Only the Windows host represented by this Codex workspace was available. No macOS or Linux host was available for direct benchmark execution.
+Status: partially_completed
+
+Windows browser benchmarks and macOS compatibility checks are available. Linux and the shipping Safari application remain untested.
+
+macOS artifacts: `docs/manuscript/experiments/cross_platform_runs/macos/`

@@ -1007,8 +1007,9 @@ async function writeCrossPlatformStatus() {
     schemaVersion: "msig.cross_platform_status.v1",
     generatedAt,
     environment,
-    status: "not_possible",
-    reason: "Only the Windows host represented by this Codex workspace was available. No macOS or Linux host was available for direct benchmark execution.",
+    status: "partially_completed",
+    reason: "Windows browser benchmarks and macOS compatibility checks are available. Linux and the shipping Safari application remain untested.",
+    macosArtifacts: "docs/manuscript/experiments/cross_platform_runs/macos/",
   };
   const jsonPath = path.join(CROSS_PLATFORM_DATA_DIR, "cross-platform-availability.json");
   await writeJson(jsonPath, status);
@@ -1019,6 +1020,8 @@ async function writeCrossPlatformStatus() {
       "",
       `Status: ${status.status}`,
       status.reason,
+      "",
+      `macOS artifacts: ${status.macosArtifacts}`,
       "",
     ].join("\n")
   );

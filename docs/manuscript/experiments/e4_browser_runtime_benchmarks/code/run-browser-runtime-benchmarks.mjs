@@ -26,14 +26,15 @@ import {
 } from "../../../../../scripts/manuscript/lib/demo-data.mjs";
 
 const EXPERIMENT = EXPERIMENTS.e4;
-const RESULT_PATH = path.join(EXPERIMENT.dir, "data", "browser-runtime-results.json");
-const CSV_PATH = path.join(EXPERIMENT.dir, "data", "browser_runtime_results.csv");
-const SUMMARY_CSV_PATH = path.join(EXPERIMENT.dir, "data", "browser_runtime_summary.csv");
-const SUMMARY_JSON_PATH = path.join(EXPERIMENT.dir, "data", "browser-runtime-summary.json");
-const PROGRESS_PATH = path.join(EXPERIMENT.dir, "data", "browser-runtime-progress.json");
+const args = parseArgs();
+const outputDir = path.resolve(String(args["output-dir"] || path.join(EXPERIMENT.dir, "data")));
+const RESULT_PATH = path.join(outputDir, "browser-runtime-results.json");
+const CSV_PATH = path.join(outputDir, "browser_runtime_results.csv");
+const SUMMARY_CSV_PATH = path.join(outputDir, "browser_runtime_summary.csv");
+const SUMMARY_JSON_PATH = path.join(outputDir, "browser-runtime-summary.json");
+const PROGRESS_PATH = path.join(outputDir, "browser-runtime-progress.json");
 const HARNESS_PATH = path.join(EXPERIMENT.dir, "browser-runtime-harness.html");
 
-const args = parseArgs();
 const repeats = numericArg(args, "repeats", 20);
 const timeoutMs = numericArg(args, "timeout-ms", 240000);
 const resume = boolArg(args, "resume", false);

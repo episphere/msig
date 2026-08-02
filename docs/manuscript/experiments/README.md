@@ -9,6 +9,7 @@ This directory contains the replacement E1/E2/E3/E4/E6 experiment suite for the 
 | `e3_internal_reference_checks/` | SDK NNLS, NMF, and QC checks against SciPy, R nnls, scikit-learn, and independent Python metrics. |
 | `e4_browser_runtime_benchmarks/` | Fresh browser runtime benchmarks for single-sample, cohort, bootstrap, portal-scale, and NMF workflows. |
 | `e6_cross_browser_compatibility/` | Automated desktop Chrome/Edge/Firefox compatibility checks. |
+| `cross_platform_runs/macos/` | macOS smoke-test and limited runtime evidence for Chrome, Firefox, and Playwright WebKit. |
 
 Run from the repository root:
 
