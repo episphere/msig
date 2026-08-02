@@ -14,10 +14,108 @@
     "parameters",
     "primaryInterpretationFields",
     "reproducibilityStatement",
+    "reproducibility",
     "citations",
     "notes"
   ],
   "additionalProperties": true,
+  "definitions": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "artifactReference": {
+      "type": "object",
+      "required": ["sha256", "source"],
+      "properties": {
+        "sha256": { "$ref": "#/definitions/sha256" },
+        "source": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "uri": { "type": "string", "minLength": 1 },
+        "reference": { "type": "string", "minLength": 1 },
+        "archiveUri": { "type": "string", "minLength": 1 },
+        "immutable": { "const": true },
+        "embedded": { "const": true },
+        "command": { "type": "string", "minLength": 1 }
+      },
+      "anyOf": [
+        {
+          "required": ["archiveUri", "immutable"]
+        },
+        {
+          "required": ["embedded"]
+        }
+      ],
+      "additionalProperties": true
+    },
+    "payloadReference": {
+      "type": "object",
+      "required": ["payloadSha256", "source"],
+      "properties": {
+        "payloadSha256": { "$ref": "#/definitions/sha256" },
+        "contextOrderSha256": { "$ref": "#/definitions/sha256" },
+        "source": { "type": "string", "minLength": 1 },
+        "archiveUri": { "type": "string", "minLength": 1 },
+        "immutable": { "const": true },
+        "embedded": { "const": true }
+      },
+      "anyOf": [
+        {
+          "required": ["archiveUri", "immutable"]
+        },
+        {
+          "required": ["embedded"]
+        }
+      ],
+      "additionalProperties": true
+    },
+    "contextReference": {
+      "type": "object",
+      "required": ["values", "sha256", "source"],
+      "properties": {
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "sha256": { "$ref": "#/definitions/sha256" },
+        "source": { "type": "string", "minLength": 1 },
+        "archiveUri": { "type": "string", "minLength": 1 },
+        "immutable": { "const": true },
+        "embedded": { "const": true }
+      },
+      "anyOf": [
+        {
+          "required": ["archiveUri", "immutable"]
+        },
+        {
+          "required": ["embedded"]
+        }
+      ],
+      "additionalProperties": true
+    },
+    "strongParameters": {
+      "type": "object",
+      "required": ["fitting", "filtering", "bootstrap", "qc"],
+      "properties": {
+        "fitting": { "type": "object" },
+        "filtering": { "type": "object" },
+        "bootstrap": { "type": "object" },
+        "qc": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "strongEnvironment": {
+      "type": "object",
+      "required": ["runtime", "platform"],
+      "properties": {
+        "runtime": { "type": "string", "minLength": 1 },
+        "platform": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    }
+  },
   "properties": {
     "schemaVersion": {
       "const": "msig.report.v0.3",
@@ -71,6 +169,207 @@
     "reproducibilityStatement": {
       "type": "string",
       "description": "Required. Text describing provenance and reproducibility boundaries."
+    },
+    "reproducibility": {
+      "type": "object",
+      "description": "Required structured distinction between auditability, portability, and computational reproducibility. missingRequirements must be treated as a boundary on rerun claims.",
+      "required": [
+        "schemaVersion",
+        "claim",
+        "auditability",
+        "portability",
+        "computationalReproducibility",
+        "requirements",
+        "evidence"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "msig.reproducibility.v0.1"
+        },
+        "claim": {
+          "type": "string",
+          "enum": [
+            "portable_schema_validated_analysis_record",
+            "computationally_reproducible_analysis_record"
+          ]
+        },
+        "auditability": {
+          "type": "object",
+          "required": ["status"]
+        },
+        "portability": {
+          "type": "object",
+          "required": ["status"]
+        },
+        "computationalReproducibility": {
+          "type": "object",
+          "required": ["status", "missingRequirements"],
+          "properties": {
+            "status": {
+              "enum": ["supported", "not_established"]
+            },
+            "missingRequirements": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "invalidRequirements": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "requirements": {
+          "type": "array",
+          "minItems": 13,
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "required": [
+            "sdkArtifact",
+            "adapterImplementations",
+            "runtimeAndPackageArtifacts",
+            "lockfilesOrArtifactHashes",
+            "localInputHashes",
+            "signatureCatalogPayload",
+            "contextOrder",
+            "analysisParameters",
+            "randomNumberGeneration",
+            "reportSchema",
+            "executionEnvironment",
+            "archivedTestData",
+            "rerunScripts"
+          ],
+          "properties": {
+            "sdkArtifact": { "type": ["object", "null"] },
+            "adapterImplementations": { "type": ["array", "object", "null"] },
+            "runtimeAndPackageArtifacts": { "type": ["array", "object", "null"] },
+            "lockfilesOrArtifactHashes": { "type": ["array", "object", "null"] },
+            "localInputHashes": { "type": ["array", "object", "null"] },
+            "signatureCatalogPayload": { "type": ["object", "null"] },
+            "contextOrder": { "type": ["object", "null"] },
+            "analysisParameters": { "type": ["object", "null"] },
+            "randomNumberGeneration": { "type": ["object", "null"] },
+            "reportSchema": { "type": ["object", "null"] },
+            "executionEnvironment": { "type": ["object", "null"] },
+            "archivedTestData": { "type": ["array", "object", "null"] },
+            "rerunScripts": { "type": ["array", "object", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "required": ["claim", "computationalReproducibility"],
+          "properties": {
+            "claim": {
+              "const": "portable_schema_validated_analysis_record"
+            },
+            "computationalReproducibility": {
+              "properties": {
+                "status": { "const": "not_established" }
+              }
+            }
+          }
+        },
+        {
+          "required": ["claim", "computationalReproducibility", "evidence"],
+          "properties": {
+            "claim": {
+              "const": "computationally_reproducible_analysis_record"
+            },
+            "computationalReproducibility": {
+              "properties": {
+                "status": { "const": "supported" }
+              }
+            },
+            "evidence": {
+              "properties": {
+                "sdkArtifact": {
+                  "type": "object",
+                  "required": ["commit", "releaseArtifact"],
+                  "properties": {
+                    "commit": {
+                      "type": "string",
+                      "pattern": "^[a-fA-F0-9]{7,40}$"
+                    },
+                    "releaseArtifact": {
+                      "$ref": "#/definitions/artifactReference"
+                    }
+                  }
+                },
+                "adapterImplementations": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "$ref": "#/definitions/artifactReference" }
+                },
+                "runtimeAndPackageArtifacts": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "$ref": "#/definitions/artifactReference" }
+                },
+                "lockfilesOrArtifactHashes": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "$ref": "#/definitions/artifactReference" }
+                },
+                "localInputHashes": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "$ref": "#/definitions/artifactReference" }
+                },
+                "signatureCatalogPayload": {
+                  "$ref": "#/definitions/payloadReference"
+                },
+                "contextOrder": {
+                  "$ref": "#/definitions/contextReference"
+                },
+                "analysisParameters": {
+                  "$ref": "#/definitions/strongParameters"
+                },
+                "randomNumberGeneration": {
+                  "type": "object",
+                  "required": ["algorithm", "seed"],
+                  "properties": {
+                    "algorithm": { "type": "string", "minLength": 1 },
+                    "seed": { "type": ["integer", "number", "string"] }
+                  }
+                },
+                "reportSchema": {
+                  "type": "object",
+                  "required": ["schemaVersion", "version"],
+                  "properties": {
+                    "schemaVersion": { "type": "string", "minLength": 1 },
+                    "version": { "type": "string", "minLength": 1 }
+                  }
+                },
+                "executionEnvironment": {
+                  "$ref": "#/definitions/strongEnvironment"
+                },
+                "archivedTestData": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "$ref": "#/definitions/artifactReference" }
+                },
+                "rerunScripts": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "$ref": "#/definitions/artifactReference" }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": true
     },
     "parameters": {
       "type": "object",

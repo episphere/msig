@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "maxNodeModuleJsDepth": 2,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "es2022"
+  },
+  "exclude": [
+    "node_modules",
+    ".git"
+  ],
+  "include": [
+    "**/*.js",
+    "**/*.mjs",
+    "**/*.cjs"
+  ]
+}

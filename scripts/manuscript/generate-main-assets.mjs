@@ -16,10 +16,6 @@ import {
   writeText,
 } from "./lib/experiment-utils.mjs";
 import { calculateReconstructionError } from "../../mSigSDKScripts/qc.js";
-import {
-  extractSignaturesNMF,
-  selectNMFRank,
-} from "../../mSigSDKScripts/signatureExtraction.js";
 
 const DATA_ROOT = path.join("docs", "manuscript", "data");
 const E1_RESULT = path.join(
@@ -61,6 +57,14 @@ const E3_RESULT = path.join(
   "e3_internal_reference_checks",
   "data",
   "reference-check-results.json"
+);
+const E8_RESULT = path.join(
+  "docs",
+  "manuscript",
+  "experiments",
+  "e8_nmf_rank_selection",
+  "data",
+  "nmf-rank-selection-results.json"
 );
 const E4_RESULT = path.join(
   "docs",
@@ -142,11 +146,12 @@ const results = {
   e2Input: await readJson(E2_INPUT),
   e2Pairs: await readJson(E2_PAIRS),
   e3: await readJson(E3_RESULT),
+  e8: await readJson(E8_RESULT),
   e4: await readJson(E4_RESULT),
   e6: await readJson(E6_RESULT),
 };
 
-const publicCohort = await buildPublicCohortData(results.e2Input, results.e2Pairs);
+const publicCohort = await buildPublicCohortData(results.e2Input, results.e2Pairs, results.e8);
 await writeJson(PUBLIC_COHORT_DATA, publicCohort);
 const publicCohortSdkPanels = await captureFigure3SdkPanels(results.e2Input);
 await writeJson(FIGURE3_SDK_PANEL_DATA, publicCohortSdkPanels);
@@ -215,7 +220,7 @@ async function captureFigure3SdkPanels(input) {
       const result = await page.waitForFunction(
         () => window.__FIGURE3_PANEL_CAPTURE__ || window.__FIGURE3_PANEL_ERROR__,
         null,
-        { timeout: 180000 }
+        { timeout: 300000 }
       );
       const capture = await result.jsonValue();
       if (capture?.error) {
@@ -258,6 +263,7 @@ function figure3CaptureHarness(baseUrl) {
       try {
         const { mSigSDK } = await import(baseUrl + "/main.js?figure3Capture=" + Date.now());
         const input = await fetchJson(baseUrl + "/docs/manuscript/experiments/e2_adapter_fidelity/data/adapter-fidelity-input.json");
+        const rankSelectionEvidence = await fetchJson(baseUrl + "/docs/manuscript/experiments/e8_nmf_rank_selection/data/nmf-rank-selection-results.json");
         const contexts = input.contexts;
         const spectra = input.spectra;
         const signatures = input.signatures;
@@ -401,29 +407,32 @@ function figure3CaptureHarness(baseUrl) {
           )
         ).length;
         const bootstrapDisplayedSignatures = Math.min(12, Math.max(1, bootstrapInformativeSignatures));
-        const rankSelection = mSigSDK.signatureExtraction.selectNMFRank(spectra, {
-          ranks: [2, 3, 4, 5, 6],
-          nRuns: 4,
-          maxIterations: 300,
-          tolerance: 1e-5,
-          seed: 20260521,
-          contexts,
-          rankSelectionCriterion: "reconstruction_error"
-        });
-        const selectedNmfRank = Number.isFinite(Number(rankSelection.recommendedRank))
-          ? Number(rankSelection.recommendedRank)
-          : 4;
-        const selectedRankRun = (rankSelection.runs || []).find((run) => Number(run.rank) === selectedNmfRank);
-        const nmf = selectedRankRun?.result || mSigSDK.signatureExtraction.extractSignaturesNMF(spectra, {
+        const selectedNmfRank = Number(rankSelectionEvidence.selection.selectedRank);
+        const rankSelection = {
+          recommendedRank: selectedNmfRank,
+          rankSelectionCriterion: "held_out_one_standard_error",
+          selectionRule: rankSelectionEvidence.method.selectionRule,
+          runs: (rankSelectionEvidence.rankSummaries || []).map((row) => ({
+            rank: row.rank,
+            meanHeldOutRelativeError: row.meanHeldOutRelativeError,
+            heldOutStandardError: row.heldOutStandardError,
+            componentStabilityMedianCosine: row.componentStabilityMedianCosine,
+            sampleClusteringMeanARI: row.sampleClusteringMeanARI,
+            convergenceRate: row.convergenceRate,
+            eligible: row.eligible,
+            converged: row.convergenceRate >= rankSelectionEvidence.method.minimumConvergenceRate,
+            reconstructionError: row.meanHeldOutRelativeError,
+            averageSampleCosineSimilarity: row.meanHeldOutCosine,
+          }))
+        };
+        const nmf = {
           rank: selectedNmfRank,
-          nRuns: 4,
-          maxIterations: 300,
-          tolerance: 1e-5,
-          seed: 20260521,
           contexts,
-          signaturePrefix: "NMF"
-        });
-        nmf.rank = selectedNmfRank;
+          sampleNames,
+          signatures: rankSelectionEvidence.fullCohortFit.signatures,
+          exposures: rankSelectionEvidence.fullCohortFit.exposures,
+          source: "E8 held-out NMF rank selection",
+        };
         const displayedNmfSignatures = Object.keys(nmf.signatures || {}).length;
         const panels = [];
         await capturePanel(panels, {
@@ -542,8 +551,8 @@ function figure3CaptureHarness(baseUrl) {
         await capturePanel(panels, {
           id: "nmf",
           label: "F",
-          title: "NMF Discovery",
-          note: "Rank selection recommended rank " + selectedNmfRank + "; no components are hidden here: all " + displayedNmfSignatures + " extracted de novo SBS96 components from that rank are displayed.",
+          title: "NMF Discovery and rank selection",
+          note: "Rank " + selectedNmfRank + " was selected from ranks " + rankSelection.runs.map((run) => run.rank).join(", ") + " by held-out relative Frobenius error, restart component stability, and a one-standard-error parsimony rule; all " + displayedNmfSignatures + " extracted de novo SBS96 components are displayed.",
           renderer: [
             "mSigSDK.signatureExtractionPlots.plotNMFRankSelection",
             "mSigSDK.signatureExtractionPlots.plotNMFSignatureProfiles"
@@ -813,7 +822,7 @@ function validateFigure3PanelCapture(capture) {
   }
 }
 
-async function buildPublicCohortData(input, pairs) {
+async function buildPublicCohortData(input, pairs, rankSelectionEvidence) {
   const contexts = input.contexts || [];
   const spectra = input.spectra || {};
   const signatures = input.signatures || {};
@@ -915,33 +924,38 @@ async function buildPublicCohortData(input, pairs) {
     .filter(([, value]) => Number(value) > 0.01)
     .sort((a, b) => b[1] - a[1]);
 
-  const rankSelection = selectNMFRank(spectra, {
-    ranks: [2, 3, 4, 5, 6],
-    nRuns: 4,
-    maxIterations: 300,
-    tolerance: 1e-5,
-    seed: 20260521,
-    contexts,
-    sampleNames,
-    rankSelectionCriterion: "reconstruction_error",
-  });
-  const selectedNmfRank = Number.isFinite(Number(rankSelection.recommendedRank))
-    ? Number(rankSelection.recommendedRank)
-    : 4;
-  const selectedRankRun = (rankSelection.runs || []).find(
-    (run) => Number(run.rank) === selectedNmfRank
-  );
-  const nmf = selectedRankRun?.result || extractSignaturesNMF(spectra, {
+  if (!rankSelectionEvidence?.selection || !rankSelectionEvidence?.fullCohortFit) {
+    throw new Error("E8 NMF rank-selection evidence is required to build the manuscript cohort data.");
+  }
+  const selectedNmfRank = Number(rankSelectionEvidence.selection.selectedRank);
+  const rankSelection = {
+    recommendedRank: selectedNmfRank,
+    selectedRank: selectedNmfRank,
+    rankSelectionCriterion: "held_out_one_standard_error",
+    selectionRule: rankSelectionEvidence.method.selectionRule,
+    oneStandardErrorLimit: rankSelectionEvidence.selection.oneStandardErrorLimit,
+    bestHeldOutRank: rankSelectionEvidence.selection.bestHeldOutRank,
+    runs: (rankSelectionEvidence.rankSummaries || []).map((row) => ({
+      rank: row.rank,
+      meanHeldOutRelativeError: row.meanHeldOutRelativeError,
+      heldOutStandardError: row.heldOutStandardError,
+      componentStabilityMedianCosine: row.componentStabilityMedianCosine,
+      sampleClusteringMeanARI: row.sampleClusteringMeanARI,
+      convergenceRate: row.convergenceRate,
+      eligible: row.eligible,
+      converged: row.convergenceRate >= rankSelectionEvidence.method.minimumConvergenceRate,
+      reconstructionError: row.meanHeldOutRelativeError,
+      averageSampleCosineSimilarity: row.meanHeldOutCosine,
+    })),
+  };
+  const nmf = {
     rank: selectedNmfRank,
-    nRuns: 4,
-    maxIterations: 300,
-    tolerance: 1e-5,
-    seed: 20260521,
     contexts,
     sampleNames,
-    signaturePrefix: "NMF",
-  });
-  nmf.rank = selectedNmfRank;
+    signatures: rankSelectionEvidence.fullCohortFit.signatures,
+    exposures: rankSelectionEvidence.fullCohortFit.exposures,
+    source: "E8 held-out NMF rank selection",
+  };
   const nmfProfiles = Object.entries(nmf.signatures || {})
     .map(([signature, profile]) => ({
       signature,
@@ -987,8 +1001,22 @@ async function buildPublicCohortData(input, pairs) {
     nmfRankSelection: {
       recommendedRank: rankSelection.recommendedRank,
       selectedRank: selectedNmfRank,
+      criterion: rankSelection.rankSelectionCriterion,
+      selectionRule: rankSelection.selectionRule,
+      oneStandardErrorLimit: rankSelection.oneStandardErrorLimit,
+      bestHeldOutRank: rankSelection.bestHeldOutRank,
+      fullCohortRestarts: rankSelectionEvidence.fullCohortFit.restarts,
+      fullCohortConvergedRuns: rankSelectionEvidence.fullCohortFit.convergedRuns,
+      fullCohortComponentStabilityMedianCosine: rankSelectionEvidence.fullCohortFit.fullCohortComponentStabilityMedianCosine,
+      fullCohortSampleClusteringMeanARI: rankSelectionEvidence.fullCohortFit.fullCohortSampleClusteringMeanARI,
       runs: rankSelection.runs.map((run) => ({
         rank: run.rank,
+        meanHeldOutRelativeError: run.meanHeldOutRelativeError,
+        heldOutStandardError: run.heldOutStandardError,
+        componentStabilityMedianCosine: run.componentStabilityMedianCosine,
+        sampleClusteringMeanARI: run.sampleClusteringMeanARI,
+        convergenceRate: run.convergenceRate,
+        eligible: run.eligible,
         reconstructionError: run.reconstructionError,
         averageSampleCosineSimilarity: run.averageSampleCosineSimilarity,
         converged: run.converged,
@@ -1025,9 +1053,9 @@ function figure1Architecture() {
 }
 
 function figure1ArchitectureSvg() {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="600" viewBox="0 0 1180 600" role="img" aria-labelledby="figure1-title figure1-desc">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="660" viewBox="0 0 1180 660" role="img" aria-labelledby="figure1-title figure1-desc">
   <title id="figure1-title">Figure 1. Architecture and data-residency boundary</title>
-  <desc id="figure1-desc">Architecture diagram showing optional public spectra, catalogs, public identifiers, runtime assets, and UCSC context lookup outside a private browser workspace while user spectra, signature exposures, QC outputs, plots, and reports remain local.</desc>
+  <desc id="figure1-desc">Architecture diagram showing optional public spectra, catalogs, public identifiers, runtime assets, and UCSC context lookup outside a local browser workspace while user spectra, signature exposures, QC outputs, plots, and reports remain local.</desc>
   <defs>
     <marker id="fig1-arrow-blue" viewBox="0 -5 10 10" refX="9" refY="0" markerWidth="8" markerHeight="8" orient="auto">
       <path d="M0,-5L10,0L0,5" fill="${DESIGN.blue}"/>
@@ -1046,12 +1074,14 @@ function figure1ArchitectureSvg() {
       .fig1-chip{font-size:14px;font-weight:700}
     </style>
   </defs>
-  <rect width="1180" height="600" fill="${DESIGN.paper}"/>
+  <rect width="1180" height="660" fill="${DESIGN.paper}"/>
 
-  <g transform="translate(0 -64)">
+  <text x="48" y="54" class="fig1-text fig1-title">mSigSDK keeps mutational signature analysis on the device</text>
+  <text x="48" y="84" class="fig1-muted fig1-small">Public spectra, catalogs, identifiers, and runtime assets can be fetched; user spectra and results stay local unless exported.</text>
+
   <rect x="48" y="126" width="300" height="500" rx="20" fill="#ffffff" stroke="${DESIGN.hairline}" filter="url(#fig1-shadow)"/>
   <text x="78" y="166" class="fig1-text fig1-section">Optional public fetches</text>
-  <text x="78" y="192" class="fig1-muted fig1-small">No private spectra are uploaded</text>
+  <text x="78" y="192" class="fig1-muted fig1-small">No user spectra are uploaded</text>
   <g transform="translate(82 222)">
     <path d="M50 34c7-26 31-45 62-45 27 0 50 16 62 39 27 5 47 27 47 56 0 31-26 57-59 57H49c-31 0-57-25-57-57 0-29 24-53 54-53 2 0 3 0 4 0z" fill="${DESIGN.paleBlue}" stroke="${DESIGN.blue}" stroke-width="2.4"/>
     <text x="108" y="78" text-anchor="middle" class="fig1-text" font-size="19" font-weight="700">mSigPortal / GDC</text>
@@ -1066,7 +1096,7 @@ function figure1ArchitectureSvg() {
   <path d="M348 436 H414" fill="none" stroke="${DESIGN.blue}" stroke-width="3" marker-end="url(#fig1-arrow-blue)"/>
 
   <rect x="414" y="112" width="720" height="524" rx="28" fill="${DESIGN.paleGreen}" stroke="${DESIGN.green}" stroke-width="3" filter="url(#fig1-shadow)"/>
-  <text x="456" y="154" class="fig1-text fig1-section">Private browser / device boundary</text>
+  <text x="456" y="154" class="fig1-text fig1-section">Local browser / device boundary</text>
   <text x="456" y="180" class="fig1-muted fig1-small">Mutational-signature computation runs locally in the browser.</text>
   <rect x="456" y="192" width="656" height="18" rx="9" fill="#ffffff" stroke="#b7d8cd"/>
   <text x="784" y="205" text-anchor="middle" class="fig1-muted fig1-mini">User spectra, exposures, QC, plots, and JSON reports never leave this boundary unless explicitly exported.</text>
@@ -1101,7 +1131,6 @@ function figure1ArchitectureSvg() {
     <path d="M36 56v-12c0-18 20-18 20 0v12" fill="none" stroke="${DESIGN.green}" stroke-width="5" stroke-linecap="round"/>
   </g>
   <text x="1064" y="632" text-anchor="middle" class="fig1-text fig1-label" style="fill:${DESIGN.green}">stays local</text>
-  </g>
 </svg>`;
 }
 
@@ -1296,9 +1325,9 @@ function figure2ZeroInstall(e1) {
       svg.append("text").attr("x", 60).attr("y", 112).attr("font-size", 15).attr("font-weight", 700).attr("fill", colors.teal)
         .text("Time to first result");
       svg.append("text").attr("x", 390).attr("y", 78).attr("font-size", 18).attr("font-weight", 700).attr("fill", "#172026")
-        .text("Zero install means no local package manager, no hosted compute, and no upload of user data.");
+        .text("Zero install means no local package manager, no Pyodide/WebR runtime, and no wrapped-package import.");
       svg.append("text").attr("x", 390).attr("y", 110).attr("font-size", 14).attr("fill", "#53616f")
-        .text("The demonstration loads the SDK, fetches public mSigPortal inputs, fits one spectrum, and renders the SDK report in a fresh browser profile.");
+        .text("Fresh persistent Chrome profile; no-store local server and public fetches; native JavaScript NNLS against 67 COSMIC SBS96 signatures.");
 
       const cardW = 286, cardH = 418, cardTop = 198, gap = 22;
       const cards = svg.selectAll("g.step-card").data(steps).join("g")
@@ -1474,7 +1503,7 @@ function figure4PublicCohort(data) {
   return customFigurePage({
     title: "Figure 4. Public cohort capability demonstration",
     subtitle:
-      "Notebook-style outputs from one browser-side PCAWG Lung-AdenoCA SBS96 session: burden, COSMIC-style profiles, fitted exposures, report evidence, and NMF diagnostics.",
+      "Notebook-style outputs from one browser-side PCAWG Lung-AdenoCA SBS96 session: burden, COSMIC-style profiles, fitted exposures, report evidence, and held-out NMF rank diagnostics.",
     spec: data,
     script: `
       const width = 1280, height = 1040;
@@ -1492,7 +1521,7 @@ function figure4PublicCohort(data) {
       meanProfilePanel(panel(424, 30, 828, 282, "B. SBS96 profile", "Bars are grouped and colored by the six SBS substitution classes"));
       exposurePanel(panel(28, 342, 740, 312, "C. Signature exposure composition", "Samples sorted by dominant fitted signature; each bar sums to 100%"));
       reportPanel(panel(798, 342, 454, 312, "D. Trust-scored report fields", "Representative high-burden sample fit summary"));
-      nmfRankPanel(panel(28, 684, 540, 310, "E. NMF rank diagnostics", "Reconstruction error and sample-cosine fit across candidate ranks"));
+      nmfRankPanel(panel(28, 684, 540, 310, "E. NMF rank diagnostics", "Held-out relative error with fold uncertainty across candidate ranks"));
       nmfProfilesPanel(panel(598, 684, 654, 310, "F. Extracted NMF SBS profiles", "Selected-rank extracted signatures shown with the same SBS color grammar"));
 
       function burdenPanel(g) {
@@ -1605,21 +1634,22 @@ function figure4PublicCohort(data) {
       function nmfRankPanel(g) {
         const runs = spec.nmfRankSelection.runs;
         const x = d3.scalePoint().domain(runs.map((row) => row.rank)).range([74, 472]).padding(0.5);
-        const err = d3.scaleLinear().domain(d3.extent(runs, (row) => row.reconstructionError)).nice().range([230, 76]);
-        const cos = d3.scaleLinear().domain([Math.max(0, d3.min(runs, (row) => row.averageSampleCosineSimilarity) - 0.02), 1]).range([230, 76]);
+        const err = d3.scaleLinear().domain(d3.extent(runs.flatMap((row) => [row.meanHeldOutRelativeError - row.heldOutStandardError, row.meanHeldOutRelativeError + row.heldOutStandardError]))).nice().range([230, 76]);
+        const stability = d3.scaleLinear().domain([Math.max(0.8, d3.min(runs, (row) => row.componentStabilityMedianCosine) - 0.01), 1]).range([230, 76]);
         g.append("g").attr("transform", "translate(0,230)").call(d3.axisBottom(x));
-        g.append("g").attr("transform", "translate(74,0)").call(d3.axisLeft(err).ticks(4).tickFormat(d3.format("~s")));
-        g.append("g").attr("transform", "translate(472,0)").call(d3.axisRight(cos).ticks(4).tickFormat(d3.format(".2f")));
-        g.append("path").datum(runs).attr("fill", "none").attr("stroke", "#168a8c").attr("stroke-width", 3).attr("d", d3.line().x((row) => x(row.rank)).y((row) => err(row.reconstructionError)));
-        g.append("path").datum(runs).attr("fill", "none").attr("stroke", "#d59b2e").attr("stroke-width", 3).attr("d", d3.line().x((row) => x(row.rank)).y((row) => cos(row.averageSampleCosineSimilarity)));
-        g.selectAll("circle.err").data(runs).join("circle").attr("cx", (row) => x(row.rank)).attr("cy", (row) => err(row.reconstructionError)).attr("r", 5).attr("fill", "#168a8c");
-        g.selectAll("circle.cos").data(runs).join("circle").attr("cx", (row) => x(row.rank)).attr("cy", (row) => cos(row.averageSampleCosineSimilarity)).attr("r", 5).attr("fill", "#d59b2e");
+        g.append("g").attr("transform", "translate(74,0)").call(d3.axisLeft(err).ticks(4).tickFormat(d3.format(".2f")));
+        g.append("g").attr("transform", "translate(472,0)").call(d3.axisRight(stability).ticks(4).tickFormat(d3.format(".2f")));
+        g.append("path").datum(runs).attr("fill", "none").attr("stroke", "#168a8c").attr("stroke-width", 3).attr("d", d3.line().x((row) => x(row.rank)).y((row) => err(row.meanHeldOutRelativeError)));
+        g.append("path").datum(runs).attr("fill", "none").attr("stroke", "#d59b2e").attr("stroke-width", 3).attr("d", d3.line().x((row) => x(row.rank)).y((row) => stability(row.componentStabilityMedianCosine)));
+        g.selectAll("line.err").data(runs).join("line").attr("x1", (row) => x(row.rank)).attr("x2", (row) => x(row.rank)).attr("y1", (row) => err(row.meanHeldOutRelativeError + row.heldOutStandardError)).attr("y2", (row) => err(Math.max(0, row.meanHeldOutRelativeError - row.heldOutStandardError))).attr("stroke", "#168a8c").attr("stroke-width", 1.5).attr("stroke-opacity", 0.55);
+        g.selectAll("circle.err").data(runs).join("circle").attr("cx", (row) => x(row.rank)).attr("cy", (row) => err(row.meanHeldOutRelativeError)).attr("r", 5).attr("fill", "#168a8c");
+        g.selectAll("circle.cos").data(runs).join("circle").attr("cx", (row) => x(row.rank)).attr("cy", (row) => stability(row.componentStabilityMedianCosine)).attr("r", 5).attr("fill", "#d59b2e");
         g.append("text").attr("x", 74).attr("y", 270).attr("font-size", 12).attr("fill", "#53616f").text("Rank");
-        g.append("text").attr("x", 250).attr("y", 82).attr("font-size", 13).attr("font-weight", 700).attr("fill", "#168a8c").text("recommended rank " + spec.nmfRankSelection.recommendedRank);
+        g.append("text").attr("x", 220).attr("y", 82).attr("font-size", 13).attr("font-weight", 700).attr("fill", "#168a8c").text("selected rank " + spec.nmfRankSelection.recommendedRank + " by 1-SE rule");
         g.append("rect").attr("x", 280).attr("y", 252).attr("width", 12).attr("height", 12).attr("fill", "#168a8c");
-        g.append("text").attr("x", 298).attr("y", 263).attr("font-size", 11).attr("fill", "#405168").text("reconstruction error");
+        g.append("text").attr("x", 298).attr("y", 263).attr("font-size", 11).attr("fill", "#405168").text("held-out relative error");
         g.append("rect").attr("x", 410).attr("y", 252).attr("width", 12).attr("height", 12).attr("fill", "#d59b2e");
-        g.append("text").attr("x", 428).attr("y", 263).attr("font-size", 11).attr("fill", "#405168").text("sample cosine");
+        g.append("text").attr("x", 428).attr("y", 263).attr("font-size", 11).attr("fill", "#405168").text("component stability");
       }
 
       function nmfProfilesPanel(g) {
@@ -1771,21 +1801,21 @@ function figure2ZeroInstallRedesigned(e1) {
       label: "B",
       title: "SDK loads",
       time: stepTime("SDK imported"),
-      note: "cumulative",
+      note: "mSigSDK + D3 dependency",
     },
     {
       id: "fetch",
       label: "C",
-      title: "Inputs fetched",
+      title: "Inputs fetched; native fit",
       time: stepTime("mSigPortal data fetched"),
-      note: "cumulative",
+      note: "public SBS96 + COSMIC catalog",
     },
     {
       id: "report",
       label: "D",
-      title: "Report ready",
-      time: stepTime("SDK report generated", row.elapsedSeconds),
-      note: "cumulative",
+      title: "Report serialized + rendered",
+      time: stepTime("SDK report rendered", row.elapsedSeconds),
+      note: "HTML report; local DOM render",
     },
   ];
   const spec = {
@@ -1795,13 +1825,15 @@ function figure2ZeroInstallRedesigned(e1) {
     signatureCount: Number(row.signatureCount),
     sourceSpectrumUrl: row.sourceSpectrumUrl,
     sourceCatalogUrl: row.sourceCatalogUrl,
+    execution: row.execution || {},
+    timings: row.timings || {},
     steps: storyboard,
     rawSteps: steps,
     palette: DESIGN,
   };
   return customFigurePage({
     title: "Figure 2. Zero-install workflow demonstration",
-    subtitle: `Cumulative page-load timing: page start -> SDK import -> public inputs -> local report in ${formatNumber(row.elapsedSeconds, 2)} seconds. Values are cumulative from page-load start; browser launch and URL entry are excluded.`,
+    subtitle: `Cumulative page-load timing: fresh-profile Chrome -> native JavaScript NNLS -> local report rendered in ${formatNumber(row.elapsedSeconds, 2)} seconds. Pyodide, WebR, and wrapped packages were not loaded.`,
     showHeader: false,
     spec,
     script: `
@@ -1894,13 +1926,17 @@ function figure2ZeroInstallRedesigned(e1) {
         g.append("path").attr("d", "M115 167 l-10 -14 h20 z").attr("fill", color);
         g.append("rect").attr("x", 32).attr("y", 182).attr("width", 78).attr("height", 40).attr("rx", 8).attr("fill", p.paleGreen).attr("stroke", color).attr("stroke-width", 2);
         g.append("rect").attr("x", 120).attr("y", 182).attr("width", 78).attr("height", 40).attr("rx", 8).attr("fill", "#f3e8f6").attr("stroke", p.purple).attr("stroke-width", 2);
-        g.append("text").attr("x", 71).attr("y", 207).attr("text-anchor", "middle").attr("font-size", 15).attr("font-weight", 700).attr("fill", p.ink).text("SDK");
+        g.append("text").attr("x", 71).attr("y", 207).attr("text-anchor", "middle").attr("font-size", 15).attr("font-weight", 700).attr("fill", p.ink).text("mSigSDK");
         g.append("text").attr("x", 159).attr("y", 207).attr("text-anchor", "middle").attr("font-size", 15).attr("font-weight", 700).attr("fill", p.ink).text("D3");
+        g.append("text").attr("x", 115).attr("y", 246).attr("text-anchor", "middle").attr("font-size", 12).attr("font-weight", 700).attr("fill", p.ink).text("D3 is visualization only");
+        g.append("text").attr("x", 115).attr("y", 266).attr("text-anchor", "middle").attr("font-size", 11.5).attr("fill", p.muted).text("Pyodide/WebR: not loaded");
+        g.append("text").attr("x", 115).attr("y", 284).attr("text-anchor", "middle").attr("font-size", 11.5).attr("fill", p.muted).text("Wrapped package: not imported");
       }
       function drawFetch(g, color) {
         g.append("path").attr("d", "M54 54c6-30 32-50 66-50 29 0 52 16 64 41 25 4 44 26 44 52 0 30-25 54-57 54H50c-29 0-52-23-52-52 0-27 23-50 51-50h5z")
           .attr("fill", p.paleBlue).attr("stroke", color).attr("stroke-width", 2.5);
-        g.append("text").attr("x", 113).attr("y", 92).attr("text-anchor", "middle").attr("font-size", 18).attr("font-weight", 700).attr("fill", p.ink).text("mSigPortal");
+        g.append("text").attr("x", 113).attr("y", 92).attr("text-anchor", "middle").attr("font-size", 18).attr("font-weight", 700).attr("fill", p.ink).text("mSigPortal public inputs");
+        g.append("text").attr("x", 113).attr("y", 119).attr("text-anchor", "middle").attr("font-size", 12).attr("font-weight", 700).attr("fill", p.ink).text("native JavaScript NNLS");
         g.append("line").attr("x1", 113).attr("y1", 154).attr("x2", 113).attr("y2", 171).attr("stroke", p.green).attr("stroke-width", 4).attr("stroke-linecap", "round");
         g.append("path").attr("d", "M113 182 l-10 -14 h20 z").attr("fill", p.green);
         [
@@ -2057,7 +2093,7 @@ function figure3PublicCohortManuscript(data) {
   return customFigurePage({
     title: "Figure 3. Public cohort capability demonstration",
     subtitle:
-      "A manuscript-scale summary of one browser-side PCAWG Lung-AdenoCA SBS96 session: public cohort QC, COSMIC-style spectrum inspection, fitted exposure evidence, threshold sensitivity, and NMF Discovery.",
+      "A manuscript-scale summary of one browser-side PCAWG Lung-AdenoCA SBS96 session: public cohort QC, COSMIC-style spectrum inspection, fitted exposure evidence, threshold sensitivity, and held-out NMF rank selection.",
     spec,
     script: `
       const width = 1280, height = 1120;
@@ -2076,7 +2112,7 @@ function figure3PublicCohortManuscript(data) {
         burden: panel(42, 474, 360, 260, "B", "Cohort QC", "Mutation burden distribution across public samples.", panelColors[1]),
         fit: panel(430, 474, 808, 260, "C", "Fitted exposure evidence", "Representative report fields for the highest-burden sample.", panelColors[2]),
         sensitivity: panel(42, 772, 540, 296, "D", "Threshold sensitivity", "How active-signature calls change across exposure thresholds.", panelColors[3]),
-        nmf: panel(610, 772, 628, 296, "E", "NMF Discovery", "Rank sweep and extracted de novo signatures from the selected rank.", panelColors[4]),
+        nmf: panel(610, 772, 628, 296, "E", "NMF rank selection", "Held-out error, restart stability, and selected-rank de novo signatures.", panelColors[4]),
       };
       drawSbsProfile(panels.profile, spec.meanProfile, { x: 72, y: 92, w: 1080, h: 160, classY: 66 });
       drawBurden(panels.burden);
@@ -2207,13 +2243,15 @@ function figure3PublicCohortManuscript(data) {
         const runs = spec.nmfRankSelection.runs || [];
         const plot = { x: 56, y: 86, w: 210, h: 132 };
         const x = d3.scalePoint().domain(runs.map((row) => row.rank)).range([plot.x, plot.x + plot.w]).padding(0.5);
-        const y = d3.scaleLinear().domain(d3.extent(runs, (row) => row.reconstructionError)).nice().range([plot.y + plot.h, plot.y]);
+        const y = d3.scaleLinear().domain(d3.extent(runs, (row) => row.meanHeldOutRelativeError)).nice().range([plot.y + plot.h, plot.y]);
         g.append("g").attr("transform", "translate(0," + (plot.y + plot.h) + ")").call(d3.axisBottom(x));
-        g.append("g").attr("transform", "translate(" + plot.x + ",0)").call(d3.axisLeft(y).ticks(4).tickFormat(d3.format("~s")));
-        g.append("path").datum(runs).attr("fill", "none").attr("stroke", p.vermillion).attr("stroke-width", 3).attr("d", d3.line().x((row) => x(row.rank)).y((row) => y(row.reconstructionError)));
-        g.selectAll("circle.rank").data(runs).join("circle").attr("cx", (row) => x(row.rank)).attr("cy", (row) => y(row.reconstructionError)).attr("r", 5).attr("fill", p.vermillion);
+        g.append("g").attr("transform", "translate(" + plot.x + ",0)").call(d3.axisLeft(y).ticks(4).tickFormat(d3.format(".2f")));
+        g.append("path").datum(runs).attr("fill", "none").attr("stroke", p.vermillion).attr("stroke-width", 3).attr("d", d3.line().x((row) => x(row.rank)).y((row) => y(row.meanHeldOutRelativeError)));
+        g.selectAll("line.rank-error").data(runs).join("line").attr("x1", (row) => x(row.rank)).attr("x2", (row) => x(row.rank)).attr("y1", (row) => y(row.meanHeldOutRelativeError + row.heldOutStandardError)).attr("y2", (row) => y(Math.max(0, row.meanHeldOutRelativeError - row.heldOutStandardError))).attr("stroke", p.vermillion).attr("stroke-width", 1.5).attr("stroke-opacity", 0.55);
+        g.selectAll("circle.rank").data(runs).join("circle").attr("cx", (row) => x(row.rank)).attr("cy", (row) => y(row.meanHeldOutRelativeError)).attr("r", 5).attr("fill", (row) => row.eligible ? p.vermillion : p.gray);
         g.append("text").attr("x", plot.x).attr("y", 246).attr("font-size", 12).attr("fill", p.muted).text("Rank");
-        g.append("text").attr("x", 168).attr("y", 82).attr("font-size", 12).attr("font-weight", 700).attr("fill", p.vermillion).text("recommended rank " + spec.nmfRankSelection.recommendedRank);
+        g.append("text").attr("x", 136).attr("y", 82).attr("font-size", 12).attr("font-weight", 700).attr("fill", p.vermillion).text("selected rank " + spec.nmfRankSelection.recommendedRank + " by 1-SE rule");
+        g.append("text").attr("x", plot.x).attr("y", 264).attr("font-size", 11).attr("fill", p.muted).text("Held-out relative Frobenius error; bars show fold SE.");
 
         const profiles = (spec.nmfProfiles || []).slice(0, 2);
         profiles.forEach((profile, i) => {
@@ -2284,8 +2322,13 @@ function figure3PublicCohortCompact(data) {
   }));
   const rankRuns = (data.nmfRankSelection?.runs || []).map((row) => ({
     rank: Number(row.rank),
-    reconstructionError: Number(row.reconstructionError),
+    meanHeldOutRelativeError: Number(row.meanHeldOutRelativeError ?? row.reconstructionError),
+    heldOutStandardError: Number(row.heldOutStandardError),
+    componentStabilityMedianCosine: Number(row.componentStabilityMedianCosine),
+    sampleClusteringMeanARI: Number(row.sampleClusteringMeanARI),
+    reconstructionError: Number(row.meanHeldOutRelativeError ?? row.reconstructionError),
     averageSampleCosineSimilarity: Number(row.averageSampleCosineSimilarity),
+    eligible: Boolean(row.eligible),
     converged: Boolean(row.converged),
   }));
   const nmfProfiles = (data.nmfProfiles || []).slice(0, 6).map((profile) => ({
@@ -2324,7 +2367,7 @@ function figure3PublicCohortCompact(data) {
   return customFigurePage({
     title: "Figure 3. Public cohort capability demonstration",
     subtitle:
-      "Compact manuscript summary of public cohort fitting, QC, threshold sensitivity, and NMF discovery.",
+      "Compact manuscript summary of public cohort fitting, QC, threshold sensitivity, and held-out NMF rank selection.",
     spec,
     script: `
       const width = 1280, height = 820;
@@ -2542,6 +2585,7 @@ function figure3PublicCohortSdkPanelSlots(data) {
   const panelById = new Map(capture.panels.map((panel) => [panel.id, panel]));
   const selectedNmfRank =
     capture.workflowSummary?.nmfRank || capture.workflowSummary?.nmfRecommendedRank || null;
+  const rankSelection = data.nmfRankSelection || {};
   const displayedNmfSignatures = capture.workflowSummary?.nmfDisplayedSignatures || null;
   const bootstrapDisplayedSignatures = capture.workflowSummary?.bootstrapDisplayedSignatures || 12;
   const bootstrapInformativeSignatures = capture.workflowSummary?.bootstrapInformativeSignatures || null;
@@ -2590,8 +2634,8 @@ function figure3PublicCohortSdkPanelSlots(data) {
       id: "nmf",
       label: "Figure 3F",
       file: "figure3f-nmf-discovery.html",
-      title: "Exploratory NMF discovery",
-      caption: `Figure 3F. The browser-side exploratory non-negative matrix factorization rank sweep selected rank ${selectedNmfRank || "shown"} for the public PCAWG Lung-AdenoCA SBS96 cohort. All ${displayedNmfSignatures || "extracted"} extracted de novo SBS96 components from that rank are displayed for manuscript review and handoff.`,
+      title: "NMF rank selection and discovery",
+      caption: `Figure 3F. Non-negative matrix factorization rank selection used five sample-level folds across candidate ranks 2–8, five restarts per fold, held-out relative Frobenius error, and exact matched-component restart stability. Rank ${selectedNmfRank || "shown"} was selected automatically as the smallest eligible rank within one standard error of the minimum held-out error (point-estimate best rank ${rankSelection.bestHeldOutRank || "shown"}); all ${displayedNmfSignatures || "extracted"} de novo SBS96 components from the selected rank are displayed.`,
     },
   ];
   return baseSlots.map((slot) => {
@@ -2707,7 +2751,7 @@ function figure4RuntimeRedesigned(e4) {
   const scenarioInfo = {
     single_sample_fit_report: {
       short: "Single sample",
-      full: "One SBS96 synthetic sample, 9-signature NNLS fit plus report generation.",
+      full: "One SBS96 synthetic sample, native 9-signature NNLS fit plus reconstruction QC and HTML report serialization; no plot rendering.",
     },
     medium_cohort_120: {
       short: "120-sample cohort",
@@ -2770,6 +2814,7 @@ function figure4RuntimeRedesigned(e4) {
         q3Ms: quantile(values, 0.75),
         minMs: Math.min(...values),
         maxMs: Math.max(...values),
+        observations: values,
         repeatCount: values.length,
       });
     }
@@ -2797,7 +2842,7 @@ function figure4RuntimeRedesigned(e4) {
   return customFigurePage({
     title: "Figure 4. Exposure-solve benchmarks",
     subtitle:
-      `Warm-start exposure-solve scenarios only: medians with IQR whiskers across ${repeatCount} isolated repeats in Chrome, Edge, and Firefox. Raw benchmark files also retain cold-start rows and stage timings.`,
+      `Warm-start native-JavaScript exposure-solve scenarios only: individual observations, medians, minima/maxima, and IQR across ${repeatCount} isolated repeats in Chrome, Edge, and Firefox. Raw benchmark files also retain cold-start rows and component timings.`,
     spec,
     script: `
       const width = 1280, height = 820;
@@ -2810,8 +2855,8 @@ function figure4RuntimeRedesigned(e4) {
 
       const x0 = d3.scaleBand().domain(spec.scenarios).range([margin.left, width - margin.right]).padding(0.22);
       const x1 = d3.scaleBand().domain(spec.browsers).range([0, x0.bandwidth()]).padding(0.14);
-      const minVal = d3.min(completed, (row) => Math.min(row.q1Ms || row.medianMs, row.medianMs)) || 0.1;
-      const maxVal = d3.max(completed, (row) => Math.max(row.q3Ms || row.medianMs, row.medianMs)) || 1000;
+      const minVal = d3.min(completed, (row) => row.minMs) || 0.1;
+      const maxVal = d3.max(completed, (row) => row.maxMs) || 1000;
       const y = d3.scaleLog().domain([Math.max(0.05, minVal / 4), maxVal * 2.3]).range([height - margin.bottom, margin.top]);
 
       svg.append("rect").attr("x", margin.left).attr("y", margin.top).attr("width", width - margin.left - margin.right).attr("height", height - margin.top - margin.bottom).attr("fill", "#ffffff").attr("stroke", p.hairline);
@@ -2835,6 +2880,23 @@ function figure4RuntimeRedesigned(e4) {
         .attr("width", x1.bandwidth())
         .attr("height", (row) => Math.max(3, height - margin.bottom - y(row.medianMs)))
         .attr("fill", (row) => color(row.browser));
+      const observations = completed.flatMap((row) => row.observations.map((value, index) => ({ row, value, index })));
+      svg.selectAll("line.range").data(completed).join("line")
+        .attr("class", "range")
+        .attr("x1", (row) => x0(row.scenario) + x1(row.browser) + x1.bandwidth() / 2)
+        .attr("x2", (row) => x0(row.scenario) + x1(row.browser) + x1.bandwidth() / 2)
+        .attr("y1", (row) => y(row.minMs))
+        .attr("y2", (row) => y(row.maxMs))
+        .attr("stroke", (row) => color(row.browser)).attr("stroke-width", 2).attr("opacity", 0.24);
+      svg.selectAll("circle.observation").data(observations).join("circle")
+        .attr("class", "observation")
+        .attr("cx", ({ row, index }) => {
+          const n = row.observations.length;
+          const jitter = n > 1 ? ((index / (n - 1)) - 0.5) * Math.min(24, x1.bandwidth() * 0.72) : 0;
+          return x0(row.scenario) + x1(row.browser) + x1.bandwidth() / 2 + jitter;
+        })
+        .attr("cy", ({ value }) => y(value))
+        .attr("r", 2.5).attr("fill", ({ row }) => color(row.browser)).attr("opacity", 0.4);
       const whiskers = svg.selectAll("g.iqr").data(completed).join("g")
         .attr("class", "iqr")
         .attr("transform", (row) => "translate(" + (x0(row.scenario) + x1(row.browser) + x1.bandwidth() / 2) + ",0)");
@@ -2881,7 +2943,7 @@ function figure4RuntimeRedesigned(e4) {
         wrapDetail(detail, spec.scenarioInfo[scenario].full, i < 3 ? 46 : 42);
       });
       svg.append("text").attr("x", margin.left).attr("y", height - 62).attr("font-size", 12).attr("font-weight", 700).attr("fill", p.muted)
-        .text("Bars show warm-start medians; black whiskers show IQR. These are exposure-solve scenarios only.");
+        .text("Bars show warm-start medians; small dots show individual observations; grey ranges show min-to-max and black whiskers show IQR. These are exposure-solve scenarios only.");
       svg.append("text").attr("x", margin.left).attr("y", height - 42).attr("font-size", 12).attr("fill", p.muted)
         .text("Host: " + (spec.environment.cpus || "n/a") + " CPU threads, " + (spec.environment.memoryGb || "n/a") + " GB RAM, Node " + (spec.environment.node || "n/a") + ". Firefox uses the Playwright-managed browser binary for reproducible automation.");
       if (spec.firefoxNmfNote) {
@@ -2963,6 +3025,8 @@ function supplementaryTableS1(e3) {
   const scipyNnls = rowsById.get("nnls_vs_scipy");
   const rNnls = rowsById.get("nnls_vs_r_nnls");
   const nmf = rowsById.get("nmf_vs_sklearn");
+  const nmfPairedRuns = nmf?.pairedRuns || [];
+  const nmfConvergedRuns = nmfPairedRuns.filter((run) => run.sdkConverged && run.referenceConverged).length;
   const nnlsMax = Math.max(
     Number(scipyNnls?.maxAbsoluteDifference) || 0,
     Number(rNnls?.maxAbsoluteDifference) || 0
@@ -2971,7 +3035,7 @@ function supplementaryTableS1(e3) {
   return {
     caption: "Supplementary Table S1. Internal numerical solver reference checks.",
     note:
-      "Validation bounds were set before inspecting these results and are numerical reproducibility checks, not biological decision cutoffs. NNLS fitting is expected to match independent solvers up to floating-point tolerance. NMF is stochastic and non-unique, so it was evaluated by reconstruction error and matched-component cosine rather than exact matrix equality.",
+      "Validation bounds were set before inspecting these results and are numerical reproducibility checks, not biological decision cutoffs. NNLS fitting is expected to match independent solvers up to floating-point tolerance. NMF is stochastic and non-unique, so the comparison used 12 paired restarts with shared initialization matrices, matched Frobenius objectives, stopping settings, and exact one-to-one component matching; convergence was recorded separately for each implementation.",
     columns: ["SDK area", "Independent reference", "What was checked", "Outcome"],
     rows: [
       {
@@ -2983,8 +3047,8 @@ function supplementaryTableS1(e3) {
       {
         "SDK area": "NMF extraction",
         "Independent reference": nmf?.reference || "scikit-learn NMF",
-        "What was checked": `Reconstruction error and similarity of matched NMF components across ${nmf?.sampleCount || ""} planted low-rank spectra.`,
-        Outcome: `SDK reconstruction error was ${formatNumber(nmf?.reconstructionErrorRatio, 3)}x the reference, with median component cosine ${formatNumber(nmf?.medianMatchedComponentCosine, 3)}; this met the pre-set rule of no more than 5% worse reconstruction error and cosine >= 0.95.`,
+        "What was checked": `${nmf?.restarts || "12"} paired restarts on ${nmf?.sampleCount || ""} planted low-rank spectra using the same positive W/H starts, Frobenius objective, maximum iterations, tolerance, and exact maximum-total-cosine component matching.`,
+        Outcome: `Median SDK/reference error ratio ${formatNumber(nmf?.reconstructionErrorRatio, 6)}x; median matched component cosine ${formatNumber(nmf?.medianMatchedComponentCosine, 6)}; ${nmfConvergedRuns}/${nmfPairedRuns.length || nmf?.restarts || 12} paired runs converged in both implementations.`,
       },
     ],
   };
@@ -3019,11 +3083,11 @@ These captions are generated alongside the manuscript figures. Figure HTML pages
 
 ## Main Figures
 
-**Figure 1. mSigSDK architecture and data-residency boundary.** Optional public-data fetchers may send public sample, gene, project, or file identifiers to mSigPortal/GDC, and the live UCSC MAF-context lookup may send mutation coordinates when explicitly invoked; strictLocal disables those fetches. User spectra, exposures, QC outputs, plots, and JSON reports remain inside the private browser/device boundary unless explicitly exported.
+**Figure 1. mSigSDK architecture and data-residency boundary.** Optional public-data fetchers may send public sample, gene, project, or file identifiers to mSigPortal/GDC, and the live UCSC MAF-context lookup may send mutation coordinates when explicitly invoked; strictLocal disables those fetches. User spectra, exposures, QC outputs, plots, and JSON reports remain inside the local browser/device boundary unless explicitly exported.
 
 File: \`figure1-architecture-data-residency.html\`
 
-**Figure 2. Zero-install workflow demonstration.** Automated in-page timing measured cumulative time from page-load start through SDK import, public PCAWG Lung-AdenoCA SBS96 spectrum retrieval, full COSMIC v3 SBS96 catalog retrieval, single-sample refitting, and local report rendering. Browser launch, URL entry, and other human setup time are excluded from the measured interval.
+**Figure 2. Zero-install workflow demonstration.** Automated in-page timing measured cumulative time from page-load start through the mSigSDK ESM import, public PCAWG Lung-AdenoCA SBS96 spectrum and full COSMIC v3 GRCh37 SBS96 catalog retrieval, native JavaScript 'mSigSDK.qc.fitSpectraWithNNLS' fitting, QC evidence generation, HTML report serialization, and local DOM report rendering. The run used Chrome 150.0.7871.187 in a fresh persistent profile with no-store local-server headers and 'cache: no-store' public fetches; no adapter, Pyodide runtime, WebR runtime, or wrapped package was initialized or imported. D3 was loaded as an mSigSDK visualization dependency and was not used as the fitting runtime. Browser launch and URL entry were excluded from the measured interval.
 
 File: \`figure2-zero-install-workflow.html\`
 
@@ -3031,7 +3095,7 @@ File: \`figure2-zero-install-workflow.html\`
 
 File: \`figure3-public-cohort-capabilities.html\`
 
-**Figure 4. Exposure-solve benchmark scenarios only.** Warm-start median elapsed runtime with IQR whiskers across isolated desktop-browser repeats for representative exposure-solve workflows, including single-sample fitting/report generation, cohort-scale refitting, bootstrap uncertainty, and NMF rank selection/extraction. Cold-start rows and stage timings are retained in the benchmark data files; the log-scaled axis keeps fast single-sample operations and slower cohort workflows visible in one figure.
+**Figure 4. Exposure-solve benchmark scenarios only.** Warm-start elapsed runtime for representative native-JavaScript exposure-solve workflows, shown with individual observations, medians, and IQR/minimum-to-maximum ranges across 20 isolated repeats in Chrome, Edge, and Firefox. The single-sample scenario includes native NNLS, reconstruction QC, and HTML report serialization; it does not render plots. Cohort refitting, 500-iteration bootstrap, and NMF rank-selection/extraction are separate scenarios. Cold-start rows and component fields are retained in the benchmark files; Pyodide/WebR initialization, wrapped-package import, public spectrum/catalog fetch, adapter fitting, and plot rendering were not part of E4 and are labeled not applicable or not measured rather than folded into native-compute timings. The browser exposes only sampled JavaScript heap values, reported as observed peak JS heap; Firefox did not expose this metric.
 
 File: \`figure4-runtime-benchmarks.html\`
 

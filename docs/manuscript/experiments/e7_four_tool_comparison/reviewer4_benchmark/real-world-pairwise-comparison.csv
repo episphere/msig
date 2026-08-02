@@ -1,0 +1,7 @@
+toolA,toolB,pair,flattenedExposurePearson,meanPerSampleL1Disagreement,medianPerSampleL1Disagreement,meanActiveSignatureJaccard
+deconstructSigs,sigminer,deconstructSigs vs sigminer,0.953008,0.349635,0.329512,0.693788
+deconstructSigs,SigProfilerAssignment,deconstructSigs vs SigProfilerAssignment,0.823328,0.839618,0.76294,0.193051
+deconstructSigs,MuSiCal,deconstructSigs vs MuSiCal,0.906884,0.541888,0.540515,0.477082
+sigminer,SigProfilerAssignment,sigminer vs SigProfilerAssignment,0.802848,0.906557,0.852899,0.186473
+sigminer,MuSiCal,sigminer vs MuSiCal,0.936905,0.435751,0.393999,0.565478
+SigProfilerAssignment,MuSiCal,SigProfilerAssignment vs MuSiCal,0.814296,0.801168,0.818278,0.290427

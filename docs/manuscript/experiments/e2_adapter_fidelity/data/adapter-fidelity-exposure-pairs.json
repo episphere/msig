@@ -1,6 +1,6 @@
 {
   "schemaVersion": "msig.manuscript.experiment.v1",
-  "generatedAt": "2026-06-27T22:48:55.381Z",
+  "generatedAt": "2026-07-03T22:25:15.273Z",
   "experimentId": "e2_adapter_fidelity",
   "rows": [
     {
@@ -61232,8 +61232,8 @@
       "sample": "SP50263",
       "signature": "SBS21",
       "browserExposure": 0.01724678082018331,
-      "localExposure": 0.017246780820183202,
-      "absoluteDifference": 1.0755285551056204e-16
+      "localExposure": 0.017246780820183192,
+      "absoluteDifference": 1.1796119636642288e-16
     },
     {
       "tool": "musical",
@@ -61296,8 +61296,8 @@
       "sample": "SP50263",
       "signature": "SBS29",
       "browserExposure": 0.08483996238692258,
-      "localExposure": 0.08483996238692265,
-      "absoluteDifference": 6.938893903907228e-17
+      "localExposure": 0.08483996238692264,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
@@ -61344,8 +61344,8 @@
       "sample": "SP50263",
       "signature": "SBS34",
       "browserExposure": 0.01872767458437083,
-      "localExposure": 0.01872767458437088,
-      "absoluteDifference": 5.204170427930421e-17
+      "localExposure": 0.018727674584370878,
+      "absoluteDifference": 4.85722573273506e-17
     },
     {
       "tool": "musical",
@@ -61368,8 +61368,8 @@
       "sample": "SP50263",
       "signature": "SBS37",
       "browserExposure": 0.07676181173630871,
-      "localExposure": 0.07676181173630775,
-      "absoluteDifference": 9.575673587391975e-16
+      "localExposure": 0.07676181173630772,
+      "absoluteDifference": 9.853229343548264e-16
     },
     {
       "tool": "musical",
@@ -61568,8 +61568,8 @@
       "sample": "SP50263",
       "signature": "SBS6",
       "browserExposure": 0.04741405439840097,
-      "localExposure": 0.04741405439840088,
-      "absoluteDifference": 9.020562075079397e-17
+      "localExposure": 0.04741405439840087,
+      "absoluteDifference": 9.71445146547012e-17
     },
     {
       "tool": "musical",
@@ -61616,8 +61616,8 @@
       "sample": "SP50263",
       "signature": "SBS8",
       "browserExposure": 0.13542249020658995,
-      "localExposure": 0.13542249020658925,
-      "absoluteDifference": 6.938893903907228e-16
+      "localExposure": 0.13542249020658928,
+      "absoluteDifference": 6.661338147750939e-16
     },
     {
       "tool": "musical",
@@ -61648,8 +61648,8 @@
       "sample": "SP50317",
       "signature": "SBS1",
       "browserExposure": 0.026269321959572243,
-      "localExposure": 0.026269321959572264,
-      "absoluteDifference": 2.0816681711721685e-17
+      "localExposure": 0.02626932195957228,
+      "absoluteDifference": 3.8163916471489756e-17
     },
     {
       "tool": "musical",
@@ -61688,8 +61688,8 @@
       "sample": "SP50317",
       "signature": "SBS13",
       "browserExposure": 0.2738106569754715,
-      "localExposure": 0.27381065697547174,
-      "absoluteDifference": 2.220446049250313e-16
+      "localExposure": 0.27381065697547186,
+      "absoluteDifference": 3.3306690738754696e-16
     },
     {
       "tool": "musical",
@@ -61712,8 +61712,8 @@
       "sample": "SP50317",
       "signature": "SBS16",
       "browserExposure": 0.017284685588561024,
-      "localExposure": 0.01728468558856089,
-      "absoluteDifference": 1.3530843112619095e-16
+      "localExposure": 0.0172846855885609,
+      "absoluteDifference": 1.249000902703301e-16
     },
     {
       "tool": "musical",
@@ -61728,8 +61728,8 @@
       "sample": "SP50317",
       "signature": "SBS17b",
       "browserExposure": 0.005630333996976061,
-      "localExposure": 0.0056303339969760655,
-      "absoluteDifference": 4.336808689942018e-18
+      "localExposure": 0.005630333996976066,
+      "absoluteDifference": 5.204170427930421e-18
     },
     {
       "tool": "musical",
@@ -61752,8 +61752,8 @@
       "sample": "SP50317",
       "signature": "SBS2",
       "browserExposure": 0.15697848342968262,
-      "localExposure": 0.15697848342968268,
-      "absoluteDifference": 5.551115123125783e-17
+      "localExposure": 0.1569784834296827,
+      "absoluteDifference": 8.326672684688674e-17
     },
     {
       "tool": "musical",
@@ -61848,8 +61848,8 @@
       "sample": "SP50317",
       "signature": "SBS30",
       "browserExposure": 0.03887136713003603,
-      "localExposure": 0.03887136713003593,
-      "absoluteDifference": 9.71445146547012e-17
+      "localExposure": 0.03887136713003594,
+      "absoluteDifference": 9.020562075079397e-17
     },
     {
       "tool": "musical",
@@ -61904,8 +61904,8 @@
       "sample": "SP50317",
       "signature": "SBS37",
       "browserExposure": 0.06061272974434793,
-      "localExposure": 0.06061272974434812,
-      "absoluteDifference": 1.942890293094024e-16
+      "localExposure": 0.060612729744348094,
+      "absoluteDifference": 1.6653345369377348e-16
     },
     {
       "tool": "musical",
@@ -61920,8 +61920,8 @@
       "sample": "SP50317",
       "signature": "SBS39",
       "browserExposure": 0.06078309485616592,
-      "localExposure": 0.060783094856165176,
-      "absoluteDifference": 7.424616477180734e-16
+      "localExposure": 0.06078309485616522,
+      "absoluteDifference": 7.008282842946301e-16
     },
     {
       "tool": "musical",
@@ -61968,8 +61968,8 @@
       "sample": "SP50317",
       "signature": "SBS44",
       "browserExposure": 0.03478909705594263,
-      "localExposure": 0.034789097055942624,
-      "absoluteDifference": 6.938893903907228e-18
+      "localExposure": 0.03478909705594263,
+      "absoluteDifference": 0
     },
     {
       "tool": "musical",
@@ -61992,8 +61992,8 @@
       "sample": "SP50317",
       "signature": "SBS47",
       "browserExposure": 0.01270118681756933,
-      "localExposure": 0.012701186817569172,
-      "absoluteDifference": 1.5785983631388945e-16
+      "localExposure": 0.012701186817569175,
+      "absoluteDifference": 1.5439038936193583e-16
     },
     {
       "tool": "musical",
@@ -62152,8 +62152,8 @@
       "sample": "SP50317",
       "signature": "SBS8",
       "browserExposure": 0.15948227807259918,
-      "localExposure": 0.1594822780726,
-      "absoluteDifference": 8.049116928532385e-16
+      "localExposure": 0.15948227807260001,
+      "absoluteDifference": 8.326672684688674e-16
     },
     {
       "tool": "musical",
@@ -62280,16 +62280,16 @@
       "sample": "SP50321",
       "signature": "SBS19",
       "browserExposure": 0.02115640543893545,
-      "localExposure": 0.02115640543893545,
-      "absoluteDifference": 0
+      "localExposure": 0.021156405438935426,
+      "absoluteDifference": 2.42861286636753e-17
     },
     {
       "tool": "musical",
       "sample": "SP50321",
       "signature": "SBS2",
       "browserExposure": 0.017355871447099047,
-      "localExposure": 0.017355871447099065,
-      "absoluteDifference": 1.734723475976807e-17
+      "localExposure": 0.017355871447099058,
+      "absoluteDifference": 1.0408340855860843e-17
     },
     {
       "tool": "musical",
@@ -62552,8 +62552,8 @@
       "sample": "SP50321",
       "signature": "SBS5",
       "browserExposure": 0.2097986251539396,
-      "localExposure": 0.20979862515393943,
-      "absoluteDifference": 1.6653345369377348e-16
+      "localExposure": 0.20979862515393946,
+      "absoluteDifference": 1.3877787807814457e-16
     },
     {
       "tool": "musical",
@@ -62688,8 +62688,8 @@
       "sample": "SP50321",
       "signature": "SBS8",
       "browserExposure": 0.11752198179931655,
-      "localExposure": 0.11752198179931736,
-      "absoluteDifference": 8.049116928532385e-16
+      "localExposure": 0.11752198179931739,
+      "absoluteDifference": 8.326672684688674e-16
     },
     {
       "tool": "musical",
@@ -62720,8 +62720,8 @@
       "sample": "SP50406",
       "signature": "SBS1",
       "browserExposure": 0.21486446501962586,
-      "localExposure": 0.21486446501962586,
-      "absoluteDifference": 0
+      "localExposure": 0.2148644650196258,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
@@ -62776,8 +62776,8 @@
       "sample": "SP50406",
       "signature": "SBS15",
       "browserExposure": 0.08796540888258775,
-      "localExposure": 0.08796540888258783,
-      "absoluteDifference": 8.326672684688674e-17
+      "localExposure": 0.08796540888258782,
+      "absoluteDifference": 6.938893903907228e-17
     },
     {
       "tool": "musical",
@@ -62848,8 +62848,8 @@
       "sample": "SP50406",
       "signature": "SBS22",
       "browserExposure": 0.0280765464984492,
-      "localExposure": 0.028076546498449154,
-      "absoluteDifference": 4.5102810375396984e-17
+      "localExposure": 0.02807654649844913,
+      "absoluteDifference": 6.938893903907228e-17
     },
     {
       "tool": "musical",
@@ -62864,8 +62864,8 @@
       "sample": "SP50406",
       "signature": "SBS24",
       "browserExposure": 0.05130736840383,
-      "localExposure": 0.05130736840382977,
-      "absoluteDifference": 2.3592239273284576e-16
+      "localExposure": 0.051307368403829795,
+      "absoluteDifference": 2.0816681711721685e-16
     },
     {
       "tool": "musical",
@@ -62952,8 +62952,8 @@
       "sample": "SP50406",
       "signature": "SBS34",
       "browserExposure": 0.013902400420746197,
-      "localExposure": 0.013902400420746164,
-      "absoluteDifference": 3.2959746043559335e-17
+      "localExposure": 0.013902400420746173,
+      "absoluteDifference": 2.42861286636753e-17
     },
     {
       "tool": "musical",
@@ -62968,8 +62968,8 @@
       "sample": "SP50406",
       "signature": "SBS36",
       "browserExposure": 0.03240546546740592,
-      "localExposure": 0.03240546546740572,
-      "absoluteDifference": 2.0122792321330962e-16
+      "localExposure": 0.03240546546740569,
+      "absoluteDifference": 2.2898349882893854e-16
     },
     {
       "tool": "musical",
@@ -62992,8 +62992,8 @@
       "sample": "SP50406",
       "signature": "SBS39",
       "browserExposure": 0.03332365601256333,
-      "localExposure": 0.03332365601256242,
-      "absoluteDifference": 9.08995101411847e-16
+      "localExposure": 0.03332365601256236,
+      "absoluteDifference": 9.71445146547012e-16
     },
     {
       "tool": "musical",
@@ -63168,8 +63168,8 @@
       "sample": "SP50406",
       "signature": "SBS59",
       "browserExposure": 0.010624415062023324,
-      "localExposure": 0.010624415062023357,
-      "absoluteDifference": 3.2959746043559335e-17
+      "localExposure": 0.010624415062023355,
+      "absoluteDifference": 3.122502256758253e-17
     },
     {
       "tool": "musical",
@@ -63216,8 +63216,8 @@
       "sample": "SP50406",
       "signature": "SBS7d",
       "browserExposure": 0.016123792248444027,
-      "localExposure": 0.01612379224844406,
-      "absoluteDifference": 3.122502256758253e-17
+      "localExposure": 0.016123792248444062,
+      "absoluteDifference": 3.469446951953614e-17
     },
     {
       "tool": "musical",
@@ -63296,8 +63296,8 @@
       "sample": "SP50412",
       "signature": "SBS13",
       "browserExposure": 0.02156534750238545,
-      "localExposure": 0.021565347502385333,
-      "absoluteDifference": 1.1796119636642288e-16
+      "localExposure": 0.02156534750238533,
+      "absoluteDifference": 1.214306433183765e-16
     },
     {
       "tool": "musical",
@@ -63336,8 +63336,8 @@
       "sample": "SP50412",
       "signature": "SBS17b",
       "browserExposure": 0.01337578691383392,
-      "localExposure": 0.01337578691383386,
-      "absoluteDifference": 6.071532165918825e-17
+      "localExposure": 0.013375786913833862,
+      "absoluteDifference": 5.898059818321144e-17
     },
     {
       "tool": "musical",
@@ -63360,8 +63360,8 @@
       "sample": "SP50412",
       "signature": "SBS2",
       "browserExposure": 0.017703826925059354,
-      "localExposure": 0.017703826925059313,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.01770382692505931,
+      "absoluteDifference": 4.5102810375396984e-17
     },
     {
       "tool": "musical",
@@ -63456,8 +63456,8 @@
       "sample": "SP50412",
       "signature": "SBS30",
       "browserExposure": 0.05661787966853325,
-      "localExposure": 0.056617879668532795,
-      "absoluteDifference": 4.579669976578771e-16
+      "localExposure": 0.05661787966853279,
+      "absoluteDifference": 4.649058915617843e-16
     },
     {
       "tool": "musical",
@@ -63512,8 +63512,8 @@
       "sample": "SP50412",
       "signature": "SBS37",
       "browserExposure": 0.07417313848667374,
-      "localExposure": 0.0741731384866731,
-      "absoluteDifference": 6.38378239159465e-16
+      "localExposure": 0.07417313848667309,
+      "absoluteDifference": 6.522560269672795e-16
     },
     {
       "tool": "musical",
@@ -63624,8 +63624,8 @@
       "sample": "SP50412",
       "signature": "SBS5",
       "browserExposure": 0.29973092048832384,
-      "localExposure": 0.299730920488328,
-      "absoluteDifference": 4.163336342344337e-15
+      "localExposure": 0.29973092048832806,
+      "absoluteDifference": 4.218847493575595e-15
     },
     {
       "tool": "musical",
@@ -63752,8 +63752,8 @@
       "sample": "SP50412",
       "signature": "SBS7d",
       "browserExposure": 0.036723598318242436,
-      "localExposure": 0.03672359831824229,
-      "absoluteDifference": 1.457167719820518e-16
+      "localExposure": 0.036723598318242304,
+      "absoluteDifference": 1.3183898417423734e-16
     },
     {
       "tool": "musical",
@@ -63832,8 +63832,8 @@
       "sample": "SP50485",
       "signature": "SBS13",
       "browserExposure": 0.016390619749955922,
-      "localExposure": 0.016390619749955947,
-      "absoluteDifference": 2.42861286636753e-17
+      "localExposure": 0.016390619749955943,
+      "absoluteDifference": 2.0816681711721685e-17
     },
     {
       "tool": "musical",
@@ -63856,8 +63856,8 @@
       "sample": "SP50485",
       "signature": "SBS16",
       "browserExposure": 0.026046207998944616,
-      "localExposure": 0.02604620799894486,
-      "absoluteDifference": 2.42861286636753e-16
+      "localExposure": 0.026046207998944818,
+      "absoluteDifference": 2.0122792321330962e-16
     },
     {
       "tool": "musical",
@@ -63872,8 +63872,8 @@
       "sample": "SP50485",
       "signature": "SBS17b",
       "browserExposure": 0.006631968741140448,
-      "localExposure": 0.0066319687411404505,
-      "absoluteDifference": 2.6020852139652106e-18
+      "localExposure": 0.006631968741140449,
+      "absoluteDifference": 8.673617379884035e-19
     },
     {
       "tool": "musical",
@@ -63888,16 +63888,16 @@
       "sample": "SP50485",
       "signature": "SBS19",
       "browserExposure": 0.029403945939649827,
-      "localExposure": 0.029403945939649834,
-      "absoluteDifference": 6.938893903907228e-18
+      "localExposure": 0.029403945939649827,
+      "absoluteDifference": 0
     },
     {
       "tool": "musical",
       "sample": "SP50485",
       "signature": "SBS2",
       "browserExposure": 0.018969937635705255,
-      "localExposure": 0.01896993763570529,
-      "absoluteDifference": 3.469446951953614e-17
+      "localExposure": 0.018969937635705286,
+      "absoluteDifference": 3.122502256758253e-17
     },
     {
       "tool": "musical",
@@ -63976,8 +63976,8 @@
       "sample": "SP50485",
       "signature": "SBS29",
       "browserExposure": 0.035365029492623684,
-      "localExposure": 0.03536502949262364,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.035365029492623636,
+      "absoluteDifference": 4.85722573273506e-17
     },
     {
       "tool": "musical",
@@ -63992,8 +63992,8 @@
       "sample": "SP50485",
       "signature": "SBS30",
       "browserExposure": 0.05525652219914636,
-      "localExposure": 0.05525652219914672,
-      "absoluteDifference": 3.608224830031759e-16
+      "localExposure": 0.0552565221991467,
+      "absoluteDifference": 3.400058012914542e-16
     },
     {
       "tool": "musical",
@@ -64040,16 +64040,16 @@
       "sample": "SP50485",
       "signature": "SBS36",
       "browserExposure": 0.03847091200784088,
-      "localExposure": 0.03847091200784093,
-      "absoluteDifference": 5.551115123125783e-17
+      "localExposure": 0.038470912007840904,
+      "absoluteDifference": 2.7755575615628914e-17
     },
     {
       "tool": "musical",
       "sample": "SP50485",
       "signature": "SBS37",
       "browserExposure": 0.04677990694561496,
-      "localExposure": 0.046779906945614895,
-      "absoluteDifference": 6.245004513516506e-17
+      "localExposure": 0.04677990694561493,
+      "absoluteDifference": 2.7755575615628914e-17
     },
     {
       "tool": "musical",
@@ -64296,8 +64296,8 @@
       "sample": "SP50485",
       "signature": "SBS8",
       "browserExposure": 0.11249825857799828,
-      "localExposure": 0.11249825857799853,
-      "absoluteDifference": 2.498001805406602e-16
+      "localExposure": 0.11249825857799847,
+      "absoluteDifference": 1.942890293094024e-16
     },
     {
       "tool": "musical",
@@ -64312,8 +64312,8 @@
       "sample": "SP50485",
       "signature": "SBS85",
       "browserExposure": 0.03993729917276388,
-      "localExposure": 0.03993729917276397,
-      "absoluteDifference": 9.020562075079397e-17
+      "localExposure": 0.039937299172764,
+      "absoluteDifference": 1.1796119636642288e-16
     },
     {
       "tool": "musical",
@@ -64328,8 +64328,8 @@
       "sample": "SP50518",
       "signature": "SBS1",
       "browserExposure": 0.1133708450994934,
-      "localExposure": 0.11337084509949322,
-      "absoluteDifference": 1.8041124150158794e-16
+      "localExposure": 0.11337084509949312,
+      "absoluteDifference": 2.7755575615628914e-16
     },
     {
       "tool": "musical",
@@ -64416,8 +64416,8 @@
       "sample": "SP50518",
       "signature": "SBS18",
       "browserExposure": 0.05186418231460315,
-      "localExposure": 0.051864182314603706,
-      "absoluteDifference": 5.551115123125783e-16
+      "localExposure": 0.05186418231460363,
+      "absoluteDifference": 4.787836793695988e-16
     },
     {
       "tool": "musical",
@@ -64432,8 +64432,8 @@
       "sample": "SP50518",
       "signature": "SBS2",
       "browserExposure": 0.04411190311347568,
-      "localExposure": 0.04411190311347565,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.044111903113475646,
+      "absoluteDifference": 3.469446951953614e-17
     },
     {
       "tool": "musical",
@@ -64616,8 +64616,8 @@
       "sample": "SP50518",
       "signature": "SBS40",
       "browserExposure": 0.3264796436766077,
-      "localExposure": 0.3264796436766062,
-      "absoluteDifference": 1.4988010832439613e-15
+      "localExposure": 0.3264796436766059,
+      "absoluteDifference": 1.7763568394002505e-15
     },
     {
       "tool": "musical",
@@ -64632,8 +64632,8 @@
       "sample": "SP50518",
       "signature": "SBS42",
       "browserExposure": 0.05839291019498297,
-      "localExposure": 0.058392910194982654,
-      "absoluteDifference": 3.122502256758253e-16
+      "localExposure": 0.05839291019498258,
+      "absoluteDifference": 3.885780586188048e-16
     },
     {
       "tool": "musical",
@@ -64696,16 +64696,16 @@
       "sample": "SP50518",
       "signature": "SBS5",
       "browserExposure": 0.2501400075021082,
-      "localExposure": 0.25014000750211,
-      "absoluteDifference": 1.8318679906315083e-15
+      "localExposure": 0.2501400075021102,
+      "absoluteDifference": 1.9984014443252818e-15
     },
     {
       "tool": "musical",
       "sample": "SP50518",
       "signature": "SBS50",
       "browserExposure": 0.04290022215077358,
-      "localExposure": 0.04290022215077379,
-      "absoluteDifference": 2.0816681711721685e-16
+      "localExposure": 0.04290022215077389,
+      "absoluteDifference": 3.0531133177191805e-16
     },
     {
       "tool": "musical",
@@ -64824,16 +64824,16 @@
       "sample": "SP50518",
       "signature": "SBS7d",
       "browserExposure": 0.022608877657156457,
-      "localExposure": 0.022608877657156443,
-      "absoluteDifference": 1.3877787807814457e-17
+      "localExposure": 0.02260887765715643,
+      "absoluteDifference": 2.7755575615628914e-17
     },
     {
       "tool": "musical",
       "sample": "SP50518",
       "signature": "SBS8",
       "browserExposure": 0.052617323112151594,
-      "localExposure": 0.052617323112151095,
-      "absoluteDifference": 4.996003610813204e-16
+      "localExposure": 0.05261732311215117,
+      "absoluteDifference": 4.2327252813834093e-16
     },
     {
       "tool": "musical",
@@ -64904,8 +64904,8 @@
       "sample": "SP50592",
       "signature": "SBS13",
       "browserExposure": 0.023140953854420682,
-      "localExposure": 0.023140953854420724,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.023140953854420727,
+      "absoluteDifference": 4.5102810375396984e-17
     },
     {
       "tool": "musical",
@@ -64968,8 +64968,8 @@
       "sample": "SP50592",
       "signature": "SBS2",
       "browserExposure": 0.05346345275347715,
-      "localExposure": 0.05346345275347718,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.053463452753477185,
+      "absoluteDifference": 3.469446951953614e-17
     },
     {
       "tool": "musical",
@@ -64984,8 +64984,8 @@
       "sample": "SP50592",
       "signature": "SBS21",
       "browserExposure": 0.031737636327278614,
-      "localExposure": 0.031737636327278614,
-      "absoluteDifference": 0
+      "localExposure": 0.03173763632727861,
+      "absoluteDifference": 6.938893903907228e-18
     },
     {
       "tool": "musical",
@@ -65112,8 +65112,8 @@
       "sample": "SP50592",
       "signature": "SBS36",
       "browserExposure": 0.06504114216987751,
-      "localExposure": 0.06504114216987747,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.06504114216987748,
+      "absoluteDifference": 2.7755575615628914e-17
     },
     {
       "tool": "musical",
@@ -65248,8 +65248,8 @@
       "sample": "SP50592",
       "signature": "SBS51",
       "browserExposure": 0.026796201651438836,
-      "localExposure": 0.026796201651438704,
-      "absoluteDifference": 1.3183898417423734e-16
+      "localExposure": 0.026796201651438686,
+      "absoluteDifference": 1.491862189340054e-16
     },
     {
       "tool": "musical",
@@ -65344,8 +65344,8 @@
       "sample": "SP50592",
       "signature": "SBS7b",
       "browserExposure": 0.04106383504518609,
-      "localExposure": 0.04106383504518623,
-      "absoluteDifference": 1.3877787807814457e-16
+      "localExposure": 0.041063835045186244,
+      "absoluteDifference": 1.5265566588595902e-16
     },
     {
       "tool": "musical",
@@ -65368,8 +65368,8 @@
       "sample": "SP50592",
       "signature": "SBS8",
       "browserExposure": 0.09755878796180459,
-      "localExposure": 0.09755878796180517,
-      "absoluteDifference": 5.828670879282072e-16
+      "localExposure": 0.09755878796180516,
+      "absoluteDifference": 5.689893001203927e-16
     },
     {
       "tool": "musical",
@@ -65392,8 +65392,8 @@
       "sample": "SP50592",
       "signature": "SBS9",
       "browserExposure": 0.06275158748926367,
-      "localExposure": 0.06275158748926399,
-      "absoluteDifference": 3.191891195797325e-16
+      "localExposure": 0.06275158748926397,
+      "absoluteDifference": 3.0531133177191805e-16
     },
     {
       "tool": "musical",
@@ -65432,16 +65432,16 @@
       "sample": "SP50611",
       "signature": "SBS12",
       "browserExposure": 0.01992024955651229,
-      "localExposure": 0.019920249556512247,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.01992024955651225,
+      "absoluteDifference": 3.8163916471489756e-17
     },
     {
       "tool": "musical",
       "sample": "SP50611",
       "signature": "SBS13",
       "browserExposure": 0.016994505841895057,
-      "localExposure": 0.016994505841894932,
-      "absoluteDifference": 1.249000902703301e-16
+      "localExposure": 0.01699450584189495,
+      "absoluteDifference": 1.0755285551056204e-16
     },
     {
       "tool": "musical",
@@ -65464,8 +65464,8 @@
       "sample": "SP50611",
       "signature": "SBS16",
       "browserExposure": 0.018174204822195877,
-      "localExposure": 0.018174204822195745,
-      "absoluteDifference": 1.3183898417423734e-16
+      "localExposure": 0.018174204822195762,
+      "absoluteDifference": 1.1449174941446927e-16
     },
     {
       "tool": "musical",
@@ -65488,16 +65488,16 @@
       "sample": "SP50611",
       "signature": "SBS18",
       "browserExposure": 0.07362672657757635,
-      "localExposure": 0.07362672657757731,
-      "absoluteDifference": 9.575673587391975e-16
+      "localExposure": 0.07362672657757723,
+      "absoluteDifference": 8.743006318923108e-16
     },
     {
       "tool": "musical",
       "sample": "SP50611",
       "signature": "SBS19",
       "browserExposure": 0.028049107696422226,
-      "localExposure": 0.028049107696422177,
-      "absoluteDifference": 4.85722573273506e-17
+      "localExposure": 0.02804910769642217,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
@@ -65584,8 +65584,8 @@
       "sample": "SP50611",
       "signature": "SBS29",
       "browserExposure": 0.07697926402067619,
-      "localExposure": 0.07697926402067388,
-      "absoluteDifference": 2.3037127760972e-15
+      "localExposure": 0.0769792640206741,
+      "absoluteDifference": 2.0816681711721685e-15
     },
     {
       "tool": "musical",
@@ -65616,8 +65616,8 @@
       "sample": "SP50611",
       "signature": "SBS32",
       "browserExposure": 0.028282842811539876,
-      "localExposure": 0.02828284281153971,
-      "absoluteDifference": 1.6653345369377348e-16
+      "localExposure": 0.028282842811539723,
+      "absoluteDifference": 1.5265566588595902e-16
     },
     {
       "tool": "musical",
@@ -65672,16 +65672,16 @@
       "sample": "SP50611",
       "signature": "SBS39",
       "browserExposure": 0.12005283558538625,
-      "localExposure": 0.12005283558538682,
-      "absoluteDifference": 5.689893001203927e-16
+      "localExposure": 0.12005283558538672,
+      "absoluteDifference": 4.718447854656915e-16
     },
     {
       "tool": "musical",
       "sample": "SP50611",
       "signature": "SBS4",
       "browserExposure": 0.6007088137507017,
-      "localExposure": 0.6007088137507031,
-      "absoluteDifference": 1.3322676295501878e-15
+      "localExposure": 0.600708813750703,
+      "absoluteDifference": 1.2212453270876722e-15
     },
     {
       "tool": "musical",
@@ -65936,8 +65936,8 @@
       "sample": "SP50713",
       "signature": "SBS1",
       "browserExposure": 0.012387042342402257,
-      "localExposure": 0.012387042342402297,
-      "absoluteDifference": 3.9898639947466563e-17
+      "localExposure": 0.012387042342402298,
+      "absoluteDifference": 4.163336342344337e-17
     },
     {
       "tool": "musical",
@@ -66056,16 +66056,16 @@
       "sample": "SP50713",
       "signature": "SBS21",
       "browserExposure": 0.00970303662691964,
-      "localExposure": 0.009703036626919634,
-      "absoluteDifference": 5.204170427930421e-18
+      "localExposure": 0.009703036626919641,
+      "absoluteDifference": 1.734723475976807e-18
     },
     {
       "tool": "musical",
       "sample": "SP50713",
       "signature": "SBS22",
       "browserExposure": 0.02483717219079811,
-      "localExposure": 0.024837172190798083,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.024837172190798094,
+      "absoluteDifference": 1.734723475976807e-17
     },
     {
       "tool": "musical",
@@ -66120,24 +66120,24 @@
       "sample": "SP50713",
       "signature": "SBS29",
       "browserExposure": 0.049649460842721156,
-      "localExposure": 0.04964946084272047,
-      "absoluteDifference": 6.869504964868156e-16
+      "localExposure": 0.04964946084272042,
+      "absoluteDifference": 7.355227538141662e-16
     },
     {
       "tool": "musical",
       "sample": "SP50713",
       "signature": "SBS3",
       "browserExposure": 0.1393373317058375,
-      "localExposure": 0.1393373317058365,
-      "absoluteDifference": 9.992007221626409e-16
+      "localExposure": 0.13933733170583648,
+      "absoluteDifference": 1.0269562977782698e-15
     },
     {
       "tool": "musical",
       "sample": "SP50713",
       "signature": "SBS30",
       "browserExposure": 0.04460303406334947,
-      "localExposure": 0.04460303406334941,
-      "absoluteDifference": 6.245004513516506e-17
+      "localExposure": 0.0446030340633494,
+      "absoluteDifference": 6.938893903907228e-17
     },
     {
       "tool": "musical",
@@ -66304,8 +66304,8 @@
       "sample": "SP50713",
       "signature": "SBS5",
       "browserExposure": 0.13365378472251632,
-      "localExposure": 0.1336537847225168,
-      "absoluteDifference": 4.718447854656915e-16
+      "localExposure": 0.1336537847225167,
+      "absoluteDifference": 3.885780586188048e-16
     },
     {
       "tool": "musical",
@@ -66472,8 +66472,8 @@
       "sample": "SP50827",
       "signature": "SBS1",
       "browserExposure": 0.008303571366587239,
-      "localExposure": 0.008303571366587322,
-      "absoluteDifference": 8.326672684688674e-17
+      "localExposure": 0.008303571366587329,
+      "absoluteDifference": 9.020562075079397e-17
     },
     {
       "tool": "musical",
@@ -66504,16 +66504,16 @@
       "sample": "SP50827",
       "signature": "SBS12",
       "browserExposure": 0.03864415326662516,
-      "localExposure": 0.038644153266625084,
-      "absoluteDifference": 7.632783294297951e-17
+      "localExposure": 0.038644153266625104,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
       "sample": "SP50827",
       "signature": "SBS13",
       "browserExposure": 0.02719728633923836,
-      "localExposure": 0.027197286339238298,
-      "absoluteDifference": 6.245004513516506e-17
+      "localExposure": 0.027197286339238305,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
@@ -66536,8 +66536,8 @@
       "sample": "SP50827",
       "signature": "SBS16",
       "browserExposure": 0.024386228105182775,
-      "localExposure": 0.024386228105182636,
-      "absoluteDifference": 1.3877787807814457e-16
+      "localExposure": 0.02438622810518264,
+      "absoluteDifference": 1.3530843112619095e-16
     },
     {
       "tool": "musical",
@@ -66552,8 +66552,8 @@
       "sample": "SP50827",
       "signature": "SBS17b",
       "browserExposure": 0.004471198986995351,
-      "localExposure": 0.004471198986995344,
-      "absoluteDifference": 6.938893903907228e-18
+      "localExposure": 0.004471198986995345,
+      "absoluteDifference": 6.071532165918825e-18
     },
     {
       "tool": "musical",
@@ -66568,15 +66568,15 @@
       "sample": "SP50827",
       "signature": "SBS19",
       "browserExposure": 0.01834388083131872,
-      "localExposure": 0.018343880831318608,
-      "absoluteDifference": 1.1102230246251565e-16
+      "localExposure": 0.018343880831318597,
+      "absoluteDifference": 1.214306433183765e-16
     },
     {
       "tool": "musical",
       "sample": "SP50827",
       "signature": "SBS2",
       "browserExposure": 0.03250189075864451,
-      "localExposure": 0.03250189075864449,
+      "localExposure": 0.03250189075864452,
       "absoluteDifference": 1.3877787807814457e-17
     },
     {
@@ -66656,8 +66656,8 @@
       "sample": "SP50827",
       "signature": "SBS29",
       "browserExposure": 0.10807379008581426,
-      "localExposure": 0.10807379008581255,
-      "absoluteDifference": 1.7069679003611782e-15
+      "localExposure": 0.10807379008581253,
+      "absoluteDifference": 1.734723475976807e-15
     },
     {
       "tool": "musical",
@@ -66672,8 +66672,8 @@
       "sample": "SP50827",
       "signature": "SBS30",
       "browserExposure": 0.04899768358806385,
-      "localExposure": 0.048997683588063896,
-      "absoluteDifference": 4.85722573273506e-17
+      "localExposure": 0.04899768358806392,
+      "absoluteDifference": 6.938893903907228e-17
     },
     {
       "tool": "musical",
@@ -66744,16 +66744,16 @@
       "sample": "SP50827",
       "signature": "SBS39",
       "browserExposure": 0.07518077728444998,
-      "localExposure": 0.07518077728445016,
-      "absoluteDifference": 1.8041124150158794e-16
+      "localExposure": 0.0751807772844502,
+      "absoluteDifference": 2.220446049250313e-16
     },
     {
       "tool": "musical",
       "sample": "SP50827",
       "signature": "SBS4",
       "browserExposure": 0.48275207813491866,
-      "localExposure": 0.482752078134919,
-      "absoluteDifference": 3.3306690738754696e-16
+      "localExposure": 0.48275207813491916,
+      "absoluteDifference": 4.996003610813204e-16
     },
     {
       "tool": "musical",
@@ -66896,8 +66896,8 @@
       "sample": "SP50827",
       "signature": "SBS56",
       "browserExposure": 0.02713732691822413,
-      "localExposure": 0.027137326918224052,
-      "absoluteDifference": 7.632783294297951e-17
+      "localExposure": 0.027137326918224073,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
@@ -66976,8 +66976,8 @@
       "sample": "SP50827",
       "signature": "SBS8",
       "browserExposure": 0.10401013433393687,
-      "localExposure": 0.10401013433393852,
-      "absoluteDifference": 1.6514567491299204e-15
+      "localExposure": 0.10401013433393853,
+      "absoluteDifference": 1.6653345369377348e-15
     },
     {
       "tool": "musical",
@@ -67008,16 +67008,16 @@
       "sample": "SP51037",
       "signature": "SBS1",
       "browserExposure": 0.17966161727822247,
-      "localExposure": 0.17966161727822255,
-      "absoluteDifference": 8.326672684688674e-17
+      "localExposure": 0.17966161727822252,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
       "sample": "SP51037",
       "signature": "SBS10a",
       "browserExposure": 0.01621593247855612,
-      "localExposure": 0.01621593247855608,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.016215932478556086,
+      "absoluteDifference": 3.469446951953614e-17
     },
     {
       "tool": "musical",
@@ -67048,8 +67048,8 @@
       "sample": "SP51037",
       "signature": "SBS13",
       "browserExposure": 0.04158123299328174,
-      "localExposure": 0.04158123299328161,
-      "absoluteDifference": 1.249000902703301e-16
+      "localExposure": 0.041581232993281605,
+      "absoluteDifference": 1.3183898417423734e-16
     },
     {
       "tool": "musical",
@@ -67088,8 +67088,8 @@
       "sample": "SP51037",
       "signature": "SBS17b",
       "browserExposure": 0.01710687962008829,
-      "localExposure": 0.017106879620088205,
-      "absoluteDifference": 8.673617379884035e-17
+      "localExposure": 0.0171068796200882,
+      "absoluteDifference": 9.020562075079397e-17
     },
     {
       "tool": "musical",
@@ -67112,8 +67112,8 @@
       "sample": "SP51037",
       "signature": "SBS2",
       "browserExposure": 0.028358758026067226,
-      "localExposure": 0.028358758026067212,
-      "absoluteDifference": 1.3877787807814457e-17
+      "localExposure": 0.0283587580260672,
+      "absoluteDifference": 2.7755575615628914e-17
     },
     {
       "tool": "musical",
@@ -67128,8 +67128,8 @@
       "sample": "SP51037",
       "signature": "SBS21",
       "browserExposure": 0.02056367169489426,
-      "localExposure": 0.020563671694894356,
-      "absoluteDifference": 9.71445146547012e-17
+      "localExposure": 0.020563671694894342,
+      "absoluteDifference": 8.326672684688674e-17
     },
     {
       "tool": "musical",
@@ -67240,8 +67240,8 @@
       "sample": "SP51037",
       "signature": "SBS34",
       "browserExposure": 0.028515287030060392,
-      "localExposure": 0.02851528703006041,
-      "absoluteDifference": 1.734723475976807e-17
+      "localExposure": 0.028515287030060402,
+      "absoluteDifference": 1.0408340855860843e-17
     },
     {
       "tool": "musical",
@@ -67264,8 +67264,8 @@
       "sample": "SP51037",
       "signature": "SBS37",
       "browserExposure": 0.08336993829109098,
-      "localExposure": 0.08336993829109092,
-      "absoluteDifference": 5.551115123125783e-17
+      "localExposure": 0.08336993829109095,
+      "absoluteDifference": 2.7755575615628914e-17
     },
     {
       "tool": "musical",
@@ -67296,8 +67296,8 @@
       "sample": "SP51037",
       "signature": "SBS40",
       "browserExposure": 0.17945066819097116,
-      "localExposure": 0.17945066819097477,
-      "absoluteDifference": 3.608224830031759e-15
+      "localExposure": 0.17945066819097472,
+      "absoluteDifference": 3.552713678800501e-15
     },
     {
       "tool": "musical",
@@ -67376,8 +67376,8 @@
       "sample": "SP51037",
       "signature": "SBS5",
       "browserExposure": 0.20425105089853504,
-      "localExposure": 0.20425105089853296,
-      "absoluteDifference": 2.0816681711721685e-15
+      "localExposure": 0.20425105089853293,
+      "absoluteDifference": 2.1094237467877974e-15
     },
     {
       "tool": "musical",
@@ -67480,8 +67480,8 @@
       "sample": "SP51037",
       "signature": "SBS7a",
       "browserExposure": 0.032582044506061766,
-      "localExposure": 0.03258204450606161,
-      "absoluteDifference": 1.5959455978986625e-16
+      "localExposure": 0.03258204450606162,
+      "absoluteDifference": 1.457167719820518e-16
     },
     {
       "tool": "musical",
@@ -67512,8 +67512,8 @@
       "sample": "SP51037",
       "signature": "SBS8",
       "browserExposure": 0.1082970687420835,
-      "localExposure": 0.10829706874208257,
-      "absoluteDifference": 9.298117831235686e-16
+      "localExposure": 0.10829706874208253,
+      "absoluteDifference": 9.71445146547012e-16
     },
     {
       "tool": "musical",
@@ -67544,8 +67544,8 @@
       "sample": "SP51446",
       "signature": "SBS1",
       "browserExposure": 0.09041327284563938,
-      "localExposure": 0.09041327284563891,
-      "absoluteDifference": 4.718447854656915e-16
+      "localExposure": 0.0904132728456389,
+      "absoluteDifference": 4.85722573273506e-16
     },
     {
       "tool": "musical",
@@ -67632,24 +67632,24 @@
       "sample": "SP51446",
       "signature": "SBS18",
       "browserExposure": 0.06958627016490458,
-      "localExposure": 0.06958627016490461,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.06958627016490466,
+      "absoluteDifference": 8.326672684688674e-17
     },
     {
       "tool": "musical",
       "sample": "SP51446",
       "signature": "SBS19",
       "browserExposure": 0.03213634733944486,
-      "localExposure": 0.03213634733944486,
-      "absoluteDifference": 0
+      "localExposure": 0.03213634733944481,
+      "absoluteDifference": 4.85722573273506e-17
     },
     {
       "tool": "musical",
       "sample": "SP51446",
       "signature": "SBS2",
       "browserExposure": 0.04959064359181559,
-      "localExposure": 0.04959064359181563,
-      "absoluteDifference": 3.469446951953614e-17
+      "localExposure": 0.049590643591815635,
+      "absoluteDifference": 4.163336342344337e-17
     },
     {
       "tool": "musical",
@@ -67664,8 +67664,8 @@
       "sample": "SP51446",
       "signature": "SBS21",
       "browserExposure": 0.025464554455741303,
-      "localExposure": 0.025464554455741407,
-      "absoluteDifference": 1.0408340855860843e-16
+      "localExposure": 0.02546455445574144,
+      "absoluteDifference": 1.3877787807814457e-16
     },
     {
       "tool": "musical",
@@ -67720,8 +67720,8 @@
       "sample": "SP51446",
       "signature": "SBS28",
       "browserExposure": 0.00892325953857569,
-      "localExposure": 0.008923259538575742,
-      "absoluteDifference": 5.204170427930421e-17
+      "localExposure": 0.008923259538575744,
+      "absoluteDifference": 5.377642775528102e-17
     },
     {
       "tool": "musical",
@@ -67776,8 +67776,8 @@
       "sample": "SP51446",
       "signature": "SBS34",
       "browserExposure": 0.015142223073373973,
-      "localExposure": 0.015142223073373979,
-      "absoluteDifference": 5.204170427930421e-18
+      "localExposure": 0.01514222307337398,
+      "absoluteDifference": 6.938893903907228e-18
     },
     {
       "tool": "musical",
@@ -68000,8 +68000,8 @@
       "sample": "SP51446",
       "signature": "SBS6",
       "browserExposure": 0.07284972086540774,
-      "localExposure": 0.07284972086540885,
-      "absoluteDifference": 1.1102230246251565e-15
+      "localExposure": 0.07284972086540888,
+      "absoluteDifference": 1.1379786002407855e-15
     },
     {
       "tool": "musical",
@@ -68048,8 +68048,8 @@
       "sample": "SP51446",
       "signature": "SBS8",
       "browserExposure": 0.192946830334102,
-      "localExposure": 0.19294683033410248,
-      "absoluteDifference": 4.718447854656915e-16
+      "localExposure": 0.19294683033410262,
+      "absoluteDifference": 6.106226635438361e-16
     },
     {
       "tool": "musical",
@@ -68064,8 +68064,8 @@
       "sample": "SP51446",
       "signature": "SBS85",
       "browserExposure": 0.04103237675943452,
-      "localExposure": 0.041032376759434656,
-      "absoluteDifference": 1.3877787807814457e-16
+      "localExposure": 0.041032376759434636,
+      "absoluteDifference": 1.1796119636642288e-16
     },
     {
       "tool": "musical",
@@ -68080,8 +68080,8 @@
       "sample": "SP51824",
       "signature": "SBS1",
       "browserExposure": 0.022330613322862052,
-      "localExposure": 0.022330613322862094,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.02233061332286209,
+      "absoluteDifference": 3.8163916471489756e-17
     },
     {
       "tool": "musical",
@@ -68112,16 +68112,16 @@
       "sample": "SP51824",
       "signature": "SBS12",
       "browserExposure": 0.040136440580414955,
-      "localExposure": 0.040136440580414885,
-      "absoluteDifference": 6.938893903907228e-17
+      "localExposure": 0.04013644058041488,
+      "absoluteDifference": 7.632783294297951e-17
     },
     {
       "tool": "musical",
       "sample": "SP51824",
       "signature": "SBS13",
       "browserExposure": 0.07690217958820474,
-      "localExposure": 0.07690217958820468,
-      "absoluteDifference": 5.551115123125783e-17
+      "localExposure": 0.07690217958820467,
+      "absoluteDifference": 6.938893903907228e-17
     },
     {
       "tool": "musical",
@@ -68144,8 +68144,8 @@
       "sample": "SP51824",
       "signature": "SBS16",
       "browserExposure": 0.038045682715233495,
-      "localExposure": 0.03804568271523334,
-      "absoluteDifference": 1.5265566588595902e-16
+      "localExposure": 0.03804568271523329,
+      "absoluteDifference": 2.0816681711721685e-16
     },
     {
       "tool": "musical",
@@ -68168,8 +68168,8 @@
       "sample": "SP51824",
       "signature": "SBS18",
       "browserExposure": 0.0552784663698941,
-      "localExposure": 0.05527846636989336,
-      "absoluteDifference": 7.424616477180734e-16
+      "localExposure": 0.05527846636989334,
+      "absoluteDifference": 7.563394355258879e-16
     },
     {
       "tool": "musical",
@@ -68184,8 +68184,8 @@
       "sample": "SP51824",
       "signature": "SBS2",
       "browserExposure": 0.08718414415201331,
-      "localExposure": 0.08718414415201324,
-      "absoluteDifference": 6.938893903907228e-17
+      "localExposure": 0.08718414415201321,
+      "absoluteDifference": 9.71445146547012e-17
     },
     {
       "tool": "musical",
@@ -68232,8 +68232,8 @@
       "sample": "SP51824",
       "signature": "SBS25",
       "browserExposure": 0.09076116035428167,
-      "localExposure": 0.09076116035428254,
-      "absoluteDifference": 8.743006318923108e-16
+      "localExposure": 0.09076116035428247,
+      "absoluteDifference": 8.049116928532385e-16
     },
     {
       "tool": "musical",
@@ -68352,24 +68352,24 @@
       "sample": "SP51824",
       "signature": "SBS39",
       "browserExposure": 0.07414923788159317,
-      "localExposure": 0.07414923788159244,
-      "absoluteDifference": 7.216449660063518e-16
+      "localExposure": 0.0741492378815924,
+      "absoluteDifference": 7.632783294297951e-16
     },
     {
       "tool": "musical",
       "sample": "SP51824",
       "signature": "SBS4",
       "browserExposure": 0.2546876806384041,
-      "localExposure": 0.2546876806384053,
-      "absoluteDifference": 1.2212453270876722e-15
+      "localExposure": 0.2546876806384052,
+      "absoluteDifference": 1.1102230246251565e-15
     },
     {
       "tool": "musical",
       "sample": "SP51824",
       "signature": "SBS40",
       "browserExposure": 0.0998648956256167,
-      "localExposure": 0.09986489562561869,
-      "absoluteDifference": 1.9845236565174673e-15
+      "localExposure": 0.09986489562561868,
+      "absoluteDifference": 1.970645868709653e-15
     },
     {
       "tool": "musical",
@@ -68400,8 +68400,8 @@
       "sample": "SP51824",
       "signature": "SBS44",
       "browserExposure": 0.0507061615049843,
-      "localExposure": 0.0507061615049837,
-      "absoluteDifference": 5.967448757360216e-16
+      "localExposure": 0.05070616150498368,
+      "absoluteDifference": 6.175615574477433e-16
     },
     {
       "tool": "musical",
@@ -68584,8 +68584,8 @@
       "sample": "SP51824",
       "signature": "SBS8",
       "browserExposure": 0.061440079885168926,
-      "localExposure": 0.06144007988516759,
-      "absoluteDifference": 1.339206523454095e-15
+      "localExposure": 0.06144007988516761,
+      "absoluteDifference": 1.3183898417423734e-15
     },
     {
       "tool": "musical",
@@ -68616,8 +68616,8 @@
       "sample": "SP52232",
       "signature": "SBS1",
       "browserExposure": 0.010954603358452953,
-      "localExposure": 0.010954603358453068,
-      "absoluteDifference": 1.1449174941446927e-16
+      "localExposure": 0.010954603358453064,
+      "absoluteDifference": 1.1102230246251565e-16
     },
     {
       "tool": "musical",
@@ -68712,16 +68712,16 @@
       "sample": "SP52232",
       "signature": "SBS19",
       "browserExposure": 0.03299259191122974,
-      "localExposure": 0.03299259191122965,
-      "absoluteDifference": 9.020562075079397e-17
+      "localExposure": 0.03299259191122967,
+      "absoluteDifference": 6.938893903907228e-17
     },
     {
       "tool": "musical",
       "sample": "SP52232",
       "signature": "SBS2",
       "browserExposure": 0.00925129356940199,
-      "localExposure": 0.009251293569402028,
-      "absoluteDifference": 3.8163916471489756e-17
+      "localExposure": 0.009251293569402033,
+      "absoluteDifference": 4.336808689942018e-17
     },
     {
       "tool": "musical",
@@ -68816,8 +68816,8 @@
       "sample": "SP52232",
       "signature": "SBS30",
       "browserExposure": 0.04264384995062722,
-      "localExposure": 0.04264384995062708,
-      "absoluteDifference": 1.3877787807814457e-16
+      "localExposure": 0.042643849950627075,
+      "absoluteDifference": 1.457167719820518e-16
     },
     {
       "tool": "musical",
@@ -69056,8 +69056,8 @@
       "sample": "SP52232",
       "signature": "SBS58",
       "browserExposure": 0.03217183500735412,
-      "localExposure": 0.03217183500735395,
-      "absoluteDifference": 1.734723475976807e-16
+      "localExposure": 0.03217183500735396,
+      "absoluteDifference": 1.5959455978986625e-16
     },
     {
       "tool": "musical",
@@ -69120,8 +69120,8 @@
       "sample": "SP52232",
       "signature": "SBS8",
       "browserExposure": 0.07684211168555505,
-      "localExposure": 0.07684211168555487,
-      "absoluteDifference": 1.8041124150158794e-16
+      "localExposure": 0.07684211168555481,
+      "absoluteDifference": 2.3592239273284576e-16
     },
     {
       "tool": "musical",
@@ -69152,8 +69152,8 @@
       "sample": "SP52284",
       "signature": "SBS1",
       "browserExposure": 0.03608555801858411,
-      "localExposure": 0.036085558018584,
-      "absoluteDifference": 1.1102230246251565e-16
+      "localExposure": 0.03608555801858397,
+      "absoluteDifference": 1.3877787807814457e-16
     },
     {
       "tool": "musical",
@@ -69272,16 +69272,16 @@
       "sample": "SP52284",
       "signature": "SBS21",
       "browserExposure": 0.026524084593250917,
-      "localExposure": 0.026524084593250893,
-      "absoluteDifference": 2.42861286636753e-17
+      "localExposure": 0.02652408459325088,
+      "absoluteDifference": 3.8163916471489756e-17
     },
     {
       "tool": "musical",
       "sample": "SP52284",
       "signature": "SBS22",
       "browserExposure": 0.015192346025077342,
-      "localExposure": 0.015192346025077292,
-      "absoluteDifference": 5.0306980803327406e-17
+      "localExposure": 0.015192346025077286,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
@@ -69336,8 +69336,8 @@
       "sample": "SP52284",
       "signature": "SBS29",
       "browserExposure": 0.03972822492583972,
-      "localExposure": 0.039728224925839536,
-      "absoluteDifference": 1.8041124150158794e-16
+      "localExposure": 0.03972822492583953,
+      "absoluteDifference": 1.8735013540549517e-16
     },
     {
       "tool": "musical",
@@ -69384,8 +69384,8 @@
       "sample": "SP52284",
       "signature": "SBS34",
       "browserExposure": 0.02483472657903464,
-      "localExposure": 0.024834726579034683,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.02483472657903468,
+      "absoluteDifference": 3.8163916471489756e-17
     },
     {
       "tool": "musical",
@@ -69440,8 +69440,8 @@
       "sample": "SP52284",
       "signature": "SBS40",
       "browserExposure": 0.24113271946142703,
-      "localExposure": 0.24113271946142717,
-      "absoluteDifference": 1.3877787807814457e-16
+      "localExposure": 0.2411327194614271,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
@@ -69520,16 +69520,16 @@
       "sample": "SP52284",
       "signature": "SBS5",
       "browserExposure": 0.2647384253079948,
-      "localExposure": 0.26473842530799446,
-      "absoluteDifference": 3.3306690738754696e-16
+      "localExposure": 0.26473842530799463,
+      "absoluteDifference": 1.6653345369377348e-16
     },
     {
       "tool": "musical",
       "sample": "SP52284",
       "signature": "SBS50",
       "browserExposure": 0.05138571436308689,
-      "localExposure": 0.05138571436308712,
-      "absoluteDifference": 2.2898349882893854e-16
+      "localExposure": 0.05138571436308713,
+      "absoluteDifference": 2.3592239273284576e-16
     },
     {
       "tool": "musical",
@@ -69608,8 +69608,8 @@
       "sample": "SP52284",
       "signature": "SBS6",
       "browserExposure": 0.09417334526710992,
-      "localExposure": 0.09417334526711033,
-      "absoluteDifference": 4.0245584642661925e-16
+      "localExposure": 0.09417334526711031,
+      "absoluteDifference": 3.885780586188048e-16
     },
     {
       "tool": "musical",
@@ -69632,8 +69632,8 @@
       "sample": "SP52284",
       "signature": "SBS7b",
       "browserExposure": 0.04162033050155808,
-      "localExposure": 0.041620330501558125,
-      "absoluteDifference": 4.85722573273506e-17
+      "localExposure": 0.041620330501558105,
+      "absoluteDifference": 2.7755575615628914e-17
     },
     {
       "tool": "musical",
@@ -69688,8 +69688,8 @@
       "sample": "SP52607",
       "signature": "SBS1",
       "browserExposure": 0.12726484964314075,
-      "localExposure": 0.12726484964314072,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.1272648496431407,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
@@ -69728,8 +69728,8 @@
       "sample": "SP52607",
       "signature": "SBS13",
       "browserExposure": 0.0812375727237076,
-      "localExposure": 0.08123757272370757,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.08123757272370759,
+      "absoluteDifference": 1.3877787807814457e-17
     },
     {
       "tool": "musical",
@@ -69792,8 +69792,8 @@
       "sample": "SP52607",
       "signature": "SBS2",
       "browserExposure": 0.10681885163748085,
-      "localExposure": 0.10681885163748094,
-      "absoluteDifference": 8.326672684688674e-17
+      "localExposure": 0.10681885163748092,
+      "absoluteDifference": 6.938893903907228e-17
     },
     {
       "tool": "musical",
@@ -69808,8 +69808,8 @@
       "sample": "SP52607",
       "signature": "SBS21",
       "browserExposure": 0.01740284948253403,
-      "localExposure": 0.017402849482534018,
-      "absoluteDifference": 1.3877787807814457e-17
+      "localExposure": 0.01740284948253401,
+      "absoluteDifference": 2.0816681711721685e-17
     },
     {
       "tool": "musical",
@@ -69832,8 +69832,8 @@
       "sample": "SP52607",
       "signature": "SBS24",
       "browserExposure": 0.027526282972046012,
-      "localExposure": 0.027526282972045787,
-      "absoluteDifference": 2.255140518769849e-16
+      "localExposure": 0.02752628297204578,
+      "absoluteDifference": 2.3245294578089215e-16
     },
     {
       "tool": "musical",
@@ -70056,8 +70056,8 @@
       "sample": "SP52607",
       "signature": "SBS5",
       "browserExposure": 0.30005321545145097,
-      "localExposure": 0.3000532154514505,
-      "absoluteDifference": 4.996003610813204e-16
+      "localExposure": 0.30005321545145053,
+      "absoluteDifference": 4.440892098500626e-16
     },
     {
       "tool": "musical",
@@ -70144,8 +70144,8 @@
       "sample": "SP52607",
       "signature": "SBS6",
       "browserExposure": 0.054964465021801974,
-      "localExposure": 0.054964465021802154,
-      "absoluteDifference": 1.8041124150158794e-16
+      "localExposure": 0.05496446502180216,
+      "absoluteDifference": 1.8735013540549517e-16
     },
     {
       "tool": "musical",
@@ -70168,8 +70168,8 @@
       "sample": "SP52607",
       "signature": "SBS7b",
       "browserExposure": 0.04810520695801593,
-      "localExposure": 0.04810520695801589,
-      "absoluteDifference": 3.469446951953614e-17
+      "localExposure": 0.048105206958015914,
+      "absoluteDifference": 1.3877787807814457e-17
     },
     {
       "tool": "musical",
@@ -70192,8 +70192,8 @@
       "sample": "SP52607",
       "signature": "SBS8",
       "browserExposure": 0.2135599385235096,
-      "localExposure": 0.21355993852351,
-      "absoluteDifference": 3.885780586188048e-16
+      "localExposure": 0.21355993852351007,
+      "absoluteDifference": 4.718447854656915e-16
     },
     {
       "tool": "musical",
@@ -70256,8 +70256,8 @@
       "sample": "SP52667",
       "signature": "SBS12",
       "browserExposure": 0.023962827348730655,
-      "localExposure": 0.02396282734873069,
-      "absoluteDifference": 3.469446951953614e-17
+      "localExposure": 0.023962827348730696,
+      "absoluteDifference": 4.163336342344337e-17
     },
     {
       "tool": "musical",
@@ -70320,8 +70320,8 @@
       "sample": "SP52667",
       "signature": "SBS19",
       "browserExposure": 0.024461249717393253,
-      "localExposure": 0.024461249717393153,
-      "absoluteDifference": 1.0061396160665481e-16
+      "localExposure": 0.02446124971739317,
+      "absoluteDifference": 8.326672684688674e-17
     },
     {
       "tool": "musical",
@@ -70424,8 +70424,8 @@
       "sample": "SP52667",
       "signature": "SBS30",
       "browserExposure": 0.03437435032133346,
-      "localExposure": 0.03437435032133356,
-      "absoluteDifference": 1.0408340855860843e-16
+      "localExposure": 0.034374350321333576,
+      "absoluteDifference": 1.1796119636642288e-16
     },
     {
       "tool": "musical",
@@ -70664,8 +70664,8 @@
       "sample": "SP52667",
       "signature": "SBS58",
       "browserExposure": 0.02859413269991939,
-      "localExposure": 0.028594132699919575,
-      "absoluteDifference": 1.8388068845354155e-16
+      "localExposure": 0.028594132699919568,
+      "absoluteDifference": 1.7694179454963432e-16
     },
     {
       "tool": "musical",
@@ -70728,8 +70728,8 @@
       "sample": "SP52667",
       "signature": "SBS8",
       "browserExposure": 0.06052769050576352,
-      "localExposure": 0.06052769050576248,
-      "absoluteDifference": 1.0408340855860843e-15
+      "localExposure": 0.060527690505762476,
+      "absoluteDifference": 1.0477729794899915e-15
     },
     {
       "tool": "musical",
@@ -70856,8 +70856,8 @@
       "sample": "SP52779",
       "signature": "SBS19",
       "browserExposure": 0.0197162351408968,
-      "localExposure": 0.01971623514089676,
-      "absoluteDifference": 3.8163916471489756e-17
+      "localExposure": 0.019716235140896758,
+      "absoluteDifference": 4.163336342344337e-17
     },
     {
       "tool": "musical",
@@ -70960,8 +70960,8 @@
       "sample": "SP52779",
       "signature": "SBS30",
       "browserExposure": 0.0393776191867101,
-      "localExposure": 0.03937761918671,
-      "absoluteDifference": 1.0408340855860843e-16
+      "localExposure": 0.039377619186710004,
+      "absoluteDifference": 9.71445146547012e-17
     },
     {
       "tool": "musical",
@@ -71032,8 +71032,8 @@
       "sample": "SP52779",
       "signature": "SBS39",
       "browserExposure": 0.06351202047097043,
-      "localExposure": 0.06351202047097053,
-      "absoluteDifference": 9.71445146547012e-17
+      "localExposure": 0.0635120204709705,
+      "absoluteDifference": 6.938893903907228e-17
     },
     {
       "tool": "musical",
@@ -71296,8 +71296,8 @@
       "sample": "SP53073",
       "signature": "SBS1",
       "browserExposure": 0.01495543593638266,
-      "localExposure": 0.014955435936382657,
-      "absoluteDifference": 3.469446951953614e-18
+      "localExposure": 0.014955435936382652,
+      "absoluteDifference": 8.673617379884035e-18
     },
     {
       "tool": "musical",
@@ -71336,8 +71336,8 @@
       "sample": "SP53073",
       "signature": "SBS13",
       "browserExposure": 0.01101674763224189,
-      "localExposure": 0.011016747632241987,
-      "absoluteDifference": 9.71445146547012e-17
+      "localExposure": 0.011016747632241983,
+      "absoluteDifference": 9.367506770274758e-17
     },
     {
       "tool": "musical",
@@ -71360,8 +71360,8 @@
       "sample": "SP53073",
       "signature": "SBS16",
       "browserExposure": 0.023308016119507124,
-      "localExposure": 0.023308016119507217,
-      "absoluteDifference": 9.367506770274758e-17
+      "localExposure": 0.02330801611950723,
+      "absoluteDifference": 1.0755285551056204e-16
     },
     {
       "tool": "musical",
@@ -71376,16 +71376,16 @@
       "sample": "SP53073",
       "signature": "SBS17b",
       "browserExposure": 0.06841620845000496,
-      "localExposure": 0.06841620845000503,
-      "absoluteDifference": 6.938893903907228e-17
+      "localExposure": 0.06841620845000505,
+      "absoluteDifference": 9.71445146547012e-17
     },
     {
       "tool": "musical",
       "sample": "SP53073",
       "signature": "SBS18",
       "browserExposure": 0.05631062100406648,
-      "localExposure": 0.0563106210040664,
-      "absoluteDifference": 8.326672684688674e-17
+      "localExposure": 0.05631062100406643,
+      "absoluteDifference": 4.85722573273506e-17
     },
     {
       "tool": "musical",
@@ -71424,8 +71424,8 @@
       "sample": "SP53073",
       "signature": "SBS22",
       "browserExposure": 0.04777287870968236,
-      "localExposure": 0.047772878709682366,
-      "absoluteDifference": 6.938893903907228e-18
+      "localExposure": 0.04777287870968239,
+      "absoluteDifference": 2.7755575615628914e-17
     },
     {
       "tool": "musical",
@@ -71800,8 +71800,8 @@
       "sample": "SP53073",
       "signature": "SBS8",
       "browserExposure": 0.07458608522571104,
-      "localExposure": 0.07458608522571122,
-      "absoluteDifference": 1.8041124150158794e-16
+      "localExposure": 0.07458608522571118,
+      "absoluteDifference": 1.3877787807814457e-16
     },
     {
       "tool": "musical",
@@ -71864,16 +71864,16 @@
       "sample": "SP53387",
       "signature": "SBS12",
       "browserExposure": 0.03716600645992308,
-      "localExposure": 0.037166006459923046,
-      "absoluteDifference": 3.469446951953614e-17
+      "localExposure": 0.03716600645992303,
+      "absoluteDifference": 4.85722573273506e-17
     },
     {
       "tool": "musical",
       "sample": "SP53387",
       "signature": "SBS13",
       "browserExposure": 0.08653924791082597,
-      "localExposure": 0.08653924791082593,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.08653924791082596,
+      "absoluteDifference": 1.3877787807814457e-17
     },
     {
       "tool": "musical",
@@ -71888,8 +71888,8 @@
       "sample": "SP53387",
       "signature": "SBS15",
       "browserExposure": 0.012445218841691202,
-      "localExposure": 0.012445218841691174,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.012445218841691176,
+      "absoluteDifference": 2.6020852139652106e-17
     },
     {
       "tool": "musical",
@@ -71936,8 +71936,8 @@
       "sample": "SP53387",
       "signature": "SBS2",
       "browserExposure": 0.20673352452886876,
-      "localExposure": 0.20673352452886887,
-      "absoluteDifference": 1.1102230246251565e-16
+      "localExposure": 0.2067335245288688,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
@@ -72104,16 +72104,16 @@
       "sample": "SP53387",
       "signature": "SBS39",
       "browserExposure": 0.06570500946498255,
-      "localExposure": 0.06570500946498249,
-      "absoluteDifference": 5.551115123125783e-17
+      "localExposure": 0.0657050094649825,
+      "absoluteDifference": 4.163336342344337e-17
     },
     {
       "tool": "musical",
       "sample": "SP53387",
       "signature": "SBS4",
       "browserExposure": 0.3086013926962886,
-      "localExposure": 0.30860139269628817,
-      "absoluteDifference": 4.440892098500626e-16
+      "localExposure": 0.3086013926962882,
+      "absoluteDifference": 3.885780586188048e-16
     },
     {
       "tool": "musical",
@@ -72336,8 +72336,8 @@
       "sample": "SP53387",
       "signature": "SBS8",
       "browserExposure": 0.12357358377458098,
-      "localExposure": 0.12357358377458151,
-      "absoluteDifference": 5.273559366969494e-16
+      "localExposure": 0.12357358377458143,
+      "absoluteDifference": 4.440892098500626e-16
     },
     {
       "tool": "musical",
@@ -72360,8 +72360,8 @@
       "sample": "SP53387",
       "signature": "SBS9",
       "browserExposure": 0.02252796152970998,
-      "localExposure": 0.02252796152970998,
-      "absoluteDifference": 0
+      "localExposure": 0.02252796152970999,
+      "absoluteDifference": 1.0408340855860843e-17
     },
     {
       "tool": "musical",
@@ -72408,8 +72408,8 @@
       "sample": "SP53460",
       "signature": "SBS13",
       "browserExposure": 0.024052963478243726,
-      "localExposure": 0.024052963478243747,
-      "absoluteDifference": 2.0816681711721685e-17
+      "localExposure": 0.024052963478243754,
+      "absoluteDifference": 2.7755575615628914e-17
     },
     {
       "tool": "musical",
@@ -72432,8 +72432,8 @@
       "sample": "SP53460",
       "signature": "SBS16",
       "browserExposure": 0.030467560550923662,
-      "localExposure": 0.030467560550923575,
-      "absoluteDifference": 8.673617379884035e-17
+      "localExposure": 0.030467560550923558,
+      "absoluteDifference": 1.0408340855860843e-16
     },
     {
       "tool": "musical",
@@ -72456,8 +72456,8 @@
       "sample": "SP53460",
       "signature": "SBS18",
       "browserExposure": 0.11354126130710071,
-      "localExposure": 0.11354126130709988,
-      "absoluteDifference": 8.326672684688674e-16
+      "localExposure": 0.11354126130709995,
+      "absoluteDifference": 7.632783294297951e-16
     },
     {
       "tool": "musical",
@@ -72472,8 +72472,8 @@
       "sample": "SP53460",
       "signature": "SBS2",
       "browserExposure": 0.02356781489059342,
-      "localExposure": 0.02356781489059342,
-      "absoluteDifference": 0
+      "localExposure": 0.0235678148905934,
+      "absoluteDifference": 2.0816681711721685e-17
     },
     {
       "tool": "musical",
@@ -72488,8 +72488,8 @@
       "sample": "SP53460",
       "signature": "SBS21",
       "browserExposure": 0.01351654993109557,
-      "localExposure": 0.013516549931095547,
-      "absoluteDifference": 2.2551405187698492e-17
+      "localExposure": 0.013516549931095554,
+      "absoluteDifference": 1.5612511283791264e-17
     },
     {
       "tool": "musical",
@@ -72568,8 +72568,8 @@
       "sample": "SP53460",
       "signature": "SBS30",
       "browserExposure": 0.04868616585821003,
-      "localExposure": 0.048686165858209986,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.04868616585821002,
+      "absoluteDifference": 6.938893903907228e-18
     },
     {
       "tool": "musical",
@@ -72640,16 +72640,16 @@
       "sample": "SP53460",
       "signature": "SBS39",
       "browserExposure": 0.0736060251235454,
-      "localExposure": 0.07360602512354518,
-      "absoluteDifference": 2.220446049250313e-16
+      "localExposure": 0.07360602512354514,
+      "absoluteDifference": 2.636779683484747e-16
     },
     {
       "tool": "musical",
       "sample": "SP53460",
       "signature": "SBS4",
       "browserExposure": 0.488405594401681,
-      "localExposure": 0.4884055944016811,
-      "absoluteDifference": 5.551115123125783e-17
+      "localExposure": 0.48840559440168085,
+      "absoluteDifference": 1.6653345369377348e-16
     },
     {
       "tool": "musical",
@@ -72664,8 +72664,8 @@
       "sample": "SP53460",
       "signature": "SBS41",
       "browserExposure": 0.019538035990848482,
-      "localExposure": 0.01953803599084827,
-      "absoluteDifference": 2.1163626406917047e-16
+      "localExposure": 0.019538035990848256,
+      "absoluteDifference": 2.255140518769849e-16
     },
     {
       "tool": "musical",
@@ -72872,8 +72872,8 @@
       "sample": "SP53460",
       "signature": "SBS8",
       "browserExposure": 0.16461802846775786,
-      "localExposure": 0.1646180284677593,
-      "absoluteDifference": 1.4432899320127035e-15
+      "localExposure": 0.1646180284677594,
+      "absoluteDifference": 1.5265566588595902e-15
     },
     {
       "tool": "musical",
@@ -72904,16 +72904,16 @@
       "sample": "SP53548",
       "signature": "SBS1",
       "browserExposure": 0.030788919043612268,
-      "localExposure": 0.03078891904361225,
-      "absoluteDifference": 1.734723475976807e-17
+      "localExposure": 0.030788919043612233,
+      "absoluteDifference": 3.469446951953614e-17
     },
     {
       "tool": "musical",
       "sample": "SP53548",
       "signature": "SBS10a",
       "browserExposure": 0.00828841361344237,
-      "localExposure": 0.008288413613442363,
-      "absoluteDifference": 6.938893903907228e-18
+      "localExposure": 0.00828841361344236,
+      "absoluteDifference": 8.673617379884035e-18
     },
     {
       "tool": "musical",
@@ -72936,8 +72936,8 @@
       "sample": "SP53548",
       "signature": "SBS12",
       "browserExposure": 0.10231696951704944,
-      "localExposure": 0.10231696951704952,
-      "absoluteDifference": 8.326672684688674e-17
+      "localExposure": 0.10231696951704956,
+      "absoluteDifference": 1.249000902703301e-16
     },
     {
       "tool": "musical",
@@ -72976,8 +72976,8 @@
       "sample": "SP53548",
       "signature": "SBS17a",
       "browserExposure": 0.08802123757883656,
-      "localExposure": 0.0880212375788364,
-      "absoluteDifference": 1.6653345369377348e-16
+      "localExposure": 0.08802123757883645,
+      "absoluteDifference": 1.1102230246251565e-16
     },
     {
       "tool": "musical",
@@ -73008,8 +73008,8 @@
       "sample": "SP53548",
       "signature": "SBS2",
       "browserExposure": 0.013845527185466774,
-      "localExposure": 0.013845527185466774,
-      "absoluteDifference": 0
+      "localExposure": 0.013845527185466767,
+      "absoluteDifference": 6.938893903907228e-18
     },
     {
       "tool": "musical",
@@ -73224,8 +73224,8 @@
       "sample": "SP53548",
       "signature": "SBS44",
       "browserExposure": 0.04819125504548634,
-      "localExposure": 0.048191255045486325,
-      "absoluteDifference": 1.3877787807814457e-17
+      "localExposure": 0.04819125504548633,
+      "absoluteDifference": 6.938893903907228e-18
     },
     {
       "tool": "musical",
@@ -73472,16 +73472,16 @@
       "sample": "SP53618",
       "signature": "SBS12",
       "browserExposure": 0.03213664110044054,
-      "localExposure": 0.032136641100440524,
-      "absoluteDifference": 1.3877787807814457e-17
+      "localExposure": 0.03213664110044053,
+      "absoluteDifference": 6.938893903907228e-18
     },
     {
       "tool": "musical",
       "sample": "SP53618",
       "signature": "SBS13",
       "browserExposure": 0.014760937731711629,
-      "localExposure": 0.014760937731711598,
-      "absoluteDifference": 3.122502256758253e-17
+      "localExposure": 0.014760937731711606,
+      "absoluteDifference": 2.2551405187698492e-17
     },
     {
       "tool": "musical",
@@ -73504,8 +73504,8 @@
       "sample": "SP53618",
       "signature": "SBS16",
       "browserExposure": 0.024712435601944537,
-      "localExposure": 0.024712435601944457,
-      "absoluteDifference": 7.979727989493313e-17
+      "localExposure": 0.02471243560194445,
+      "absoluteDifference": 8.673617379884035e-17
     },
     {
       "tool": "musical",
@@ -73536,8 +73536,8 @@
       "sample": "SP53618",
       "signature": "SBS19",
       "browserExposure": 0.01749969753699175,
-      "localExposure": 0.017499697536991776,
-      "absoluteDifference": 2.42861286636753e-17
+      "localExposure": 0.017499697536991772,
+      "absoluteDifference": 2.0816681711721685e-17
     },
     {
       "tool": "musical",
@@ -73624,8 +73624,8 @@
       "sample": "SP53618",
       "signature": "SBS29",
       "browserExposure": 0.08876348887310986,
-      "localExposure": 0.08876348887310805,
-      "absoluteDifference": 1.817990202823694e-15
+      "localExposure": 0.08876348887310803,
+      "absoluteDifference": 1.8318679906315083e-15
     },
     {
       "tool": "musical",
@@ -73640,8 +73640,8 @@
       "sample": "SP53618",
       "signature": "SBS30",
       "browserExposure": 0.035016480693254956,
-      "localExposure": 0.03501648069325484,
-      "absoluteDifference": 1.1796119636642288e-16
+      "localExposure": 0.035016480693254845,
+      "absoluteDifference": 1.1102230246251565e-16
     },
     {
       "tool": "musical",
@@ -73688,8 +73688,8 @@
       "sample": "SP53618",
       "signature": "SBS36",
       "browserExposure": 0.04872616041207525,
-      "localExposure": 0.04872616041207515,
-      "absoluteDifference": 1.0408340855860843e-16
+      "localExposure": 0.048726160412075246,
+      "absoluteDifference": 6.938893903907228e-18
     },
     {
       "tool": "musical",
@@ -73712,8 +73712,8 @@
       "sample": "SP53618",
       "signature": "SBS39",
       "browserExposure": 0.07049837674460059,
-      "localExposure": 0.07049837674460073,
-      "absoluteDifference": 1.3877787807814457e-16
+      "localExposure": 0.07049837674460072,
+      "absoluteDifference": 1.249000902703301e-16
     },
     {
       "tool": "musical",
@@ -73944,8 +73944,8 @@
       "sample": "SP53618",
       "signature": "SBS8",
       "browserExposure": 0.07980196667891318,
-      "localExposure": 0.07980196667891326,
-      "absoluteDifference": 8.326672684688674e-17
+      "localExposure": 0.07980196667891329,
+      "absoluteDifference": 1.1102230246251565e-16
     },
     {
       "tool": "musical",
@@ -74344,8 +74344,8 @@
       "sample": "SP53810",
       "signature": "SBS5",
       "browserExposure": 0.0871319199408705,
-      "localExposure": 0.0871319199408705,
-      "absoluteDifference": 0
+      "localExposure": 0.08713191994087052,
+      "absoluteDifference": 2.7755575615628914e-17
     },
     {
       "tool": "musical",
@@ -74552,7 +74552,7 @@
       "sample": "SP54113",
       "signature": "SBS13",
       "browserExposure": 0.05145890894880094,
-      "localExposure": 0.051458908948800924,
+      "localExposure": 0.05145890894880095,
       "absoluteDifference": 1.3877787807814457e-17
     },
     {
@@ -74576,8 +74576,8 @@
       "sample": "SP54113",
       "signature": "SBS16",
       "browserExposure": 0.02777548810071368,
-      "localExposure": 0.027775488100713543,
-      "absoluteDifference": 1.3877787807814457e-16
+      "localExposure": 0.027775488100713525,
+      "absoluteDifference": 1.5612511283791264e-16
     },
     {
       "tool": "musical",
@@ -74600,8 +74600,8 @@
       "sample": "SP54113",
       "signature": "SBS18",
       "browserExposure": 0.0907275497329513,
-      "localExposure": 0.09072754973295098,
-      "absoluteDifference": 3.191891195797325e-16
+      "localExposure": 0.090727549732951,
+      "absoluteDifference": 3.0531133177191805e-16
     },
     {
       "tool": "musical",
@@ -74792,8 +74792,8 @@
       "sample": "SP54113",
       "signature": "SBS4",
       "browserExposure": 0.38826803951661704,
-      "localExposure": 0.38826803951661576,
-      "absoluteDifference": 1.27675647831893e-15
+      "localExposure": 0.3882680395166158,
+      "absoluteDifference": 1.2212453270876722e-15
     },
     {
       "tool": "musical",
@@ -75016,8 +75016,8 @@
       "sample": "SP54113",
       "signature": "SBS8",
       "browserExposure": 0.11569805815460027,
-      "localExposure": 0.11569805815460246,
-      "absoluteDifference": 2.192690473634684e-15
+      "localExposure": 0.1156980581546024,
+      "absoluteDifference": 2.1371793224034263e-15
     },
     {
       "tool": "musical",
@@ -75048,8 +75048,8 @@
       "sample": "SP54363",
       "signature": "SBS1",
       "browserExposure": 0.0070926535442405935,
-      "localExposure": 0.007092653544240607,
-      "absoluteDifference": 1.3877787807814457e-17
+      "localExposure": 0.007092653544240602,
+      "absoluteDifference": 8.673617379884035e-18
     },
     {
       "tool": "musical",
@@ -75080,16 +75080,16 @@
       "sample": "SP54363",
       "signature": "SBS12",
       "browserExposure": 0.03925501200576537,
-      "localExposure": 0.03925501200576522,
-      "absoluteDifference": 1.5265566588595902e-16
+      "localExposure": 0.03925501200576523,
+      "absoluteDifference": 1.457167719820518e-16
     },
     {
       "tool": "musical",
       "sample": "SP54363",
       "signature": "SBS13",
       "browserExposure": 0.09150556092945962,
-      "localExposure": 0.09150556092945952,
-      "absoluteDifference": 9.71445146547012e-17
+      "localExposure": 0.09150556092945955,
+      "absoluteDifference": 6.938893903907228e-17
     },
     {
       "tool": "musical",
@@ -75112,8 +75112,8 @@
       "sample": "SP54363",
       "signature": "SBS16",
       "browserExposure": 0.01618166064308153,
-      "localExposure": 0.01618166064308155,
-      "absoluteDifference": 2.0816681711721685e-17
+      "localExposure": 0.01618166064308154,
+      "absoluteDifference": 1.0408340855860843e-17
     },
     {
       "tool": "musical",
@@ -75136,16 +75136,16 @@
       "sample": "SP54363",
       "signature": "SBS18",
       "browserExposure": 0.11454156613053647,
-      "localExposure": 0.1145415661305362,
-      "absoluteDifference": 2.636779683484747e-16
+      "localExposure": 0.11454156613053616,
+      "absoluteDifference": 3.0531133177191805e-16
     },
     {
       "tool": "musical",
       "sample": "SP54363",
       "signature": "SBS19",
       "browserExposure": 0.015836580388223782,
-      "localExposure": 0.015836580388223796,
-      "absoluteDifference": 1.3877787807814457e-17
+      "localExposure": 0.015836580388223786,
+      "absoluteDifference": 3.469446951953614e-18
     },
     {
       "tool": "musical",
@@ -75320,16 +75320,16 @@
       "sample": "SP54363",
       "signature": "SBS39",
       "browserExposure": 0.06676686490579291,
-      "localExposure": 0.06676686490579305,
-      "absoluteDifference": 1.3877787807814457e-16
+      "localExposure": 0.06676686490579307,
+      "absoluteDifference": 1.6653345369377348e-16
     },
     {
       "tool": "musical",
       "sample": "SP54363",
       "signature": "SBS4",
       "browserExposure": 0.37497698376861516,
-      "localExposure": 0.37497698376861566,
-      "absoluteDifference": 4.996003610813204e-16
+      "localExposure": 0.3749769837686157,
+      "absoluteDifference": 5.551115123125783e-16
     },
     {
       "tool": "musical",
@@ -75552,8 +75552,8 @@
       "sample": "SP54363",
       "signature": "SBS8",
       "browserExposure": 0.12766889107627222,
-      "localExposure": 0.1276688910762722,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.1276688910762721,
+      "absoluteDifference": 1.1102230246251565e-16
     },
     {
       "tool": "musical",
@@ -75584,8 +75584,8 @@
       "sample": "SP54745",
       "signature": "SBS1",
       "browserExposure": 0.009245446622389252,
-      "localExposure": 0.009245446622389231,
-      "absoluteDifference": 2.0816681711721685e-17
+      "localExposure": 0.009245446622389235,
+      "absoluteDifference": 1.734723475976807e-17
     },
     {
       "tool": "musical",
@@ -75624,8 +75624,8 @@
       "sample": "SP54745",
       "signature": "SBS13",
       "browserExposure": 0.14663646614195838,
-      "localExposure": 0.1466364661419583,
-      "absoluteDifference": 8.326672684688674e-17
+      "localExposure": 0.14663646614195827,
+      "absoluteDifference": 1.1102230246251565e-16
     },
     {
       "tool": "musical",
@@ -75664,32 +75664,32 @@
       "sample": "SP54745",
       "signature": "SBS17b",
       "browserExposure": 0.13991739656149976,
-      "localExposure": 0.1399173965614998,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.13991739656149976,
+      "absoluteDifference": 0
     },
     {
       "tool": "musical",
       "sample": "SP54745",
       "signature": "SBS18",
       "browserExposure": 0.030500342786162603,
-      "localExposure": 0.030500342786162506,
-      "absoluteDifference": 9.71445146547012e-17
+      "localExposure": 0.030500342786162492,
+      "absoluteDifference": 1.1102230246251565e-16
     },
     {
       "tool": "musical",
       "sample": "SP54745",
       "signature": "SBS19",
       "browserExposure": 0.01152861906691958,
-      "localExposure": 0.011528619066919429,
-      "absoluteDifference": 1.5092094240998222e-16
+      "localExposure": 0.011528619066919444,
+      "absoluteDifference": 1.3530843112619095e-16
     },
     {
       "tool": "musical",
       "sample": "SP54745",
       "signature": "SBS2",
       "browserExposure": 0.19459509147147763,
-      "localExposure": 0.19459509147147783,
-      "absoluteDifference": 1.942890293094024e-16
+      "localExposure": 0.1945950914714778,
+      "absoluteDifference": 1.6653345369377348e-16
     },
     {
       "tool": "musical",
@@ -75744,8 +75744,8 @@
       "sample": "SP54745",
       "signature": "SBS26",
       "browserExposure": 0.029330159673256792,
-      "localExposure": 0.029330159673257163,
-      "absoluteDifference": 3.712308238590367e-16
+      "localExposure": 0.029330159673257188,
+      "absoluteDifference": 3.95516952522712e-16
     },
     {
       "tool": "musical",
@@ -75760,8 +75760,8 @@
       "sample": "SP54745",
       "signature": "SBS28",
       "browserExposure": 0.051818502616816885,
-      "localExposure": 0.051818502616816885,
-      "absoluteDifference": 0
+      "localExposure": 0.051818502616816906,
+      "absoluteDifference": 2.0816681711721685e-17
     },
     {
       "tool": "musical",
@@ -75784,8 +75784,8 @@
       "sample": "SP54745",
       "signature": "SBS30",
       "browserExposure": 0.042642891541994465,
-      "localExposure": 0.04264289154199465,
-      "absoluteDifference": 1.8735013540549517e-16
+      "localExposure": 0.042642891541994625,
+      "absoluteDifference": 1.5959455978986625e-16
     },
     {
       "tool": "musical",
@@ -75840,8 +75840,8 @@
       "sample": "SP54745",
       "signature": "SBS37",
       "browserExposure": 0.04970926048457433,
-      "localExposure": 0.049709260484573844,
-      "absoluteDifference": 4.85722573273506e-16
+      "localExposure": 0.0497092604845738,
+      "absoluteDifference": 5.273559366969494e-16
     },
     {
       "tool": "musical",
@@ -75856,16 +75856,16 @@
       "sample": "SP54745",
       "signature": "SBS39",
       "browserExposure": 0.03188790909455937,
-      "localExposure": 0.031887909094559394,
-      "absoluteDifference": 2.0816681711721685e-17
+      "localExposure": 0.03188790909455937,
+      "absoluteDifference": 0
     },
     {
       "tool": "musical",
       "sample": "SP54745",
       "signature": "SBS4",
       "browserExposure": 0.08580842815725434,
-      "localExposure": 0.0858084281572546,
-      "absoluteDifference": 2.636779683484747e-16
+      "localExposure": 0.08580842815725459,
+      "absoluteDifference": 2.498001805406602e-16
     },
     {
       "tool": "musical",
@@ -76088,8 +76088,8 @@
       "sample": "SP54745",
       "signature": "SBS8",
       "browserExposure": 0.10921558278283366,
-      "localExposure": 0.1092155827828335,
-      "absoluteDifference": 1.6653345369377348e-16
+      "localExposure": 0.10921558278283348,
+      "absoluteDifference": 1.8041124150158794e-16
     },
     {
       "tool": "musical",
@@ -76120,8 +76120,8 @@
       "sample": "SP55004",
       "signature": "SBS1",
       "browserExposure": 0.132672789610166,
-      "localExposure": 0.1326727896101659,
-      "absoluteDifference": 8.326672684688674e-17
+      "localExposure": 0.13267278961016588,
+      "absoluteDifference": 1.1102230246251565e-16
     },
     {
       "tool": "musical",
@@ -76136,8 +76136,8 @@
       "sample": "SP55004",
       "signature": "SBS10b",
       "browserExposure": 0.04248818235750435,
-      "localExposure": 0.042488182357504345,
-      "absoluteDifference": 6.938893903907228e-18
+      "localExposure": 0.042488182357504324,
+      "absoluteDifference": 2.7755575615628914e-17
     },
     {
       "tool": "musical",
@@ -76160,8 +76160,8 @@
       "sample": "SP55004",
       "signature": "SBS13",
       "browserExposure": 0.014848731006609817,
-      "localExposure": 0.014848731006609793,
-      "absoluteDifference": 2.42861286636753e-17
+      "localExposure": 0.014848731006609796,
+      "absoluteDifference": 2.0816681711721685e-17
     },
     {
       "tool": "musical",
@@ -76184,8 +76184,8 @@
       "sample": "SP55004",
       "signature": "SBS16",
       "browserExposure": 0.11901118281995947,
-      "localExposure": 0.11901118281995929,
-      "absoluteDifference": 1.8041124150158794e-16
+      "localExposure": 0.11901118281995925,
+      "absoluteDifference": 2.220446049250313e-16
     },
     {
       "tool": "musical",
@@ -76208,16 +76208,16 @@
       "sample": "SP55004",
       "signature": "SBS18",
       "browserExposure": 0.044996985015594654,
-      "localExposure": 0.044996985015595285,
-      "absoluteDifference": 6.314393452555578e-16
+      "localExposure": 0.04499698501559528,
+      "absoluteDifference": 6.245004513516506e-16
     },
     {
       "tool": "musical",
       "sample": "SP55004",
       "signature": "SBS19",
       "browserExposure": 0.03097597366613605,
-      "localExposure": 0.03097597366613589,
-      "absoluteDifference": 1.5959455978986625e-16
+      "localExposure": 0.030975973666135928,
+      "absoluteDifference": 1.214306433183765e-16
     },
     {
       "tool": "musical",
@@ -76240,8 +76240,8 @@
       "sample": "SP55004",
       "signature": "SBS21",
       "browserExposure": 0.026629138503635987,
-      "localExposure": 0.02662913850363575,
-      "absoluteDifference": 2.3592239273284576e-16
+      "localExposure": 0.02662913850363577,
+      "absoluteDifference": 2.185751579730777e-16
     },
     {
       "tool": "musical",
@@ -76272,8 +76272,8 @@
       "sample": "SP55004",
       "signature": "SBS25",
       "browserExposure": 0.08852304402529282,
-      "localExposure": 0.08852304402529339,
-      "absoluteDifference": 5.689893001203927e-16
+      "localExposure": 0.08852304402529344,
+      "absoluteDifference": 6.245004513516506e-16
     },
     {
       "tool": "musical",
@@ -76304,8 +76304,8 @@
       "sample": "SP55004",
       "signature": "SBS29",
       "browserExposure": 0.058475787027257975,
-      "localExposure": 0.05847578702725716,
-      "absoluteDifference": 8.118505867571457e-16
+      "localExposure": 0.05847578702725721,
+      "absoluteDifference": 7.632783294297951e-16
     },
     {
       "tool": "musical",
@@ -76320,8 +76320,8 @@
       "sample": "SP55004",
       "signature": "SBS30",
       "browserExposure": 0.09017578980866466,
-      "localExposure": 0.0901757898086645,
-      "absoluteDifference": 1.5265566588595902e-16
+      "localExposure": 0.09017578980866454,
+      "absoluteDifference": 1.1102230246251565e-16
     },
     {
       "tool": "musical",
@@ -76352,8 +76352,8 @@
       "sample": "SP55004",
       "signature": "SBS34",
       "browserExposure": 0.01609266210147556,
-      "localExposure": 0.01609266210147555,
-      "absoluteDifference": 1.0408340855860843e-17
+      "localExposure": 0.016092662101475554,
+      "absoluteDifference": 6.938893903907228e-18
     },
     {
       "tool": "musical",
@@ -76392,8 +76392,8 @@
       "sample": "SP55004",
       "signature": "SBS39",
       "browserExposure": 0.05459973165727533,
-      "localExposure": 0.05459973165727543,
-      "absoluteDifference": 9.71445146547012e-17
+      "localExposure": 0.0545997316572754,
+      "absoluteDifference": 6.938893903907228e-17
     },
     {
       "tool": "musical",
@@ -76440,8 +76440,8 @@
       "sample": "SP55004",
       "signature": "SBS44",
       "browserExposure": 0.08855874368857229,
-      "localExposure": 0.0885587436885725,
-      "absoluteDifference": 2.0816681711721685e-16
+      "localExposure": 0.08855874368857244,
+      "absoluteDifference": 1.5265566588595902e-16
     },
     {
       "tool": "musical",
@@ -76496,24 +76496,24 @@
       "sample": "SP55004",
       "signature": "SBS50",
       "browserExposure": 0.038700803041108636,
-      "localExposure": 0.03870080304110909,
-      "absoluteDifference": 4.510281037539698e-16
+      "localExposure": 0.038700803041109094,
+      "absoluteDifference": 4.579669976578771e-16
     },
     {
       "tool": "musical",
       "sample": "SP55004",
       "signature": "SBS51",
       "browserExposure": 0.06981267734558322,
-      "localExposure": 0.06981267734558272,
-      "absoluteDifference": 4.996003610813204e-16
+      "localExposure": 0.06981267734558266,
+      "absoluteDifference": 5.551115123125783e-16
     },
     {
       "tool": "musical",
       "sample": "SP55004",
       "signature": "SBS52",
       "browserExposure": 0.01775992066403295,
-      "localExposure": 0.01775992066403295,
-      "absoluteDifference": 0
+      "localExposure": 0.017759920664032945,
+      "absoluteDifference": 3.469446951953614e-18
     },
     {
       "tool": "musical",
@@ -76616,8 +76616,8 @@
       "sample": "SP55004",
       "signature": "SBS7d",
       "browserExposure": 0.026186788903394993,
-      "localExposure": 0.026186788903395094,
-      "absoluteDifference": 1.0061396160665481e-16
+      "localExposure": 0.02618678890339508,
+      "absoluteDifference": 8.673617379884035e-17
     },
     {
       "tool": "musical",
@@ -76720,8 +76720,8 @@
       "sample": "SP55142",
       "signature": "SBS16",
       "browserExposure": 0.028001297640916568,
-      "localExposure": 0.028001297640916516,
-      "absoluteDifference": 5.204170427930421e-17
+      "localExposure": 0.02800129764091651,
+      "absoluteDifference": 5.898059818321144e-17
     },
     {
       "tool": "musical",
@@ -76752,16 +76752,16 @@
       "sample": "SP55142",
       "signature": "SBS19",
       "browserExposure": 0.02877467389458688,
-      "localExposure": 0.028774673894586777,
-      "absoluteDifference": 1.0408340855860843e-16
+      "localExposure": 0.028774673894586784,
+      "absoluteDifference": 9.71445146547012e-17
     },
     {
       "tool": "musical",
       "sample": "SP55142",
       "signature": "SBS2",
       "browserExposure": 0.07828621525157409,
-      "localExposure": 0.07828621525157413,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.07828621525157414,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
@@ -76816,8 +76816,8 @@
       "sample": "SP55142",
       "signature": "SBS26",
       "browserExposure": 0.06434476780659727,
-      "localExposure": 0.06434476780659734,
-      "absoluteDifference": 6.938893903907228e-17
+      "localExposure": 0.06434476780659736,
+      "absoluteDifference": 8.326672684688674e-17
     },
     {
       "tool": "musical",
@@ -76856,8 +76856,8 @@
       "sample": "SP55142",
       "signature": "SBS30",
       "browserExposure": 0.04625749675519563,
-      "localExposure": 0.04625749675519566,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.04625749675519565,
+      "absoluteDifference": 2.0816681711721685e-17
     },
     {
       "tool": "musical",
@@ -76928,16 +76928,16 @@
       "sample": "SP55142",
       "signature": "SBS39",
       "browserExposure": 0.10597705649260467,
-      "localExposure": 0.10597705649260432,
-      "absoluteDifference": 3.469446951953614e-16
+      "localExposure": 0.10597705649260436,
+      "absoluteDifference": 3.0531133177191805e-16
     },
     {
       "tool": "musical",
       "sample": "SP55142",
       "signature": "SBS4",
       "browserExposure": 0.3482327559725471,
-      "localExposure": 0.3482327559725471,
-      "absoluteDifference": 0
+      "localExposure": 0.3482327559725472,
+      "absoluteDifference": 1.1102230246251565e-16
     },
     {
       "tool": "musical",
@@ -77160,8 +77160,8 @@
       "sample": "SP55142",
       "signature": "SBS8",
       "browserExposure": 0.122405238136916,
-      "localExposure": 0.12240523813691688,
-      "absoluteDifference": 8.743006318923108e-16
+      "localExposure": 0.1224052381369169,
+      "absoluteDifference": 8.881784197001252e-16
     },
     {
       "tool": "musical",
@@ -77232,8 +77232,8 @@
       "sample": "SP55235",
       "signature": "SBS13",
       "browserExposure": 0.025111128794666714,
-      "localExposure": 0.025111128794666707,
-      "absoluteDifference": 6.938893903907228e-18
+      "localExposure": 0.025111128794666704,
+      "absoluteDifference": 1.0408340855860843e-17
     },
     {
       "tool": "musical",
@@ -77256,8 +77256,8 @@
       "sample": "SP55235",
       "signature": "SBS16",
       "browserExposure": 0.023604005369054774,
-      "localExposure": 0.0236040053690548,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.023604005369054805,
+      "absoluteDifference": 3.122502256758253e-17
     },
     {
       "tool": "musical",
@@ -77280,16 +77280,16 @@
       "sample": "SP55235",
       "signature": "SBS18",
       "browserExposure": 0.076252362746293,
-      "localExposure": 0.07625236274629227,
-      "absoluteDifference": 7.355227538141662e-16
+      "localExposure": 0.07625236274629225,
+      "absoluteDifference": 7.494005416219807e-16
     },
     {
       "tool": "musical",
       "sample": "SP55235",
       "signature": "SBS19",
       "browserExposure": 0.02541207760345227,
-      "localExposure": 0.025412077603452154,
-      "absoluteDifference": 1.1449174941446927e-16
+      "localExposure": 0.025412077603452137,
+      "absoluteDifference": 1.3183898417423734e-16
     },
     {
       "tool": "musical",
@@ -77392,8 +77392,8 @@
       "sample": "SP55235",
       "signature": "SBS30",
       "browserExposure": 0.048021562717474375,
-      "localExposure": 0.048021562717474355,
-      "absoluteDifference": 2.0816681711721685e-17
+      "localExposure": 0.048021562717474375,
+      "absoluteDifference": 0
     },
     {
       "tool": "musical",
@@ -77464,16 +77464,16 @@
       "sample": "SP55235",
       "signature": "SBS39",
       "browserExposure": 0.12088237081844717,
-      "localExposure": 0.12088237081844706,
-      "absoluteDifference": 1.1102230246251565e-16
+      "localExposure": 0.12088237081844708,
+      "absoluteDifference": 9.71445146547012e-17
     },
     {
       "tool": "musical",
       "sample": "SP55235",
       "signature": "SBS4",
       "browserExposure": 0.45438764808723364,
-      "localExposure": 0.45438764808723525,
-      "absoluteDifference": 1.609823385706477e-15
+      "localExposure": 0.4543876480872353,
+      "absoluteDifference": 1.6653345369377348e-15
     },
     {
       "tool": "musical",
@@ -77696,8 +77696,8 @@
       "sample": "SP55235",
       "signature": "SBS8",
       "browserExposure": 0.11747937494329938,
-      "localExposure": 0.11747937494329895,
-      "absoluteDifference": 4.3021142204224816e-16
+      "localExposure": 0.1174793749432989,
+      "absoluteDifference": 4.85722573273506e-16
     },
     {
       "tool": "musical",
@@ -77792,8 +77792,8 @@
       "sample": "SP55309",
       "signature": "SBS16",
       "browserExposure": 0.06833484603912461,
-      "localExposure": 0.06833484603912467,
-      "absoluteDifference": 5.551115123125783e-17
+      "localExposure": 0.06833484603912465,
+      "absoluteDifference": 4.163336342344337e-17
     },
     {
       "tool": "musical",
@@ -77832,8 +77832,8 @@
       "sample": "SP55309",
       "signature": "SBS2",
       "browserExposure": 0.04519950479811244,
-      "localExposure": 0.04519950479811241,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.045199504798112425,
+      "absoluteDifference": 1.3877787807814457e-17
     },
     {
       "tool": "musical",
@@ -77848,8 +77848,8 @@
       "sample": "SP55309",
       "signature": "SBS21",
       "browserExposure": 0.029342635012906057,
-      "localExposure": 0.029342635012906,
-      "absoluteDifference": 5.551115123125783e-17
+      "localExposure": 0.029342635012905998,
+      "absoluteDifference": 5.898059818321144e-17
     },
     {
       "tool": "musical",
@@ -77872,8 +77872,8 @@
       "sample": "SP55309",
       "signature": "SBS24",
       "browserExposure": 0.016420436357036796,
-      "localExposure": 0.01642043635703667,
-      "absoluteDifference": 1.249000902703301e-16
+      "localExposure": 0.016420436357036664,
+      "absoluteDifference": 1.3183898417423734e-16
     },
     {
       "tool": "musical",
@@ -77928,8 +77928,8 @@
       "sample": "SP55309",
       "signature": "SBS30",
       "browserExposure": 0.046451872643685825,
-      "localExposure": 0.046451872643685437,
-      "absoluteDifference": 3.885780586188048e-16
+      "localExposure": 0.04645187264368542,
+      "absoluteDifference": 4.0245584642661925e-16
     },
     {
       "tool": "musical",
@@ -77960,7 +77960,7 @@
       "sample": "SP55309",
       "signature": "SBS34",
       "browserExposure": 0.01663719201851151,
-      "localExposure": 0.016637192018511514,
+      "localExposure": 0.016637192018511507,
       "absoluteDifference": 3.469446951953614e-18
     },
     {
@@ -77984,8 +77984,8 @@
       "sample": "SP55309",
       "signature": "SBS37",
       "browserExposure": 0.0426427053267182,
-      "localExposure": 0.04264270532671779,
-      "absoluteDifference": 4.0939474033052647e-16
+      "localExposure": 0.042642705326717836,
+      "absoluteDifference": 3.608224830031759e-16
     },
     {
       "tool": "musical",
@@ -78000,8 +78000,8 @@
       "sample": "SP55309",
       "signature": "SBS39",
       "browserExposure": 0.04355642032477767,
-      "localExposure": 0.04355642032477737,
-      "absoluteDifference": 2.983724378680108e-16
+      "localExposure": 0.04355642032477735,
+      "absoluteDifference": 3.191891195797325e-16
     },
     {
       "tool": "musical",
@@ -78016,8 +78016,8 @@
       "sample": "SP55309",
       "signature": "SBS40",
       "browserExposure": 0.16515968828896085,
-      "localExposure": 0.16515968828896263,
-      "absoluteDifference": 1.7763568394002505e-15
+      "localExposure": 0.16515968828896255,
+      "absoluteDifference": 1.6930901125533637e-15
     },
     {
       "tool": "musical",
@@ -78144,8 +78144,8 @@
       "sample": "SP55309",
       "signature": "SBS55",
       "browserExposure": 0.011569721110312165,
-      "localExposure": 0.011569721110312122,
-      "absoluteDifference": 4.336808689942018e-17
+      "localExposure": 0.01156972111031212,
+      "absoluteDifference": 4.5102810375396984e-17
     },
     {
       "tool": "musical",
@@ -78184,8 +78184,8 @@
       "sample": "SP55309",
       "signature": "SBS6",
       "browserExposure": 0.0913626441187629,
-      "localExposure": 0.09136264411876296,
-      "absoluteDifference": 6.938893903907228e-17
+      "localExposure": 0.09136264411876298,
+      "absoluteDifference": 8.326672684688674e-17
     },
     {
       "tool": "musical",
@@ -78224,16 +78224,16 @@
       "sample": "SP55309",
       "signature": "SBS7d",
       "browserExposure": 0.025573928967240353,
-      "localExposure": 0.025573928967240454,
-      "absoluteDifference": 1.0061396160665481e-16
+      "localExposure": 0.02557392896724045,
+      "absoluteDifference": 9.71445146547012e-17
     },
     {
       "tool": "musical",
       "sample": "SP55309",
       "signature": "SBS8",
       "browserExposure": 0.1015260860571489,
-      "localExposure": 0.10152608605714812,
-      "absoluteDifference": 7.771561172376096e-16
+      "localExposure": 0.10152608605714816,
+      "absoluteDifference": 7.355227538141662e-16
     },
     {
       "tool": "musical",
@@ -78296,8 +78296,8 @@
       "sample": "SP55387",
       "signature": "SBS12",
       "browserExposure": 0.02067373170769596,
-      "localExposure": 0.020673731707695972,
-      "absoluteDifference": 1.0408340855860843e-17
+      "localExposure": 0.02067373170769597,
+      "absoluteDifference": 6.938893903907228e-18
     },
     {
       "tool": "musical",
@@ -78328,8 +78328,8 @@
       "sample": "SP55387",
       "signature": "SBS16",
       "browserExposure": 0.026925892715228914,
-      "localExposure": 0.026925892715228814,
-      "absoluteDifference": 1.0061396160665481e-16
+      "localExposure": 0.026925892715228803,
+      "absoluteDifference": 1.1102230246251565e-16
     },
     {
       "tool": "musical",
@@ -78360,8 +78360,8 @@
       "sample": "SP55387",
       "signature": "SBS19",
       "browserExposure": 0.02777483162935947,
-      "localExposure": 0.02777483162935947,
-      "absoluteDifference": 0
+      "localExposure": 0.027774831629359474,
+      "absoluteDifference": 3.469446951953614e-18
     },
     {
       "tool": "musical",
@@ -78768,8 +78768,8 @@
       "sample": "SP55387",
       "signature": "SBS8",
       "browserExposure": 0.12692051730820036,
-      "localExposure": 0.12692051730820147,
-      "absoluteDifference": 1.1102230246251565e-15
+      "localExposure": 0.12692051730820153,
+      "absoluteDifference": 1.1657341758564144e-15
     },
     {
       "tool": "musical",
@@ -78832,8 +78832,8 @@
       "sample": "SP55509",
       "signature": "SBS12",
       "browserExposure": 0.03505255708234904,
-      "localExposure": 0.035052557082348994,
-      "absoluteDifference": 4.85722573273506e-17
+      "localExposure": 0.03505255708234901,
+      "absoluteDifference": 3.469446951953614e-17
     },
     {
       "tool": "musical",
@@ -78864,8 +78864,8 @@
       "sample": "SP55509",
       "signature": "SBS16",
       "browserExposure": 0.034707604564922286,
-      "localExposure": 0.03470760456492226,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.034707604564922244,
+      "absoluteDifference": 4.163336342344337e-17
     },
     {
       "tool": "musical",
@@ -78904,8 +78904,8 @@
       "sample": "SP55509",
       "signature": "SBS2",
       "browserExposure": 0.024682152108488307,
-      "localExposure": 0.02468215210848835,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.024682152108488342,
+      "absoluteDifference": 3.469446951953614e-17
     },
     {
       "tool": "musical",
@@ -79000,8 +79000,8 @@
       "sample": "SP55509",
       "signature": "SBS30",
       "browserExposure": 0.0350837822251226,
-      "localExposure": 0.03508378222512254,
-      "absoluteDifference": 6.245004513516506e-17
+      "localExposure": 0.035083782225122546,
+      "absoluteDifference": 5.551115123125783e-17
     },
     {
       "tool": "musical",
@@ -79376,8 +79376,8 @@
       "sample": "SP55711",
       "signature": "SBS13",
       "browserExposure": 0.08780652040419196,
-      "localExposure": 0.0878065204041917,
-      "absoluteDifference": 2.498001805406602e-16
+      "localExposure": 0.08780652040419172,
+      "absoluteDifference": 2.3592239273284576e-16
     },
     {
       "tool": "musical",
@@ -79424,8 +79424,8 @@
       "sample": "SP55711",
       "signature": "SBS18",
       "browserExposure": 0.0676140686841347,
-      "localExposure": 0.06761406868413468,
-      "absoluteDifference": 2.7755575615628914e-17
+      "localExposure": 0.06761406868413466,
+      "absoluteDifference": 4.163336342344337e-17
     },
     {
       "tool": "musical",
@@ -79536,8 +79536,8 @@
       "sample": "SP55711",
       "signature": "SBS30",
       "browserExposure": 0.05568270034596369,
-      "localExposure": 0.055682700345963294,
-      "absoluteDifference": 3.95516952522712e-16
+      "localExposure": 0.05568270034596336,
+      "absoluteDifference": 3.3306690738754696e-16
     },
     {
       "tool": "musical",
@@ -79624,8 +79624,8 @@
       "sample": "SP55711",
       "signature": "SBS40",
       "browserExposure": 0.2867924753183724,
-      "localExposure": 0.28679247531837637,
-      "absoluteDifference": 3.9968028886505635e-15
+      "localExposure": 0.2867924753183763,
+      "absoluteDifference": 3.941291737419306e-15
     },
     {
       "tool": "musical",
@@ -79840,8 +79840,8 @@
       "sample": "SP55711",
       "signature": "SBS8",
       "browserExposure": 0.08190882784815318,
-      "localExposure": 0.08190882784815169,
-      "absoluteDifference": 1.4849232954361469e-15
+      "localExposure": 0.08190882784815168,
+      "absoluteDifference": 1.4988010832439613e-15
     },
     {
       "tool": "musical",
@@ -79856,8 +79856,8 @@
       "sample": "SP55711",
       "signature": "SBS85",
       "browserExposure": 0.04903224032348608,
-      "localExposure": 0.049032240323486194,
-      "absoluteDifference": 1.1102230246251565e-16
+      "localExposure": 0.04903224032348623,
+      "absoluteDifference": 1.457167719820518e-16
     },
     {
       "tool": "musical",
@@ -79912,8 +79912,8 @@
       "sample": "SP56079",
       "signature": "SBS13",
       "browserExposure": 0.02405332159136123,
-      "localExposure": 0.024053321591361254,
-      "absoluteDifference": 2.42861286636753e-17
+      "localExposure": 0.02405332159136125,
+      "absoluteDifference": 2.0816681711721685e-17
     },
     {
       "tool": "musical",
@@ -79952,8 +79952,8 @@
       "sample": "SP56079",
       "signature": "SBS17b",
       "browserExposure": 0.008141003518574118,
-      "localExposure": 0.00814100351857412,
-      "absoluteDifference": 1.734723475976807e-18
+      "localExposure": 0.008141003518574118,
+      "absoluteDifference": 0
     },
     {
       "tool": "musical",
@@ -80072,8 +80072,8 @@
       "sample": "SP56079",
       "signature": "SBS30",
       "browserExposure": 0.0349719422963599,
-      "localExposure": 0.034971942296359894,
-      "absoluteDifference": 6.938893903907228e-18
+      "localExposure": 0.03497194229635989,
+      "absoluteDifference": 1.3877787807814457e-17
     },
     {
       "tool": "musical",
@@ -80144,8 +80144,8 @@
       "sample": "SP56079",
       "signature": "SBS39",
       "browserExposure": 0.07799638415299018,
-      "localExposure": 0.07799638415299012,
-      "absoluteDifference": 5.551115123125783e-17
+      "localExposure": 0.07799638415299008,
+      "absoluteDifference": 9.71445146547012e-17
     },
     {
       "tool": "musical",
@@ -80408,8 +80408,8 @@
       "sample": "SP56168",
       "signature": "SBS1",
       "browserExposure": 0.014683845999893393,
-      "localExposure": 0.014683845999893348,
-      "absoluteDifference": 4.5102810375396984e-17
+      "localExposure": 0.01468384599989335,
+      "absoluteDifference": 4.336808689942018e-17
     },
     {
       "tool": "musical",
@@ -80504,8 +80504,8 @@
       "sample": "SP56168",
       "signature": "SBS19",
       "browserExposure": 0.01637778450735977,
-      "localExposure": 0.01637778450735966,
-      "absoluteDifference": 1.1102230246251565e-16
+      "localExposure": 0.01637778450735965,
+      "absoluteDifference": 1.214306433183765e-16
     },
     {
       "tool": "musical",
@@ -80776,8 +80776,8 @@
       "sample": "SP56168",
       "signature": "SBS5",
       "browserExposure": 0.1120309118357525,
-      "localExposure": 0.11203091183575346,
-      "absoluteDifference": 9.575673587391975e-16
+      "localExposure": 0.11203091183575348,
+      "absoluteDifference": 9.71445146547012e-16
     },
     {
       "tool": "musical",
@@ -80936,16 +80936,16 @@
       "sample": "SP56168",
       "signature": "SBS9",
       "browserExposure": 0.0334817756876564,
-      "localExposure": 0.03348177568765606,
-      "absoluteDifference": 3.400058012914542e-16
+      "localExposure": 0.03348177568765605,
+      "absoluteDifference": 3.5388358909926865e-16
     },
     {
       "tool": "musical",
       "sample": "SP56303",
       "signature": "SBS1",
       "browserExposure": 0.035675552032064586,
-      "localExposure": 0.035675552032064795,
-      "absoluteDifference": 2.0816681711721685e-16
+      "localExposure": 0.03567555203206479,
+      "absoluteDifference": 2.0122792321330962e-16
     },
     {
       "tool": "musical",
@@ -80984,8 +80984,8 @@
       "sample": "SP56303",
       "signature": "SBS13",
       "browserExposure": 0.041807969817871785,
-      "localExposure": 0.04180796981787174,
-      "absoluteDifference": 4.163336342344337e-17
+      "localExposure": 0.04180796981787175,
+      "absoluteDifference": 3.469446951953614e-17
     },
     {
       "tool": "musical",
@@ -81048,8 +81048,8 @@
       "sample": "SP56303",
       "signature": "SBS2",
       "browserExposure": 0.024024435701217144,
-      "localExposure": 0.024024435701217022,
-      "absoluteDifference": 1.214306433183765e-16
+      "localExposure": 0.02402443570121703,
+      "absoluteDifference": 1.1449174941446927e-16
     },
     {
       "tool": "musical",
@@ -81064,16 +81064,16 @@
       "sample": "SP56303",
       "signature": "SBS21",
       "browserExposure": 0.012628335061280827,
-      "localExposure": 0.012628335061280862,
-      "absoluteDifference": 3.469446951953614e-17
+      "localExposure": 0.012628335061280858,
+      "absoluteDifference": 3.122502256758253e-17
     },
     {
       "tool": "musical",
       "sample": "SP56303",
       "signature": "SBS22",
       "browserExposure": 0.022245294341818298,
-      "localExposure": 0.022245294341818215,
-      "absoluteDifference": 8.326672684688674e-17
+      "localExposure": 0.022245294341818204,
+      "absoluteDifference": 9.367506770274758e-17
     },
     {
       "tool": "musical",
@@ -81136,8 +81136,8 @@
       "sample": "SP56303",
       "signature": "SBS3",
       "browserExposure": 0.0779177988509917,
-      "localExposure": 0.07791779885098844,
-      "absoluteDifference": 3.2612801348363973e-15
+      "localExposure": 0.07791779885098846,
+      "absoluteDifference": 3.247402347028583e-15
     },
     {
       "tool": "musical",
@@ -81232,8 +81232,8 @@
       "sample": "SP56303",
       "signature": "SBS40",
       "browserExposure": 0.377343985517595,
-      "localExposure": 0.37734398551759873,
-      "absoluteDifference": 3.7192471324942744e-15
+      "localExposure": 0.3773439855175986,
+      "absoluteDifference": 3.608224830031759e-15
     },
     {
       "tool": "musical",
@@ -81320,8 +81320,8 @@
       "sample": "SP56303",
       "signature": "SBS50",
       "browserExposure": 0.03265552790062492,
-      "localExposure": 0.032655527900624565,
-      "absoluteDifference": 3.5388358909926865e-16
+      "localExposure": 0.03265552790062456,
+      "absoluteDifference": 3.608224830031759e-16
     },
     {
       "tool": "musical",
@@ -81400,8 +81400,8 @@
       "sample": "SP56303",
       "signature": "SBS6",
       "browserExposure": 0.03095078354812091,
-      "localExposure": 0.03095078354812063,
-      "absoluteDifference": 2.7755575615628914e-16
+      "localExposure": 0.030950783548120635,
+      "absoluteDifference": 2.740863092043355e-16
     },
     {
       "tool": "musical",
@@ -81448,8 +81448,8 @@
       "sample": "SP56303",
       "signature": "SBS8",
       "browserExposure": 0.041979387870312426,
-      "localExposure": 0.0419793878703131,
-      "absoluteDifference": 6.730727086790012e-16
+      "localExposure": 0.04197938787031312,
+      "absoluteDifference": 6.938893903907228e-16
     },
     {
       "tool": "musical",

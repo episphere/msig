@@ -1,6 +1,6 @@
 {
   "schemaVersion": "msig.network_endpoint_audit.v1",
-  "generatedAt": "2026-06-28T12:31:51.158Z",
+  "generatedAt": "2026-08-02T03:03:17.794Z",
   "environment": {
     "node": "v24.13.0",
     "platform": "win32",
@@ -9,7 +9,7 @@
     "cpus": 32,
     "memoryGb": 31.2,
     "cwd": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig",
-    "commit": "10c5ecfd1eb3394bd72c5027d7d6f5f9090a9be9",
+    "commit": "6f77b2c9e8d648a5c32b452f1d075bed2ccd90db",
     "generator": "scripts/manuscript/generate-revision-assets.mjs",
     "seed": 20260521
   },

@@ -109,6 +109,7 @@ This guided notebook keeps the default path short: load a real public TCGA Lung-
       analysis: null,
       bootstrap: null,
       bootstrapBySample: {},
+      bootstrapParallelization: null,
       bootstrapNeedsRerun: false,
       reviewParameterDraft: null,
       adaptiveReviewDefaults: null,
@@ -722,6 +723,7 @@ This guided notebook keeps the default path short: load a real public TCGA Lung-
       workflowState.analysis = null;
       workflowState.bootstrap = null;
       workflowState.bootstrapBySample = {};
+      workflowState.bootstrapParallelization = null;
       workflowState.bootstrapNeedsRerun = false;
       workflowState.interoperability = null;
       workflowState.provenance = null;
@@ -966,6 +968,15 @@ This guided notebook keeps the default path short: load a real public TCGA Lung-
       return uniqueValues([selectedSample, ...sampleNames]);
     }
 
+    function annotateBootstrapForSample(result, sample, analysis = workflowState.analysis) {
+      return {
+        ...bootstrapResultForSample(result, sample),
+        reviewBoundary:
+          analysis?.exposureEngine?.uncertaintyBasis ||
+          "mSigSDK review bootstrap using the active spectra and signature catalog.",
+      };
+    }
+
     async function getBootstrapForSample(sample, statusElement = null, analysis = workflowState.analysis) {
       if (!sample) {
         throw new Error("Choose a sample before rendering uncertainty intervals.");
@@ -980,7 +991,8 @@ This guided notebook keeps the default path short: load a real public TCGA Lung-
         statusElement.textContent = `Running ${workflowState.parameters.bootstrapIterations} uncertainty refits for ${sample}...`;
       }
       const activeSignatures = activeAnalysisSignatures(analysis);
-      const bootstrap = await mSigSDK.qc.bootstrapSignatureFit(
+      const bootstrapRunner = mSigSDK.qc.bootstrapSignatureFitParallel || mSigSDK.qc.bootstrapSignatureFit;
+      const bootstrap = await bootstrapRunner(
         activeSignatures,
         workflowState.spectra[sample],
         {
@@ -988,6 +1000,7 @@ This guided notebook keeps the default path short: load a real public TCGA Lung-
           iterations: workflowState.parameters.bootstrapIterations,
           seed: workflowState.parameters.bootstrapSeed,
           exposureThreshold: workflowState.parameters.exposureThreshold,
+          parallel: true,
           yieldEvery: 10,
           progressCallback: ({ iteration, iterations }) => {
             if (statusElement) {
@@ -996,12 +1009,7 @@ This guided notebook keeps the default path short: load a real public TCGA Lung-
           },
         }
       );
-      const annotated = {
-        ...bootstrapResultForSample(bootstrap, sample),
-        reviewBoundary:
-          workflowState.analysis?.exposureEngine?.uncertaintyBasis ||
-          "mSigSDK review bootstrap using the active spectra and signature catalog.",
-      };
+      const annotated = annotateBootstrapForSample(bootstrap, sample, analysis);
       workflowState.bootstrapBySample = {
         ...(workflowState.bootstrapBySample || {}),
         [sample]: annotated,
@@ -1012,25 +1020,90 @@ This guided notebook keeps the default path short: load a real public TCGA Lung-
 
     async function runBootstrapReviewSet(analysis, selectedSample) {
       if (!analysis?.exposureEngine?.supportsBootstrap) return null;
-      let selectedBootstrap = null;
       const samples = bootstrapReviewSamples(selectedSample);
-      for (let index = 0; index < samples.length; index += 1) {
-        const sample = samples[index];
-        document.dispatchEvent(new CustomEvent("msig:endToEndProgress", {
-          detail: {
-            title: "Uncertainty review running",
-            message: `Running uncertainty review ${index + 1}/${samples.length} after fitting ${Object.keys(analysis.fit?.exposures || {}).length || Object.keys(workflowState.spectra || {}).length} sample(s).`,
-            details: `Current sample: ${sample}`,
-          },
-        }));
-        await waitForWorkflowPaint();
-        const bootstrap = await getBootstrapForSample(sample, null, analysis);
-        if (sample === selectedSample) {
-          selectedBootstrap = bootstrap;
-        }
-        await waitForWorkflowPaint();
+      const pendingSamples = samples.filter((sample) => !workflowState.bootstrapBySample?.[sample]);
+      if (!pendingSamples.length) {
+        return workflowState.bootstrapBySample?.[selectedSample] || null;
       }
-      return selectedBootstrap || workflowState.bootstrapBySample?.[selectedSample] || null;
+      const activeSignatures = activeAnalysisSignatures(analysis);
+      const cohortBootstrapRunner = mSigSDK.qc.bootstrapCohortSignatureFitParallel;
+      if (!cohortBootstrapRunner) {
+        let selectedBootstrap = null;
+        for (let index = 0; index < pendingSamples.length; index += 1) {
+          const sample = pendingSamples[index];
+          document.dispatchEvent(new CustomEvent("msig:endToEndProgress", {
+            detail: {
+              title: "Uncertainty review running",
+              message: `Running uncertainty review ${index + 1}/${pendingSamples.length} after fitting ${Object.keys(analysis.fit?.exposures || {}).length || Object.keys(workflowState.spectra || {}).length} sample(s).`,
+              details: `Current sample: ${sample}`,
+            },
+          }));
+          await waitForWorkflowPaint();
+          const bootstrap = await getBootstrapForSample(sample, null, analysis);
+          if (sample === selectedSample) {
+            selectedBootstrap = bootstrap;
+          }
+          await waitForWorkflowPaint();
+        }
+        workflowState.bootstrapParallelization = {
+          mode: "serial",
+          reason: "bootstrapCohortSignatureFitParallel unavailable",
+          sampleCount: pendingSamples.length,
+          iterationsPerSample: workflowState.parameters.bootstrapIterations,
+        };
+        return selectedBootstrap || workflowState.bootstrapBySample?.[selectedSample] || null;
+      }
+      document.dispatchEvent(new CustomEvent("msig:endToEndProgress", {
+        detail: {
+          title: "Uncertainty review running",
+          message: `Running uncertainty review for ${pendingSamples.length} sample(s) after fitting ${Object.keys(analysis.fit?.exposures || {}).length || Object.keys(workflowState.spectra || {}).length} sample(s).`,
+          details: "Using browser workers when available; falling back to serial execution if workers are unavailable.",
+        },
+      }));
+      await waitForWorkflowPaint();
+      const cohortBootstrap = await cohortBootstrapRunner(
+        activeSignatures,
+        workflowState.spectra,
+        {
+          sampleNames: pendingSamples,
+          contexts: workflowState.contexts,
+          iterations: workflowState.parameters.bootstrapIterations,
+          seed: workflowState.parameters.bootstrapSeed,
+          exposureThreshold: workflowState.parameters.exposureThreshold,
+          parallel: true,
+          yieldEvery: 0,
+          progressCallback: ({ samplesCompleted, sampleCount, workerCount, completedChunks }) => {
+            document.dispatchEvent(new CustomEvent("msig:endToEndProgress", {
+              detail: {
+                title: "Uncertainty review running",
+                message: `Completed uncertainty review for ${samplesCompleted}/${sampleCount} sample(s).`,
+                details: workerCount
+                  ? `Worker chunks completed: ${completedChunks}/${workerCount}.`
+                  : "Running without worker parallelism.",
+              },
+            }));
+          },
+        }
+      );
+      workflowState.bootstrapParallelization = cohortBootstrap.parallelization || null;
+      const annotatedResults = {};
+      for (const sample of pendingSamples) {
+        if (!cohortBootstrap.results?.[sample]) continue;
+        annotatedResults[sample] = annotateBootstrapForSample(
+          cohortBootstrap.results[sample],
+          sample,
+          analysis
+        );
+      }
+      workflowState.bootstrapBySample = {
+        ...(workflowState.bootstrapBySample || {}),
+        ...annotatedResults,
+      };
+      const selectedBootstrap = workflowState.bootstrapBySample?.[selectedSample] || null;
+      if (selectedBootstrap) {
+        workflowState.bootstrap = selectedBootstrap;
+      }
+      return selectedBootstrap;
     }
 
 	    function refreshFitQualityEvidenceWithBootstrap(analysis) {
@@ -1364,6 +1437,7 @@ This guided notebook keeps the default path short: load a real public TCGA Lung-
       const loadedSampleCount = Object.keys(workflowState.spectra || {}).length;
       const fittedSampleCount = Object.keys(analysis?.fit?.exposures || result?.exposures || {}).length;
       const uncertaintySampleCount = Object.keys(workflowState.bootstrapBySample || {}).length;
+      const bootstrapParallelization = workflowState.bootstrapParallelization;
 	      const packageMetricRows = result?.packageReconstructionMetrics || [];
 	      const packageMetricSource = result?.candidateReconstructionMetricTables?.[0]?.path || "package output";
 	      const rows = [
@@ -1376,6 +1450,7 @@ This guided notebook keeps the default path short: load a real public TCGA Lung-
 	        { field: "Loaded samples", value: loadedSampleCount || "n/a" },
 	        { field: "Samples fitted", value: fittedSampleCount || "n/a" },
 	        { field: "Uncertainty samples", value: uncertaintySampleCount || "not evaluated yet" },
+	        { field: "Uncertainty execution", value: bootstrapParallelization?.mode ? `${bootstrapParallelization.mode}${bootstrapParallelization.workerCount ? ` (${bootstrapParallelization.workerCount} worker chunks)` : ""}` : "not evaluated yet" },
 	        { field: "Contribution table", value: result?.exposures ? "available" : engine.command === "workflows.runCohortFit" ? "created by mSigSDK workflow" : "not available" },
         { field: "Cutoff sensitivity", value: engine.supportsThresholdSensitivity ? engine.cutoffSensitivityBasis : "not available for this selected package" },
         { field: "Uncertainty intervals", value: engine.supportsBootstrap ? engine.uncertaintyBasis : "not available for this selected package" },
@@ -1764,6 +1839,7 @@ This guided notebook keeps the default path short: load a real public TCGA Lung-
       }
       validateCurrentInputs();
       workflowState.bootstrapBySample = {};
+      workflowState.bootstrapParallelization = null;
       workflowState.bootstrapNeedsRerun = false;
       workflowState.exposureEngineResult = null;
       const started = performance.now();
@@ -2477,6 +2553,7 @@ Start with the public example unless you already have prepared spectra and signa
       };
       workflowState.bootstrap = null;
       workflowState.bootstrapBySample = {};
+      workflowState.bootstrapParallelization = null;
       workflowState.bootstrapNeedsRerun = false;
       workflowState.reviewSettingsMode = "adaptive";
       workflowState.reviewParameterDraft = reviewParameterSnapshot();
@@ -4563,6 +4640,7 @@ Download the workflow report first. Supporting spectra, signatures, contribution
         warnings: analysis.warnings,
         recommendedActions: analysis.recommendedActions,
         bootstrap: workflowState.bootstrap,
+        bootstrapParallelization: workflowState.bootstrapParallelization,
         thresholdSensitivity: analysis.thresholdSensitivity,
         exposureEngine: analysis.exposureEngine,
         exposureEngineResult: {

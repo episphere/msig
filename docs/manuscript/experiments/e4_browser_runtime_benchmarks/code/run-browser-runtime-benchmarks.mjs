@@ -1,5 +1,6 @@
 import path from "node:path";
 import {
+  boolArg,
   createResult,
   ensureDir,
   environmentSummary,
@@ -10,6 +11,7 @@ import {
   median,
   numericArg,
   parseArgs,
+  readJson,
   relativeArtifact,
   tempDir,
   unavailableBrowserRows,
@@ -28,11 +30,13 @@ const RESULT_PATH = path.join(EXPERIMENT.dir, "data", "browser-runtime-results.j
 const CSV_PATH = path.join(EXPERIMENT.dir, "data", "browser_runtime_results.csv");
 const SUMMARY_CSV_PATH = path.join(EXPERIMENT.dir, "data", "browser_runtime_summary.csv");
 const SUMMARY_JSON_PATH = path.join(EXPERIMENT.dir, "data", "browser-runtime-summary.json");
+const PROGRESS_PATH = path.join(EXPERIMENT.dir, "data", "browser-runtime-progress.json");
 const HARNESS_PATH = path.join(EXPERIMENT.dir, "browser-runtime-harness.html");
 
 const args = parseArgs();
 const repeats = numericArg(args, "repeats", 20);
 const timeoutMs = numericArg(args, "timeout-ms", 240000);
+const resume = boolArg(args, "resume", false);
 const requestedBrowsers = String(args.browsers || "chrome,edge,firefox")
   .split(",")
   .map((value) => value.trim().toLowerCase())
@@ -51,10 +55,11 @@ await writeText(HARNESS_PATH, browserRuntimeHarness());
 
 const allBrowsers = await findAvailableBrowsers();
 const browsers = allBrowsers.filter((browser) => requestedBrowsers.includes(browser.id));
-const rows = [
-  ...unavailableBrowserRows(browsers, scenarios, { repeat: null, phase: null, elapsedMs: null }),
-];
-const notes = [];
+const previousProgress = resume ? await readJson(PROGRESS_PATH, null) : null;
+const rows = previousProgress?.rows?.length
+  ? previousProgress.rows
+  : unavailableBrowserRows(browsers, scenarios, { repeat: null, phase: null, elapsedMs: null });
+const notes = previousProgress?.notes || [];
 
 const benchmarkData = buildBenchmarkData();
 
@@ -62,6 +67,17 @@ await withStaticServer(process.cwd(), async ({ baseUrl }) => {
   for (const browser of browsers) {
     for (const scenario of scenarios) {
       for (let repeat = 1; repeat <= repeats; repeat += 1) {
+        const iterationRows = rows.filter(
+          (row) => row.browser === browser.id && row.scenario === scenario && row.repeat === repeat
+        );
+        if (resume && iterationRows.length === 2 && iterationRows.every((row) => row.status === "completed")) {
+          continue;
+        }
+        for (let index = rows.length - 1; index >= 0; index -= 1) {
+          if (rows[index].browser === browser.id && rows[index].scenario === scenario && rows[index].repeat === repeat) {
+            rows.splice(index, 1);
+          }
+        }
         let context = null;
         try {
           context = await launchBrowser(browser, {
@@ -102,6 +118,7 @@ await withStaticServer(process.cwd(), async ({ baseUrl }) => {
             phase: "warm",
             output: output.warm,
           }));
+          await writeProgress({ rows, notes, status: "running", browser, scenario, repeat });
         } catch (error) {
           notes.push(`${browser.id}/${scenario}/${repeat}: ${error.message}`);
           rows.push({
@@ -115,6 +132,7 @@ await withStaticServer(process.cwd(), async ({ baseUrl }) => {
             elapsedMs: null,
             error: error.message,
           });
+          await writeProgress({ rows, notes, status: "running", browser, scenario, repeat });
         } finally {
           if (context) await context.close();
         }
@@ -131,12 +149,15 @@ const result = createResult({
     requestedBrowsers,
     repeats,
     timeoutMs,
+    profilePolicy: "fresh isolated persistent profile per cold repeat; warm phase reuses that page after cold phase",
+    inputResidency: "synthetic spectra/catalogs generated in the harness and passed in memory; no public spectrum/catalog fetch",
+    memoryMetric: "observed peak performance.memory.usedJSHeapSize sampled at stage boundaries where exposed; not OS process peak",
   }),
   inputs: {
     scenarios: [
       {
         id: "single_sample_fit_report",
-        description: "Single-sample NNLS fit followed by SDK report generation.",
+        description: "Single-sample native JavaScript NNLS fit, QC evidence generation, and HTML report serialization; no plot rendering.",
       },
       {
         id: "medium_cohort_120",
@@ -157,6 +178,7 @@ const result = createResult({
     ],
     repeats,
     syntheticDataSeed: 20260521,
+    componentBoundaryArtifact: "docs/manuscript/experiments/e4_browser_runtime_benchmarks/data/benchmark-component-boundaries.json",
   },
   rows,
   summaries: summaryRows,
@@ -165,6 +187,7 @@ const result = createResult({
     csv: relativeArtifact(CSV_PATH),
     summaryCsv: relativeArtifact(SUMMARY_CSV_PATH),
     summaryJson: relativeArtifact(SUMMARY_JSON_PATH),
+    progress: relativeArtifact(PROGRESS_PATH),
     harness: relativeArtifact(HARNESS_PATH),
   },
   status: rows.some((row) => row.status === "completed") ? "completed" : "failed",
@@ -196,6 +219,21 @@ await writeCsv(
     pure_js_compute_ms: row.pureJsComputeMs,
     serialization_ms: row.serializationMs,
     js_heap_bytes: row.jsHeapBytes,
+    observed_peak_js_heap_bytes: row.observedPeakJsHeapBytes,
+    sdk_module_fetch_ms: row.sdkModuleFetchMs,
+    public_spectrum_fetch_ms: row.publicSpectrumFetchMs,
+    public_catalog_fetch_ms: row.publicCatalogFetchMs,
+    native_fit_ms: row.nativeFitMs,
+    adapter_fit_ms: row.adapterFitMs,
+    qc_evidence_ms: row.qcEvidenceMs,
+    bootstrap_ms: row.bootstrapMs,
+    plot_render_ms: row.plotRenderMs,
+    report_serialization_ms: row.reportSerializationMs,
+    result_serialization_ms: row.resultSerializationMs,
+    pyodide_initialization_ms: row.pyodideInitializationMs,
+    webR_initialization_ms: row.webRInitializationMs,
+    wrapped_package_import_ms: row.wrappedPackageImportMs,
+    stage_availability: row.stageAvailability,
     sample_count: row.sampleCount,
     signature_count: row.signatureCount,
     rank_selection_ms: row.details?.rankSelectionMs,
@@ -204,8 +242,21 @@ await writeCsv(
   }))
 );
 await writeCsv(SUMMARY_CSV_PATH, summaryRows);
+await writeProgress({ rows, notes, status: result.status, browser: null, scenario: null, repeat: null });
 
 console.log(`Wrote ${relativeArtifact(RESULT_PATH)}`);
+
+async function writeProgress({ rows: checkpointRows, notes: checkpointNotes, status, browser, scenario, repeat }) {
+  await writeJson(PROGRESS_PATH, {
+    schemaVersion: "msig.browser_runtime_progress.v1",
+    generatedAt: new Date().toISOString(),
+    status,
+    lastCompletedIteration: browser && scenario ? { browser: browser.id, scenario, repeat } : null,
+    rows: checkpointRows,
+    notes: checkpointNotes,
+    resumeCommand: "npm run experiment:e4-browser-benchmarks -- --resume",
+  });
+}
 
 function formatBenchmarkRow({ browser, browserVersion, scenario, repeat, phase, output }) {
   const safeOutput = output || {};
@@ -225,6 +276,21 @@ function formatBenchmarkRow({ browser, browserVersion, scenario, repeat, phase, 
     pureJsComputeMs: safeOutput.pureJsComputeMs ?? null,
     serializationMs: safeOutput.serializationMs ?? null,
     jsHeapBytes: safeOutput.jsHeapBytes ?? null,
+    observedPeakJsHeapBytes: safeOutput.observedPeakJsHeapBytes ?? safeOutput.jsHeapBytes ?? null,
+    sdkModuleFetchMs: safeOutput.sdkModuleFetchMs ?? null,
+    publicSpectrumFetchMs: safeOutput.publicSpectrumFetchMs ?? null,
+    publicCatalogFetchMs: safeOutput.publicCatalogFetchMs ?? null,
+    nativeFitMs: safeOutput.nativeFitMs ?? null,
+    adapterFitMs: safeOutput.adapterFitMs ?? null,
+    qcEvidenceMs: safeOutput.qcEvidenceMs ?? null,
+    bootstrapMs: safeOutput.bootstrapMs ?? null,
+    plotRenderMs: safeOutput.plotRenderMs ?? null,
+    reportSerializationMs: safeOutput.reportSerializationMs ?? null,
+    resultSerializationMs: safeOutput.resultSerializationMs ?? null,
+    pyodideInitializationMs: safeOutput.pyodideInitializationMs ?? null,
+    webRInitializationMs: safeOutput.webRInitializationMs ?? null,
+    wrappedPackageImportMs: safeOutput.wrappedPackageImportMs ?? null,
+    stageAvailability: safeOutput.stageAvailability || null,
     sampleCount: safeOutput.sampleCount,
     signatureCount: safeOutput.signatureCount,
     details: safeOutput.details || null,
@@ -263,7 +329,11 @@ function summarizeRows(rawRows) {
       median_pure_js_compute_ms: median(group.map((row) => Number(row.pureJsComputeMs)).filter(Number.isFinite)),
       median_serialization_ms: median(group.map((row) => Number(row.serializationMs)).filter(Number.isFinite)),
       max_js_heap_bytes: Math.max(
-        ...group.map((row) => Number(row.jsHeapBytes)).filter(Number.isFinite),
+        ...group.map((row) => Number(row.observedPeakJsHeapBytes ?? row.jsHeapBytes)).filter(Number.isFinite),
+        0
+      ),
+      max_observed_peak_js_heap_bytes: Math.max(
+        ...group.map((row) => Number(row.observedPeakJsHeapBytes)).filter(Number.isFinite),
         0
       ),
     };
@@ -356,7 +426,7 @@ function browserRuntimeHarness() {
       window.__MSIG_LOAD_TIMING__ = {
         loadMs: readyAt - navigationStart,
         moduleImportMs: importEnded - importStarted,
-        runtimeInitMs: 0,
+        runtimeInitMs: null,
         networkFetchMs: resourceDuration(),
       };
       window.__MSIG_BENCH_READY__ = true;
@@ -370,7 +440,8 @@ function browserRuntimeHarness() {
           loadMs: load.loadMs || null,
           networkFetchMs: load.networkFetchMs || null,
           moduleImportMs: load.moduleImportMs || null,
-          runtimeInitMs: load.runtimeInitMs || 0,
+          runtimeInitMs: load.runtimeInitMs ?? null,
+          sdkModuleFetchMs: load.networkFetchMs || null,
         };
         const warm = await runCompute(scenario, repeat + 100000, data);
         return { cold, warm };
@@ -379,9 +450,36 @@ function browserRuntimeHarness() {
       async function runCompute(scenario, repeat, data) {
         const started = performance.now();
         let serializationMs = 0;
+        let reportSerializationMs = null;
+        let resultSerializationMs = null;
+        let nativeFitMs = null;
+        let qcEvidenceMs = null;
+        let bootstrapMs = null;
+        let observedPeakJsHeapBytes = null;
+        const sampleHeap = () => {
+          const value = performance.memory?.usedJSHeapSize;
+          if (Number.isFinite(value)) observedPeakJsHeapBytes = Math.max(observedPeakJsHeapBytes || 0, value);
+        };
+        sampleHeap();
+        const stageAvailability = {
+          sdkModuleFetchImport: "measured in cold phase; warm phase reuses the loaded module",
+          pyodideInitialization: "not_applicable_native_javascript_path",
+          webRInitialization: "not_applicable_native_javascript_path",
+          wrappedPackageImport: "not_applicable_native_javascript_path",
+          publicSpectrumCatalogFetch: "not_measured_synthetic_inputs_are_in_memory",
+          nativeFitting: "measured where the scenario uses native NNLS",
+          adapterFitting: "not_applicable_native_javascript_path",
+          qcEvidence: "measured only for single_sample_fit_report",
+          bootstrap: "measured only for bootstrap_500",
+          plotRendering: "not_measured",
+          reportSerialization: "measured only for single_sample_fit_report",
+          endToEndElapsed: "measured",
+          memory: "observed JS heap sampled at stage boundaries where performance.memory is exposed; not OS process peak",
+        };
         try {
           let details = {};
           if (scenario === "single_sample_fit_report") {
+            const fitStarted = performance.now();
             const exposures = await mSigSDK.qc.fitSpectraWithNNLS(data.signatures, data.spectra, {
               contexts: data.contexts,
               exposureType: "relative",
@@ -389,10 +487,15 @@ function browserRuntimeHarness() {
               maxIterations: 10000,
               convergenceTolerance: 1e-12
             });
+            nativeFitMs = performance.now() - fitStarted;
+            sampleHeap();
+            const qcStarted = performance.now();
             const qc = mSigSDK.qc.calculateReconstructionError(data.signatures, data.spectra, exposures, {
               contexts: data.contexts,
               normalizeMode: "relative"
             });
+            qcEvidenceMs = performance.now() - qcStarted;
+            sampleHeap();
             const serializationStarted = performance.now();
             const report = mSigSDK.reports.createAnalysisReport({
               title: "Browser runtime single-sample report",
@@ -400,9 +503,12 @@ function browserRuntimeHarness() {
               qc,
               exposures
             }, { format: "html" });
-            serializationMs = performance.now() - serializationStarted;
+            reportSerializationMs = performance.now() - serializationStarted;
+            serializationMs = reportSerializationMs;
+            sampleHeap();
             details = { reportBytes: report.length };
           } else if (scenario === "medium_cohort_120" || scenario === "portal_scale_300x40") {
+            const fitStarted = performance.now();
             const exposures = await mSigSDK.qc.fitSpectraWithNNLS(data.signatures, data.spectra, {
               contexts: data.contexts,
               exposureType: "relative",
@@ -410,11 +516,16 @@ function browserRuntimeHarness() {
               maxIterations: 10000,
               convergenceTolerance: 1e-12
             });
+            nativeFitMs = performance.now() - fitStarted;
+            sampleHeap();
             const serializationStarted = performance.now();
             const exposureBytes = JSON.stringify(exposures).length;
-            serializationMs = performance.now() - serializationStarted;
+            resultSerializationMs = performance.now() - serializationStarted;
+            serializationMs = resultSerializationMs;
+            sampleHeap();
             details = { exposureRows: Object.keys(exposures).length, exposureBytes };
           } else if (scenario === "bootstrap_500") {
+            const bootstrapStarted = performance.now();
             const bootstrap = await mSigSDK.qc.bootstrapSignatureFit(data.signatures, data.spectrum, {
               contexts: data.contexts,
               iterations: 500,
@@ -425,9 +536,13 @@ function browserRuntimeHarness() {
               maxIterations: 10000,
               convergenceTolerance: 1e-12
             });
+            bootstrapMs = performance.now() - bootstrapStarted;
+            sampleHeap();
             const serializationStarted = performance.now();
             const bootstrapBytes = JSON.stringify(bootstrap).length;
-            serializationMs = performance.now() - serializationStarted;
+            resultSerializationMs = performance.now() - serializationStarted;
+            serializationMs = resultSerializationMs;
+            sampleHeap();
             details = { iterations: bootstrap.iterations, signatures: bootstrap.signatures.length, bootstrapBytes };
           } else if (scenario === "nmf_rank_selection_rank4") {
             const rankStarted = performance.now();
@@ -450,9 +565,12 @@ function browserRuntimeHarness() {
               tolerance: 1e-5
             });
             const extractionMs = performance.now() - extractionStarted;
+            sampleHeap();
             const serializationStarted = performance.now();
             const nmfBytes = JSON.stringify({ rankSelection, extraction }).length;
-            serializationMs = performance.now() - serializationStarted;
+            resultSerializationMs = performance.now() - serializationStarted;
+            serializationMs = resultSerializationMs;
+            sampleHeap();
             details = {
               recommendedRank: rankSelection.recommendedRank,
               extractionError: extraction.reconstructionError,
@@ -464,17 +582,31 @@ function browserRuntimeHarness() {
             throw new Error("Unknown scenario " + scenario);
           }
           const elapsedMs = performance.now() - started;
-          const jsHeapBytes = performance.memory?.usedJSHeapSize || null;
+          sampleHeap();
           return {
             status: "completed",
             elapsedMs,
             loadMs: null,
             networkFetchMs: 0,
             moduleImportMs: 0,
-            runtimeInitMs: 0,
+            runtimeInitMs: null,
             pureJsComputeMs: Math.max(0, elapsedMs - serializationMs),
             serializationMs,
-            jsHeapBytes,
+            jsHeapBytes: observedPeakJsHeapBytes,
+            observedPeakJsHeapBytes,
+            publicSpectrumFetchMs: null,
+            publicCatalogFetchMs: null,
+            nativeFitMs,
+            adapterFitMs: null,
+            qcEvidenceMs,
+            bootstrapMs,
+            plotRenderMs: null,
+            reportSerializationMs,
+            resultSerializationMs,
+            pyodideInitializationMs: null,
+            webRInitializationMs: null,
+            wrappedPackageImportMs: null,
+            stageAvailability,
             sampleCount: data.spectra ? Object.keys(data.spectra).length : 1,
             signatureCount: data.signatures ? Object.keys(data.signatures).length : null,
             details
@@ -487,7 +619,9 @@ function browserRuntimeHarness() {
             error: error.message,
             pureJsComputeMs: elapsedMs,
             serializationMs,
-            jsHeapBytes: performance.memory?.usedJSHeapSize || null,
+            jsHeapBytes: observedPeakJsHeapBytes,
+            observedPeakJsHeapBytes,
+            stageAvailability,
             sampleCount: data.spectra ? Object.keys(data.spectra).length : 1,
             signatureCount: data.signatures ? Object.keys(data.signatures).length : null
           };

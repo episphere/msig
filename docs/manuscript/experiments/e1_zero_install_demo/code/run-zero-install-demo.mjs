@@ -70,6 +70,7 @@ await withStaticServer(process.cwd(), async ({ baseUrl }) => {
     rows.push({
       browser: browser.label,
       browserId: browser.id,
+      browserVersion: context.browser()?.version?.() || null,
       status: pageResult.status,
       elapsedSeconds: pageResult.elapsedSeconds,
       sampleCount: pageResult.sampleCount,
@@ -79,6 +80,9 @@ await withStaticServer(process.cwd(), async ({ baseUrl }) => {
       sourceSpectrumUrl: pageResult.urls.spectra,
       sourceCatalogUrl: pageResult.urls.signatures,
       steps: pageResult.steps,
+      timings: pageResult.timings,
+      execution: pageResult.execution,
+      resources: pageResult.resources,
     });
     if (pageErrors.length) {
       notes = pageErrors.slice(0, 10);
@@ -135,12 +139,28 @@ await writeCsv(
   CSV_PATH,
   rows.map((row) => ({
     browser: row.browser,
+    browser_version: row.browserVersion,
     status: row.status,
     elapsed_seconds: row.elapsedSeconds,
     sample_count: row.sampleCount,
     signature_count: row.signatureCount,
     active_signatures: row.activeSignatures,
     report_bytes: row.reportBytes,
+    sdk_module_import_ms: row.timings?.sdkModuleImportMs,
+    public_fetch_critical_path_ms: row.timings?.publicFetchCriticalPathMs,
+    public_spectrum_fetch_ms: row.timings?.publicSpectrumFetchMs,
+    public_catalog_fetch_ms: row.timings?.publicCatalogFetchMs,
+    native_fit_ms: row.timings?.nativeFitMs,
+    qc_evidence_ms: row.timings?.qcEvidenceMs,
+    report_serialization_ms: row.timings?.reportSerializationMs,
+    report_render_ms: row.timings?.reportRenderMs,
+    observed_peak_js_heap_bytes: row.timings?.observedPeakJsHeapBytes,
+    fit_method: row.execution?.fitMethod,
+    adapter: row.execution?.adapter,
+    pyodide: row.execution?.pyodide,
+    webR: row.execution?.webR,
+    wrapped_package_import: row.execution?.wrappedPackageImport,
+    cache_state: row.execution?.cacheState,
   }))
 );
 
@@ -222,16 +242,31 @@ function zeroInstallHarness() {
       }
       try {
         mark("Page loaded");
+        const importStarted = performance.now();
         const { mSigSDK } = await import("/main.js?e1=" + Date.now());
+        const sdkModuleImportMs = performance.now() - importStarted;
         mark("SDK imported");
-        const [spectrumRows, signatureRows] = await Promise.all([
-          fetch(urls.spectra, { cache: "no-store" }).then((response) => response.json()),
-          fetch(urls.signatures, { cache: "no-store" }).then((response) => response.json())
+        const publicFetchStarted = performance.now();
+        const spectrumStarted = performance.now();
+        const spectrumPromise = fetch(urls.spectra, { cache: "no-store" }).then(async (response) => {
+          const rows = await response.json();
+          return { rows, elapsedMs: performance.now() - spectrumStarted };
+        });
+        const catalogStarted = performance.now();
+        const catalogPromise = fetch(urls.signatures, { cache: "no-store" }).then(async (response) => {
+          const rows = await response.json();
+          return { rows, elapsedMs: performance.now() - catalogStarted };
+        });
+        const [{ rows: spectrumRows, elapsedMs: publicSpectrumFetchMs }, { rows: signatureRows, elapsedMs: publicCatalogFetchMs }] = await Promise.all([
+          spectrumPromise,
+          catalogPromise,
         ]);
+        const publicFetchCriticalPathMs = performance.now() - publicFetchStarted;
         mark("mSigPortal data fetched");
         const contexts = sbsContexts();
         const spectra = rowsToSpectra(spectrumRows, contexts);
         const signatures = rowsToSignatures(signatureRows, contexts);
+        const fitStarted = performance.now();
         const exposures = await mSigSDK.qc.fitSpectraWithNNLS(signatures, spectra, {
           contexts,
           exposureType: "relative",
@@ -239,8 +274,12 @@ function zeroInstallHarness() {
           convergenceTolerance: 1e-12,
           maxIterations: 10000
         });
+        const nativeFitMs = performance.now() - fitStarted;
         mark("Single-sample fit completed");
+        const qcStarted = performance.now();
         const reconstruction = mSigSDK.qc.calculateReconstructionError(signatures, spectra, exposures, { contexts, normalizeMode: "relative" });
+        const qcEvidenceMs = performance.now() - qcStarted;
+        const reportSerializationStarted = performance.now();
         const report = mSigSDK.reports.createAnalysisReport({
           title: "mSigSDK zero-install report",
           summary: "Fresh-browser PCAWG Lung-AdenoCA SBS96 single-sample fit against the full COSMIC v3 SBS96 catalog.",
@@ -250,9 +289,15 @@ function zeroInstallHarness() {
           signatures,
           provenance: { sdkName: mSigSDK.name, sdkVersion: mSigSDK.version, sourceUrls: urls }
         }, { format: "html" });
-        mark("SDK report generated");
+        const reportSerializationMs = performance.now() - reportSerializationStarted;
         document.querySelector("#report").innerHTML = report;
+        const renderStarted = performance.now();
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const reportRenderMs = performance.now() - renderStarted;
+        mark("SDK report rendered");
         const sampleName = Object.keys(exposures)[0];
+        const resourceNames = performance.getEntriesByType("resource").map((entry) => entry.name);
+        const heapValues = [performance.memory?.usedJSHeapSize].filter(Number.isFinite);
         window.__MSIG_E1_RESULT__ = {
           status: "completed",
           elapsedSeconds: (performance.now() - startedAt) / 1000,
@@ -261,7 +306,32 @@ function zeroInstallHarness() {
           activeSignatures: Object.values(exposures[sampleName]).filter((value) => value > 0).length,
           reportBytes: report.length,
           urls,
-          steps
+          steps,
+          timings: {
+            sdkModuleImportMs,
+            publicFetchCriticalPathMs,
+            publicSpectrumFetchMs,
+            publicCatalogFetchMs,
+            nativeFitMs,
+            qcEvidenceMs,
+            reportSerializationMs,
+            reportRenderMs,
+            observedPeakJsHeapBytes: heapValues.length ? Math.max(...heapValues) : null,
+          },
+          execution: {
+            fitMethod: "native JavaScript NNLS via mSigSDK.qc.fitSpectraWithNNLS",
+            adapter: null,
+            pyodide: "not loaded",
+            webR: "not loaded",
+            wrappedPackageImport: "not performed",
+            cacheState: "fresh persistent browser profile; local server and public fetches used no-store",
+          },
+          resources: {
+            d3Loaded: resourceNames.some((name) => /d3@7\\.9\\.0|d3[./]/i.test(name)),
+            pyodideLoaded: resourceNames.some((name) => /pyodide/i.test(name)),
+            webRLoaded: resourceNames.some((name) => /webr|webR/i.test(name)),
+            wrappedPackageResources: resourceNames.filter((name) => /deconstruct|sigminer|sigprofiler|musical/i.test(name)),
+          }
         };
         window.dispatchEvent(new CustomEvent("msig-e1-report-ready", { detail: window.__MSIG_E1_RESULT__ }));
       } catch (error) {

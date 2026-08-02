@@ -1,6 +1,6 @@
 {
   "schemaVersion": "msig.manuscript.experiment.v1",
-  "generatedAt": "2026-06-25T02:34:05.596Z",
+  "generatedAt": "2026-08-02T02:49:21.271Z",
   "experimentId": "e1_zero_install_demo",
   "environment": {
     "node": "v24.13.0",
@@ -35,36 +35,62 @@
     {
       "browser": "Chrome",
       "browserId": "chrome",
+      "browserVersion": "150.0.7871.187",
       "status": "completed",
-      "elapsedSeconds": 4.993234999895096,
+      "elapsedSeconds": 1.8150599999427794,
       "sampleCount": 1,
       "signatureCount": 67,
       "activeSignatures": 33,
-      "reportBytes": 8931,
+      "reportBytes": 12210,
       "sourceSpectrumUrl": "https://analysistools.cancer.gov/mutational-signatures/api/mutational_spectrum?study=PCAWG&cancer=Lung-AdenoCA&strategy=WGS&profile=SBS&matrix=96&offset=0",
       "sourceCatalogUrl": "https://analysistools.cancer.gov/mutational-signatures/api/mutational_signature?source=Reference_signatures&strategy=WGS&profile=SBS&matrix=96&signatureSetName=COSMIC_v3_Signatures_GRCh37_SBS96&limit=10000&offset=0",
       "steps": [
         {
           "name": "Page loaded",
-          "elapsedSeconds": 0.00018499994277954102
+          "elapsedSeconds": 0.00038000011444091797
         },
         {
           "name": "SDK imported",
-          "elapsedSeconds": 4.7130350000858305
+          "elapsedSeconds": 1.4765499999523164
         },
         {
           "name": "mSigPortal data fetched",
-          "elapsedSeconds": 4.96947000002861
+          "elapsedSeconds": 1.7770799999237061
         },
         {
           "name": "Single-sample fit completed",
-          "elapsedSeconds": 4.990539999961853
+          "elapsedSeconds": 1.7976549999713898
         },
         {
-          "name": "SDK report generated",
-          "elapsedSeconds": 4.993
+          "name": "SDK report rendered",
+          "elapsedSeconds": 1.8146549999713897
         }
-      ]
+      ],
+      "timings": {
+        "sdkModuleImportMs": 1476,
+        "publicFetchCriticalPathMs": 300.44999980926514,
+        "publicSpectrumFetchMs": 224.19999980926514,
+        "publicCatalogFetchMs": 300.1400001049042,
+        "nativeFitMs": 12.625,
+        "qcEvidenceMs": 2.2049999237060547,
+        "reportSerializationMs": 0.7000000476837158,
+        "reportRenderMs": 13.759999990463257,
+        "observedPeakJsHeapBytes": 32424646
+      },
+      "execution": {
+        "fitMethod": "native JavaScript NNLS via mSigSDK.qc.fitSpectraWithNNLS",
+        "adapter": null,
+        "pyodide": "not loaded",
+        "webR": "not loaded",
+        "wrappedPackageImport": "not performed",
+        "cacheState": "fresh persistent browser profile; local server and public fetches used no-store"
+      },
+      "resources": {
+        "d3Loaded": true,
+        "pyodideLoaded": false,
+        "webRLoaded": false,
+        "wrappedPackageResources": []
+      }
     }
   ],
   "artifacts": {

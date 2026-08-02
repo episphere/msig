@@ -18,3 +18,5 @@ npm run assets:manuscript
 ```
 
 All result JSON files share the manuscript experiment schema and are consumed by `scripts/manuscript/generate-assets.mjs`.
+
+E4 is a native-JavaScript exposure-solve benchmark. Its component boundary contract is recorded in `e4_browser_runtime_benchmarks/data/benchmark-component-boundaries.md` and `.json`; raw repeats and checkpoint progress are retained separately from summary medians.

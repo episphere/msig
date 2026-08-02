@@ -542,6 +542,9 @@ function figure4Svg(raw, summary) {
       median: quantile(values, 0.5),
       q1: quantile(values, 0.25),
       q3: quantile(values, 0.75),
+      min: Math.min(...values),
+      max: Math.max(...values),
+      observations: values,
       n: values.length,
     });
   }
@@ -562,6 +565,11 @@ function figure4Svg(raw, summary) {
       const stat = stats.get(key);
       if (!stat) return;
       const x = plot.x + si * groupW + groupW / 2 + (bi - 1) * 28;
+      marks.push(`<line x1="${x}" y1="${y(stat.min)}" x2="${x}" y2="${y(stat.max)}" stroke="${color}" stroke-width="2" opacity="0.24"/>`);
+      stat.observations.forEach((value, index) => {
+        const jitter = stat.observations.length > 1 ? ((index / (stat.observations.length - 1)) - 0.5) * 18 : 0;
+        marks.push(`<circle cx="${x + jitter}" cy="${y(value)}" r="2.6" fill="${color}" opacity="0.38"/>`);
+      });
       marks.push(`<line x1="${x}" y1="${y(stat.q1)}" x2="${x}" y2="${y(stat.q3)}" stroke="${color}" stroke-width="8" stroke-linecap="round" opacity="0.52"/>`);
       marks.push(`<circle cx="${x}" cy="${y(stat.median)}" r="8" fill="${color}" stroke="#ffffff" stroke-width="2"/>`);
     });
@@ -576,7 +584,7 @@ function figure4Svg(raw, summary) {
     .map((row) => Number(row.median_ms))
     .filter(Number.isFinite);
   return svgDocument(width, height, [
-    titleBlock(70, 70, "Figure 4. Exposure-solve scenarios only", "Warm-start browser distributions from >=20 isolated repeats per scenario; dots are medians and bars are IQR."),
+    titleBlock(70, 70, "Figure 4. Exposure-solve scenarios only", "Warm-start native-JavaScript distributions from 20 isolated repeats; small dots are observations, large dots are medians, and thick bars are IQR."),
     `<rect x="${plot.x}" y="${plot.y}" width="${plot.w}" height="${plot.h}" fill="#ffffff" stroke="${PALETTE.faint}"/>`,
     ticks.map((tick) => `<line x1="${plot.x}" x2="${plot.x + plot.w}" y1="${y(tick)}" y2="${y(tick)}" stroke="${PALETTE.faint}"/><text x="${plot.x - 18}" y="${y(tick) + 4}" text-anchor="end" class="small">${formatTick(tick)}</text>`).join(""),
     marks.join(""),
@@ -589,8 +597,8 @@ function figure4Svg(raw, summary) {
       return `<circle cx="${x}" cy="120" r="7" fill="${color}"/><text x="${x + 15}" y="125" class="small">${label}</text>`;
     }).join(""),
     `<text x="48" y="${plot.y + plot.h / 2}" text-anchor="middle" class="axis-title" transform="rotate(-90 48 ${plot.y + plot.h / 2})">Wall-clock ms, log scale</text>`,
-    `<text x="${plot.x}" y="735" class="small">Raw data include cold-start and warm-start phases plus load/network/module/compute/serialization fields. Warm medians shown here range ${formatNumber(Math.min(...warmMedians), 2)}-${formatNumber(Math.max(...warmMedians), 2)} ms; cold medians range ${formatNumber(Math.min(...coldMedians), 2)}-${formatNumber(Math.max(...coldMedians), 2)} ms.</text>`,
-    `<text x="${plot.x}" y="765" class="small">Peak JS heap is available only where the browser exposes performance.memory; Firefox reports unavailable in the raw artifact.</text>`,
+    `<text x="${plot.x}" y="735" class="small">Raw data include individual cold/warm observations plus load/network/module/compute/serialization/component fields. Warm medians range ${formatNumber(Math.min(...warmMedians), 2)}-${formatNumber(Math.max(...warmMedians), 2)} ms; cold medians range ${formatNumber(Math.min(...coldMedians), 2)}-${formatNumber(Math.max(...coldMedians), 2)} ms.</text>`,
+    `<text x="${plot.x}" y="765" class="small">Observed peak JS heap is reported where performance.memory is exposed; it is a stage-boundary sample rather than an OS process peak, and Firefox is unavailable.</text>`,
   ]);
 }
 
@@ -734,6 +742,7 @@ async function generateSupplement(tableArtifacts) {
   const e2 = await readJson(path.join(E2_DATA_DIR, "adapter-fidelity-results.json"));
   const e3 = await readJson(path.join(EXPERIMENT_ROOT, "e3_internal_reference_checks", "data", "reference-check-results.json"));
   const e4 = await readJson(path.join(EXPERIMENT_ROOT, "e4_browser_runtime_benchmarks", "data", "browser-runtime-summary.json"));
+  const e4Results = await readJson(path.join(EXPERIMENT_ROOT, "e4_browser_runtime_benchmarks", "data", "browser-runtime-results.json"));
   const strict = await readJson(path.join(EXPERIMENT_ROOT, "strict_local_no_egress", "data", "strict-local-no-egress.json"));
 
   const runtimeManifest = {
@@ -841,15 +850,20 @@ async function generateSupplement(tableArtifacts) {
 
   await copyArtifact(path.join(EXPERIMENT_ROOT, "e4_browser_runtime_benchmarks", "data", "browser-runtime-results.json"), path.join(SUPPLEMENT_ROOT, "browser-runtime-results.json"));
   await copyArtifact(path.join(EXPERIMENT_ROOT, "e4_browser_runtime_benchmarks", "data", "browser-runtime-summary.json"), path.join(SUPPLEMENT_ROOT, "browser-runtime-summary.json"));
+  await copyArtifact(path.join(EXPERIMENT_ROOT, "e4_browser_runtime_benchmarks", "data", "benchmark-component-boundaries.md"), path.join(SUPPLEMENT_ROOT, "benchmark-component-boundaries.md"));
+  await copyArtifact(path.join(EXPERIMENT_ROOT, "e4_browser_runtime_benchmarks", "data", "benchmark-component-boundaries.json"), path.join(SUPPLEMENT_ROOT, "benchmark-component-boundaries.json"));
+  await copyArtifact(path.join(REPO_ROOT, "docs", "manuscript", "figures", "figure2-figure4-methods.md"), path.join(SUPPLEMENT_ROOT, "figure2-figure4-methods.md"));
   await writeText(
     path.join(SUPPLEMENT_ROOT, "benchmark-harness-description.md"),
     [
       "# Benchmark Harness Description",
       "",
       "Exposure-solve browser benchmarks were run with isolated browser profiles, >=20 repeats per scenario/browser, and separate cold and warm phases.",
-      "Recorded stage fields include load, network fetch critical path, module import, runtime init, pure-JS compute, serialization, and peak JS heap where the browser exposes it.",
+      "Recorded stage fields include SDK/module fetch and import, public spectrum/catalog fetch when applicable, native fitting, adapter fitting when applicable, QC evidence, bootstrap, plot rendering, report serialization, end-to-end elapsed time, and observed JavaScript heap.",
+      "The component boundary table explicitly labels not-applicable and not-measured stages; unmeasured stages are not represented as zero-time components.",
+      "Observed JavaScript heap is sampled at stage boundaries through performance.memory where exposed. It is not an operating-system process peak; Firefox did not expose this metric.",
       "",
-      `Chrome/Edge/Firefox summary status: ${e4.status}.`,
+      `Chrome/Edge/Firefox benchmark status: ${e4Results.status}; ${e4Results.rows.filter((row) => row.status === "completed").length} completed observations and ${e4Results.rows.filter((row) => row.status !== "completed").length} failed observations.`,
       `End-to-end notebook benchmark status: not possible on this host with the requested TCGA 120/500-sample public input unavailable.`,
       "",
     ].join("\n")
@@ -865,6 +879,8 @@ async function generateSupplement(tableArtifacts) {
       adapterFidelity: "adapter-fidelity-reproducibility-record.md",
       strictLocal: "strict-local-no-egress-evidence.md",
       benchmarkHarness: "benchmark-harness-description.md",
+      benchmarkComponentBoundaries: "benchmark-component-boundaries.md",
+      figureTimingMethods: "figure2-figure4-methods.md",
       tables: tableArtifacts,
       internalReference: e3.artifacts,
     },
@@ -876,6 +892,8 @@ async function generateSupplement(tableArtifacts) {
     "adapter-fidelity-reproducibility-record.md",
     "strict-local-no-egress-evidence.md",
     "benchmark-harness-description.md",
+    "benchmark-component-boundaries.md",
+    "figure2-figure4-methods.md",
     "supplement-manifest.json",
   ].map((file) => relativeArtifact(path.join(SUPPLEMENT_ROOT, file)));
 }

@@ -255,13 +255,17 @@ export function normalizeExposureRows(exposures) {
   const normalized = {};
   for (const [sample, row] of Object.entries(exposures || {})) {
     const total = Object.values(row || {}).reduce(
-      (sum, value) => sum + Math.max(0, Number(value) || 0),
+      (sum, value) => {
+        const numeric = Number(value);
+        return sum + (Number.isFinite(numeric) && numeric > 0 ? numeric : 0);
+      },
       0
     );
     normalized[sample] = {};
     for (const [signature, value] of Object.entries(row || {})) {
+      const numeric = Number(value);
       normalized[sample][signature] =
-        total > 0 ? Math.max(0, Number(value) || 0) / total : 0;
+        total > 0 && Number.isFinite(numeric) && numeric > 0 ? numeric / total : 0;
     }
   }
   return normalized;

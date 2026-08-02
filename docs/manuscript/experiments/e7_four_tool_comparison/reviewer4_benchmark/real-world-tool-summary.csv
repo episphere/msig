@@ -1,0 +1,5 @@
+tool,sampleCount,catalogSignatureCount,meanActiveSignatureCount,meanReconstructionCosine,minimumReconstructionCosine
+deconstructSigs,38,67,15.87,0.994113,0.981059
+sigminer,38,67,17.39,0.9945,0.983142
+SigProfilerAssignment,38,67,4.13,0.981536,0.943031
+MuSiCal,38,67,11.21,0.99309,0.982309

@@ -14,7 +14,6 @@ import {
   rmse,
   runCommand,
   tempDir,
-  vectorCosine,
   writeCsv,
   writeJson,
   writeText,
@@ -32,6 +31,7 @@ import {
 import {
   extractSignaturesNMF,
 } from "../../../../../mSigSDKScripts/signatureExtraction.js";
+import { componentMatch, normalizedRandomInitialization, profileMatrix } from "../../../../../scripts/manuscript/lib/nmf-validation.mjs";
 
 const EXPERIMENT = EXPERIMENTS.e3;
 const RESULT_PATH = path.join(EXPERIMENT.dir, "data", "reference-check-results.json");
@@ -71,18 +71,12 @@ const sdkQc = calculateReconstructionError(inputs.qc.signatures, inputs.qc.spect
   contexts: inputs.qc.contexts,
   normalizeMode: "relative",
 });
-const sdkNmf = extractSignaturesNMF(inputs.nmf.spectra, {
-  contexts: inputs.nmf.contexts,
-  rank: 4,
-  nRuns: 12,
-  seed: 7701,
-  maxIterations: 1400,
-  tolerance: 1e-7,
-});
+const matchedNmf = runMatchedNmf(inputs.nmf);
 
 const pythonReference = await runPythonReference({
   ...inputs.publicInput,
   sdkQcExposures,
+  nmfInitializations: matchedNmf.initializations,
 });
 await writeJson(PY_REF_PATH, pythonReference);
 
@@ -92,7 +86,7 @@ await writeText(R_REF_PATH, rReference.csv);
 const rows = [];
 rows.push(compareNnls("nnls_vs_scipy", sdkNnls, pythonReference.nnls, 1e-6));
 rows.push(compareNnls("nnls_vs_r_nnls", sdkNnls, rReference.exposures, 1e-6));
-rows.push(compareNmf(sdkNmf, pythonReference.nmf));
+rows.push(compareNmf(matchedNmf, pythonReference.nmf, inputs.nmf.contexts));
 rows.push(compareQc(sdkQc, pythonReference.qc));
 
 const status = rows.every((row) => row.status === "pass") ? "completed" : "failed";
@@ -114,7 +108,13 @@ const result = createResult({
     nmf: {
       samples: Object.keys(inputs.nmf.spectra).length,
       rank: 4,
-      acceptance: "SDK reconstruction error within 5% of scikit-learn and median matched-component cosine >= 0.95",
+      restarts: 12,
+      initialization: "shared positive W/H matrices generated once in JavaScript and passed to both implementations",
+      objective: "Frobenius reconstruction error",
+      maxIterations: 10000,
+      tolerance: 1e-7,
+      convergenceCriteria: "same numerical tolerance and iteration cap supplied to both solvers; implementation-specific convergence flags recorded separately, with capped paired runs retained",
+      acceptance: "median paired reconstruction-error ratio <= 1.05 and median matched-component cosine >= 0.95",
     },
     qc: {
       samples: Object.keys(inputs.qc.spectra).length,
@@ -199,6 +199,49 @@ function buildInputs() {
     nnls: publicInput.nnls,
     nmf: publicInput.nmf,
     qc: publicInput.qc,
+  };
+}
+
+function runMatchedNmf(input) {
+  const rank = 4;
+  const restarts = 12;
+  const maxIterations = 10000;
+  const tolerance = 1e-7;
+  const initializations = [];
+  const sdkRuns = [];
+
+  for (let runIndex = 0; runIndex < restarts; runIndex += 1) {
+    const seed = 7701 + runIndex;
+    const initialization = normalizedRandomInitialization(
+      input.contexts.length,
+      input.sampleNames.length,
+      rank,
+      seed
+    );
+    initializations.push({ seed, ...initialization });
+    sdkRuns.push({
+      seed,
+      result: extractSignaturesNMF(input.spectra, {
+        contexts: input.contexts,
+        sampleNames: input.sampleNames,
+        rank,
+        nRuns: 1,
+        seed,
+        maxIterations,
+        tolerance,
+        initialW: initialization.w,
+        initialH: initialization.h,
+      }),
+    });
+  }
+
+  return {
+    rank,
+    restarts,
+    maxIterations,
+    tolerance,
+    initializations,
+    sdkRuns,
   };
 }
 
@@ -351,25 +394,54 @@ function compareNnls(checkId, sdk, reference, tolerance) {
   };
 }
 
-function compareNmf(sdk, reference) {
-  const sdkProfiles = Object.values(sdk.signatures).map((profile) =>
-    sdk.contexts.map((context) => profile[context] || 0)
+function compareNmf(matched, reference, contexts) {
+  const pairedRuns = matched.sdkRuns.map((sdkRun, index) => {
+    const referenceRun = reference.runs[index];
+    const sdkProfiles = profileMatrix(sdkRun.result, contexts);
+    const componentMatchResult = componentMatch(sdkProfiles, referenceRun.components);
+    const errorRatio = sdkRun.result.reconstructionError / referenceRun.reconstructionError;
+    return {
+      runIndex: index,
+      seed: sdkRun.seed,
+      sdkReconstructionError: sdkRun.result.reconstructionError,
+      referenceReconstructionError: referenceRun.reconstructionError,
+      reconstructionErrorRatio: errorRatio,
+      matchedComponentCosine: componentMatchResult.similarities,
+      meanMatchedComponentCosine: componentMatchResult.meanCosine,
+      medianMatchedComponentCosine: componentMatchResult.medianCosine,
+      minimumMatchedComponentCosine: componentMatchResult.minimumCosine,
+      componentPermutation: componentMatchResult.permutation,
+      sdkConverged: Boolean(sdkRun.result.converged),
+      sdkIterations: sdkRun.result.iterations,
+      referenceConverged: Boolean(referenceRun.converged),
+      referenceIterations: referenceRun.iterations,
+    };
+  });
+  const errorRatios = pairedRuns.map((run) => run.reconstructionErrorRatio);
+  const medianMatchedComponentCosine = median(
+    pairedRuns.map((run) => run.medianMatchedComponentCosine)
   );
-  const sklearnProfiles = reference.components;
-  const matches = greedyCosineMatches(sdkProfiles, sklearnProfiles);
-  const medianMatchedComponentCosine = median(matches.map((match) => match.cosine));
-  const errorRatio = sdk.reconstructionError / reference.reconstructionError;
-  const passed = errorRatio <= 1.05 && medianMatchedComponentCosine >= 0.95;
+  const medianErrorRatio = median(errorRatios);
+  const passed = medianErrorRatio <= 1.05 && medianMatchedComponentCosine >= 0.95;
   return {
     checkId: "nmf_vs_sklearn",
     component: "NMF",
-    reference: "scikit-learn NMF",
-    sampleCount: sdk.sampleNames.length,
-    rank: sdk.rank,
-    sdkReconstructionError: sdk.reconstructionError,
-    referenceReconstructionError: reference.reconstructionError,
-    reconstructionErrorRatio: errorRatio,
+    reference: "scikit-learn NMF with matched custom initialization",
+    sampleCount: matched.sdkRuns[0]?.result.sampleNames.length || 0,
+    rank: matched.rank,
+    restarts: matched.restarts,
+    objective: "Frobenius reconstruction error",
+    initialization: "same positive W/H matrices supplied to both implementations for each paired restart",
+    maxIterations: matched.maxIterations,
+    tolerance: matched.tolerance,
+    convergenceCriteria: "same numerical tolerance and iteration cap supplied to both solvers; implementation-specific convergence flags recorded separately, with capped paired runs retained",
+    reconstructionErrorRatio: medianErrorRatio,
     medianMatchedComponentCosine,
+    errorRatioRange: {
+      minimum: Math.min(...errorRatios),
+      maximum: Math.max(...errorRatios),
+    },
+    pairedRuns,
     threshold: "error ratio <= 1.05 and median cosine >= 0.95",
     status: passed ? "pass" : "failed",
   };
@@ -404,30 +476,6 @@ function compareQc(sdk, reference) {
     threshold: 1e-10,
     status: maxDelta <= 1e-10 ? "pass" : "failed",
   };
-}
-
-function greedyCosineMatches(leftProfiles, rightProfiles) {
-  const candidates = [];
-  for (let leftIndex = 0; leftIndex < leftProfiles.length; leftIndex += 1) {
-    for (let rightIndex = 0; rightIndex < rightProfiles.length; rightIndex += 1) {
-      candidates.push({
-        leftIndex,
-        rightIndex,
-        cosine: vectorCosine(leftProfiles[leftIndex], rightProfiles[rightIndex]),
-      });
-    }
-  }
-  candidates.sort((a, b) => b.cosine - a.cosine);
-  const usedLeft = new Set();
-  const usedRight = new Set();
-  const matches = [];
-  for (const candidate of candidates) {
-    if (usedLeft.has(candidate.leftIndex) || usedRight.has(candidate.rightIndex)) continue;
-    usedLeft.add(candidate.leftIndex);
-    usedRight.add(candidate.rightIndex);
-    matches.push(candidate);
-  }
-  return matches;
 }
 
 function parseExposureCsv(csv) {
@@ -473,10 +521,27 @@ for sample in nnls_input["sampleNames"]:
 
 nmf_input = payload["nmf"]
 X = np.array(nmf_input["spectraMatrix"], dtype=float).T
-model = NMF(n_components=4, init="nndsvda", solver="mu", beta_loss="frobenius", max_iter=2000, random_state=42)
-W = model.fit_transform(X)
-H = model.components_
-reconstruction_error = float(np.linalg.norm(X - np.matmul(W, H)))
+nmf_runs = []
+for initialization in payload["nmfInitializations"]:
+    W0 = np.array(initialization["h"], dtype=float).T
+    H0 = np.array(initialization["w"], dtype=float).T
+    model = NMF(
+        n_components=4,
+        init="custom",
+        solver="mu",
+        beta_loss="frobenius",
+        max_iter=10000,
+        tol=1e-7,
+    )
+    W = model.fit_transform(X, W=W0, H=H0)
+    H = model.components_
+    nmf_runs.append({
+        "seed": initialization["seed"],
+        "reconstructionError": float(np.linalg.norm(X - np.matmul(W, H))),
+        "components": H.tolist(),
+        "iterations": int(model.n_iter_),
+        "converged": bool(model.n_iter_ < 10000),
+    })
 
 qc_input = payload["qc"]
 qc_contexts = qc_input["contexts"]
@@ -524,10 +589,7 @@ with open(output_path, "w", encoding="utf-8") as handle:
             "runtime": sys.executable
         },
         "nnls": nnls_out,
-        "nmf": {
-            "reconstructionError": reconstruction_error,
-            "components": H.tolist()
-        },
+        "nmf": {"runs": nmf_runs},
         "qc": {
             "samples": qc_rows
         }

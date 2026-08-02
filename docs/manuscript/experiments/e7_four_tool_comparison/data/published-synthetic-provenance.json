@@ -1,0 +1,22 @@
+{
+  "generatorPaper": "Islam et al. 2022, Cell Genomics, DOI 10.1016/j.xgen.2022.100179",
+  "benchmarkPaper": "Díaz-Gay et al. 2023, Bioinformatics, DOI 10.1093/bioinformatics/btad756",
+  "archive": "Figshare DOI 10.6084/m9.figshare.24457114.v1",
+  "license": "CC BY 4.0",
+  "noisePercent": 0,
+  "sourceSamplesFile": "Samples.txt",
+  "datasetDescription": "SBS component of the published 2,700-sample benchmark: 300 simulated genomes for each of nine cancer types, generated from 21 COSMIC reference signatures. The archived COSMIC v3.3 GRCh37 matrix contains 78 signature columns; this archived shape is used without adding or imputing columns.",
+  "archiveFile": "published_source/Supplementary_data_Diaz-Gay_et_al_2023_Benchmark.zip",
+  "archiveSha256": "c629de203bcf7a517b0308ea695da90572d92e7b8f271dc3f72fe29eeed731aa",
+  "sourceFileSha256": {
+    "samples": "814a2b6da8b61f68b16b025c36822b7a5a383883866fb853e71c33d6b4a534e7",
+    "catalog": "2f4a72807920f7917d424a8aeada9283c90d5b792893fe287a277be54eb08cba",
+    "truth": "591c41925c621fa8e4492267cc9b546ecfb3334b0448bbdd1d4922a3934a65f3"
+  },
+  "shape": {
+    "samples": 2700,
+    "contexts": 96,
+    "signatures": 78
+  },
+  "generatedAt": "2026-08-01T22:26:46.294Z"
+}

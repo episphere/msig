@@ -566,7 +566,8 @@ const mSigSDK = (function () {
   }
 
   /**
-   * Creates a reproducibility record for an analysis result.
+   * Creates a provenance record for an analysis result. Computational reproducibility
+   * requires the immutable artifact evidence recorded by the report builder.
    *
    * @function createProvenance
    * @memberof provenance
@@ -739,7 +740,7 @@ const mSigSDK = (function () {
   }
 
   /**
-   * Wraps a result with a reproducibility record.
+   * Wraps a result with provenance metadata.
    *
    * @function withProvenance
    * @memberof provenance
@@ -9106,7 +9107,7 @@ Renders a plot of mutational profiles in a given div element ID.
    * @function plotNMFRankSelection
    * @memberof signatureExtractionPlots
    * @param {string|Element} divID - Container element or element id.
-   * @param {Object} rankSelection - Result from mSigSDK.signatureExtraction.selectNMFRank.
+   * @param {Object} rankSelection - Result from mSigSDK.signatureExtraction.selectNMFRank, or a rank-grid result with meanHeldOutRelativeError and componentStabilityMedianCosine diagnostics.
    * @returns {Promise<Object|Element>} Render metadata or an error element.
    */
   async function plotNMFRankSelection(divID, rankSelection, options = {}) {
@@ -9116,24 +9117,44 @@ Renders a plot of mutational profiles in a given div element ID.
     }
 
     const recommendedRank = rankSelection.recommendedRank;
-    const metrics = [
-      {
-        key: "reconstructionError",
-        label: "Reconstruction error",
-        caption: "lower is better",
-        color: SCIENTIFIC_COLORS.orange,
-      },
-      {
-        key: "averageSampleCosineSimilarity",
-        label: "Average sample cosine",
-        caption: "higher is better",
-        color: SCIENTIFIC_COLORS.blue,
-      },
-    ];
+    const heldOutSelection =
+      runs.some((run) => Number.isFinite(Number(run.meanHeldOutRelativeError))) &&
+      runs.some((run) => Number.isFinite(Number(run.componentStabilityMedianCosine)));
+    const metrics = heldOutSelection
+      ? [
+          {
+            key: "meanHeldOutRelativeError",
+            label: "Held-out relative error",
+            caption: "lower is better",
+            color: SCIENTIFIC_COLORS.orange,
+            uncertaintyKey: "heldOutStandardError",
+          },
+          {
+            key: "componentStabilityMedianCosine",
+            label: "Restart component stability",
+            caption: "higher is better",
+            color: SCIENTIFIC_COLORS.blue,
+          },
+        ]
+      : [
+          {
+            key: "reconstructionError",
+            label: "Reconstruction error",
+            caption: "lower is better",
+            color: SCIENTIFIC_COLORS.orange,
+          },
+          {
+            key: "averageSampleCosineSimilarity",
+            label: "Average sample cosine",
+            caption: "higher is better",
+            color: SCIENTIFIC_COLORS.blue,
+          },
+        ];
 	    const { chart, showTooltip, hideTooltip } = createD3PlotFrame(divID, {
 	      title: "NMF rank diagnostics",
-	      subtitle:
-	        "Compare reconstruction error with sample-level cosine similarity across tested ranks.",
+      subtitle: heldOutSelection
+        ? "Held-out prediction and restart stability across tested ranks; the selected rank is the prespecified one-standard-error choice."
+        : "Compare reconstruction error with sample-level cosine similarity across tested ranks.",
       badges: [
         { label: "Ranks tested", value: String(runs.length) },
         { label: "Recommended", value: String(recommendedRank) },
@@ -9142,7 +9163,9 @@ Renders a plot of mutational profiles in a given div element ID.
         dataset: options.dataset || rankSelection.dataset || rankSelection.source,
         ranksTested: runs.map((run) => run.rank).join(", "),
         recommendedRank,
-        metrics: "reconstruction error and average sample cosine",
+        metrics: heldOutSelection
+          ? "held-out relative error and restart component stability"
+          : "reconstruction error and average sample cosine",
       }),
       publication: options.publication,
     });
@@ -9168,7 +9191,14 @@ Renders a plot of mutational profiles in a given div element ID.
 
     metrics.forEach((metric, metricIndex) => {
       const panelX = margin.left + metricIndex * (panelWidth + panelGap);
-      const values = runs.map((run) => Number(run[metric.key]));
+      const values = runs.flatMap((run) => {
+        const value = Number(run[metric.key]);
+        if (!Number.isFinite(value)) return [];
+        const uncertainty = Number(run[metric.uncertaintyKey]);
+        return Number.isFinite(uncertainty)
+          ? [Math.max(0, value - uncertainty), value + uncertainty]
+          : [value];
+      });
       const domain = d3.extent(values);
       const pad = Math.max((domain[1] - domain[0]) * 0.08, 1e-6);
       const y = d3
@@ -9205,6 +9235,21 @@ Renders a plot of mutational profiles in a given div element ID.
         .append("g")
         .call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".3g")))
         .call(styleD3Axis);
+
+      if (metric.uncertaintyKey) {
+        panel
+          .selectAll("line.msig-nmf-rank-error-bar")
+          .data(runs.filter((run) => Number.isFinite(Number(run[metric.uncertaintyKey]))))
+          .join("line")
+          .attr("class", "msig-nmf-rank-error-bar")
+          .attr("x1", (run) => x(run.rank))
+          .attr("x2", (run) => x(run.rank))
+          .attr("y1", (run) => y(Number(run[metric.key]) + Number(run[metric.uncertaintyKey])))
+          .attr("y2", (run) => y(Math.max(0, Number(run[metric.key]) - Number(run[metric.uncertaintyKey]))))
+          .attr("stroke", metric.color)
+          .attr("stroke-width", 1.5)
+          .attr("stroke-opacity", 0.55);
+      }
 
       if (Number.isFinite(recommendedRank)) {
         panel
@@ -9248,6 +9293,12 @@ Renders a plot of mutational profiles in a given div element ID.
             tooltipRows([
               ["Rank", run.rank],
               [metric.label, formatPlotNumber(run[metric.key], 5)],
+              ...(metric.uncertaintyKey && Number.isFinite(Number(run[metric.uncertaintyKey]))
+                ? [["Standard error", formatPlotNumber(run[metric.uncertaintyKey], 5)]]
+                : []),
+              ...(heldOutSelection
+                ? [["Eligible", run.eligible ? "yes" : "no"]]
+                : []),
               ["Converged", run.converged ? "yes" : "no"],
               ["Iterations", run.iterations],
             ])

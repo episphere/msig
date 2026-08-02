@@ -1,2 +1,2 @@
-browser,status,elapsed_seconds,sample_count,signature_count,active_signatures,report_bytes
-Chrome,completed,4.993234999895096,1,67,33,8931
+browser,browser_version,status,elapsed_seconds,sample_count,signature_count,active_signatures,report_bytes,sdk_module_import_ms,public_fetch_critical_path_ms,public_spectrum_fetch_ms,public_catalog_fetch_ms,native_fit_ms,qc_evidence_ms,report_serialization_ms,report_render_ms,observed_peak_js_heap_bytes,fit_method,adapter,pyodide,webR,wrapped_package_import,cache_state
+Chrome,150.0.7871.187,completed,1.8150599999427794,1,67,33,12210,1476,300.44999980926514,224.19999980926514,300.1400001049042,12.625,2.2049999237060547,0.7000000476837158,13.759999990463257,32424646,native JavaScript NNLS via mSigSDK.qc.fitSpectraWithNNLS,,not loaded,not loaded,not performed,fresh persistent browser profile; local server and public fetches used no-store

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "msig.manuscript.e2.progress.v1",
+  "experimentId": "e2_adapter_fidelity",
+  "updatedAt": "2026-07-03T22:25:15.275Z",
+  "stage": "result-written",
+  "details": {
+    "resultPath": "docs/manuscript/experiments/e2_adapter_fidelity/data/adapter-fidelity-results.json",
+    "status": "completed",
+    "rows": 4
+  }
+}

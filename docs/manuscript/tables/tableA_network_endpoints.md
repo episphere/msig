@@ -1,6 +1,6 @@
 # Table A. Network endpoints and data-residency audit
 
-Generated at: 2026-06-28T12:31:51.158Z
+Generated at: 2026-08-02T03:03:17.794Z
 
 | host | used_for | information_sent | user_derived_data | strict_local_mode |
 | --- | --- | --- | --- | --- |

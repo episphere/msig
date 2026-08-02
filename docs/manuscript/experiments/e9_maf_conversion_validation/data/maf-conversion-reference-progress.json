@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "msig.maf_conversion_validation_reference_progress.v0.1",
+  "stage": "completed",
+  "updatedAt": "2026-08-02T02:30:13.390094+00:00",
+  "python": "3.13.5",
+  "volume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+  "genomes": [
+    "GRCh37",
+    "GRCh38"
+  ]
+}

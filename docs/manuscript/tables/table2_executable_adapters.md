@@ -1,6 +1,6 @@
 # Table 2. In-browser executable adapters
 
-Generated at: 2026-06-28T12:31:51.158Z
+Generated at: 2026-08-02T03:03:17.794Z
 
 | tool | version | runtime | role |
 | --- | --- | --- | --- |

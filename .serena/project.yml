@@ -33,7 +33,6 @@ project_name: "msig"
 # Note that when using the JetBrains backend, language servers are not used and this list is correspondingly ignored.
 languages:
 - typescript
-- python
 
 # the encoding used by text files in the project
 # For a list of possible encodings, see https://docs.python.org/3.11/library/codecs.html#standard-encodings
@@ -74,7 +73,16 @@ additional_workspace_folders: []
 # list of additional paths to ignore in this project.
 # Same syntax as gitignore, so you can use * and **.
 # Note: global ignored_paths from serena_config.yml are also applied additively.
-ignored_paths: []
+ignored_paths:
+  # Keep Serena searches focused on source, not generated or bulk data trees.
+  # Gitignore already hides most of these, but explicit ignores make the project
+  # boundary more predictable for language-server indexing.
+  # NOTE: Use glob syntax.
+  - docs/package-repos/**
+  - docs/manuscript/experiments/**/data/**
+  - docs/manuscript/experiments/**/output/**
+  - .tmp/**
+  - .tools/**
 
 # whether the project is in read-only mode
 # If set to true, all editing tools will be disabled and attempts to use them will result in an error

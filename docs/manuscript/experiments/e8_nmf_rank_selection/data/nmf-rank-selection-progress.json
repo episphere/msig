@@ -1,0 +1,7 @@
+{
+  "status": "completed",
+  "stage": "result_written",
+  "completedCells": 35,
+  "totalCells": 35,
+  "resultPath": "docs/manuscript/experiments/e8_nmf_rank_selection/data/nmf-rank-selection-results.json"
+}

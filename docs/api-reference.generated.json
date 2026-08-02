@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-27T20:20:04.306Z",
+  "generatedAt": "2026-08-02T02:08:29.454Z",
   "generator": {
     "name": "documentation.js",
     "version": "^14.0.3"
@@ -4204,7 +4204,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/signatureExtraction.js",
-            "line": 907
+            "line": 925
           }
         },
         {
@@ -4304,7 +4304,7 @@
           ],
           "source": {
             "file": "mSigSDKScripts/signatureExtraction.js",
-            "line": 622
+            "line": 630
           }
         },
         {
@@ -4331,7 +4331,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/signatureExtraction.js",
-            "line": 949
+            "line": 967
           }
         },
         {
@@ -4429,7 +4429,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/signatureExtraction.js",
-            "line": 720
+            "line": 738
           }
         },
         {
@@ -4543,7 +4543,7 @@
               "name": "rankSelection",
               "type": "Object",
               "default": null,
-              "description": "Result from mSigSDK.signatureExtraction.selectNMFRank.",
+              "description": "Result from mSigSDK.signatureExtraction.selectNMFRank, or a rank-grid result with meanHeldOutRelativeError and componentStabilityMedianCosine diagnostics.",
               "properties": []
             }
           ],
@@ -5909,7 +5909,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 9430
+            "line": 9480
           }
         },
         {
@@ -6000,7 +6000,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 9295
+            "line": 9345
           }
         },
         {
@@ -6245,7 +6245,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 9377
+            "line": 9427
           }
         }
       ]
@@ -6286,7 +6286,7 @@
           "examples": [],
           "source": {
             "file": "main.js",
-            "line": 9762
+            "line": 9812
           }
         }
       ]
@@ -6702,7 +6702,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1497
+            "line": 1532
           }
         },
         {
@@ -6729,7 +6729,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1511
+            "line": 1546
           }
         },
         {
@@ -6778,7 +6778,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1957
+            "line": 1998
           }
         },
         {
@@ -6827,7 +6827,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1176
+            "line": 1203
           }
         },
         {
@@ -6876,7 +6876,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1913
+            "line": 1954
           }
         },
         {
@@ -6925,7 +6925,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1332
+            "line": 1364
           }
         },
         {
@@ -6982,7 +6982,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 370
+            "line": 383
           }
         },
         {
@@ -7031,7 +7031,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1537
+            "line": 1572
           }
         },
         {
@@ -7065,7 +7065,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 2064
+            "line": 2116
           }
         },
         {
@@ -7114,7 +7114,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1633
+            "line": 1670
           }
         },
         {
@@ -7148,7 +7148,7 @@
           "examples": [],
           "source": {
             "file": "mSigSDKScripts/adapters.js",
-            "line": 1735
+            "line": 1774
           }
         }
       ]

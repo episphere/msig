@@ -4,11 +4,11 @@ These captions are generated alongside the manuscript figures. Figure HTML pages
 
 ## Main Figures
 
-**Figure 1. mSigSDK architecture and data-residency boundary.** Optional public-data fetchers may send public sample, gene, project, or file identifiers to mSigPortal/GDC, and the live UCSC MAF-context lookup may send mutation coordinates when explicitly invoked; strictLocal disables those fetches. User spectra, exposures, QC outputs, plots, and JSON reports remain inside the private browser/device boundary unless explicitly exported.
+**Figure 1. mSigSDK architecture and data-residency boundary.** Optional public-data fetchers may send public sample, gene, project, or file identifiers to mSigPortal/GDC, and the live UCSC MAF-context lookup may send mutation coordinates when explicitly invoked; strictLocal disables those fetches. User spectra, exposures, QC outputs, plots, and JSON reports remain inside the local browser/device boundary unless explicitly exported.
 
 File: `figure1-architecture-data-residency.html`
 
-**Figure 2. Zero-install workflow demonstration.** Automated in-page timing measured cumulative time from page-load start through SDK import, public PCAWG Lung-AdenoCA SBS96 spectrum retrieval, full COSMIC v3 SBS96 catalog retrieval, single-sample refitting, and local report rendering. Browser launch, URL entry, and other human setup time are excluded from the measured interval.
+**Figure 2. Zero-install workflow demonstration.** Automated in-page timing measured cumulative time from page-load start through the mSigSDK ESM import, public PCAWG Lung-AdenoCA SBS96 spectrum and full COSMIC v3 GRCh37 SBS96 catalog retrieval, native JavaScript 'mSigSDK.qc.fitSpectraWithNNLS' fitting, QC evidence generation, HTML report serialization, and local DOM report rendering. The run used Chrome 150.0.7871.187 in a fresh persistent profile with no-store local-server headers and 'cache: no-store' public fetches; no adapter, Pyodide runtime, WebR runtime, or wrapped package was initialized or imported. D3 was loaded as an mSigSDK visualization dependency and was not used as the fitting runtime. Browser launch and URL entry were excluded from the measured interval.
 
 File: `figure2-zero-install-workflow.html`
 
@@ -16,7 +16,7 @@ File: `figure2-zero-install-workflow.html`
 
 File: `figure3-public-cohort-capabilities.html`
 
-**Figure 4. Exposure-solve benchmark scenarios only.** Warm-start median elapsed runtime with IQR whiskers across isolated desktop-browser repeats for representative exposure-solve workflows, including single-sample fitting/report generation, cohort-scale refitting, bootstrap uncertainty, and NMF rank selection/extraction. Cold-start rows and stage timings are retained in the benchmark data files; the log-scaled axis keeps fast single-sample operations and slower cohort workflows visible in one figure.
+**Figure 4. Exposure-solve benchmark scenarios only.** Warm-start elapsed runtime for representative native-JavaScript exposure-solve workflows, shown with individual observations, medians, and IQR/minimum-to-maximum ranges across 20 isolated repeats in Chrome, Edge, and Firefox. The single-sample scenario includes native NNLS, reconstruction QC, and HTML report serialization; it does not render plots. Cohort refitting, 500-iteration bootstrap, and NMF rank-selection/extraction are separate scenarios. Cold-start rows and component fields are retained in the benchmark files; Pyodide/WebR initialization, wrapped-package import, public spectrum/catalog fetch, adapter fitting, and plot rendering were not part of E4 and are labeled not applicable or not measured rather than folded into native-compute timings. The browser exposes only sampled JavaScript heap values, reported as observed peak JS heap; Firefox did not expose this metric.
 
 File: `figure4-runtime-benchmarks.html`
 
@@ -44,7 +44,7 @@ File: `figure3d-fit-quality-evidence.html`
 
 File: `figure3e-bootstrap-uncertainty.html`
 
-**Figure 3F. Exploratory NMF discovery.** The browser-side exploratory non-negative matrix factorization rank sweep selected rank 6 for the public PCAWG Lung-AdenoCA SBS96 cohort. All 6 extracted de novo SBS96 components from that rank are displayed for manuscript review and handoff.
+**Figure 3F. NMF rank selection and discovery.** Non-negative matrix factorization rank selection used five sample-level folds across candidate ranks 2–8, five restarts per fold, held-out relative Frobenius error, and exact matched-component restart stability. Rank 6 was selected automatically as the smallest eligible rank within one standard error of the minimum held-out error (point-estimate best rank 8); all 6 de novo SBS96 components from the selected rank are displayed.
 
 File: `figure3f-nmf-discovery.html`
 

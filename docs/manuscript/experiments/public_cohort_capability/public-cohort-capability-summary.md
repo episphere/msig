@@ -1,7 +1,7 @@
 # Public Cohort Capability Summary
 
-Generated at: 2026-06-28T12:31:51.158Z
-Commit: 10c5ecfd1eb3394bd72c5027d7d6f5f9090a9be9
+Generated at: 2026-08-02T03:03:17.794Z
+Commit: 6f77b2c9e8d648a5c32b452f1d075bed2ccd90db
 Input: docs/manuscript/experiments/e2_adapter_fidelity/data/adapter-fidelity-input.json
 Seed: 20260521
 

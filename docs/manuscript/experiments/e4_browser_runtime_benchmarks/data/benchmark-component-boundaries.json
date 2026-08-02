@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "msig.browser_benchmark_component_boundaries.v1",
+  "experiments": {
+    "e1_zero_install_demo": "Figure 2; fresh-profile public-data workflow",
+    "e4_browser_runtime_benchmarks": "Figure 4; native-JavaScript exposure-solve scenarios"
+  },
+  "rows": [
+    { "component": "sdk_module_fetch_import", "e1": "measured", "e4": "measured_cold_only" },
+    { "component": "pyodide_initialization", "e1": "not_applicable_native_path", "e4": "not_applicable_native_path" },
+    { "component": "webr_initialization", "e1": "not_applicable_native_path", "e4": "not_applicable_native_path" },
+    { "component": "wrapped_package_import", "e1": "not_performed", "e4": "not_applicable_native_path" },
+    { "component": "public_spectrum_catalog_fetch", "e1": "measured", "e4": "not_measured_synthetic_in_memory" },
+    { "component": "native_fitting", "e1": "measured", "e4": "measured" },
+    { "component": "adapter_fitting", "e1": "not_performed", "e4": "not_applicable" },
+    { "component": "qc_evidence_generation", "e1": "measured", "e4": "single_sample_only" },
+    { "component": "bootstrap_computation", "e1": "not_performed", "e4": "measured" },
+    { "component": "plot_rendering", "e1": "not_measured_as_plot; DOM_report_render_measured", "e4": "not_measured" },
+    { "component": "report_serialization", "e1": "measured", "e4": "single_sample_only" },
+    { "component": "end_to_end_elapsed", "e1": "measured", "e4": "measured_cold_and_warm" },
+    { "component": "peak_memory", "e1": "observed_js_heap_if_exposed", "e4": "observed_js_heap_if_exposed" }
+  ]
+}

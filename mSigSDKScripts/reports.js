@@ -39,6 +39,203 @@ const FAIR_REFERENCE = {
 
 const REPORT_SCHEMA_VERSION = "msig.report.v0.3";
 const REPORT_VERSION = "0.3.0";
+const REPRODUCIBILITY_SCHEMA_VERSION = "msig.reproducibility.v0.1";
+const REPRODUCIBILITY_REQUIREMENTS = Object.freeze([
+  "sdkArtifact",
+  "adapterImplementations",
+  "runtimeAndPackageArtifacts",
+  "lockfilesOrArtifactHashes",
+  "localInputHashes",
+  "signatureCatalogPayload",
+  "contextOrder",
+  "analysisParameters",
+  "randomNumberGeneration",
+  "reportSchema",
+  "executionEnvironment",
+  "archivedTestData",
+  "rerunScripts",
+]);
+
+function hasEvidence(value) {
+  if (value === null || value === undefined || value === "") {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  if (typeof value === "object") {
+    return Object.keys(value).length > 0;
+  }
+  return true;
+}
+
+const SHA256_PATTERN = /^[a-f0-9]{64}$/i;
+const GIT_COMMIT_PATTERN = /^[a-f0-9]{7,40}$/i;
+
+function hasSha256(value) {
+  if (typeof value === "string") {
+    return SHA256_PATTERN.test(value);
+  }
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  if (SHA256_PATTERN.test(String(value.sha256 || value.value || ""))) {
+    return true;
+  }
+  if (Array.isArray(value.files)) {
+    return value.files.length > 0 && value.files.every((file) => hasSha256(file));
+  }
+  return false;
+}
+
+function hasRecoverableImmutableReference(value) {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      typeof value.source === "string" &&
+      value.source.trim() &&
+      (value.immutable === true || value.embedded === true) &&
+      (typeof value.archiveUri === "string" || value.embedded === true)
+  );
+}
+
+function hasNamedHashEntries(value, { requireRecoverable = false } = {}) {
+  const entries = Array.isArray(value)
+    ? value
+    : value && typeof value === "object"
+      ? Object.entries(value).map(([name, entry]) => ({ name, ...entry }))
+      : [];
+  return (
+    entries.length > 0 &&
+    entries.every(
+      (entry) =>
+        typeof entry === "object" &&
+        (Boolean(entry.path || entry.name || entry.uri || entry.reference)) &&
+        hasSha256(entry) &&
+        (!requireRecoverable || hasRecoverableImmutableReference(entry))
+    )
+  );
+}
+
+function validEvidence(requirement, value) {
+  if (!hasEvidence(value)) {
+    return false;
+  }
+  switch (requirement) {
+    case "sdkArtifact":
+      return Boolean(
+        value &&
+          typeof value === "object" &&
+          GIT_COMMIT_PATTERN.test(String(value.commit || "")) &&
+          hasSha256(value.releaseArtifact) &&
+          hasRecoverableImmutableReference(value.releaseArtifact)
+      );
+    case "adapterImplementations":
+    case "runtimeAndPackageArtifacts":
+    case "lockfilesOrArtifactHashes":
+    case "localInputHashes":
+    case "archivedTestData":
+    case "rerunScripts":
+      return hasNamedHashEntries(value, { requireRecoverable: true });
+    case "signatureCatalogPayload":
+      return Boolean(
+        value &&
+          typeof value === "object" &&
+          hasSha256(value.payloadSha256 || value.payload || value) &&
+          hasRecoverableImmutableReference(value) &&
+          (value.contextOrderSha256 ? hasSha256(value.contextOrderSha256) : true)
+      );
+    case "contextOrder":
+      return Boolean(
+        value &&
+          Array.isArray(value.values) &&
+          value.values.length > 0 &&
+          hasSha256(value.sha256 || value) &&
+          hasRecoverableImmutableReference(value)
+      );
+    case "analysisParameters":
+      return Boolean(
+        value &&
+          typeof value === "object" &&
+          ["fitting", "filtering", "bootstrap", "qc"].every(
+            (key) => value[key] && typeof value[key] === "object"
+          )
+      );
+    case "randomNumberGeneration":
+      return Boolean(
+        value &&
+          typeof value === "object" &&
+          typeof value.algorithm === "string" &&
+          value.algorithm.length > 0 &&
+          value.seed !== undefined &&
+          value.seed !== null
+      );
+    case "reportSchema":
+      return Boolean(
+        value &&
+          typeof value === "object" &&
+          typeof value.schemaVersion === "string" &&
+          typeof value.version === "string"
+      );
+    case "executionEnvironment":
+      return Boolean(
+        value &&
+          typeof value === "object" &&
+          Object.keys(value).some((key) => /runtime|browser|node|python|rVersion/i.test(key)) &&
+          Object.keys(value).some((key) => /platform|os|operatingSystem/i.test(key))
+      );
+    default:
+      return false;
+  }
+}
+
+function createReproducibilityRecord({
+  evidence = {},
+  notes = [],
+} = {}) {
+  const normalizedEvidence = Object.fromEntries(
+    REPRODUCIBILITY_REQUIREMENTS.map((requirement) => [
+      requirement,
+      evidence[requirement] ?? null,
+    ])
+  );
+  const missingRequirements = REPRODUCIBILITY_REQUIREMENTS.filter(
+    (requirement) => !hasEvidence(normalizedEvidence[requirement])
+  );
+  const invalidRequirements = REPRODUCIBILITY_REQUIREMENTS.filter(
+    (requirement) =>
+      hasEvidence(normalizedEvidence[requirement]) &&
+      !validEvidence(requirement, normalizedEvidence[requirement])
+  );
+  const computationallyReproducible =
+    missingRequirements.length === 0 && invalidRequirements.length === 0;
+
+  return {
+    schemaVersion: REPRODUCIBILITY_SCHEMA_VERSION,
+    claim: computationallyReproducible
+      ? "computationally_reproducible_analysis_record"
+      : "portable_schema_validated_analysis_record",
+    auditability: {
+      status: "supported",
+      basis: "The record preserves the reported method, parameters, provenance, warnings, and evidence fields.",
+    },
+    portability: {
+      status: "supported",
+      basis: "The record is represented by the versioned mSigSDK report schema and can be consumed without the originating UI.",
+    },
+    computationalReproducibility: {
+      status: computationallyReproducible ? "supported" : "not_established",
+      basis: computationallyReproducible
+        ? "All required immutable execution artifacts and rerun references are present in the record."
+        : "A checksum can detect a changed or unavailable resource but cannot recover it; rerun claims require every listed immutable artifact reference.",
+      missingRequirements,
+      invalidRequirements,
+    },
+    requirements: [...REPRODUCIBILITY_REQUIREMENTS],
+    evidence: normalizedEvidence,
+    notes: Array.isArray(notes) ? notes : [notes],
+  };
+}
 
 function collectReferences(value, seen = new Set()) {
   if (!value || typeof value !== "object") {
@@ -80,6 +277,7 @@ function collectReferences(value, seen = new Set()) {
  * @param {Object} [reportInput.exposures=null] - Exposure matrix or summary.
  * @param {Object} [reportInput.extraction=null] - Signature extraction summary.
  * @param {Object} [reportInput.provenance=null] - Provenance record.
+ * @param {Object} [reportInput.reproducibility=null] - Immutable artifact evidence used to classify rerun support.
  * @param {string[]} [reportInput.citations=[]] - Citations to include.
  * @param {string|string[]} [reportInput.notes=[]] - Free-text report notes.
  * @param {string} [reportInput.workflowRole=null] - Optional workflow role label.
@@ -115,6 +313,7 @@ function createAnalysisReport(
     methodBasis = null,
     primaryInterpretationFields = [],
     reproducibilityStatement = null,
+    reproducibility = null,
   } = {},
   { format = "object" } = {}
 ) {
@@ -124,6 +323,18 @@ function createAnalysisReport(
     FAIR_REFERENCE,
   ];
   const deduplicatedCitations = collectReferences({ references: collectedCitations });
+  const reproducibilityRecord = createReproducibilityRecord({
+    ...(reproducibility || {}),
+    evidence: {
+      ...(reproducibility?.evidence || {}),
+      analysisParameters:
+        reproducibility?.evidence?.analysisParameters ?? parameters,
+      reportSchema: reproducibility?.evidence?.reportSchema ?? {
+        schemaVersion: REPORT_SCHEMA_VERSION,
+        version: REPORT_VERSION,
+      },
+    },
+  });
   const report = {
     schemaVersion: REPORT_SCHEMA_VERSION,
     version: REPORT_VERSION,
@@ -136,7 +347,8 @@ function createAnalysisReport(
     primaryInterpretationFields,
     reproducibilityStatement:
       reproducibilityStatement ||
-      "This report records SDK version, parameters, method-basis citations, and available provenance fields in support of FAIR-style reuse. Remote catalogs, genome APIs, and user-supplied reference data should be pinned for long-term reproducibility.",
+      `This is a ${reproducibilityRecord.claim.replaceAll("_", " ")}. Auditability and portability are supported; computational reproducibility is ${reproducibilityRecord.computationalReproducibility.status === "supported" ? "supported by the recorded immutable artifacts" : "not established unless all listed immutable execution artifacts and rerun references are supplied"}.`,
+    reproducibility: reproducibilityRecord,
     parameters,
     validation,
     qc,
@@ -176,7 +388,8 @@ function createAnalysisReportHTML(report) {
     ["Signature Extraction", report.extraction],
     ["Method Basis", report.methodBasis],
     ["Primary Interpretation Fields", report.primaryInterpretationFields],
-    ["Reproducibility", report.reproducibilityStatement],
+    ["Reproducibility", report.reproducibility],
+    ["Reproducibility statement", report.reproducibilityStatement],
     ["Provenance", report.provenance],
     ["Citations", report.citations],
     ["Notes", report.notes],
@@ -248,5 +461,7 @@ function downloadAnalysisReport(report, filename = "msig-analysis-report.html") 
 export {
   createAnalysisReport,
   createAnalysisReportHTML,
+  createReproducibilityRecord,
+  REPRODUCIBILITY_REQUIREMENTS,
   downloadAnalysisReport,
 };

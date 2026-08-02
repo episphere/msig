@@ -416,6 +416,7 @@ function normalizeProfileRows(data, groupBy = "project_code", tcga = false) {
         raw: lowerRow,
         originalRow: rawRow,
         index: rows.length,
+        eventId: lowerRow.eventid || lowerRow.event_id || null,
         rowIndex,
         sample: String(sample),
         chromosome,
@@ -567,6 +568,7 @@ async function buildSbsTraceRow(row, profileDefinition, options) {
   return {
     profileKey: profileDefinition.key,
     index: row.index,
+    eventId: row.eventId,
     rowIndices: [row.index],
     sample: row.sample,
     chromosome: row.chromosome,
@@ -617,7 +619,9 @@ function buildDbsTraceRow(rows, profileDefinition) {
   const finalBin = standardizeDbsContext(ref, alt, contexts);
   let skippedReason = "";
 
-  if (!finalBin) {
+  if (!firstRow.chromosome || !Number.isFinite(firstRow.startPosition)) {
+    skippedReason = "missing coordinate";
+  } else if (!finalBin) {
     skippedReason = secondRow
       ? "adjacent SNV pair is not a valid DBS78 substitution"
       : "not a valid dinucleotide substitution";
@@ -626,6 +630,8 @@ function buildDbsTraceRow(rows, profileDefinition) {
   return {
     profileKey: profileDefinition.key,
     index: firstRow.index,
+    eventId: firstRow.eventId,
+    eventIds: rows.map((row) => row.eventId).filter(Boolean),
     rowIndices: rows.map((row) => row.index),
     sample: firstRow.sample,
     chromosome: firstRow.chromosome,
@@ -651,6 +657,7 @@ function buildSkippedProfileTraceRow(row, profileDefinition, skippedReason) {
   return {
     profileKey: profileDefinition.key,
     index: row.index,
+    eventId: row.eventId,
     rowIndices: [row.index],
     sample: row.sample,
     chromosome: row.chromosome,
@@ -675,6 +682,7 @@ function buildDbsTrace(rows, profileDefinition) {
   const representedRows = new Set();
   const pairedRows = new Set();
   const usedSnvRows = new Set();
+  const unsupportedChainRows = new Set();
   const directRows = rows.filter(
     (row) =>
       variantTypeIsDbs(row.variantType) ||
@@ -701,12 +709,34 @@ function buildDbsTrace(rows, profileDefinition) {
       a.startPosition - b.startPosition
     );
 
+  for (let index = 0; index < snvRows.length;) {
+    const chain = [snvRows[index]];
+    while (index + chain.length < snvRows.length) {
+      const previous = chain[chain.length - 1];
+      const next = snvRows[index + chain.length];
+      if (
+        next.sample !== previous.sample ||
+        next.chromosome !== previous.chromosome ||
+        next.startPosition !== previous.startPosition + 1
+      ) {
+        break;
+      }
+      chain.push(next);
+    }
+    if (chain.length > 2) {
+      chain.forEach((row) => unsupportedChainRows.add(row.index));
+    }
+    index += chain.length;
+  }
+
   for (let index = 0; index < snvRows.length - 1; index += 1) {
     const current = snvRows[index];
     const next = snvRows[index + 1];
     if (
       usedSnvRows.has(current.index) ||
       usedSnvRows.has(next.index) ||
+      unsupportedChainRows.has(current.index) ||
+      unsupportedChainRows.has(next.index) ||
       current.sample !== next.sample ||
       current.chromosome !== next.chromosome ||
       next.startPosition !== current.startPosition + 1
@@ -725,6 +755,10 @@ function buildDbsTrace(rows, profileDefinition) {
 
   rows.forEach((row) => {
     if (representedRows.has(row.index) || pairedRows.has(row.index)) {
+      return;
+    }
+    if (unsupportedChainRows.has(row.index)) {
+      traces.push(buildSkippedProfileTraceRow(row, profileDefinition, "complex/unsupported DBS chain"));
       return;
     }
     const isSingleSnv =
@@ -795,11 +829,18 @@ function inferIndelEvent(row) {
 function buildId83TraceRow(row, profileDefinition) {
   const contexts = profileDefinition.contexts || [];
   const directContext = getDirectId83Context(row, contexts);
-  const event = inferIndelEvent(row);
+  const canonicalAlleles =
+    (!row.referenceAllele || /^[ACGT]+$/.test(row.referenceAllele)) &&
+    (!row.alternateAllele || /^[ACGT]+$/.test(row.alternateAllele));
+  const event = canonicalAlleles ? inferIndelEvent(row) : null;
   let finalBin = directContext;
   let skippedReason = "";
 
-  if (!finalBin && event) {
+  if (!row.chromosome || !Number.isFinite(row.startPosition)) {
+    skippedReason = "missing coordinate";
+  } else if (!canonicalAlleles) {
+    skippedReason = "insertion/deletion annotation is not a valid ID83 bin";
+  } else if (!finalBin && event) {
     const length = Math.max(1, Math.min(5, cleanAllele(event.sequence).length));
     if (length === 1) {
       const base = normalizeIndelBase(event.sequence);
@@ -809,29 +850,43 @@ function buildId83TraceRow(row, profileDefinition) {
         0;
       finalBin = base ? `1:${event.kind}:${base}:${repeatIndex}` : null;
     } else {
+      const repeatAnnotation = firstFiniteField(row, [
+        "repeat_index",
+        "repeat_units",
+        "repeat_count",
+      ]);
+      const microhomologyAnnotation = firstFiniteField(row, [
+        "microhomology",
+        "microhomology_length",
+        "mh_length",
+      ]);
+      if (repeatAnnotation === null && microhomologyAnnotation === null) {
+        skippedReason = "multi-base indel requires repeat/microhomology annotation";
+      }
       const microhomology =
         event.kind === "Del"
-          ? firstFiniteField(row, ["microhomology", "microhomology_length", "mh_length"])
+          ? microhomologyAnnotation
           : null;
       const repeatIndex =
-        firstFiniteField(row, ["repeat_index", "repeat_units", "repeat_count"]) ?? 0;
-      if (microhomology && event.kind === "Del") {
+        repeatAnnotation ?? 0;
+      if (!skippedReason && microhomology && event.kind === "Del") {
         finalBin = `${length}:Del:M:${Math.max(1, Math.min(5, microhomology))}`;
-      } else {
+      } else if (!skippedReason) {
         finalBin = `${length}:${event.kind}:R:${repeatIndex}`;
       }
     }
   }
 
-  if (!event && !directContext) {
+  if (!skippedReason && !event && !directContext) {
     skippedReason = "not an insertion or deletion";
-  } else if (!finalBin || !contexts.includes(finalBin)) {
+  } else if (!skippedReason && (!finalBin || !contexts.includes(finalBin))) {
     skippedReason = "insertion/deletion annotation is not a valid ID83 bin";
   }
 
   return {
     profileKey: profileDefinition.key,
     index: row.index,
+    eventId: row.eventId,
     rowIndices: [row.index],
     sample: row.sample,
     chromosome: row.chromosome,
@@ -883,6 +938,7 @@ function buildProfileAudit(profileKeyValue, traces, spectra, sourceRows = null) 
         sample,
         inputRows: sourceRowsForSample.length,
         countedRows: countedRowsForSample.size,
+        skippedRows: Math.max(0, sourceRowsForSample.length - countedRowsForSample.size),
         countedEvents: traces.filter((row) => row.sample === sample && row.counted).length,
         spectrumTotal: total,
         nonZeroContexts: Object.values(spectra[sample] || {}).filter((value) => Number(value) > 0).length,

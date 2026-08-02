@@ -315,6 +315,8 @@ function e3Table(result) {
   const scipyNnls = rowsById.get("nnls_vs_scipy");
   const rNnls = rowsById.get("nnls_vs_r_nnls");
   const nmf = rowsById.get("nmf_vs_sklearn");
+  const nmfPairedRuns = nmf?.pairedRuns || [];
+  const nmfConvergedRuns = nmfPairedRuns.filter((run) => run.sdkConverged && run.referenceConverged).length;
   const nnlsMax = Math.max(
     Number(scipyNnls?.maxAbsoluteDifference) || 0,
     Number(rNnls?.maxAbsoluteDifference) || 0
@@ -330,13 +332,13 @@ function e3Table(result) {
     {
       "SDK area": "NMF extraction",
       "Independent reference": nmf?.reference || "scikit-learn NMF",
-      "What was checked": `Reconstruction error and similarity of matched NMF components across ${nmf?.sampleCount || ""} planted low-rank spectra.`,
-      Outcome: `SDK reconstruction error was ${formatNumber(nmf?.reconstructionErrorRatio, 3)}x the reference, with median component cosine ${formatNumber(nmf?.medianMatchedComponentCosine, 3)}; this met the pre-set rule of no more than 5% worse reconstruction error and cosine >= 0.95.`,
+      "What was checked": `${nmf?.restarts || "12"} paired restarts on ${nmf?.sampleCount || ""} planted low-rank spectra using the same positive W/H starts, Frobenius objective, maximum iterations, tolerance, and exact maximum-total-cosine component matching.`,
+      Outcome: `Median SDK/reference error ratio ${formatNumber(nmf?.reconstructionErrorRatio, 6)}x; median matched component cosine ${formatNumber(nmf?.medianMatchedComponentCosine, 6)}; ${nmfConvergedRuns}/${nmfPairedRuns.length || nmf?.restarts || 12} paired runs converged in both implementations.`,
     },
   ];
   return {
     caption: "Table E3. Internal numerical solver reference checks.",
-    note: "Validation bounds were set before inspecting these results and are numerical reproducibility checks, not biological decision cutoffs. NNLS fitting is expected to match independent solvers up to floating-point tolerance. NMF is stochastic and non-unique, so it was evaluated by reconstruction error and matched-component cosine rather than exact matrix equality.",
+    note: "Validation bounds were set before inspecting these results and are numerical reproducibility checks, not biological decision cutoffs. NNLS fitting is expected to match independent solvers up to floating-point tolerance. NMF is stochastic and non-unique, so the comparison used 12 paired restarts with shared initialization matrices, matched Frobenius objectives, stopping settings, and exact one-to-one component matching; convergence was recorded separately for each implementation.",
     columns: ["SDK area", "Independent reference", "What was checked", "Outcome"],
     rows: rows.length ? rows : [{ "SDK area": "missing", "Independent reference": "", "What was checked": "", Outcome: result.status }],
   };
@@ -363,7 +365,7 @@ function e4Table(result) {
   });
   return {
     caption: "Table E4. Browser runtime benchmarks.",
-    note: "Each available browser is run for five repeats per scenario by default; unavailable browsers are explicitly retained.",
+    note: "Each available browser is run for 20 isolated repeats per scenario with cold and warm phases; unavailable browsers are explicitly retained.",
     columns: ["Browser", "Scenario", "Repeats", "Median seconds", "Mean seconds", "Status"],
     rows: rows.length ? rows : [{ Browser: "missing", Scenario: "", Repeats: "", "Median seconds": "", "Mean seconds": "", Status: result.status }],
   };

@@ -1,0 +1,903 @@
+{
+  "schemaVersion": "msig.maf_conversion_validation_fixture.v0.1",
+  "description": "Fixed, edge-focused cross-generator fixture for sparse spot-check validation of MAF-to-profile conversion.",
+  "genomeBuilds": ["hg19", "hg38"],
+  "externalComparator": {
+    "name": "SigProfilerMatrixGenerator",
+    "package": "SigProfilerMatrixGenerator",
+    "version": "1.3.6",
+    "referenceNames": {
+      "hg19": "GRCh37",
+      "hg38": "GRCh38"
+    }
+  },
+  "cases": [
+    {
+      "id": "sbs_pyrimidine_t_c",
+      "profile": "SBS",
+      "category": "valid",
+      "sample": "sbs-t-c",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000000,
+          "reference_allele": "T",
+          "tumor_seq_allele2": "C",
+          "variant_type": "SNP",
+          "expected_context5": "CGTGG"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000000,
+          "reference_allele": "G",
+          "tumor_seq_allele2": "A",
+          "variant_type": "SNP",
+          "expected_context5": "CGGGT"
+        }
+      }
+    },
+    {
+      "id": "sbs_purine_orientation",
+      "profile": "SBS",
+      "category": "valid",
+      "sample": "sbs-purine-a-c",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000100,
+          "reference_allele": "A",
+          "tumor_seq_allele2": "C",
+          "variant_type": "SNP",
+          "expected_context5": "GAAAA"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000100,
+          "reference_allele": "G",
+          "tumor_seq_allele2": "A",
+          "variant_type": "SNP",
+          "expected_context5": "GCGCG"
+        }
+      }
+    },
+    {
+      "id": "sbs_purine_g_a",
+      "profile": "SBS",
+      "category": "valid",
+      "sample": "sbs-purine-g-a",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000200,
+          "reference_allele": "G",
+          "tumor_seq_allele2": "A",
+          "variant_type": "SNP",
+          "expected_context5": "GCGGG"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000200,
+          "reference_allele": "C",
+          "tumor_seq_allele2": "A",
+          "variant_type": "SNP",
+          "expected_context5": "CGCGC"
+        }
+      }
+    },
+    {
+      "id": "sbs_t_a",
+      "profile": "SBS",
+      "category": "valid",
+      "sample": "sbs-t-a",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000300,
+          "reference_allele": "T",
+          "tumor_seq_allele2": "A",
+          "variant_type": "SNP",
+          "expected_context5": "TGTGG"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000300,
+          "reference_allele": "C",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP",
+          "expected_context5": "CACCG"
+        }
+      }
+    },
+    {
+      "id": "sbs_purine_g_c",
+      "profile": "SBS",
+      "category": "valid",
+      "sample": "sbs-purine-g-c",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000400,
+          "reference_allele": "G",
+          "tumor_seq_allele2": "C",
+          "variant_type": "SNP",
+          "expected_context5": "GGGGC"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000400,
+          "reference_allele": "C",
+          "tumor_seq_allele2": "G",
+          "variant_type": "SNP",
+          "expected_context5": "CCCCG"
+        }
+      }
+    },
+    {
+      "id": "sbs_purine_g_t",
+      "profile": "SBS",
+      "category": "valid",
+      "sample": "sbs-purine-g-t",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000500,
+          "reference_allele": "G",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP",
+          "expected_context5": "GGGGG"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000500,
+          "reference_allele": "G",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP",
+          "expected_context5": "AGGAA"
+        }
+      }
+    },
+    {
+      "id": "dbs_explicit_dnp",
+      "profile": "DBS",
+      "category": "valid",
+      "sample": "dbs-dnp",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000300,
+          "reference_allele": "TG",
+          "tumor_seq_allele2": "CA",
+          "variant_type": "DNP"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000300,
+          "reference_allele": "CC",
+          "tumor_seq_allele2": "AA",
+          "variant_type": "DNP"
+        }
+      }
+    },
+    {
+      "id": "dbs_adjacent_snv_pair",
+      "profile": "DBS",
+      "category": "valid",
+      "sample": "dbs-pair",
+      "builds": {
+        "hg19": [
+          {
+            "chromosome": "1",
+            "start_position": 1000400,
+            "reference_allele": "G",
+            "tumor_seq_allele2": "A",
+            "variant_type": "SNP"
+          },
+          {
+            "chromosome": "1",
+            "start_position": 1000401,
+            "reference_allele": "G",
+            "tumor_seq_allele2": "C",
+            "variant_type": "SNP"
+          }
+        ],
+        "hg38": [
+          {
+            "chromosome": "1",
+            "start_position": 1000400,
+            "reference_allele": "C",
+            "tumor_seq_allele2": "T",
+            "variant_type": "SNP"
+          },
+          {
+            "chromosome": "1",
+            "start_position": 1000401,
+            "reference_allele": "C",
+            "tumor_seq_allele2": "G",
+            "variant_type": "SNP"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dbs_explicit_dnp_second",
+      "profile": "DBS",
+      "category": "valid",
+      "sample": "dbs-dnp-second",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000500,
+          "reference_allele": "GG",
+          "tumor_seq_allele2": "TT",
+          "variant_type": "DNP"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000500,
+          "reference_allele": "GG",
+          "tumor_seq_allele2": "TT",
+          "variant_type": "DNP"
+        }
+      }
+    },
+    {
+      "id": "dbs_triple_adjacent_snv_chain",
+      "profile": "DBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "dbs-triple",
+      "expectedSdkSkipReason": "complex/unsupported DBS chain",
+      "builds": {
+        "hg19": [
+          {
+            "chromosome": "1",
+            "start_position": 1000450,
+            "reference_allele": "G",
+            "tumor_seq_allele2": "A",
+            "variant_type": "SNP"
+          },
+          {
+            "chromosome": "1",
+            "start_position": 1000451,
+            "reference_allele": "G",
+            "tumor_seq_allele2": "C",
+            "variant_type": "SNP"
+          },
+          {
+            "chromosome": "1",
+            "start_position": 1000452,
+            "reference_allele": "G",
+            "tumor_seq_allele2": "T",
+            "variant_type": "SNP"
+          }
+        ],
+        "hg38": [
+          {
+            "chromosome": "1",
+            "start_position": 1000450,
+            "reference_allele": "G",
+            "tumor_seq_allele2": "A",
+            "variant_type": "SNP"
+          },
+          {
+            "chromosome": "1",
+            "start_position": 1000451,
+            "reference_allele": "G",
+            "tumor_seq_allele2": "C",
+            "variant_type": "SNP"
+          },
+          {
+            "chromosome": "1",
+            "start_position": 1000452,
+            "reference_allele": "C",
+            "tumor_seq_allele2": "G",
+            "variant_type": "SNP"
+          }
+        ]
+      }
+    },
+    {
+      "id": "id_single_base_insertion",
+      "profile": "ID",
+      "category": "valid",
+      "sample": "id-insertion",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000600,
+          "reference_allele": "-",
+          "tumor_seq_allele2": "C",
+          "variant_type": "INS",
+          "homopolymer_length": 1
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000600,
+          "reference_allele": "-",
+          "tumor_seq_allele2": "C",
+          "variant_type": "INS",
+          "homopolymer_length": 1
+        }
+      }
+    },
+    {
+      "id": "id_single_base_deletion",
+      "profile": "ID",
+      "category": "valid",
+      "sample": "id-deletion",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000503,
+          "reference_allele": "T",
+          "tumor_seq_allele2": "-",
+          "variant_type": "DEL",
+          "homopolymer_length": 1
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000002,
+          "reference_allele": "T",
+          "tumor_seq_allele2": "-",
+          "variant_type": "DEL",
+          "homopolymer_length": 1
+        }
+      }
+    },
+    {
+      "id": "sbs_wrong_reference",
+      "profile": "SBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "sbs-adverse",
+      "expectedSdkSkipReason": "reference allele does not match context center",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000000,
+          "reference_allele": "A",
+          "tumor_seq_allele2": "C",
+          "variant_type": "SNP"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000000,
+          "reference_allele": "A",
+          "tumor_seq_allele2": "C",
+          "variant_type": "SNP"
+        }
+      }
+    },
+    {
+      "id": "sbs_multiallelic_alt",
+      "profile": "SBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "sbs-adverse",
+      "expectedSdkSkipReason": "ref/alt are not single A/C/G/T bases",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000100,
+          "reference_allele": "A",
+          "tumor_seq_allele2": "C,G",
+          "variant_type": "SNP"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000100,
+          "reference_allele": "C",
+          "tumor_seq_allele2": "A,G",
+          "variant_type": "SNP"
+        }
+      }
+    },
+    {
+      "id": "sbs_wrong_variant_type",
+      "profile": "SBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "sbs-adverse-wrong-type",
+      "expectedSdkSkipReason": "not a single-nucleotide variant",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000200,
+          "reference_allele": "G",
+          "tumor_seq_allele2": "A",
+          "variant_type": "INDEL"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000200,
+          "reference_allele": "G",
+          "tumor_seq_allele2": "A",
+          "variant_type": "INDEL"
+        }
+      }
+    },
+    {
+      "id": "sbs_ambiguous_context",
+      "profile": "SBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "sbs-adverse",
+      "context": "NNNNN",
+      "expectedSdkSkipReason": "reference allele does not match context center",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000900,
+          "reference_allele": "C",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP",
+          "context": "NNNNN"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000900,
+          "reference_allele": "C",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP",
+          "context": "NNNNN"
+        }
+      }
+    },
+    {
+      "id": "sbs_invalid_chromosome",
+      "profile": "SBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "sbs-adverse",
+      "expectedSdkSkipReason": "missing coordinate",
+      "builds": {
+        "hg19": {
+          "chromosome": "chrUn",
+          "start_position": 100,
+          "reference_allele": "C",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP"
+        },
+        "hg38": {
+          "chromosome": "chrUn",
+          "start_position": 100,
+          "reference_allele": "C",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP"
+        }
+      }
+    },
+    {
+      "id": "sbs_missing_coordinate",
+      "profile": "SBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "sbs-adverse-coordinate",
+      "expectedSdkSkipReason": "missing coordinate",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "reference_allele": "C",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "reference_allele": "C",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP"
+        }
+      }
+    },
+    {
+      "id": "sbs_noninteger_coordinate",
+      "profile": "SBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "sbs-adverse-coordinate",
+      "expectedSdkSkipReason": "missing coordinate",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": "not-an-integer",
+          "reference_allele": "C",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": "not-an-integer",
+          "reference_allele": "C",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP"
+        }
+      }
+    },
+    {
+      "id": "sbs_ambiguous_allele",
+      "profile": "SBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "sbs-adverse-allele",
+      "expectedSdkSkipReason": "ref/alt are not single A/C/G/T bases",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000900,
+          "reference_allele": "N",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000900,
+          "reference_allele": "N",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP"
+        }
+      }
+    },
+    {
+      "id": "sbs_undersized_context",
+      "profile": "SBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "sbs-adverse-context",
+      "context": "AC",
+      "expectedSdkSkipReasons": {
+        "SBS96": "missing 3-base reference context",
+        "SBS1536": "missing 5-base reference context"
+      },
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000900,
+          "reference_allele": "C",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP",
+          "context": "AC"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000900,
+          "reference_allele": "C",
+          "tumor_seq_allele2": "T",
+          "variant_type": "SNP",
+          "context": "AC"
+        }
+      }
+    },
+    {
+      "id": "dbs_unpaired_snv",
+      "profile": "DBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "dbs-adverse",
+      "expectedSdkSkipReason": "single SNV is not paired with an adjacent SNV",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000500,
+          "reference_allele": "G",
+          "tumor_seq_allele2": "A",
+          "variant_type": "SNP"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000500,
+          "reference_allele": "A",
+          "tumor_seq_allele2": "C",
+          "variant_type": "SNP"
+        }
+      }
+    },
+    {
+      "id": "dbs_duplicate_dnp",
+      "profile": "DBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "dbs-adverse-duplicate",
+      "expectedSdkCounted": true,
+      "builds": {
+        "hg19": [
+          {
+            "chromosome": "1",
+            "start_position": 1000300,
+            "reference_allele": "TG",
+            "tumor_seq_allele2": "CA",
+            "variant_type": "DNP"
+          },
+          {
+            "chromosome": "1",
+            "start_position": 1000300,
+            "reference_allele": "TG",
+            "tumor_seq_allele2": "CA",
+            "variant_type": "DNP"
+          }
+        ],
+        "hg38": [
+          {
+            "chromosome": "1",
+            "start_position": 1000300,
+            "reference_allele": "CC",
+            "tumor_seq_allele2": "AA",
+            "variant_type": "DNP"
+          },
+          {
+            "chromosome": "1",
+            "start_position": 1000300,
+            "reference_allele": "CC",
+            "tumor_seq_allele2": "AA",
+            "variant_type": "DNP"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dbs_missing_coordinate",
+      "profile": "DBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "dbs-adverse-coordinate",
+      "expectedSdkSkipReason": "missing coordinate",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "reference_allele": "AC",
+          "tumor_seq_allele2": "GT",
+          "variant_type": "DNP"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "reference_allele": "AC",
+          "tumor_seq_allele2": "GT",
+          "variant_type": "DNP"
+        }
+      }
+    },
+    {
+      "id": "dbs_noninteger_coordinate",
+      "profile": "DBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "dbs-adverse-coordinate",
+      "expectedSdkSkipReason": "missing coordinate",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": "not-an-integer",
+          "reference_allele": "AC",
+          "tumor_seq_allele2": "GT",
+          "variant_type": "DNP"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": "not-an-integer",
+          "reference_allele": "AC",
+          "tumor_seq_allele2": "GT",
+          "variant_type": "DNP"
+        }
+      }
+    },
+    {
+      "id": "dbs_invalid_direct_dnp",
+      "profile": "DBS",
+      "category": "ambiguous_or_malformed",
+      "sample": "dbs-adverse-direct",
+      "expectedSdkSkipReason": "not a valid dinucleotide substitution",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000300,
+          "reference_allele": "A",
+          "tumor_seq_allele2": "G",
+          "variant_type": "DNP"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000300,
+          "reference_allele": "A",
+          "tumor_seq_allele2": "G",
+          "variant_type": "DNP"
+        }
+      }
+    },
+    {
+      "id": "id_missing_coordinate",
+      "profile": "ID",
+      "category": "ambiguous_or_malformed",
+      "sample": "id-adverse-coordinate",
+      "expectedSdkSkipReason": "missing coordinate",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "reference_allele": "-",
+          "tumor_seq_allele2": "C",
+          "variant_type": "INS"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "reference_allele": "-",
+          "tumor_seq_allele2": "C",
+          "variant_type": "INS"
+        }
+      }
+    },
+    {
+      "id": "id_noninteger_coordinate",
+      "profile": "ID",
+      "category": "ambiguous_or_malformed",
+      "sample": "id-adverse-coordinate",
+      "expectedSdkSkipReason": "missing coordinate",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": "not-an-integer",
+          "reference_allele": "-",
+          "tumor_seq_allele2": "C",
+          "variant_type": "INS"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": "not-an-integer",
+          "reference_allele": "-",
+          "tumor_seq_allele2": "C",
+          "variant_type": "INS"
+        }
+      }
+    },
+    {
+      "id": "id_complex_replacement",
+      "profile": "ID",
+      "category": "ambiguous_or_malformed",
+      "sample": "id-adverse",
+      "expectedSdkSkipReason": "not an insertion or deletion",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000700,
+          "reference_allele": "ATG",
+          "tumor_seq_allele2": "C",
+          "variant_type": "ONP"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000700,
+          "reference_allele": "ATG",
+          "tumor_seq_allele2": "C",
+          "variant_type": "ONP"
+        }
+      }
+    },
+    {
+      "id": "id_multibase_insertion_without_annotation",
+      "profile": "ID",
+      "category": "ambiguous_or_malformed",
+      "sample": "id-adverse-multibase-ins",
+      "expectedSdkSkipReason": "multi-base indel requires repeat/microhomology annotation",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000700,
+          "reference_allele": "-",
+          "tumor_seq_allele2": "AC",
+          "variant_type": "INS"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000700,
+          "reference_allele": "-",
+          "tumor_seq_allele2": "AC",
+          "variant_type": "INS"
+        }
+      }
+    },
+    {
+      "id": "id_multibase_deletion_without_annotation",
+      "profile": "ID",
+      "category": "ambiguous_or_malformed",
+      "sample": "id-adverse-multibase-del",
+      "expectedSdkSkipReason": "multi-base indel requires repeat/microhomology annotation",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000800,
+          "reference_allele": "AT",
+          "tumor_seq_allele2": "-",
+          "variant_type": "DEL"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000800,
+          "reference_allele": "AT",
+          "tumor_seq_allele2": "-",
+          "variant_type": "DEL"
+        }
+      }
+    },
+    {
+      "id": "id_multibase_insertion_annotated_repeat",
+      "profile": "ID",
+      "category": "ambiguous_or_malformed",
+      "sample": "id-adverse-annotated-ins",
+      "expectedSdkCounted": true,
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000700,
+          "reference_allele": "-",
+          "tumor_seq_allele2": "AC",
+          "variant_type": "INS",
+          "repeat_index": 0
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000700,
+          "reference_allele": "-",
+          "tumor_seq_allele2": "AC",
+          "variant_type": "INS",
+          "repeat_index": 0
+        }
+      }
+    },
+    {
+      "id": "id_multibase_deletion_annotated_microhomology",
+      "profile": "ID",
+      "category": "ambiguous_or_malformed",
+      "sample": "id-adverse-annotated-del",
+      "expectedSdkCounted": true,
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000800,
+          "reference_allele": "AT",
+          "tumor_seq_allele2": "-",
+          "variant_type": "DEL",
+          "microhomology_length": 1
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000800,
+          "reference_allele": "AT",
+          "tumor_seq_allele2": "-",
+          "variant_type": "DEL",
+          "microhomology_length": 1
+        }
+      }
+    },
+    {
+      "id": "id_long_insertion_annotated_repeat",
+      "profile": "ID",
+      "category": "ambiguous_or_malformed",
+      "sample": "id-adverse-long-ins",
+      "expectedSdkCounted": true,
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000700,
+          "reference_allele": "-",
+          "tumor_seq_allele2": "ACGTAC",
+          "variant_type": "INS",
+          "repeat_index": 0
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000700,
+          "reference_allele": "-",
+          "tumor_seq_allele2": "ACGTAC",
+          "variant_type": "INS",
+          "repeat_index": 0
+        }
+      }
+    },
+    {
+      "id": "id_ambiguous_multiallelic",
+      "profile": "ID",
+      "category": "ambiguous_or_malformed",
+      "sample": "id-adverse",
+      "expectedSdkSkipReason": "insertion/deletion annotation is not a valid ID83 bin",
+      "builds": {
+        "hg19": {
+          "chromosome": "1",
+          "start_position": 1000800,
+          "reference_allele": "-",
+          "tumor_seq_allele2": "A,C",
+          "variant_type": "INS"
+        },
+        "hg38": {
+          "chromosome": "1",
+          "start_position": 1000800,
+          "reference_allele": "-",
+          "tumor_seq_allele2": "A,C",
+          "variant_type": "INS"
+        }
+      }
+    }
+  ]
+}

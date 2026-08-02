@@ -22,6 +22,47 @@
     "extraction.rank"
   ],
   "reproducibilityStatement": "Fixture generated for schema validation; no external data were used.",
+  "reproducibility": {
+    "schemaVersion": "msig.reproducibility.v0.1",
+    "claim": "portable_schema_validated_analysis_record",
+    "auditability": { "status": "supported" },
+    "portability": { "status": "supported" },
+    "computationalReproducibility": {
+      "status": "not_established",
+      "missingRequirements": ["immutable_execution_artifacts"]
+    },
+    "requirements": [
+      "sdkArtifact",
+      "adapterImplementations",
+      "runtimeAndPackageArtifacts",
+      "lockfilesOrArtifactHashes",
+      "localInputHashes",
+      "signatureCatalogPayload",
+      "contextOrder",
+      "analysisParameters",
+      "randomNumberGeneration",
+      "reportSchema",
+      "executionEnvironment",
+      "archivedTestData",
+      "rerunScripts"
+    ],
+    "evidence": {
+      "sdkArtifact": null,
+      "adapterImplementations": null,
+      "runtimeAndPackageArtifacts": null,
+      "lockfilesOrArtifactHashes": null,
+      "localInputHashes": null,
+      "signatureCatalogPayload": null,
+      "contextOrder": null,
+      "analysisParameters": null,
+      "randomNumberGeneration": null,
+      "reportSchema": null,
+      "executionEnvironment": null,
+      "archivedTestData": null,
+      "rerunScripts": null
+    },
+    "notes": ["The fixture intentionally does not claim computational rerun support."]
+  },
   "parameters": {
     "profile": "SBS",
     "matrix": 96,

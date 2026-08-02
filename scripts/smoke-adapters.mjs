@@ -2,6 +2,7 @@ import {
   checkDeconstructSigsWebRAvailability,
   checkSigminerWebRAvailability,
   createInteroperabilityBundle,
+  materializeAdapterComparisonExposure,
   prepareDeconstructSigsInput,
   prepareMuSiCalRefitInput,
   prepareSigminerInput,
@@ -37,6 +38,14 @@ const spaInput = prepareSigProfilerAssignmentInput({ spectra, signatures }, { co
 if (spaInput.files.length !== 2 || spaInput.manifest.contextCount !== 96) {
   throw new Error("SigProfilerAssignment input preparation failed.");
 }
+if (
+  spaInput.comparisonContract?.output?.canonicalUnits !== "relative_fractions" ||
+  spaInput.comparisonContract?.contextOrder?.values?.join("|") !== contexts.join("|") ||
+  spaInput.comparisonContract?.reporting?.order !==
+    "Convert to complete-catalog relative fractions first; apply the reporting cutoff second; renormalize retained values third."
+) {
+  throw new Error("Adapter comparison contract did not preserve units, order, and filtering semantics.");
+}
 
 const musicalInput = prepareMuSiCalRefitInput({ spectra, signatures }, { contexts });
 if (musicalInput.files.length !== 2 || musicalInput.manifest.signatureCount !== 2) {
@@ -53,6 +62,20 @@ try {
   if (!/Exact MuSiCal adapter execution requires runtime "pyodide"/.test(error.message)) {
     throw error;
   }
+}
+
+const omittedOutput = materializeAdapterComparisonExposure(
+  { SBS1: 0.25, unassigned: 0.05 },
+  ["SBS1", "SBS5"]
+);
+if (
+  omittedOutput.omittedCatalogColumns.join("|") !== "SBS5" ||
+  omittedOutput.extraOutputColumns.join("|") !== "unassigned" ||
+  omittedOutput.unassignedOutputColumns.join("|") !== "unassigned" ||
+  omittedOutput.relativeFractions.length !== 2 ||
+  omittedOutput.relativeFractions[1] !== 0
+) {
+  throw new Error("Adapter comparison output omission and extra-column handling failed.");
 }
 
 const deconstructInput = prepareDeconstructSigsInput(
@@ -152,6 +175,13 @@ if (JSON.stringify(bundleToolIds) !== JSON.stringify(expectedBundleToolIds)) {
   throw new Error(
     `Interoperability bundle exposed unexpected adapters: ${bundleToolIds.join(", ")}`
   );
+}
+if (
+  bundle.comparisonContract?.schemaVersion !== "msig.adapter-comparison.v0.1" ||
+  bundle.comparisonContract?.reporting?.unassigned === undefined ||
+  bundle.comparisonContract?.options?.packageSpecificOptionsRetained?.length < 5
+) {
+  throw new Error("Interoperability bundle did not expose the semantic comparison contract.");
 }
 
 const runtime = detectPyodideRuntime();

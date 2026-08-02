@@ -178,6 +178,10 @@ function buildNMFResult({
   };
 }
 
+function cloneMatrix(matrix) {
+  return matrix.map((row) => row.slice());
+}
+
 function emitProgress(onProgress, payload) {
   if (typeof onProgress !== "function") return;
   try {
@@ -200,6 +204,8 @@ function runNMF(
     maxIterations,
     tolerance,
     seed,
+    initialW = null,
+    initialH = null,
     onProgress = null,
     progressInterval = null,
     progressContext = {},
@@ -208,8 +214,8 @@ function runNMF(
   const random = seededRandom(seed);
   const contextCount = x.length;
   const sampleCount = x[0]?.length || 0;
-  let w = randomMatrix(contextCount, rank, random);
-  let h = randomMatrix(rank, sampleCount, random);
+  let w = initialW ? cloneMatrix(initialW) : randomMatrix(contextCount, rank, random);
+  let h = initialH ? cloneMatrix(initialH) : randomMatrix(rank, sampleCount, random);
   let previousError = Infinity;
   let converged = false;
   let iterations = 0;
@@ -606,6 +612,8 @@ function compareRankSelectionRuns(currentBest, candidate, criterion) {
  * @param {number} [options.tolerance=1e-5] - Relative improvement threshold for convergence.
  * @param {number} [options.nRuns=20] - Number of random starts.
  * @param {number} [options.seed=123] - Base seed for random starts.
+ * @param {number[][]} [options.initialW=null] - Optional context-by-rank positive initialization for a single matched run.
+ * @param {number[][]} [options.initialH=null] - Optional rank-by-sample positive initialization for a single matched run.
  * @param {string[]} [options.contexts=null] - Context order to use.
  * @param {string[]} [options.sampleNames=null] - Sample order to use.
  * @param {string} [options.signaturePrefix="NMF"] - Prefix for extracted signature names.
@@ -627,6 +635,8 @@ function extractSignaturesNMF(
     tolerance = 1e-5,
     nRuns = 20,
     seed = 123,
+    initialW = null,
+    initialH = null,
     contexts = null,
     sampleNames = null,
     signaturePrefix = "NMF",
@@ -634,8 +644,27 @@ function extractSignaturesNMF(
     progressInterval = null,
   } = {}
 ) {
+  if ((initialW === null) !== (initialH === null)) {
+    throw new Error("initialW and initialH must be provided together.");
+  }
+  if (initialW !== null && nRuns !== 1) {
+    throw new Error("Custom NMF initialization is supported only when nRuns is 1.");
+  }
   const matrixInput = spectraToMatrix(spectra, { contexts, sampleNames });
   const x = matrixInput.matrix;
+  if (initialW !== null) {
+    const contextCount = x.length;
+    const sampleCount = x[0]?.length || 0;
+    const validW = initialW.length === contextCount && initialW.every(
+      (row) => row.length === rank && row.every((value) => Number.isFinite(value) && value >= 0)
+    );
+    const validH = initialH.length === rank && initialH.every(
+      (row) => row.length === sampleCount && row.every((value) => Number.isFinite(value) && value >= 0)
+    );
+    if (!validW || !validH) {
+      throw new Error("Custom NMF initialization dimensions or values do not match the requested rank and matrix.");
+    }
+  }
   const runs = [];
 
   for (let runIndex = 0; runIndex < nRuns; runIndex++) {
@@ -653,6 +682,8 @@ function extractSignaturesNMF(
       maxIterations,
       tolerance,
       seed: seed + runIndex,
+      initialW,
+      initialH,
       onProgress,
       progressInterval,
       progressContext: {

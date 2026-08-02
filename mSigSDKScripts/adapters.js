@@ -25,6 +25,120 @@ import {
 } from "./packageRuntimes.js";
 
 const ADAPTER_SCHEMA_VERSION = "msig.adapters.v0.3";
+const ADAPTER_COMPARISON_CONTRACT_VERSION = "msig.adapter-comparison.v0.1";
+const ADAPTER_COMPARISON_CONTRACT = Object.freeze({
+  schemaVersion: ADAPTER_COMPARISON_CONTRACT_VERSION,
+  purpose:
+    "A semantic evaluation contract for comparing package outputs after execution; a shared matrix shape alone is not a claim of equivalent optimization behavior.",
+  contextOrder: {
+    required: true,
+    representation: "explicit ordered array of context labels",
+    rule: "The exact array is serialized and passed to every adapter; position i has the same context label in spectra and signature matrices.",
+  },
+  input: {
+    spectraUnits:
+      "caller-supplied matrix values; the contract does not silently reinterpret counts as fractions",
+    signatureUnits:
+      "caller-supplied profile values; the comparison layer normalizes each complete signature column before reconstruction metrics",
+    catalogCompleteness:
+      "the complete selected catalog is retained; omitted output signatures are represented as zero in the canonical vector",
+  },
+  output: {
+    canonicalUnits: "relative_fractions",
+    toolNativeUnits: {
+      deconstructSigs:
+        "relative weights returned by whichSignatures, normalized over the complete catalog",
+      sigminer:
+        "relative exposures when type=relative; the parsed vector is normalized over the complete catalog",
+      SigProfilerAssignment:
+        "package-native activity output, converted by the comparison layer to complete-catalog relative fractions",
+      MuSiCal:
+        "package-native refit exposures, converted by the comparison layer to complete-catalog relative fractions",
+    },
+    conversion:
+      "Fill absent signature columns with zero, clamp non-finite/negative values to zero for comparison, then divide each complete vector by its positive total.",
+  },
+  reporting: {
+    cutoff: {
+      value: 0.01,
+      unit: "relative fraction",
+      rule: "values below the cutoff are set to zero",
+    },
+    order:
+      "Convert to complete-catalog relative fractions first; apply the reporting cutoff second; renormalize retained values third.",
+    activeSignature:
+      "a signature is active for reporting when its post-conversion fraction is greater than or equal to the cutoff",
+    inactiveSignature:
+      "an inactive signature remains present in the complete vector with value zero",
+    omittedSignature:
+      "a package-omitted column is not treated as absent evidence; it is zero-filled and counted as an omitted output column",
+    unassigned:
+      "package-specific unassigned or unexplained components are not renamed as a catalog signature; they remain a separate package-native field or are excluded from catalog-vector metrics and explicitly reported",
+  },
+  options: {
+    comparisonSettings: {
+      contextOrder: "input context array",
+      catalog: "complete input catalog",
+      comparisonOutputUnit: "relative_fractions",
+      reportingCutoff: 0.01,
+      cutoffOrder: "before renormalization",
+      randomSeed: null,
+    },
+    packageSpecificOptionsRetained: [
+      "deconstructSigs.signatureCutoff",
+      "sigminer.method",
+      "sigminer.autoReduce",
+      "sigminer.relThreshold",
+      "SigProfilerAssignment.contextType",
+      "SigProfilerAssignment.collapseToSBS96",
+      "SigProfilerAssignment.cosmicVersion",
+      "SigProfilerAssignment.genomeBuild",
+      "MuSiCal.method",
+      "MuSiCal.threshold",
+      "MuSiCal.connectedSigs",
+    ],
+    packageDefaultsNotEquivalentAcrossTools:
+      "Package defaults remain part of each adapter provenance record unless an option is explicitly supplied; they are not treated as matched algorithms.",
+  },
+  interpretationBoundary:
+    "The contract standardizes labels, units, catalog membership, filtering order, and metrics. It does not equalize optimization objective, sparsity, signature selection, normalization internals, or post-processing inside the packages.",
+});
+
+function createAdapterComparisonContract({
+  contexts = [],
+  signatureNames = [],
+  cutoff = ADAPTER_COMPARISON_CONTRACT.reporting.cutoff.value,
+      randomSeed = null,
+} = {}) {
+  return {
+    ...ADAPTER_COMPARISON_CONTRACT,
+    contextOrder: {
+      ...ADAPTER_COMPARISON_CONTRACT.contextOrder,
+      values: normalizeArray(contexts),
+    },
+    catalog: {
+      ...ADAPTER_COMPARISON_CONTRACT.input,
+      signatureNames: normalizeArray(signatureNames),
+      signatureCount: normalizeArray(signatureNames).length,
+      normalization: "each signature column normalized to unit L1 sum before reconstruction metrics",
+    },
+    reporting: {
+      ...ADAPTER_COMPARISON_CONTRACT.reporting,
+      cutoff: {
+        ...ADAPTER_COMPARISON_CONTRACT.reporting.cutoff,
+        value: Number(cutoff),
+      },
+    },
+    options: {
+      ...ADAPTER_COMPARISON_CONTRACT.options,
+      comparisonSettings: {
+        ...ADAPTER_COMPARISON_CONTRACT.options.comparisonSettings,
+        reportingCutoff: Number(cutoff),
+        randomSeed: Number.isFinite(Number(randomSeed)) ? Math.trunc(Number(randomSeed)) : null,
+      },
+    },
+  };
+}
 const bundledPyodideWheelUrl = (filename) =>
   new URL(`../docs/package-repos/pyodide/${filename}`, import.meta.url).href;
 const DEFAULT_SPA_PACKAGE =
@@ -71,6 +185,43 @@ function normalizeArray(value) {
     return [];
   }
   return Array.isArray(value) ? value : [value];
+}
+
+function materializeAdapterComparisonExposure(output, signatureNames = []) {
+  const names = normalizeArray(signatureNames).map((name) => String(name));
+  const record = output && typeof output === "object" && !Array.isArray(output) ? output : {};
+  const outputNames = Object.keys(record);
+  const omittedCatalogColumns = names.filter((name) => !outputNames.includes(name));
+  const extraOutputColumns = outputNames.filter((name) => !names.includes(name));
+  const rawValues = names.map((name) => {
+    const numeric = Number(record[name]);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+  });
+  const total = rawValues.reduce((sum, value) => sum + value, 0);
+  return {
+    signatureNames: names,
+    outputNames,
+    omittedCatalogColumns,
+    extraOutputColumns,
+    rawValues,
+    relativeFractions: total ? rawValues.map((value) => value / total) : rawValues,
+    unassignedOutputColumns: extraOutputColumns.filter((name) =>
+      /unassigned|unexplained|unknown|other/i.test(name)
+    ),
+  };
+}
+
+function normalizeRandomSeed(randomSeed) {
+  if (randomSeed === undefined || randomSeed === null || randomSeed === "") {
+    return null;
+  }
+  const seed = Number(randomSeed);
+  return Number.isFinite(seed) ? Math.trunc(seed) : null;
+}
+
+function rSeedPrelude(randomSeed) {
+  const seed = normalizeRandomSeed(randomSeed);
+  return seed === null ? [] : [`set.seed(${seed})`];
 }
 
 function normalizeContextOrder({ spectra, signatures = null, contexts = null } = {}) {
@@ -289,6 +440,7 @@ function buildAdapterProvenance({
   packageName = null,
   packageVersion = null,
   parameters = {},
+  comparisonContract = null,
   notes = [],
 } = {}) {
   return {
@@ -298,6 +450,7 @@ function buildAdapterProvenance({
     packageName,
     packageVersion,
     parameters,
+    comparisonContract,
     notes: normalizeArray(notes),
     generatedAt: new Date().toISOString(),
   };
@@ -378,6 +531,10 @@ function prepareSigProfilerAssignmentInput(
     signatures: normalizedSignatures,
     contexts,
   });
+  const comparisonContract = createAdapterComparisonContract({
+    contexts: contextOrder,
+    signatureNames: normalizedSignatures ? Object.keys(normalizedSignatures) : [],
+  });
   const files = [
     {
       path: samplePath,
@@ -398,6 +555,7 @@ function prepareSigProfilerAssignmentInput(
     schemaVersion: ADAPTER_SCHEMA_VERSION,
     adapter: "sigprofilerassignment",
     mode: "matrix",
+    comparisonContract,
     files,
     manifest: {
       samplePath,
@@ -412,6 +570,7 @@ function prepareSigProfilerAssignmentInput(
         : null,
       contextCount: contextOrder.length,
       contexts: contextOrder,
+      comparisonContract,
     },
   };
 }
@@ -419,8 +578,19 @@ function prepareSigProfilerAssignmentInput(
 function createSigProfilerAssignmentPython() {
   return `
 import json
+import random
 config = json.loads(MSIG_INPUT_JSON)
 from SigProfilerAssignment import Analyzer as Analyze
+try:
+    import numpy as np
+except Exception:
+    np = None
+
+random_seed = config.get("randomSeed")
+if random_seed is not None:
+    random.seed(int(random_seed))
+    if np is not None:
+        np.random.seed(int(random_seed) % (2 ** 32))
 
 kwargs = {
     "samples": config["samplePath"],
@@ -447,6 +617,7 @@ json.dumps({
     "tool": "SigProfilerAssignment",
     "outputDirectory": config["outputDirectory"],
     "parameters": kwargs,
+    "randomSeed": random_seed,
 })
 `;
 }
@@ -1104,6 +1275,7 @@ function createDeconstructSigsRScript({
   signaturePath = "deconstructsigs_signatures.tsv",
   outputPath = "deconstructsigs_exposures.tsv",
   signatureCutoff = 0.01,
+  randomSeed = null,
   sourceArchiveUrl = null,
   sourceFilePaths = null,
 } = {}) {
@@ -1127,6 +1299,7 @@ function createDeconstructSigsRScript({
     : ["library(deconstructSigs)"];
   return [
     ...loader,
+    ...rSeedPrelude(randomSeed),
     "",
     `spectra <- read.delim(${JSON.stringify(spectraPath)}, check.names = FALSE, row.names = 1)`,
     `signatures <- read.delim(${JSON.stringify(signaturePath)}, check.names = FALSE, row.names = 1)`,
@@ -1181,6 +1354,7 @@ function prepareDeconstructSigsInput(
     signaturePath = "/input/deconstructsigs_signatures.tsv",
     outputPath = "/output/deconstructsigs_exposures.tsv",
     signatureCutoff = 0.01,
+    randomSeed = null,
   } = {}
 ) {
   const normalizedSpectra = normalizeMatrixObject(spectra);
@@ -1190,11 +1364,16 @@ function prepareDeconstructSigsInput(
     signatures: normalizedSignatures,
     contexts,
   });
+  const comparisonContract = createAdapterComparisonContract({
+    contexts: contextOrder,
+    signatureNames: Object.keys(normalizedSignatures),
+  });
 
   return {
     schemaVersion: ADAPTER_SCHEMA_VERSION,
     adapter: "deconstructsigs",
     mode: "r_handoff",
+    comparisonContract,
     files: [
       {
         path: spectraPath,
@@ -1218,12 +1397,15 @@ function prepareDeconstructSigsInput(
       contextCount: contextOrder.length,
       contexts: contextOrder,
       signatureCutoff,
+      randomSeed: normalizeRandomSeed(randomSeed),
+      comparisonContract,
     },
     rSnippet: createDeconstructSigsRScript({
       spectraPath,
       signaturePath,
       outputPath,
       signatureCutoff,
+      randomSeed,
     }),
   };
 }
@@ -1252,8 +1434,10 @@ function createSigminerRScript({
   exposureType = "relative",
   relThreshold = 0,
   mode = "SBS",
+  randomSeed = null,
 } = {}) {
   return [
+    ...rSeedPrelude(randomSeed),
     "if (!requireNamespace(\"sigminer\", quietly = TRUE)) {",
     "  stop(\"The sigminer R package is required for this handoff workflow.\")",
     "}",
@@ -1341,6 +1525,7 @@ function prepareSigminerInput(
     exposureType = "relative",
     relThreshold = 0,
     mode = "SBS",
+    randomSeed = null,
   } = {}
 ) {
   const normalizedSpectra = normalizeMatrixObject(spectra);
@@ -1350,11 +1535,16 @@ function prepareSigminerInput(
     signatures: normalizedSignatures,
     contexts,
   });
+  const comparisonContract = createAdapterComparisonContract({
+    contexts: contextOrder,
+    signatureNames: Object.keys(normalizedSignatures),
+  });
 
   return {
     schemaVersion: ADAPTER_SCHEMA_VERSION,
     adapter: "sigminer",
     mode: "r_handoff",
+    comparisonContract,
     files: [
       {
         path: spectraPath,
@@ -1382,6 +1572,8 @@ function prepareSigminerInput(
       exposureType,
       relThreshold,
       mode,
+      randomSeed: normalizeRandomSeed(randomSeed),
+      comparisonContract,
     },
     rSnippet: createSigminerRScript({
       spectraPath,
@@ -1392,6 +1584,7 @@ function prepareSigminerInput(
       exposureType,
       relThreshold,
       mode,
+      randomSeed,
     }),
   };
 }
@@ -1550,6 +1743,7 @@ async function runDeconstructSigsWebR(
     skipPackageCheck = false,
     timeoutMs = 300000,
     runnerOptions = {},
+    randomSeed = null,
   } = {}
 ) {
   const prepared = prepareDeconstructSigsInput(
@@ -1560,6 +1754,7 @@ async function runDeconstructSigsWebR(
       signaturePath,
       outputPath,
       signatureCutoff,
+      randomSeed,
     }
   );
   const packageOptions = { repositoryUrl, binaryRVersion, packageIndexUrls };
@@ -1611,6 +1806,7 @@ async function runDeconstructSigsWebR(
       packageName: "deconstructSigs",
       packageVersion: getPackageRuntime("deconstructSigs")?.packageVersion || null,
       parameters: prepared.manifest,
+      comparisonContract: prepared.comparisonContract,
       notes:
         "Exact package execution through webR. Availability depends on compatible WebAssembly package builds in the active repository.",
     }),
@@ -1650,6 +1846,7 @@ async function runSigminerWebR(
     skipPackageCheck = false,
     timeoutMs = 300000,
     runnerOptions = {},
+    randomSeed = null,
   } = {}
 ) {
   const prepared = prepareSigminerInput(
@@ -1664,6 +1861,7 @@ async function runSigminerWebR(
       exposureType,
       relThreshold,
       mode,
+      randomSeed,
     }
   );
   const solverPackage = sigminerSolverPackage(method);
@@ -1716,6 +1914,7 @@ async function runSigminerWebR(
       packageName: "sigminer",
       packageVersion: getPackageRuntime("sigminer")?.packageVersion || null,
       parameters: prepared.manifest,
+      comparisonContract: prepared.comparisonContract,
       notes:
         "Exact package execution through webR. Availability depends on compatible WebAssembly package builds in the active repository.",
     }),
@@ -1750,6 +1949,7 @@ async function runSigProfilerAssignment(
     verbose = false,
     timeoutMs = 300000,
     runnerOptions = {},
+    randomSeed = null,
   } = {}
 ) {
   const prepared = prepareSigProfilerAssignmentInput(
@@ -1768,6 +1968,7 @@ async function runSigProfilerAssignment(
     exportProbabilities,
     cpu,
     verbose,
+    randomSeed: normalizeRandomSeed(randomSeed),
   };
   const rawRun = await runPyodide(
     {
@@ -1801,6 +2002,7 @@ async function runSigProfilerAssignment(
       packageName: "SigProfilerAssignment",
       packageVersion: getPackageRuntime("sigProfilerAssignment")?.packageVersion || DEFAULT_SPA_VERSION,
       parameters: config,
+      comparisonContract: prepared.comparisonContract,
       notes:
         "Matrix-mode execution disables plotting and mutation-level probability export for browser compatibility.",
     }),
@@ -1925,11 +2127,16 @@ function prepareMuSiCalRefitInput(
     { spectra: normalizedSpectra, signatures: normalizedSignatures },
     { contexts: contextOrder }
   );
+  const comparisonContract = createAdapterComparisonContract({
+    contexts: contextOrder,
+    signatureNames: Object.keys(normalizedSignatures),
+  });
 
   return {
     schemaVersion: ADAPTER_SCHEMA_VERSION,
     adapter: "musical",
     mode: "refit",
+    comparisonContract,
     files: [
       { path: spectraPath, text: exported.spectra },
       { path: signaturePath, text: exported.signatures },
@@ -1939,6 +2146,7 @@ function prepareMuSiCalRefitInput(
       spectraPath,
       signaturePath,
       contexts: contextOrder,
+      comparisonContract,
     },
   };
 }
@@ -1972,9 +2180,20 @@ function createInteroperabilityBundle(
   } = {}
 ) {
   const normalizedInclude = new Set(include.map((name) => String(name).toLowerCase()));
+  const normalizedSpectra = normalizeMatrixObject(spectra);
+  const normalizedSignatures = signatures ? normalizeMatrixObject(signatures) : null;
+  const bundleContextOrder = normalizeContextOrder({
+    spectra: normalizedSpectra,
+    signatures: normalizedSignatures,
+    contexts,
+  });
   const bundle = {
     schemaVersion: ADAPTER_SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
+    comparisonContract: createAdapterComparisonContract({
+      contexts: bundleContextOrder,
+      signatureNames: normalizedSignatures ? Object.keys(normalizedSignatures) : [],
+    }),
     tools: {},
   };
 
@@ -2021,10 +2240,20 @@ function createInteroperabilityBundle(
 function createMuSiCalRefitPython() {
   return `
 import json
+import random
 import pandas as pd
 from musical.refit import refit
+try:
+    import numpy as np
+except Exception:
+    np = None
 
 config = json.loads(MSIG_INPUT_JSON)
+random_seed = config.get("randomSeed")
+if random_seed is not None:
+    random.seed(int(random_seed))
+    if np is not None:
+        np.random.seed(int(random_seed) % (2 ** 32))
 X = pd.read_csv(config["spectraPath"], sep="\\t", index_col=0)
 W = pd.read_csv(config["signaturePath"], sep="\\t", index_col=0)
 H, model = refit(
@@ -2046,6 +2275,7 @@ json.dumps({
     "method": config.get("method", "likelihood_bidirectional"),
     "threshold": config.get("threshold"),
     "connectedSigs": config.get("connectedSigs", False),
+    "randomSeed": random_seed,
     "exposures": sample_by_signature,
 })
 `;
@@ -2074,6 +2304,7 @@ async function runMuSiCalRefit(
     outputDirectory = "/output/musical",
     timeoutMs = 300000,
     runnerOptions = {},
+    randomSeed = null,
   } = {}
 ) {
   if (runtime !== "pyodide") {
@@ -2101,6 +2332,7 @@ async function runMuSiCalRefit(
     method,
     threshold,
     connectedSigs,
+    randomSeed: normalizeRandomSeed(randomSeed),
   };
   const rawRun = await runPyodide(
     {
@@ -2130,6 +2362,7 @@ async function runMuSiCalRefit(
       packageName: "musical",
       packageVersion: getPackageRuntime("musical")?.packageVersion || null,
       parameters: config,
+      comparisonContract: prepared.comparisonContract,
       notes:
         "Exact MuSiCal package execution through Pyodide. The package must be available through supplied Pyodide-compatible wheels or a preloaded worker environment.",
     }),
@@ -2138,6 +2371,8 @@ async function runMuSiCalRefit(
 
 export {
   ADAPTER_SCHEMA_VERSION,
+  ADAPTER_COMPARISON_CONTRACT_VERSION,
+  ADAPTER_COMPARISON_CONTRACT,
   DEFAULT_SPC_PACKAGE,
   DEFAULT_SPE_PACKAGE,
   DEFAULT_SPMG_PACKAGE,
@@ -2150,6 +2385,8 @@ export {
   PACKAGE_RUNTIME_MANIFEST,
   checkDeconstructSigsWebRAvailability,
   checkSigminerWebRAvailability,
+  createAdapterComparisonContract,
+  materializeAdapterComparisonExposure,
   createInteroperabilityBundle,
   getPackageRuntime,
   listPackageRuntimes,

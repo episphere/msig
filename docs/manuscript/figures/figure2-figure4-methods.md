@@ -1,0 +1,13 @@
+# Figure 2 and Figure 4 methods
+
+## Figure 2: zero-install demonstration
+
+Figure 2 is the E1 zero-install demonstration and uses the native JavaScript mSigSDK path. The run used Chrome 150.0.7871.187 with a fresh persistent browser profile. The local harness served `main.js` and its local assets with `Cache-Control: no-store`; the public PCAWG Lung-AdenoCA SBS96 spectrum request and the full COSMIC v3 GRCh37 SBS96 catalog request used `cache: "no-store"`. The measured interval began at page-load start and ended after the HTML report was inserted into the page and two animation frames had completed; browser launch and URL entry were excluded.
+
+The fitting call was `mSigSDK.qc.fitSpectraWithNNLS` using the native JavaScript NNLS implementation, fitting one PCAWG Lung-AdenoCA SBS96 spectrum against the 67-signature COSMIC SBS96 catalog. D3 was loaded only as the mSigSDK visualization dependency. No adapter, Pyodide runtime, WebR runtime, deconstructSigs, sigminer, SigProfilerAssignment, MuSiCal, or other wrapped-package import was initialized or used. SDK/module import, public spectrum fetch, public catalog fetch, parallel public-fetch critical path, native fitting, reconstruction QC evidence, HTML report serialization, local DOM rendering, and observed JavaScript heap were recorded as separate fields.
+
+## Figure 4: browser runtime benchmark
+
+Figure 4 is the E4 native-JavaScript exposure-solve benchmark, not an adapter or public-fetch benchmark. It used synthetic SBS96 spectra and catalogs generated in the harness and passed in memory. Each cold repeat used a fresh isolated persistent browser profile; its warm repeat reused the loaded page and module. The matrix included Chrome, Edge, and Firefox, five scenarios, cold and warm phases, and 20 repeats per browser/scenario/phase. The single-sample scenario included native NNLS, reconstruction QC evidence, and HTML report serialization, but no plot rendering. Cohort refitting, bootstrap computation, and NMF rank-selection/extraction were separate scenarios.
+
+The raw CSV and JSON retain every observation and component field. SDK/module fetch and import are measured in the cold phase; Pyodide/WebR initialization, wrapped-package import, public spectrum/catalog fetch, and adapter fitting are marked not applicable or not measured for this native path. Plot rendering is not measured. Report serialization is measured only for the single-sample scenario; the other scenarios use a separately named result-serialization field. Memory is reported as observed peak `performance.memory.usedJSHeapSize` sampled at stage boundaries where exposed, not as an operating-system process peak; Firefox did not expose this API.

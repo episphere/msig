@@ -159,7 +159,7 @@ const resultWithProvenance = mSigSDK.provenance.withProvenance(exposures, {
 console.log(resultWithProvenance.provenance);
 ```
 
-The provenance object includes the SDK name, SDK version, import URL, generation timestamp, browser runtime details, analysis parameters, and source URLs. This makes exported results easier to audit, rerun, and cite.
+The provenance object includes the SDK name, SDK version, import URL, generation timestamp, browser runtime details, analysis parameters, and source URLs. This makes exported results easier to audit and cite. A report is labeled as computationally reproducible only when immutable execution artifacts, input/catalog payloads, runtime/package references, and rerun scripts are supplied; otherwise it is explicitly a portable, schema-validated analysis record.
 
 ---
 
@@ -177,7 +177,7 @@ The focused notebooks in `notebooks/` exercise the current public SDK surface:
 - `mSigSDK.io`: generic TSV export/import plus SigProfiler, COSMIC, and MuSiCal matrix round trips.
 - `mSigSDK.runners`: optional Pyodide Web Worker execution for browser-side Python packages and WebR execution for compatible R package builds.
 - `mSigSDK.adapters`: SigProfilerAssignment, MuSiCal, deconstructSigs, and sigminer executable adapters that prepare canonical files, run optional Pyodide/WebR runtimes where supported, parse compatible exposure tables, and return provenance-rich outputs. SigProfiler-style matrix import/export remains available through `mSigSDK.io` as a file-format bridge.
-- `mSigSDK.reports`, `mSigSDK.provenance`, and `mSigSDK.workflows`: structured reports, reproducibility metadata, MAF-to-spectra conversion, high-level signature-fitting workflows, and browser-sized NMF workflows.
+- `mSigSDK.reports`, `mSigSDK.provenance`, and `mSigSDK.workflows`: structured reports, provenance metadata with an explicit reproducibility status, MAF-to-spectra conversion, high-level signature-fitting workflows, and browser-sized NMF workflows.
 - `mSigSDK.presentation`: reusable browser output helpers for metric cards, tables, notes, expandable object details, and compact rows derived from common SDK result objects.
 - `mSigSDK.advisor`: validated burden-aware strategy recommendations, signature ambiguity screening, catalog-sufficiency checks, and fit-quality evidence reports.
 - `mSigSDK.quickstart`: compact aliases for the beginner-facing workflow wrappers.

@@ -15,6 +15,7 @@ import {
 } from "../mSigSDKScripts/qc.js";
 import { createAnalysisReport } from "../mSigSDKScripts/reports.js";
 import { extractSignaturesNMF } from "../mSigSDKScripts/signatureExtraction.js";
+import { fetchURLAndCache } from "../mSigSDKScripts/utils.js";
 import {
   getExpectedContexts,
   rowsToSampleSpectra,
@@ -157,6 +158,7 @@ const report = createAnalysisReport({
     command: `node ${path.relative(process.cwd(), scriptPath)} ${process.argv
       .slice(2)
       .join(" ")}`.trim(),
+    dataSources: input.source?.fetches || [input.source],
   },
   notes: [
     "Browser-only capabilities not exercised here: DOM plotting, downloadAnalysisReport, Pyodide/WebR Web Worker execution, and worker-based NMF offload.",
@@ -191,29 +193,42 @@ function parseArgs(argv) {
   return parsed;
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url, { cache: "no-store" });
+async function fetchJson(url, label) {
+  const response = await fetchURLAndCache(
+    `node-headless-${label || "source"}`,
+    url,
+    { cache: "no-store" },
+    null,
+    { cacheResponses: false }
+  );
   if (!response.ok) {
     throw new Error(`Fetch failed for ${url}: HTTP ${response.status}`);
   }
-  return await response.json();
+  return {
+    data: await response.json(),
+    provenance: {
+      label,
+      ...response.provenance,
+    },
+  };
 }
 
 async function loadPortalInput({ sampleLimit }) {
-  const [spectrumRows, signatureRows] = await Promise.all([
-    fetchJson(PORTAL_URLS.spectra),
-    fetchJson(PORTAL_URLS.signatures),
+  const [spectrumFetch, signatureFetch] = await Promise.all([
+    fetchJson(PORTAL_URLS.spectra, "spectra"),
+    fetchJson(PORTAL_URLS.signatures, "signatures"),
   ]);
   const contexts = getExpectedContexts({ profile: "SBS", matrix: 96 });
-  const allSpectra = rowsToSampleSpectra(spectrumRows);
+  const allSpectra = rowsToSampleSpectra(spectrumFetch.data);
   const spectra = Object.fromEntries(Object.entries(allSpectra).slice(0, sampleLimit));
-  const signatures = rowsToSignatureMatrix(signatureRows);
+  const signatures = rowsToSignatureMatrix(signatureFetch.data);
   return {
     source: {
       type: "public_fetch",
       urls: PORTAL_URLS,
       fetchedAt: new Date().toISOString(),
       sampleLimit,
+      fetches: [spectrumFetch.provenance, signatureFetch.provenance],
     },
     contexts,
     spectra,

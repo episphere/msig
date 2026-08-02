@@ -2,7 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { createAnalysisReport } from "../mSigSDKScripts/reports.js";
+import {
+  createAnalysisReport,
+  createReproducibilityRecord,
+  REPRODUCIBILITY_REQUIREMENTS,
+} from "../mSigSDKScripts/reports.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -32,6 +36,17 @@ function allowedType(schemaType, value) {
 function validateSchema(schema, value, pointer = "$") {
   const errors = [];
 
+  if (schema.$ref) {
+    const referencedSchema = schema.$ref
+      .replace(/^#\//, "")
+      .split("/")
+      .reduce((current, key) => current?.[key], rootSchema);
+    if (!referencedSchema) {
+      return [`${pointer} references a missing schema definition.`];
+    }
+    return validateSchema(referencedSchema, value, pointer);
+  }
+
   if (schema.const !== undefined && value !== schema.const) {
     errors.push(`${pointer} should equal ${JSON.stringify(schema.const)}.`);
   }
@@ -47,6 +62,25 @@ function validateSchema(schema, value, pointer = "$") {
 
   if (schema.enum && !schema.enum.includes(value)) {
     errors.push(`${pointer} should be one of ${schema.enum.join(", ")}.`);
+  }
+
+  if (schema.pattern && typeof value === "string" && !new RegExp(schema.pattern).test(value)) {
+    errors.push(`${pointer} does not match the required pattern.`);
+  }
+  if (schema.minLength !== undefined && typeof value === "string" && value.length < schema.minLength) {
+    errors.push(`${pointer} should contain at least ${schema.minLength} characters.`);
+  }
+  if (schema.minItems !== undefined && Array.isArray(value) && value.length < schema.minItems) {
+    errors.push(`${pointer} should contain at least ${schema.minItems} items.`);
+  }
+  if (
+    schema.minProperties !== undefined &&
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value).length < schema.minProperties
+  ) {
+    errors.push(`${pointer} should contain at least ${schema.minProperties} properties.`);
   }
 
   if (schema.required && value && typeof value === "object") {
@@ -71,10 +105,98 @@ function validateSchema(schema, value, pointer = "$") {
     });
   }
 
+  for (const keyword of ["anyOf", "oneOf"]) {
+    if (schema[keyword]) {
+      const matches = schema[keyword].filter(
+        (candidate) => validateSchema(candidate, value, pointer).length === 0
+      ).length;
+      const valid = keyword === "oneOf" ? matches === 1 : matches >= 1;
+      if (!valid) {
+        errors.push(`${pointer} does not satisfy ${keyword}.`);
+      }
+    }
+  }
+
   return errors;
 }
 
+let rootSchema;
 const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+rootSchema = schema;
+const incompleteReproducibility = createReproducibilityRecord({
+  evidence: { reportSchema: { schemaVersion: "msig.report.v0.3", version: "0.3.0" } },
+});
+if (
+  incompleteReproducibility.claim !== "portable_schema_validated_analysis_record" ||
+  incompleteReproducibility.computationalReproducibility.status !== "not_established" ||
+  incompleteReproducibility.computationalReproducibility.missingRequirements.length !==
+    REPRODUCIBILITY_REQUIREMENTS.length - 1
+) {
+  throw new Error("Reproducibility classification did not preserve the missing-artifact boundary.");
+}
+const placeholderReproducibility = createReproducibilityRecord({
+  evidence: Object.fromEntries(
+    REPRODUCIBILITY_REQUIREMENTS.map((requirement) => [requirement, { noted: true }])
+  ),
+});
+if (
+  placeholderReproducibility.claim !== "portable_schema_validated_analysis_record" ||
+  placeholderReproducibility.computationalReproducibility.invalidRequirements.length === 0
+) {
+  throw new Error("Placeholder reproducibility evidence was incorrectly accepted.");
+}
+const completeHash = "a".repeat(64);
+const completeArtifact = (path) => ({
+  path,
+  sha256: completeHash,
+  source: "schema-validation-fixture",
+  archiveUri: `https://archive.example/${encodeURIComponent(path)}`,
+  immutable: true,
+});
+const completePayload = {
+  payloadSha256: completeHash,
+  source: "schema-validation-fixture",
+  archiveUri: "https://archive.example/signature-catalog.json",
+  immutable: true,
+};
+const completeReproducibility = createReproducibilityRecord({
+  evidence: {
+    sdkArtifact: {
+      commit: "0123456789abcdef0123456789abcdef01234567",
+      releaseArtifact: completeArtifact("msig-sdk-release.tgz"),
+    },
+    adapterImplementations: [completeArtifact("mSigSDKScripts/adapters.js")],
+    runtimeAndPackageArtifacts: [completeArtifact("runtime-manifest.json")],
+    lockfilesOrArtifactHashes: [completeArtifact("package-lock.json")],
+    localInputHashes: [completeArtifact("input.json")],
+    signatureCatalogPayload: completePayload,
+    contextOrder: {
+      values: ["A[C>A]A"],
+      sha256: completeHash,
+      source: "schema-validation-fixture",
+      archiveUri: "https://archive.example/context-order.json",
+      immutable: true,
+    },
+    analysisParameters: {
+      fitting: { method: "NNLS" },
+      filtering: { cutoff: 0.01 },
+      bootstrap: { replicates: 0 },
+      qc: { thresholds: {} },
+    },
+    randomNumberGeneration: { algorithm: "MT19937", seed: 17 },
+    reportSchema: { schemaVersion: "msig.report.v0.3", version: "0.3.0" },
+    executionEnvironment: { runtime: "node v24.13.0", platform: "win32" },
+    archivedTestData: [completeArtifact("archived-test-data.zip")],
+    rerunScripts: [completeArtifact("scripts/rerun.mjs")],
+  },
+});
+if (
+  completeReproducibility.claim !== "computationally_reproducible_analysis_record" ||
+  completeReproducibility.computationalReproducibility.missingRequirements.length > 0 ||
+  completeReproducibility.computationalReproducibility.invalidRequirements.length > 0
+) {
+  throw new Error("Complete reproducibility evidence was not accepted.");
+}
 const representativeReport = createAnalysisReport({
   title: "Representative mSigSDK Report",
   summary: "Representative report object used for schema validation.",
@@ -122,10 +244,44 @@ const representativeReport = createAnalysisReport({
   notes: ["Schema validation fixture."],
 });
 
+const forgedComputationalReport = {
+  ...representativeReport,
+  reproducibility: {
+    schemaVersion: "msig.reproducibility.v0.1",
+    claim: "computationally_reproducible_analysis_record",
+    auditability: { status: "supported" },
+    portability: { status: "supported" },
+    computationalReproducibility: {
+      status: "supported",
+      missingRequirements: [],
+    },
+    requirements: [...REPRODUCIBILITY_REQUIREMENTS],
+    evidence: Object.fromEntries(
+      REPRODUCIBILITY_REQUIREMENTS.map((requirement) => [requirement, { noted: true }])
+    ),
+  },
+};
+if (validateSchema(schema, forgedComputationalReport).length === 0) {
+  throw new Error("Schema accepted a computational claim with placeholder evidence.");
+}
+
 function validateReport(value, label) {
   const errors = validateSchema(schema, value);
   if (errors.length > 0) {
     throw new Error(`${label} failed schema validation:\n${errors.join("\n")}`);
+  }
+
+  if (
+    schema.additionalProperties === false &&
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    for (const key of Object.keys(value)) {
+      if (!Object.prototype.hasOwnProperty.call(schema.properties || {}, key)) {
+        errors.push(`${pointer}.${key} is not an allowed property.`);
+      }
+    }
   }
 }
 
@@ -157,6 +313,17 @@ if (requestedFiles.length > 0) {
   const invalidErrors = validateSchema(schema, readReportFile(invalidPath));
   if (invalidErrors.length === 0) {
     throw new Error(`${path.relative(repoRoot, invalidPath)} unexpectedly passed schema validation.`);
+  }
+  const missingReproducibilityFixture = readReportFile(
+    path.join(examplesDir, "minimal-valid-report.json")
+  );
+  delete missingReproducibilityFixture.reproducibility;
+  const missingReproducibilityErrors = validateSchema(
+    schema,
+    missingReproducibilityFixture
+  );
+  if (!missingReproducibilityErrors.includes("$.reproducibility is required.")) {
+    throw new Error("A report without the reproducibility boundary unexpectedly passed schema validation.");
   }
 
   console.log(

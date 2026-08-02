@@ -89,6 +89,149 @@ function assertNoUserDataEgress(action, options = {}, detail = "") {
   );
 }
 
+async function sha256Hex(bytes) {
+  const arrayBuffer =
+    bytes instanceof ArrayBuffer
+      ? bytes
+      : bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+
+  if (globalThis.crypto?.subtle) {
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", arrayBuffer);
+    return Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  const { createHash } = await import("node:crypto");
+  return createHash("sha256").update(Buffer.from(arrayBuffer)).digest("hex");
+}
+
+function arrayBufferFromBuffer(buffer) {
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+}
+
+function makeNodeResponse(bodyBuffer, { status, statusText, url }) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: statusText || "",
+    url,
+    headers: new Map(),
+    async arrayBuffer() {
+      return arrayBufferFromBuffer(bodyBuffer);
+    },
+    async text() {
+      return bodyBuffer.toString("utf8");
+    },
+    async json() {
+      return JSON.parse(bodyBuffer.toString("utf8"));
+    },
+    clone() {
+      return makeNodeResponse(Buffer.from(bodyBuffer), { status, statusText, url });
+    },
+  };
+}
+
+function attachParsedPayloadProvenance(parsed, provenance) {
+  if (!parsed || (typeof parsed !== "object" && typeof parsed !== "function")) {
+    return parsed;
+  }
+
+  try {
+    Object.defineProperties(parsed, {
+      sourceProvenance: {
+        configurable: true,
+        enumerable: false,
+        value: provenance,
+      },
+      payloadProvenance: {
+        configurable: true,
+        enumerable: false,
+        value: provenance,
+      },
+    });
+  } catch (_error) {
+    // Parsed API records may be frozen by user code; response.provenance remains available.
+  }
+
+  return parsed;
+}
+
+async function attachPayloadProvenance(
+  response,
+  { endpointUrl, cacheName, cacheKey, cacheStatus, requestedAt, provenanceLog = null }
+) {
+  const responseForHash =
+    typeof response.clone === "function" ? response.clone() : response;
+  let parsedJsonForFallback;
+  let hasParsedJsonForFallback = false;
+  let payloadBytes;
+
+  if (typeof responseForHash.arrayBuffer === "function") {
+    payloadBytes = await responseForHash.arrayBuffer();
+  } else if (typeof responseForHash.text === "function") {
+    payloadBytes = new TextEncoder().encode(await responseForHash.text());
+  } else if (typeof responseForHash.json === "function") {
+    parsedJsonForFallback = await responseForHash.json();
+    hasParsedJsonForFallback = true;
+    payloadBytes = new TextEncoder().encode(JSON.stringify(parsedJsonForFallback));
+  } else {
+    throw new Error(
+      `Cannot compute SHA-256 provenance for ${endpointUrl}; response body is not readable.`
+    );
+  }
+
+  const payloadSha256 = await sha256Hex(payloadBytes);
+  const provenance = {
+    endpointUrl,
+    retrievedAt: requestedAt,
+    cacheName,
+    cacheKey,
+    cacheStatus,
+    httpStatus: response.status,
+    responseUrl: response.url || endpointUrl,
+    payloadBytes: payloadBytes.byteLength,
+    payloadSha256,
+    checksum: {
+      algorithm: "SHA-256",
+      value: payloadSha256,
+      scope: "retrieved response payload bytes",
+    },
+  };
+
+  if (Array.isArray(provenanceLog)) {
+    provenanceLog.push(provenance);
+  }
+
+  Object.defineProperties(response, {
+    provenance: {
+      configurable: true,
+      enumerable: true,
+      value: provenance,
+    },
+    sourceProvenance: {
+      configurable: true,
+      enumerable: true,
+      value: provenance,
+    },
+  });
+
+  if (typeof response.json === "function") {
+    const parseJson = response.json.bind(response);
+    Object.defineProperty(response, "json", {
+      configurable: true,
+      enumerable: false,
+      value: async () =>
+        attachParsedPayloadProvenance(
+          hasParsedJsonForFallback ? parsedJsonForFallback : await parseJson(),
+          provenance
+        ),
+    });
+  }
+
+  return response;
+}
+
 // Deep copy an object
 function deepCopy(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -209,21 +352,13 @@ async function fetchURLAndCache(
           const chunks = [];
           response.on("data", (chunk) => chunks.push(chunk));
           response.on("end", () => {
-            const body = Buffer.concat(chunks).toString("utf8");
-            resolve({
-              ok: response.statusCode >= 200 && response.statusCode < 300,
-              status: response.statusCode,
-              statusText: response.statusMessage || "",
-              async text() {
-                return body;
-              },
-              async json() {
-                return JSON.parse(body);
-              },
-              clone() {
-                return this;
-              },
-            });
+            resolve(
+              makeNodeResponse(Buffer.concat(chunks), {
+                status: response.statusCode,
+                statusText: response.statusMessage || "",
+                url,
+              })
+            );
           });
         }
       );
@@ -253,21 +388,47 @@ async function fetchURLAndCache(
   }
 
   if (!isCacheSupported || resolvedOptions.cacheResponses === false) {
-    return await fetchFromNetwork();
+    const cacheStatus =
+      resolvedOptions.cacheResponses === false ? "disabled" : "unsupported";
+    return await attachPayloadProvenance(await fetchFromNetwork(), {
+      endpointUrl: url,
+      cacheName,
+      cacheKey: matchedURL,
+      cacheStatus,
+      requestedAt: new Date().toISOString(),
+      provenanceLog: options.provenanceLog,
+    });
   }
 
   const cache = await caches.open(cacheName);
   const response = await cache.match(matchedURL);
-  if (response) return response;
+  if (response) {
+    return await attachPayloadProvenance(response, {
+      endpointUrl: url,
+      cacheName,
+      cacheKey: matchedURL,
+      cacheStatus: "hit",
+      requestedAt: new Date().toISOString(),
+      provenanceLog: options.provenanceLog,
+    });
+  }
 
   const networkResponse = await fetchFromNetwork();
+  const responseForCache = networkResponse.clone();
   try {
-    await cache.put(matchedURL, networkResponse.clone());
+    await cache.put(matchedURL, responseForCache);
   } catch (error) {
     debugWarn(resolvedOptions, `Unable to cache fetched data from ${url}.`, error);
   }
 
-  return networkResponse;
+  return await attachPayloadProvenance(networkResponse, {
+    endpointUrl: url,
+    cacheName,
+    cacheKey: matchedURL,
+    cacheStatus: "miss",
+    requestedAt: new Date().toISOString(),
+    provenanceLog: options.provenanceLog,
+  });
 }
 // Write a function that converts the json data from ./now.json to the format in ./structure.json
 
@@ -555,6 +716,7 @@ export {
   debugWarn,
   fetchURLAndCache,
   getRuntimeOptions,
+  sha256Hex,
   formatHierarchicalClustersToAM5Format,
   groupBy,
   createDistanceMatrix,

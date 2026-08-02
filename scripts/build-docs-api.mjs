@@ -104,7 +104,7 @@ const namespaceSummaries = {
   tools: "Small utility helpers shared by the public SDK.",
   signatureFitting: "Known-signature exposure fitting and exposure plots.",
   TCGA: "TCGA and GDC query helpers for projects, expression, MAF, and variant records.",
-  provenance: "Reproducibility metadata for SDK version, source data, genome context, and runtime.",
+  provenance: "Provenance metadata for SDK version, source data, genome context, and runtime; computational rerun status is recorded separately in reports.",
   validation: "Profile context registries, matrix normalization, input validation, and assertion helpers.",
   qc: "Mutation burden, reconstruction error, bootstrap, threshold, ambiguity, and fit evidence.",
   qcPlots: "Report-ready QC and uncertainty plots.",

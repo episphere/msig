@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "msig.manuscript.e2.progress.v1",
+  "experimentId": "e7_published_subset1_local_py3_sbs_noise10",
+  "updatedAt": "2026-08-01T23:17:52.675Z",
+  "stage": "result-written",
+  "details": {
+    "resultPath": "docs/manuscript/experiments/e7_four_tool_comparison/published_subset1_local_py3_noise10/data/adapter-fidelity-results.json",
+    "status": "completed",
+    "rows": 4
+  }
+}
