@@ -1,0 +1,5 @@
+converter_decision,reason,rows,reconciliation
+Counted,Valid single-nucleotide variant with reference-matched context,2262,Included in both SBS96 and SBS1536 matrices
+Rejected,Not a single-nucleotide variant,230,102 deletions + 97 insertions + 31 other multi-base variants
+Rejected,Reference allele does not match context center,1,Single SNP excluded from both SBS matrices
+Total,,2493,2262 counted + 231 rejected

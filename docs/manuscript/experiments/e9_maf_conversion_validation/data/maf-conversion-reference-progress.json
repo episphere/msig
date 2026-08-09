@@ -1,9 +1,9 @@
 {
   "schemaVersion": "msig.maf_conversion_validation_reference_progress.v0.1",
   "stage": "completed",
-  "updatedAt": "2026-08-02T02:30:13.390094+00:00",
-  "python": "3.13.5",
-  "volume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+  "updatedAt": "2026-08-09T01:36:38.711280+00:00",
+  "python": "3.13.3",
+  "volume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
   "genomes": [
     "GRCh37",
     "GRCh38"

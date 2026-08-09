@@ -1,0 +1,10 @@
+# Supplementary Table D. Package functions and option handling in the four-tool comparison
+
+| Tool | Package function called | Arguments fixed for the comparison | Arguments left at package default |
+|---|---|---|---|
+| deconstructSigs 1.8.0 | `deconstructSigs::whichSignatures` | `tumor.ref` and `signatures.ref` = harmonized SBS96 matrices; `sample.id` = current sample; `signature.cutoff = 0`; `contexts.needed = FALSE`; R seed = 104729 | All other `whichSignatures` arguments |
+| sigminer 2.3.1 | `sigminer::sig_fit` | `catalogue_matrix` and `sig` = harmonized SBS96 matrices; `method = "NNLS"`; `auto_reduce = FALSE`; `type = "relative"`; `return_class = "matrix"`; `rel_threshold = 0`; `mode = "absolute"`; `show_index = FALSE`; R seed = 104729 | All other `sig_fit` arguments |
+| SigProfilerAssignment 1.1.3 | `SigProfilerAssignment.Analyzer.cosmic_fit` | `samples` = harmonized SBS96 matrix; `output` = run directory; `input_type = "matrix"`; `context_type = "96"`; `collapse_to_SBS96 = TRUE`; `cosmic_version = 3.5`; `exome = FALSE`; `genome_build = "GRCh37"`; `signature_database` = supplied comparison catalog; `exclude_signature_subgroups = NULL`; `export_probabilities = FALSE`; `export_probabilities_per_mutation = FALSE`; `make_plots = FALSE`; `sample_reconstruction_plots = "none"`; `verbose = FALSE`; `cpu = 1`; Python and NumPy seeds = 104729 | All other `cosmic_fit` arguments |
+| MuSiCal 1.0.0 | `musical.refit.refit` | `X` and `W` = harmonized SBS96 matrices; `method = "likelihood_bidirectional"`; `thresh = 0.001`; `connected_sigs = FALSE`; Python and NumPy seeds = 104729 | All other `refit` arguments |
+
+The common 1% reporting cutoff was applied by the comparison layer after each package returned its complete exposure vector; it was not passed to the package functions above. Package defaults not explicitly listed as fixed remained tool-specific and were not treated as matched algorithms.
