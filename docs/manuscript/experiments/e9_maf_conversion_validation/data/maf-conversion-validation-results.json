@@ -1,9 +1,9 @@
 {
   "schemaVersion": "msig.maf_conversion_validation_results.v0.3",
   "status": "completed",
-  "runStartedAt": "2026-08-05T03:08:17.595Z",
-  "completedAt": "2026-08-05T03:11:24.250Z",
-  "fixturePath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\fixture.json",
+  "runStartedAt": "2026-08-09T06:38:15.271Z",
+  "completedAt": "2026-08-09T09:30:21.794Z",
+  "fixturePath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/fixture.json",
   "fixtureSha256": "af1363813a4ba16c43ecd85fdc1c0f4353b7ddba79304489abc8aa8850a68fa4",
   "comparator": {
     "name": "SigProfilerMatrixGenerator",
@@ -20,15 +20,15 @@
       "profile": "SBS96",
       "comparator": "SigProfilerMatrixGenerator",
       "comparatorVersion": "1.3.6",
-      "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+      "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
       "status": "completed",
       "error": null,
-      "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-      "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-      "platform": "Windows-11-10.0.26200-SP0",
+      "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+      "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+      "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
       "command": [
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+        "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+        "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
         "--project",
         "msig-e9-hg19-SBS96-valid",
         "--genome",
@@ -36,17 +36,17 @@
         "--profile",
         "SBS96",
         "--maf-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS96\\valid-maf",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS96/valid-maf",
         "--output-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS96\\valid-comparator-output",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS96/valid-comparator-output",
         "--result",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS96\\valid-comparator-result.json",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS96/valid-comparator-result.json",
         "--volume",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+        "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
       ],
-      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
       "genome": "GRCh37",
-      "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+      "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
       "referenceVerified": true,
       "referenceExpectedMd5": {
         "1": "a7d51305e943cf06ff2029146bd91bca",
@@ -76,9 +76,9 @@
         "MT": "dfd6db5743d399516d5c8dadee5bee78"
       },
       "durableArtifacts": {
-        "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS96\\valid.matrix.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS96\\valid.log",
-        "matrixSha256": "b1b5757e85cd7fe254060228532b86999d4c6835cdbe2809d3025e625c9b877f"
+        "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/SBS96/valid.matrix.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/SBS96/valid.log",
+        "matrixSha256": "d616d09dd13214a0101bcabfa4292d00f449849fdc8f3c4cfa558cabe468336a"
       }
     },
     {
@@ -86,15 +86,15 @@
       "profile": "SBS1536",
       "comparator": "SigProfilerMatrixGenerator",
       "comparatorVersion": "1.3.6",
-      "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+      "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
       "status": "completed",
       "error": null,
-      "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-      "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-      "platform": "Windows-11-10.0.26200-SP0",
+      "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+      "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+      "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
       "command": [
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+        "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+        "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
         "--project",
         "msig-e9-hg19-SBS1536-valid",
         "--genome",
@@ -102,17 +102,17 @@
         "--profile",
         "SBS1536",
         "--maf-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS1536\\valid-maf",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS1536/valid-maf",
         "--output-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS1536\\valid-comparator-output",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS1536/valid-comparator-output",
         "--result",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS1536\\valid-comparator-result.json",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS1536/valid-comparator-result.json",
         "--volume",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+        "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
       ],
-      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
       "genome": "GRCh37",
-      "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+      "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
       "referenceVerified": true,
       "referenceExpectedMd5": {
         "1": "a7d51305e943cf06ff2029146bd91bca",
@@ -142,9 +142,9 @@
         "MT": "dfd6db5743d399516d5c8dadee5bee78"
       },
       "durableArtifacts": {
-        "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS1536\\valid.matrix.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS1536\\valid.log",
-        "matrixSha256": "5f4b7a35eda8d9f1357d810ba521e27b231bc1e473d712e3f8162a043a3baaa6"
+        "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/SBS1536/valid.matrix.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/SBS1536/valid.log",
+        "matrixSha256": "f55cba918eb14035042f84c3ff3f9733bf4c04732b650f252c139df90763b9a3"
       }
     },
     {
@@ -152,15 +152,15 @@
       "profile": "DBS78",
       "comparator": "SigProfilerMatrixGenerator",
       "comparatorVersion": "1.3.6",
-      "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+      "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
       "status": "completed",
       "error": null,
-      "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-      "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-      "platform": "Windows-11-10.0.26200-SP0",
+      "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+      "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+      "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
       "command": [
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+        "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+        "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
         "--project",
         "msig-e9-hg19-DBS78-valid",
         "--genome",
@@ -168,17 +168,17 @@
         "--profile",
         "DBS78",
         "--maf-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\DBS78\\valid-maf",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/DBS78/valid-maf",
         "--output-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\DBS78\\valid-comparator-output",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/DBS78/valid-comparator-output",
         "--result",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\DBS78\\valid-comparator-result.json",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/DBS78/valid-comparator-result.json",
         "--volume",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+        "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
       ],
-      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
       "genome": "GRCh37",
-      "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+      "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
       "referenceVerified": true,
       "referenceExpectedMd5": {
         "1": "a7d51305e943cf06ff2029146bd91bca",
@@ -208,9 +208,9 @@
         "MT": "dfd6db5743d399516d5c8dadee5bee78"
       },
       "durableArtifacts": {
-        "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\DBS78\\valid.matrix.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\DBS78\\valid.log",
-        "matrixSha256": "d7d03918ac3e2e4321272bf2605a031f84732c94124343aff438b3c5d7e5c324"
+        "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/DBS78/valid.matrix.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/DBS78/valid.log",
+        "matrixSha256": "fc69f5ec553670ab59888faf13aaf4f3c9cf78859eb680a66ae1c4d8526c78a9"
       }
     },
     {
@@ -218,15 +218,15 @@
       "profile": "ID83",
       "comparator": "SigProfilerMatrixGenerator",
       "comparatorVersion": "1.3.6",
-      "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+      "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
       "status": "completed",
       "error": null,
-      "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-      "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-      "platform": "Windows-11-10.0.26200-SP0",
+      "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+      "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+      "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
       "command": [
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+        "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+        "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
         "--project",
         "msig-e9-hg19-ID83-valid",
         "--genome",
@@ -234,17 +234,17 @@
         "--profile",
         "ID83",
         "--maf-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\ID83\\valid-maf",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/ID83/valid-maf",
         "--output-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\ID83\\valid-comparator-output",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/ID83/valid-comparator-output",
         "--result",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\ID83\\valid-comparator-result.json",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/ID83/valid-comparator-result.json",
         "--volume",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+        "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
       ],
-      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
       "genome": "GRCh37",
-      "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+      "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
       "referenceVerified": true,
       "referenceExpectedMd5": {
         "1": "a7d51305e943cf06ff2029146bd91bca",
@@ -274,9 +274,9 @@
         "MT": "dfd6db5743d399516d5c8dadee5bee78"
       },
       "durableArtifacts": {
-        "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\ID83\\valid.matrix.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\ID83\\valid.log",
-        "matrixSha256": "c308fe1591a9400414f051a1c17eb923577658d175227a3512ca9d9139c38bcf"
+        "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/ID83/valid.matrix.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/ID83/valid.log",
+        "matrixSha256": "190199ba0aad4290b5e86488a7c209a187c36c9931a2c4aba21893da4479fc48"
       }
     },
     {
@@ -284,15 +284,15 @@
       "profile": "SBS96",
       "comparator": "SigProfilerMatrixGenerator",
       "comparatorVersion": "1.3.6",
-      "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+      "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
       "status": "completed",
       "error": null,
-      "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-      "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-      "platform": "Windows-11-10.0.26200-SP0",
+      "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+      "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+      "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
       "command": [
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+        "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+        "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
         "--project",
         "msig-e9-hg38-SBS96-valid",
         "--genome",
@@ -300,17 +300,17 @@
         "--profile",
         "SBS96",
         "--maf-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS96\\valid-maf",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS96/valid-maf",
         "--output-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS96\\valid-comparator-output",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS96/valid-comparator-output",
         "--result",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS96\\valid-comparator-result.json",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS96/valid-comparator-result.json",
         "--volume",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+        "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
       ],
-      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
       "genome": "GRCh38",
-      "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+      "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
       "referenceVerified": true,
       "referenceExpectedMd5": {
         "1": "ebe083105e7703a49581a36d73732a96",
@@ -340,9 +340,9 @@
         "MT": "dfd6db5743d399516d5c8dadee5bee78"
       },
       "durableArtifacts": {
-        "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS96\\valid.matrix.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS96\\valid.log",
-        "matrixSha256": "a7370c6477688a3b16c5e7a6740fb737b8cac26a7f23571d03785fb5bcb98a29"
+        "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/SBS96/valid.matrix.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/SBS96/valid.log",
+        "matrixSha256": "5fecea5ed4a68b24e2d44348737d83090bfbd88ff57afe98da9729f2ba3aae3a"
       }
     },
     {
@@ -350,15 +350,15 @@
       "profile": "SBS1536",
       "comparator": "SigProfilerMatrixGenerator",
       "comparatorVersion": "1.3.6",
-      "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+      "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
       "status": "completed",
       "error": null,
-      "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-      "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-      "platform": "Windows-11-10.0.26200-SP0",
+      "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+      "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+      "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
       "command": [
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+        "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+        "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
         "--project",
         "msig-e9-hg38-SBS1536-valid",
         "--genome",
@@ -366,17 +366,17 @@
         "--profile",
         "SBS1536",
         "--maf-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS1536\\valid-maf",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS1536/valid-maf",
         "--output-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS1536\\valid-comparator-output",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS1536/valid-comparator-output",
         "--result",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS1536\\valid-comparator-result.json",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS1536/valid-comparator-result.json",
         "--volume",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+        "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
       ],
-      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
       "genome": "GRCh38",
-      "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+      "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
       "referenceVerified": true,
       "referenceExpectedMd5": {
         "1": "ebe083105e7703a49581a36d73732a96",
@@ -406,9 +406,9 @@
         "MT": "dfd6db5743d399516d5c8dadee5bee78"
       },
       "durableArtifacts": {
-        "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS1536\\valid.matrix.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS1536\\valid.log",
-        "matrixSha256": "7d8138ccd9ce55a6cb7ef981976bebdf2a188e575982454c6b55cfe8ab156be3"
+        "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/SBS1536/valid.matrix.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/SBS1536/valid.log",
+        "matrixSha256": "fa230d9e0d70ff09a38f55012cfd2eeba926d518ae612a296d9f799da9cdaf0c"
       }
     },
     {
@@ -416,15 +416,15 @@
       "profile": "DBS78",
       "comparator": "SigProfilerMatrixGenerator",
       "comparatorVersion": "1.3.6",
-      "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+      "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
       "status": "completed",
       "error": null,
-      "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-      "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-      "platform": "Windows-11-10.0.26200-SP0",
+      "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+      "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+      "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
       "command": [
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+        "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+        "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
         "--project",
         "msig-e9-hg38-DBS78-valid",
         "--genome",
@@ -432,17 +432,17 @@
         "--profile",
         "DBS78",
         "--maf-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\DBS78\\valid-maf",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/DBS78/valid-maf",
         "--output-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\DBS78\\valid-comparator-output",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/DBS78/valid-comparator-output",
         "--result",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\DBS78\\valid-comparator-result.json",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/DBS78/valid-comparator-result.json",
         "--volume",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+        "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
       ],
-      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
       "genome": "GRCh38",
-      "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+      "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
       "referenceVerified": true,
       "referenceExpectedMd5": {
         "1": "ebe083105e7703a49581a36d73732a96",
@@ -472,9 +472,9 @@
         "MT": "dfd6db5743d399516d5c8dadee5bee78"
       },
       "durableArtifacts": {
-        "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\DBS78\\valid.matrix.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\DBS78\\valid.log",
-        "matrixSha256": "a322640e57cf570f80a11d02e87378f90fb7310af3a4c3a52075e47a394d7bb7"
+        "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/DBS78/valid.matrix.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/DBS78/valid.log",
+        "matrixSha256": "2c335e21f1de737ef0403b8931738b1f24092e1a806a324a4bdf3c9041437b3a"
       }
     },
     {
@@ -482,15 +482,15 @@
       "profile": "ID83",
       "comparator": "SigProfilerMatrixGenerator",
       "comparatorVersion": "1.3.6",
-      "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+      "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
       "status": "completed",
       "error": null,
-      "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-      "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-      "platform": "Windows-11-10.0.26200-SP0",
+      "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+      "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+      "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
       "command": [
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+        "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+        "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
         "--project",
         "msig-e9-hg38-ID83-valid",
         "--genome",
@@ -498,17 +498,17 @@
         "--profile",
         "ID83",
         "--maf-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\ID83\\valid-maf",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/ID83/valid-maf",
         "--output-dir",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\ID83\\valid-comparator-output",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/ID83/valid-comparator-output",
         "--result",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\ID83\\valid-comparator-result.json",
+        "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/ID83/valid-comparator-result.json",
         "--volume",
-        "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+        "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
       ],
-      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
       "genome": "GRCh38",
-      "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+      "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
       "referenceVerified": true,
       "referenceExpectedMd5": {
         "1": "ebe083105e7703a49581a36d73732a96",
@@ -538,14 +538,14 @@
         "MT": "dfd6db5743d399516d5c8dadee5bee78"
       },
       "durableArtifacts": {
-        "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\ID83\\valid.matrix.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\ID83\\valid.log",
-        "matrixSha256": "5b93e8d0a82b2f67f6548bf57ab9775933d6a9a00dbbf198f8b3de5e99472160"
+        "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/ID83/valid.matrix.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/ID83/valid.log",
+        "matrixSha256": "7e6479ab9de272c7405ec2a7c4d614da2db7cc658c2a24ce1bdcc6719dc1e266"
       }
     }
   ],
-  "comparatorPython": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-  "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+  "comparatorPython": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+  "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
   "profiles": [
     "SBS96",
     "SBS1536",
@@ -560,7 +560,6 @@
     {
       "key": "1:1000000",
       "context": "CGTGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGTGG",
       "expectedContext5": "CGTGG",
       "reference": "T",
@@ -572,7 +571,6 @@
     {
       "key": "1:1000100",
       "context": "GAAAA",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GAAAA",
       "expectedContext5": "GAAAA",
       "reference": "A",
@@ -584,7 +582,6 @@
     {
       "key": "1:1000200",
       "context": "GCGGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGGG",
       "expectedContext5": "GCGGG",
       "reference": "G",
@@ -596,7 +593,6 @@
     {
       "key": "1:1000300",
       "context": "TGTGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "TGTGG",
       "expectedContext5": "TGTGG",
       "reference": "T",
@@ -608,7 +604,6 @@
     {
       "key": "1:1000400",
       "context": "GGGGC",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGC",
       "expectedContext5": "GGGGC",
       "reference": "G",
@@ -620,7 +615,6 @@
     {
       "key": "1:1000500",
       "context": "GGGGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGG",
       "expectedContext5": "GGGGG",
       "reference": "G",
@@ -632,7 +626,6 @@
     {
       "key": "1:1000000",
       "context": "CGTGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGTGG",
       "expectedContext5": "CGTGG",
       "reference": "T",
@@ -644,7 +637,6 @@
     {
       "key": "1:1000100",
       "context": "GAAAA",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GAAAA",
       "expectedContext5": "GAAAA",
       "reference": "A",
@@ -656,7 +648,6 @@
     {
       "key": "1:1000200",
       "context": "GCGGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGGG",
       "expectedContext5": "GCGGG",
       "reference": "G",
@@ -668,7 +659,6 @@
     {
       "key": "1:1000300",
       "context": "TGTGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "TGTGG",
       "expectedContext5": "TGTGG",
       "reference": "T",
@@ -680,7 +670,6 @@
     {
       "key": "1:1000400",
       "context": "GGGGC",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGC",
       "expectedContext5": "GGGGC",
       "reference": "G",
@@ -692,7 +681,6 @@
     {
       "key": "1:1000500",
       "context": "GGGGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGG",
       "expectedContext5": "GGGGG",
       "reference": "G",
@@ -704,7 +692,6 @@
     {
       "key": "1:1000000",
       "context": "CGTGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGTGG",
       "expectedContext5": "CGTGG",
       "reference": "T",
@@ -716,7 +703,6 @@
     {
       "key": "1:1000100",
       "context": "GAAAA",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GAAAA",
       "expectedContext5": "GAAAA",
       "reference": "A",
@@ -728,7 +714,6 @@
     {
       "key": "1:1000200",
       "context": "GCGGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGGG",
       "expectedContext5": "GCGGG",
       "reference": "G",
@@ -740,7 +725,6 @@
     {
       "key": "1:1000300",
       "context": "TGTGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "TGTGG",
       "expectedContext5": "TGTGG",
       "reference": "T",
@@ -752,7 +736,6 @@
     {
       "key": "1:1000400",
       "context": "GGGGC",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGC",
       "expectedContext5": "GGGGC",
       "reference": "G",
@@ -764,7 +747,6 @@
     {
       "key": "1:1000500",
       "context": "GGGGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGG",
       "expectedContext5": "GGGGG",
       "reference": "G",
@@ -776,7 +758,6 @@
     {
       "key": "1:1000000",
       "context": "CGTGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGTGG",
       "expectedContext5": "CGTGG",
       "reference": "T",
@@ -788,7 +769,6 @@
     {
       "key": "1:1000100",
       "context": "GAAAA",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GAAAA",
       "expectedContext5": "GAAAA",
       "reference": "A",
@@ -800,7 +780,6 @@
     {
       "key": "1:1000200",
       "context": "GCGGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGGG",
       "expectedContext5": "GCGGG",
       "reference": "G",
@@ -812,7 +791,6 @@
     {
       "key": "1:1000300",
       "context": "TGTGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "TGTGG",
       "expectedContext5": "TGTGG",
       "reference": "T",
@@ -824,7 +802,6 @@
     {
       "key": "1:1000400",
       "context": "GGGGC",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGC",
       "expectedContext5": "GGGGC",
       "reference": "G",
@@ -836,7 +813,6 @@
     {
       "key": "1:1000500",
       "context": "GGGGG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGG",
       "expectedContext5": "GGGGG",
       "reference": "G",
@@ -848,7 +824,6 @@
     {
       "key": "1:1000000",
       "context": "CGGGT",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGGGT",
       "expectedContext5": "CGGGT",
       "reference": "G",
@@ -860,7 +835,6 @@
     {
       "key": "1:1000100",
       "context": "GCGCG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGCG",
       "expectedContext5": "GCGCG",
       "reference": "G",
@@ -872,7 +846,6 @@
     {
       "key": "1:1000200",
       "context": "CGCGC",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGCGC",
       "expectedContext5": "CGCGC",
       "reference": "C",
@@ -884,7 +857,6 @@
     {
       "key": "1:1000300",
       "context": "CACCG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CACCG",
       "expectedContext5": "CACCG",
       "reference": "C",
@@ -896,7 +868,6 @@
     {
       "key": "1:1000400",
       "context": "CCCCG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CCCCG",
       "expectedContext5": "CCCCG",
       "reference": "C",
@@ -908,7 +879,6 @@
     {
       "key": "1:1000500",
       "context": "AGGAA",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "AGGAA",
       "expectedContext5": "AGGAA",
       "reference": "G",
@@ -920,7 +890,6 @@
     {
       "key": "1:1000000",
       "context": "CGGGT",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGGGT",
       "expectedContext5": "CGGGT",
       "reference": "G",
@@ -932,7 +901,6 @@
     {
       "key": "1:1000100",
       "context": "GCGCG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGCG",
       "expectedContext5": "GCGCG",
       "reference": "G",
@@ -944,7 +912,6 @@
     {
       "key": "1:1000200",
       "context": "CGCGC",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGCGC",
       "expectedContext5": "CGCGC",
       "reference": "C",
@@ -956,7 +923,6 @@
     {
       "key": "1:1000300",
       "context": "CACCG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CACCG",
       "expectedContext5": "CACCG",
       "reference": "C",
@@ -968,7 +934,6 @@
     {
       "key": "1:1000400",
       "context": "CCCCG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CCCCG",
       "expectedContext5": "CCCCG",
       "reference": "C",
@@ -980,7 +945,6 @@
     {
       "key": "1:1000500",
       "context": "AGGAA",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "AGGAA",
       "expectedContext5": "AGGAA",
       "reference": "G",
@@ -992,7 +956,6 @@
     {
       "key": "1:1000000",
       "context": "CGGGT",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGGGT",
       "expectedContext5": "CGGGT",
       "reference": "G",
@@ -1004,7 +967,6 @@
     {
       "key": "1:1000100",
       "context": "GCGCG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGCG",
       "expectedContext5": "GCGCG",
       "reference": "G",
@@ -1016,7 +978,6 @@
     {
       "key": "1:1000200",
       "context": "CGCGC",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGCGC",
       "expectedContext5": "CGCGC",
       "reference": "C",
@@ -1028,7 +989,6 @@
     {
       "key": "1:1000300",
       "context": "CACCG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CACCG",
       "expectedContext5": "CACCG",
       "reference": "C",
@@ -1040,7 +1000,6 @@
     {
       "key": "1:1000400",
       "context": "CCCCG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CCCCG",
       "expectedContext5": "CCCCG",
       "reference": "C",
@@ -1052,7 +1011,6 @@
     {
       "key": "1:1000500",
       "context": "AGGAA",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "AGGAA",
       "expectedContext5": "AGGAA",
       "reference": "G",
@@ -1064,7 +1022,6 @@
     {
       "key": "1:1000000",
       "context": "CGGGT",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGGGT",
       "expectedContext5": "CGGGT",
       "reference": "G",
@@ -1076,7 +1033,6 @@
     {
       "key": "1:1000100",
       "context": "GCGCG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGCG",
       "expectedContext5": "GCGCG",
       "reference": "G",
@@ -1088,7 +1044,6 @@
     {
       "key": "1:1000200",
       "context": "CGCGC",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGCGC",
       "expectedContext5": "CGCGC",
       "reference": "C",
@@ -1100,7 +1055,6 @@
     {
       "key": "1:1000300",
       "context": "CACCG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CACCG",
       "expectedContext5": "CACCG",
       "reference": "C",
@@ -1112,7 +1066,6 @@
     {
       "key": "1:1000400",
       "context": "CCCCG",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "CCCCG",
       "expectedContext5": "CCCCG",
       "reference": "C",
@@ -1124,7 +1077,6 @@
     {
       "key": "1:1000500",
       "context": "AGGAA",
-      "source": "UCSC Genome Browser API",
       "comparatorContext": "AGGAA",
       "expectedContext5": "AGGAA",
       "reference": "G",
@@ -1136,9 +1088,9 @@
   ],
   "artifactHashes": {
     "fixture": "af1363813a4ba16c43ecd85fdc1c0f4353b7ddba79304489abc8aa8850a68fa4",
-    "runner": "e787b6933e008217c7f9f727c5efec128d0e8d9da6dc82e8dea5f90fd09902d7",
-    "comparatorWrapper": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
-    "mutationalSpectrum": "3a3238eb1d8192283b3be4f435f6038b1479e03e9bfa77d9742fe704ed8aeb6c"
+    "runner": "3311209aa15d2fe558df743afa57cce258d95f9a0b364a32824b7f837b3a243e",
+    "comparatorWrapper": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+    "mutationalSpectrum": "b2a0a4f3c7745570a7055e466d621c20283783692035d35de86b720ae87c4998"
   },
   "matrixResults": [
     {
@@ -1262,7 +1214,7 @@
       "validEventReconciles": true
     }
   ],
-  "validEventReconciliationPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\maf-conversion-valid-event-reconciliation.csv",
+  "validEventReconciliationPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/maf-conversion-valid-event-reconciliation.csv",
   "validEventReconciliationRows": 34,
   "results": [
     {
@@ -1545,25 +1497,25 @@
       },
       "validComparator": {
         "status": "completed",
-        "resultPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS96\\valid-comparator-result.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS96\\valid-comparator.log",
+        "resultPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS96/valid-comparator-result.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS96/valid-comparator.log",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS96\\valid.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS96\\valid.log",
-          "matrixSha256": "b1b5757e85cd7fe254060228532b86999d4c6835cdbe2809d3025e625c9b877f"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/SBS96/valid.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/SBS96/valid.log",
+          "matrixSha256": "d616d09dd13214a0101bcabfa4292d00f449849fdc8f3c4cfa558cabe468336a"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
           "comparatorVersion": "1.3.6",
-          "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+          "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
           "status": "completed",
           "error": null,
-          "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-          "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+          "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+          "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
           "command": [
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+            "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+            "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
             "--project",
             "msig-e9-hg19-SBS96-valid",
             "--genome",
@@ -1571,17 +1523,17 @@
             "--profile",
             "SBS96",
             "--maf-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS96\\valid-maf",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS96/valid-maf",
             "--output-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS96\\valid-comparator-output",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS96/valid-comparator-output",
             "--result",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS96\\valid-comparator-result.json",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS96/valid-comparator-result.json",
             "--volume",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+            "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
           ],
-          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
           "genome": "GRCh37",
-          "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+          "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
           "referenceVerified": true,
           "referenceExpectedMd5": {
             "1": "a7d51305e943cf06ff2029146bd91bca",
@@ -1614,12 +1566,12 @@
       },
       "adverseComparator": {
         "status": "completed_with_skips",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS96\\adverse-comparator.log",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS96/adverse-comparator.log",
         "error": "Error: More than 30% of mutations were skipped. Please check the log file for more information.",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS96\\adverse.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS96\\adverse.log",
-          "matrixSha256": "38b300b6a28d22057ca8a97b272b123836e27f40a8c94dbe535622631312abdf"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/SBS96/adverse.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/SBS96/adverse.log",
+          "matrixSha256": "9c7cfd5c1704d6ee4d3c44d984cb63d8441d04727a41928663bf5d07352cad51"
         }
       },
       "adverseRows": [
@@ -1906,7 +1858,6 @@
         {
           "key": "1:1000000",
           "context": "CGTGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGTGG",
           "expectedContext5": "CGTGG",
           "reference": "T",
@@ -1918,7 +1869,6 @@
         {
           "key": "1:1000100",
           "context": "GAAAA",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GAAAA",
           "expectedContext5": "GAAAA",
           "reference": "A",
@@ -1930,7 +1880,6 @@
         {
           "key": "1:1000200",
           "context": "GCGGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGGG",
           "expectedContext5": "GCGGG",
           "reference": "G",
@@ -1942,7 +1891,6 @@
         {
           "key": "1:1000300",
           "context": "TGTGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "TGTGG",
           "expectedContext5": "TGTGG",
           "reference": "T",
@@ -1954,7 +1902,6 @@
         {
           "key": "1:1000400",
           "context": "GGGGC",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGC",
           "expectedContext5": "GGGGC",
           "reference": "G",
@@ -1966,7 +1913,6 @@
         {
           "key": "1:1000500",
           "context": "GGGGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGG",
           "expectedContext5": "GGGGG",
           "reference": "G",
@@ -2258,25 +2204,25 @@
       },
       "validComparator": {
         "status": "completed",
-        "resultPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS1536\\valid-comparator-result.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS1536\\valid-comparator.log",
+        "resultPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS1536/valid-comparator-result.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS1536/valid-comparator.log",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS1536\\valid.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS1536\\valid.log",
-          "matrixSha256": "5f4b7a35eda8d9f1357d810ba521e27b231bc1e473d712e3f8162a043a3baaa6"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/SBS1536/valid.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/SBS1536/valid.log",
+          "matrixSha256": "f55cba918eb14035042f84c3ff3f9733bf4c04732b650f252c139df90763b9a3"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
           "comparatorVersion": "1.3.6",
-          "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+          "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
           "status": "completed",
           "error": null,
-          "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-          "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+          "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+          "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
           "command": [
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+            "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+            "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
             "--project",
             "msig-e9-hg19-SBS1536-valid",
             "--genome",
@@ -2284,17 +2230,17 @@
             "--profile",
             "SBS1536",
             "--maf-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS1536\\valid-maf",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS1536/valid-maf",
             "--output-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS1536\\valid-comparator-output",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS1536/valid-comparator-output",
             "--result",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS1536\\valid-comparator-result.json",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS1536/valid-comparator-result.json",
             "--volume",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+            "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
           ],
-          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
           "genome": "GRCh37",
-          "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+          "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
           "referenceVerified": true,
           "referenceExpectedMd5": {
             "1": "a7d51305e943cf06ff2029146bd91bca",
@@ -2327,12 +2273,12 @@
       },
       "adverseComparator": {
         "status": "completed_with_skips",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\SBS1536\\adverse-comparator.log",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/SBS1536/adverse-comparator.log",
         "error": "Error: More than 30% of mutations were skipped. Please check the log file for more information.",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS1536\\adverse.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS1536\\adverse.log",
-          "matrixSha256": "6a8926edfd59c682183e92c81e15b46a584f62814ed6f7468c516555d7debc26"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/SBS1536/adverse.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/SBS1536/adverse.log",
+          "matrixSha256": "f9cc9211c3bffd6ef1bb862ef09a008ed09116daad4e00d7661f526a37e298ab"
         }
       },
       "adverseRows": [
@@ -2619,7 +2565,6 @@
         {
           "key": "1:1000000",
           "context": "CGTGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGTGG",
           "expectedContext5": "CGTGG",
           "reference": "T",
@@ -2631,7 +2576,6 @@
         {
           "key": "1:1000100",
           "context": "GAAAA",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GAAAA",
           "expectedContext5": "GAAAA",
           "reference": "A",
@@ -2643,7 +2587,6 @@
         {
           "key": "1:1000200",
           "context": "GCGGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGGG",
           "expectedContext5": "GCGGG",
           "reference": "G",
@@ -2655,7 +2598,6 @@
         {
           "key": "1:1000300",
           "context": "TGTGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "TGTGG",
           "expectedContext5": "TGTGG",
           "reference": "T",
@@ -2667,7 +2609,6 @@
         {
           "key": "1:1000400",
           "context": "GGGGC",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGC",
           "expectedContext5": "GGGGC",
           "reference": "G",
@@ -2679,7 +2620,6 @@
         {
           "key": "1:1000500",
           "context": "GGGGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGG",
           "expectedContext5": "GGGGG",
           "reference": "G",
@@ -2845,25 +2785,25 @@
       },
       "validComparator": {
         "status": "completed",
-        "resultPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\DBS78\\valid-comparator-result.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\DBS78\\valid-comparator.log",
+        "resultPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/DBS78/valid-comparator-result.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/DBS78/valid-comparator.log",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\DBS78\\valid.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\DBS78\\valid.log",
-          "matrixSha256": "d7d03918ac3e2e4321272bf2605a031f84732c94124343aff438b3c5d7e5c324"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/DBS78/valid.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/DBS78/valid.log",
+          "matrixSha256": "fc69f5ec553670ab59888faf13aaf4f3c9cf78859eb680a66ae1c4d8526c78a9"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
           "comparatorVersion": "1.3.6",
-          "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+          "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
           "status": "completed",
           "error": null,
-          "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-          "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+          "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+          "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
           "command": [
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+            "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+            "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
             "--project",
             "msig-e9-hg19-DBS78-valid",
             "--genome",
@@ -2871,17 +2811,17 @@
             "--profile",
             "DBS78",
             "--maf-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\DBS78\\valid-maf",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/DBS78/valid-maf",
             "--output-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\DBS78\\valid-comparator-output",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/DBS78/valid-comparator-output",
             "--result",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\DBS78\\valid-comparator-result.json",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/DBS78/valid-comparator-result.json",
             "--volume",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+            "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
           ],
-          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
           "genome": "GRCh37",
-          "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+          "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
           "referenceVerified": true,
           "referenceExpectedMd5": {
             "1": "a7d51305e943cf06ff2029146bd91bca",
@@ -2914,12 +2854,12 @@
       },
       "adverseComparator": {
         "status": "completed",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\DBS78\\adverse-comparator.log",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/DBS78/adverse-comparator.log",
         "error": null,
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\DBS78\\adverse.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\DBS78\\adverse.log",
-          "matrixSha256": "c00bfbfd6f4d50c302995823294a538f7286b2abdbb7c63055a0eb0774e2457c"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/DBS78/adverse.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/DBS78/adverse.log",
+          "matrixSha256": "aa0f138c90675061fadd1c01e71eda231dc3e9bc9173f50178e66ee6beb89922"
         }
       },
       "adverseRows": [
@@ -3206,7 +3146,6 @@
         {
           "key": "1:1000000",
           "context": "CGTGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGTGG",
           "expectedContext5": "CGTGG",
           "reference": "T",
@@ -3218,7 +3157,6 @@
         {
           "key": "1:1000100",
           "context": "GAAAA",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GAAAA",
           "expectedContext5": "GAAAA",
           "reference": "A",
@@ -3230,7 +3168,6 @@
         {
           "key": "1:1000200",
           "context": "GCGGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGGG",
           "expectedContext5": "GCGGG",
           "reference": "G",
@@ -3242,7 +3179,6 @@
         {
           "key": "1:1000300",
           "context": "TGTGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "TGTGG",
           "expectedContext5": "TGTGG",
           "reference": "T",
@@ -3254,7 +3190,6 @@
         {
           "key": "1:1000400",
           "context": "GGGGC",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGC",
           "expectedContext5": "GGGGC",
           "reference": "G",
@@ -3266,7 +3201,6 @@
         {
           "key": "1:1000500",
           "context": "GGGGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGG",
           "expectedContext5": "GGGGG",
           "reference": "G",
@@ -3390,25 +3324,25 @@
       },
       "validComparator": {
         "status": "completed",
-        "resultPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\ID83\\valid-comparator-result.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\ID83\\valid-comparator.log",
+        "resultPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/ID83/valid-comparator-result.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/ID83/valid-comparator.log",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\ID83\\valid.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\ID83\\valid.log",
-          "matrixSha256": "c308fe1591a9400414f051a1c17eb923577658d175227a3512ca9d9139c38bcf"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/ID83/valid.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/ID83/valid.log",
+          "matrixSha256": "190199ba0aad4290b5e86488a7c209a187c36c9931a2c4aba21893da4479fc48"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
           "comparatorVersion": "1.3.6",
-          "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+          "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
           "status": "completed",
           "error": null,
-          "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-          "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+          "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+          "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
           "command": [
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+            "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+            "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
             "--project",
             "msig-e9-hg19-ID83-valid",
             "--genome",
@@ -3416,17 +3350,17 @@
             "--profile",
             "ID83",
             "--maf-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\ID83\\valid-maf",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/ID83/valid-maf",
             "--output-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\ID83\\valid-comparator-output",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/ID83/valid-comparator-output",
             "--result",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\ID83\\valid-comparator-result.json",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/ID83/valid-comparator-result.json",
             "--volume",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+            "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
           ],
-          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
           "genome": "GRCh37",
-          "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+          "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
           "referenceVerified": true,
           "referenceExpectedMd5": {
             "1": "a7d51305e943cf06ff2029146bd91bca",
@@ -3459,12 +3393,12 @@
       },
       "adverseComparator": {
         "status": "completed_without_matrix",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg19\\ID83\\adverse-comparator.log",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg19/ID83/adverse-comparator.log",
         "error": null,
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\ID83\\adverse.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\ID83\\adverse.log",
-          "matrixSha256": "d8c35df6f227c7d8a985da9d56283b9e88fd91a74c2444c6619b3b82cdf98449"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/ID83/adverse.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg19/ID83/adverse.log",
+          "matrixSha256": "44726827bdabf2a7c3e21a9aed293078f87007d3410aa09369d566b7c5d7c11a"
         }
       },
       "adverseRows": [
@@ -3771,7 +3705,6 @@
         {
           "key": "1:1000000",
           "context": "CGTGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGTGG",
           "expectedContext5": "CGTGG",
           "reference": "T",
@@ -3783,7 +3716,6 @@
         {
           "key": "1:1000100",
           "context": "GAAAA",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GAAAA",
           "expectedContext5": "GAAAA",
           "reference": "A",
@@ -3795,7 +3727,6 @@
         {
           "key": "1:1000200",
           "context": "GCGGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGGG",
           "expectedContext5": "GCGGG",
           "reference": "G",
@@ -3807,7 +3738,6 @@
         {
           "key": "1:1000300",
           "context": "TGTGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "TGTGG",
           "expectedContext5": "TGTGG",
           "reference": "T",
@@ -3819,7 +3749,6 @@
         {
           "key": "1:1000400",
           "context": "GGGGC",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGC",
           "expectedContext5": "GGGGC",
           "reference": "G",
@@ -3831,7 +3760,6 @@
         {
           "key": "1:1000500",
           "context": "GGGGG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGG",
           "expectedContext5": "GGGGG",
           "reference": "G",
@@ -4123,25 +4051,25 @@
       },
       "validComparator": {
         "status": "completed",
-        "resultPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS96\\valid-comparator-result.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS96\\valid-comparator.log",
+        "resultPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS96/valid-comparator-result.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS96/valid-comparator.log",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS96\\valid.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS96\\valid.log",
-          "matrixSha256": "a7370c6477688a3b16c5e7a6740fb737b8cac26a7f23571d03785fb5bcb98a29"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/SBS96/valid.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/SBS96/valid.log",
+          "matrixSha256": "5fecea5ed4a68b24e2d44348737d83090bfbd88ff57afe98da9729f2ba3aae3a"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
           "comparatorVersion": "1.3.6",
-          "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+          "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
           "status": "completed",
           "error": null,
-          "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-          "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+          "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+          "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
           "command": [
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+            "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+            "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
             "--project",
             "msig-e9-hg38-SBS96-valid",
             "--genome",
@@ -4149,17 +4077,17 @@
             "--profile",
             "SBS96",
             "--maf-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS96\\valid-maf",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS96/valid-maf",
             "--output-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS96\\valid-comparator-output",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS96/valid-comparator-output",
             "--result",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS96\\valid-comparator-result.json",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS96/valid-comparator-result.json",
             "--volume",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+            "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
           ],
-          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
           "genome": "GRCh38",
-          "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+          "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
           "referenceVerified": true,
           "referenceExpectedMd5": {
             "1": "ebe083105e7703a49581a36d73732a96",
@@ -4192,12 +4120,12 @@
       },
       "adverseComparator": {
         "status": "completed_with_skips",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS96\\adverse-comparator.log",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS96/adverse-comparator.log",
         "error": "Error: More than 30% of mutations were skipped. Please check the log file for more information.",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS96\\adverse.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS96\\adverse.log",
-          "matrixSha256": "d6479677e19c7cb92a87f1af000959d368b03138fd4e92becf95e02e9b62b884"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/SBS96/adverse.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/SBS96/adverse.log",
+          "matrixSha256": "d6739275e86e963c3f7d8808bca77eb3c9b4602ebb76524ee50927f2a7000667"
         }
       },
       "adverseRows": [
@@ -4484,7 +4412,6 @@
         {
           "key": "1:1000000",
           "context": "CGGGT",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGGGT",
           "expectedContext5": "CGGGT",
           "reference": "G",
@@ -4496,7 +4423,6 @@
         {
           "key": "1:1000100",
           "context": "GCGCG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGCG",
           "expectedContext5": "GCGCG",
           "reference": "G",
@@ -4508,7 +4434,6 @@
         {
           "key": "1:1000200",
           "context": "CGCGC",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGCGC",
           "expectedContext5": "CGCGC",
           "reference": "C",
@@ -4520,7 +4445,6 @@
         {
           "key": "1:1000300",
           "context": "CACCG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CACCG",
           "expectedContext5": "CACCG",
           "reference": "C",
@@ -4532,7 +4456,6 @@
         {
           "key": "1:1000400",
           "context": "CCCCG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CCCCG",
           "expectedContext5": "CCCCG",
           "reference": "C",
@@ -4544,7 +4467,6 @@
         {
           "key": "1:1000500",
           "context": "AGGAA",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "AGGAA",
           "expectedContext5": "AGGAA",
           "reference": "G",
@@ -4836,25 +4758,25 @@
       },
       "validComparator": {
         "status": "completed",
-        "resultPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS1536\\valid-comparator-result.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS1536\\valid-comparator.log",
+        "resultPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS1536/valid-comparator-result.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS1536/valid-comparator.log",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS1536\\valid.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS1536\\valid.log",
-          "matrixSha256": "7d8138ccd9ce55a6cb7ef981976bebdf2a188e575982454c6b55cfe8ab156be3"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/SBS1536/valid.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/SBS1536/valid.log",
+          "matrixSha256": "fa230d9e0d70ff09a38f55012cfd2eeba926d518ae612a296d9f799da9cdaf0c"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
           "comparatorVersion": "1.3.6",
-          "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+          "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
           "status": "completed",
           "error": null,
-          "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-          "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+          "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+          "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
           "command": [
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+            "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+            "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
             "--project",
             "msig-e9-hg38-SBS1536-valid",
             "--genome",
@@ -4862,17 +4784,17 @@
             "--profile",
             "SBS1536",
             "--maf-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS1536\\valid-maf",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS1536/valid-maf",
             "--output-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS1536\\valid-comparator-output",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS1536/valid-comparator-output",
             "--result",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS1536\\valid-comparator-result.json",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS1536/valid-comparator-result.json",
             "--volume",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+            "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
           ],
-          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
           "genome": "GRCh38",
-          "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+          "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
           "referenceVerified": true,
           "referenceExpectedMd5": {
             "1": "ebe083105e7703a49581a36d73732a96",
@@ -4905,12 +4827,12 @@
       },
       "adverseComparator": {
         "status": "completed_with_skips",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\SBS1536\\adverse-comparator.log",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/SBS1536/adverse-comparator.log",
         "error": "Error: More than 30% of mutations were skipped. Please check the log file for more information.",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS1536\\adverse.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS1536\\adverse.log",
-          "matrixSha256": "fd9d467d3ab2c112d63fbdc8f97bc1d5660b0f79dbd2861889c0ab5b97175ffe"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/SBS1536/adverse.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/SBS1536/adverse.log",
+          "matrixSha256": "47f7e6ce758336172896d3c325dd21b78391bbe9e0aeef5a56bc73612d3e2057"
         }
       },
       "adverseRows": [
@@ -5197,7 +5119,6 @@
         {
           "key": "1:1000000",
           "context": "CGGGT",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGGGT",
           "expectedContext5": "CGGGT",
           "reference": "G",
@@ -5209,7 +5130,6 @@
         {
           "key": "1:1000100",
           "context": "GCGCG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGCG",
           "expectedContext5": "GCGCG",
           "reference": "G",
@@ -5221,7 +5141,6 @@
         {
           "key": "1:1000200",
           "context": "CGCGC",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGCGC",
           "expectedContext5": "CGCGC",
           "reference": "C",
@@ -5233,7 +5152,6 @@
         {
           "key": "1:1000300",
           "context": "CACCG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CACCG",
           "expectedContext5": "CACCG",
           "reference": "C",
@@ -5245,7 +5163,6 @@
         {
           "key": "1:1000400",
           "context": "CCCCG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CCCCG",
           "expectedContext5": "CCCCG",
           "reference": "C",
@@ -5257,7 +5174,6 @@
         {
           "key": "1:1000500",
           "context": "AGGAA",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "AGGAA",
           "expectedContext5": "AGGAA",
           "reference": "G",
@@ -5423,25 +5339,25 @@
       },
       "validComparator": {
         "status": "completed",
-        "resultPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\DBS78\\valid-comparator-result.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\DBS78\\valid-comparator.log",
+        "resultPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/DBS78/valid-comparator-result.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/DBS78/valid-comparator.log",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\DBS78\\valid.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\DBS78\\valid.log",
-          "matrixSha256": "a322640e57cf570f80a11d02e87378f90fb7310af3a4c3a52075e47a394d7bb7"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/DBS78/valid.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/DBS78/valid.log",
+          "matrixSha256": "2c335e21f1de737ef0403b8931738b1f24092e1a806a324a4bdf3c9041437b3a"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
           "comparatorVersion": "1.3.6",
-          "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+          "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
           "status": "completed",
           "error": null,
-          "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-          "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+          "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+          "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
           "command": [
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+            "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+            "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
             "--project",
             "msig-e9-hg38-DBS78-valid",
             "--genome",
@@ -5449,17 +5365,17 @@
             "--profile",
             "DBS78",
             "--maf-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\DBS78\\valid-maf",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/DBS78/valid-maf",
             "--output-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\DBS78\\valid-comparator-output",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/DBS78/valid-comparator-output",
             "--result",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\DBS78\\valid-comparator-result.json",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/DBS78/valid-comparator-result.json",
             "--volume",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+            "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
           ],
-          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
           "genome": "GRCh38",
-          "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+          "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
           "referenceVerified": true,
           "referenceExpectedMd5": {
             "1": "ebe083105e7703a49581a36d73732a96",
@@ -5492,12 +5408,12 @@
       },
       "adverseComparator": {
         "status": "completed_with_skips",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\DBS78\\adverse-comparator.log",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/DBS78/adverse-comparator.log",
         "error": "Error: More than 30% of mutations were skipped. Please check the log file for more information.",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\DBS78\\adverse.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\DBS78\\adverse.log",
-          "matrixSha256": "6f26eeb5161180600cde3198bf0c144900ad78d7ed14cb58ea32246e59b129dc"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/DBS78/adverse.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/DBS78/adverse.log",
+          "matrixSha256": "a00e82dc2a51bda23eb8a0123203f20391c0415ce645eaf62fb8fc72479053eb"
         }
       },
       "adverseRows": [
@@ -5784,7 +5700,6 @@
         {
           "key": "1:1000000",
           "context": "CGGGT",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGGGT",
           "expectedContext5": "CGGGT",
           "reference": "G",
@@ -5796,7 +5711,6 @@
         {
           "key": "1:1000100",
           "context": "GCGCG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGCG",
           "expectedContext5": "GCGCG",
           "reference": "G",
@@ -5808,7 +5722,6 @@
         {
           "key": "1:1000200",
           "context": "CGCGC",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGCGC",
           "expectedContext5": "CGCGC",
           "reference": "C",
@@ -5820,7 +5733,6 @@
         {
           "key": "1:1000300",
           "context": "CACCG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CACCG",
           "expectedContext5": "CACCG",
           "reference": "C",
@@ -5832,7 +5744,6 @@
         {
           "key": "1:1000400",
           "context": "CCCCG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CCCCG",
           "expectedContext5": "CCCCG",
           "reference": "C",
@@ -5844,7 +5755,6 @@
         {
           "key": "1:1000500",
           "context": "AGGAA",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "AGGAA",
           "expectedContext5": "AGGAA",
           "reference": "G",
@@ -5968,25 +5878,25 @@
       },
       "validComparator": {
         "status": "completed",
-        "resultPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\ID83\\valid-comparator-result.json",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\ID83\\valid-comparator.log",
+        "resultPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/ID83/valid-comparator-result.json",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/ID83/valid-comparator.log",
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\ID83\\valid.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\ID83\\valid.log",
-          "matrixSha256": "5b93e8d0a82b2f67f6548bf57ab9775933d6a9a00dbbf198f8b3de5e99472160"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/ID83/valid.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/ID83/valid.log",
+          "matrixSha256": "7e6479ab9de272c7405ec2a7c4d614da2db7cc658c2a24ce1bdcc6719dc1e266"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
           "comparatorVersion": "1.3.6",
-          "comparatorPackageSha256": "df185431a4433b0b8568ae6469e31b3b18cbb6b02d80f0b190423636cba9f79f",
+          "comparatorPackageSha256": "7e3b6e6510508f882be597c9be04648dd82c74d92a42ce0e6b8777873eaf143b",
           "status": "completed",
           "error": null,
-          "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:37:03) [MSC v.1929 64 bit (AMD64)]",
-          "pythonExecutable": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 16.0.0 (clang-1600.0.26.6)]",
+          "pythonExecutable": "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+          "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
           "command": [
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\e2-python\\Scripts\\python.exe",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\code\\run_sigprofiler_matrix_generator.py",
+            "/Users/aaronge/Documents/GitHub/msig/.tools/e9-python-macos/bin/python",
+            "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/code/run_sigprofiler_matrix_generator.py",
             "--project",
             "msig-e9-hg38-ID83-valid",
             "--genome",
@@ -5994,17 +5904,17 @@
             "--profile",
             "ID83",
             "--maf-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\ID83\\valid-maf",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/ID83/valid-maf",
             "--output-dir",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\ID83\\valid-comparator-output",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/ID83/valid-comparator-output",
             "--result",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\ID83\\valid-comparator-result.json",
+            "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/ID83/valid-comparator-result.json",
             "--volume",
-            "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
+            "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos"
           ],
-          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
+          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
           "genome": "GRCh38",
-          "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
+          "referenceVolume": "/Users/aaronge/Documents/GitHub/msig/.tools/spm-references-macos",
           "referenceVerified": true,
           "referenceExpectedMd5": {
             "1": "ebe083105e7703a49581a36d73732a96",
@@ -6037,12 +5947,12 @@
       },
       "adverseComparator": {
         "status": "completed_without_matrix",
-        "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tmp\\maf-conversion-validation\\hg38\\ID83\\adverse-comparator.log",
+        "logPath": "/Users/aaronge/Documents/GitHub/msig/.tmp/maf-conversion-validation/hg38/ID83/adverse-comparator.log",
         "error": null,
         "durable": {
-          "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\ID83\\adverse.matrix.json",
-          "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\ID83\\adverse.log",
-          "matrixSha256": "1b2d93ac905a57234184a4ca38f95a232ab9b3b0110b587e11dcf11a4c8d5a7a"
+          "matrixPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/ID83/adverse.matrix.json",
+          "logPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/comparator-artifacts/hg38/ID83/adverse.log",
+          "matrixSha256": "09d4df96bc77c9fb91821cff48a0a81736a015cae6e3ac478f2c7135694df639"
         }
       },
       "adverseRows": [
@@ -6349,7 +6259,6 @@
         {
           "key": "1:1000000",
           "context": "CGGGT",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGGGT",
           "expectedContext5": "CGGGT",
           "reference": "G",
@@ -6361,7 +6270,6 @@
         {
           "key": "1:1000100",
           "context": "GCGCG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGCG",
           "expectedContext5": "GCGCG",
           "reference": "G",
@@ -6373,7 +6281,6 @@
         {
           "key": "1:1000200",
           "context": "CGCGC",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGCGC",
           "expectedContext5": "CGCGC",
           "reference": "C",
@@ -6385,7 +6292,6 @@
         {
           "key": "1:1000300",
           "context": "CACCG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CACCG",
           "expectedContext5": "CACCG",
           "reference": "C",
@@ -6397,7 +6303,6 @@
         {
           "key": "1:1000400",
           "context": "CCCCG",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "CCCCG",
           "expectedContext5": "CCCCG",
           "reference": "C",
@@ -6409,7 +6314,6 @@
         {
           "key": "1:1000500",
           "context": "AGGAA",
-          "source": "UCSC Genome Browser API",
           "comparatorContext": "AGGAA",
           "expectedContext5": "AGGAA",
           "reference": "G",
@@ -6422,7 +6326,7 @@
       "fixtureSha256": "7eb036efe08ec68134671980ea6ba2602941df56254f07b3d458ea1d2ea7f11d"
     }
   ],
-  "reconciliationPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\maf-conversion-reconciliation.csv",
+  "reconciliationPath": "/Users/aaronge/Documents/GitHub/msig/docs/manuscript/experiments/e9_maf_conversion_validation/data/maf-conversion-reconciliation.csv",
   "reconciliationRows": 72,
   "comparatorProcessErrors": 0,
   "comparatorGuardErrors": 5,

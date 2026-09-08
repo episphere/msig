@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "msig.example_maf_validation.v1",
+  "completedAt": "2026-08-09T14:23:41.442Z",
+  "inputPath": "/Users/aaronge/Documents/GitHub/msig/examples/maf/example.input.maf",
+  "immediateSource": "Derived from ding-lab/MuSiC2 example/smg/example.input.maf, added in MuSiC2 commit 202ada53d1f2327d9e3096f614b1b04f0f3ad383 on 2018-11-23 as an SMG workflow example.",
+  "modificationsFromUpstream": "The mSig copy omits six records present in the current MuSiC2 file and changes one NBPF1 coordinate.",
+  "provenanceLimitation": "MuSiC2 does not identify the underlying tumor type, study, accession, or patient provenance.",
+  "genomeBuild": "GRCh37",
+  "inputRows": 2493,
+  "samples": 19,
+  "variantTypeCounts": {
+    "DEL": 102,
+    "INS": 97,
+    "ONP": 31,
+    "SNP": 2263
+  },
+  "distinctChromosomePositionPairs": 2166,
+  "distinctSampleVariantRecords": 2493,
+  "sdkCountedSubstitutions": 2262,
+  "sdkRejectedRows": 231,
+  "rejectedRowsByReason": {
+    "not a single-nucleotide variant": 230,
+    "reference allele does not match context center": 1
+  },
+  "countedDistinctChromosomePositionPairs": 1969,
+  "comparatorVersion": "1.3.6",
+  "comparatorStatus": "completed",
+  "referenceVerified": true,
+  "stderr": "",
+  "comparisons": [
+    {
+      "profile": "SBS96",
+      "samples": 19,
+      "mismatches": [],
+      "exact": true
+    },
+    {
+      "profile": "SBS1536",
+      "samples": 19,
+      "mismatches": [],
+      "exact": true
+    }
+  ],
+  "pass": true
+}

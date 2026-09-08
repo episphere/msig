@@ -136,6 +136,9 @@ function externalChromosome(value) {
 }
 
 function externalMafRow(row, build) {
+  const endPosition = row.variant_type === "DNP" && /^[ACGT]{2}$/.test(row.reference_allele)
+    ? Number(row.start_position) + 1
+    : row.start_position;
   const fields = [
     row.caseId,
     "0",
@@ -143,7 +146,7 @@ function externalMafRow(row, build) {
     BUILD_TO_COMPARATOR[build],
     externalChromosome(row.chromosome),
     String(row.start_position),
-    String(row.start_position),
+    String(endPosition),
     "+",
     row.variant_type === "SNP" ? "Missense_Mutation" : "Unknown",
     row.variant_type,
