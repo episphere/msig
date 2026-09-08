@@ -93,6 +93,7 @@ def main():
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--result", required=True)
     parser.add_argument("--volume", required=True)
+    parser.add_argument("--requested-only", action="store_true")
     args = parser.parse_args()
 
     os.environ["SIGPROFILERMATRIXGENERATOR_VOLUME"] = str(Path(args.volume).resolve())
@@ -146,6 +147,11 @@ def main():
             else partial_matrices["ID83"]
         ),
     }
+    if args.requested_only:
+        matrix_payload = {
+            key: value if key == args.profile else None
+            for key, value in matrix_payload.items()
+        }
     if matrix_payload[args.profile] is None and comparator_status == "completed":
         comparator_status = "completed_without_matrix"
     payload = {

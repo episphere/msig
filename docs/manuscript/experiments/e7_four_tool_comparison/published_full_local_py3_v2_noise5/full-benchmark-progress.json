@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "msig.manuscript.e7.full-progress.v1",
+  "updatedAt": "2026-08-03T03:05:46.694Z",
+  "status": "completed",
+  "noise": 5,
+  "sampleCount": 2700,
+  "chunkSize": 300,
+  "chunkCount": 9,
+  "mergedExposurePath": "docs/manuscript/experiments/e7_four_tool_comparison/published_full_local_py3_v2_noise5/data/adapter-exposure-matrices.json"
+}

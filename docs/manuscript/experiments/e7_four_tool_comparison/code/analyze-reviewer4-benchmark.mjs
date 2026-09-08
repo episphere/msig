@@ -20,6 +20,12 @@ const labels = {
   sigprofilerassignment: "SigProfilerAssignment",
   musical: "MuSiCal",
 };
+const shortLabels = {
+  deconstructsigs: "dSigs",
+  sigminer: "sigminer",
+  sigprofilerassignment: "SPA",
+  musical: "MuSiCal",
+};
 const noises = [0, 5, 10];
 const cutoff = 0.01;
 const archiveSha256 = "c629de203bcf7a517b0308ea695da90572d92e7b8f271dc3f72fe29eeed731aa";
@@ -82,7 +88,7 @@ const comparisonContract = createAdapterComparisonContract({
   cutoff,
   randomSeed: 104729,
 });
-const syntheticReferenceInput = await readJson(path.join(dataDir, "published-sbs-input-subset1.json"));
+const syntheticReferenceInput = await readJson(path.join(dataDir, "published-sbs-input.json"));
 const syntheticComparisonContract = createAdapterComparisonContract({
   contexts: syntheticReferenceInput.contexts,
   signatureNames: syntheticReferenceInput.signatureNames,
@@ -90,8 +96,9 @@ const syntheticComparisonContract = createAdapterComparisonContract({
   randomSeed: 104729,
 });
 const outputDisposition = tools.map((tool) => {
-  const omittedBySample = [];
-  const extraBySample = [];
+  const exceptions = [];
+  let samplesWithOmittedCatalogColumns = 0;
+  let samplesWithExtraOutputColumns = 0;
   for (const sample of fidelityInput.sampleNames) {
     const outputNames = [
       ...new Set(
@@ -100,19 +107,23 @@ const outputDisposition = tools.map((tool) => {
           .map((row) => row.signature)
       ),
     ];
-    omittedBySample.push({
-      sample,
-      signatures: fidelityInput.signatureNames.filter((signature) => !outputNames.includes(signature)),
-    });
-    extraBySample.push({
-      sample,
-      columns: outputNames.filter((name) => !fidelityInput.signatureNames.includes(name)),
-    });
+    const omittedCatalogColumns = fidelityInput.signatureNames.filter((signature) => !outputNames.includes(signature));
+    const extraOutputColumns = outputNames.filter((name) => !fidelityInput.signatureNames.includes(name));
+    samplesWithOmittedCatalogColumns += omittedCatalogColumns.length ? 1 : 0;
+    samplesWithExtraOutputColumns += extraOutputColumns.length ? 1 : 0;
+    if (omittedCatalogColumns.length || extraOutputColumns.length) {
+      exceptions.push({ sample, omittedCatalogColumns, extraOutputColumns });
+    }
   }
   return {
     tool,
-    omittedCatalogColumns: omittedBySample,
-    extraOutputColumns: extraBySample,
+    realWorld: {
+      sampleCount: fidelityInput.sampleNames.length,
+      catalogColumnCount: fidelityInput.signatureNames.length,
+      samplesWithOmittedCatalogColumns,
+      samplesWithExtraOutputColumns,
+      exceptions,
+    },
     synthetic: [],
     unassigned: {
       status: "not_returned_as_a_separate_component",
@@ -240,19 +251,15 @@ function barSvg(x, y, width, height, title, subtitle, groups, series, yMax = 1) 
     });
     out += text(left + gi * groupW + groupW / 2, top + plotH + 18, group, 11, "#526273", 400, "middle");
   });
-  series.forEach((item, si) => {
-    const lx = x + 18 + si * 86;
-    out += `<rect x="${lx}" y="${y + height - 21}" width="10" height="10" fill="${colors[si]}"/>${text(lx + 14, y + height - 12, item.label, 9, "#526273")}`;
-  });
   return out;
 }
 
-function heatmapSvg(x, y, width, height, title, subtitle, rows, field, min, max) {
+function heatmapSvg(x, y, width, height, title, subtitle, rows, field, min, max, diagonalValue) {
   const text = (tx, ty, value, size = 11, fill = "#243447", anchor = "start") => `<text x="${tx}" y="${ty}" font-family="Arial, sans-serif" font-size="${size}" fill="${fill}" text-anchor="${anchor}">${value}</text>`;
   const cell = 50;
   const gx = x + 105;
   const gy = y + 72;
-  const matrix = Object.fromEntries(tools.map((a) => [a, Object.fromEntries(tools.map((b) => [b, a === b ? 1 : null]))]));
+  const matrix = Object.fromEntries(tools.map((a) => [a, Object.fromEntries(tools.map((b) => [b, a === b ? diagonalValue : null]))]));
   rows.forEach((row) => { matrix[row.toolA][row.toolB] = row[field]; matrix[row.toolB][row.toolA] = row[field]; });
   const color = (v) => {
     const t = Math.max(0, Math.min(1, (v - min) / (max - min)));
@@ -260,7 +267,7 @@ function heatmapSvg(x, y, width, height, title, subtitle, rows, field, min, max)
   };
   let out = `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#fbfcfd" stroke="#d8e1e7"/>${text(x + 16, y + 24, title, 15, "#172b3a")}${text(x + 16, y + 42, subtitle, 10, "#526273")}`;
   tools.forEach((tool, i) => {
-    out += text(gx + i * cell + 24, gy - 9, labels[tool].replace("SigProfilerAssignment", "SPA"), 9, "#526273", "middle");
+    out += text(gx + i * cell + 24, gy - 9, shortLabels[tool], 9, "#526273", "middle");
     out += text(gx - 8, gy + i * cell + 30, labels[tool].replace("SigProfilerAssignment", "SPA"), 9, "#526273", "end");
     tools.forEach((other, j) => {
       const value = matrix[tool][other];
@@ -272,12 +279,28 @@ function heatmapSvg(x, y, width, height, title, subtitle, rows, field, min, max)
   return out;
 }
 
+function signatureRangeSvg(x, y, width, height, rows) {
+  const text = (tx, ty, value, size = 11, fill = "#243447", weight = 400, anchor = "start") => `<text x="${tx}" y="${ty}" font-family="Arial, sans-serif" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}">${value}</text>`;
+  const top = y + 64;
+  const left = x + 82;
+  const plotW = width - 118;
+  const rowH = 32;
+  const maxValue = Math.max(...rows.map((row) => row.meanAcrossToolRange));
+  let out = `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#fbfcfd" stroke="#d8e1e7"/>${text(x + 16, y + 24, "F. Signatures driving real-cohort disagreement", 15, "#172b3a", 700)}${text(x + 16, y + 42, "Mean across-tool range in relative exposure across 38 samples", 10, "#526273")}`;
+  rows.forEach((row, index) => {
+    const yy = top + index * rowH;
+    const barW = row.meanAcrossToolRange / maxValue * plotW;
+    out += `${text(left - 10, yy + 15, row.signature, 10, "#526273", 400, "end")}<rect x="${left}" y="${yy}" width="${barW}" height="20" rx="2" fill="#2f6f8f"/>${text(left + barW + 7, yy + 15, row.meanAcrossToolRange.toFixed(3), 10, "#243447")}`;
+  });
+  return out;
+}
+
 const synthetic = [];
 for (const noise of noises) {
   const suffix = noise === 0 ? "" : `-noise${noise}`;
-  const input = await readJson(path.join(dataDir, `published-sbs-input${suffix}-subset1.json`));
-  const truth = await readJson(path.join(dataDir, `published-sbs-truth${suffix}-subset1.json`));
-  const matrices = await readJson(path.join(experimentDir, `published_subset1_local_py3_noise${noise}`, "data", "adapter-exposure-matrices.json"));
+  const input = await readJson(path.join(dataDir, `published-sbs-input${suffix}.json`));
+  const truth = await readJson(path.join(dataDir, `published-sbs-truth${suffix}.json`));
+  const matrices = await readJson(path.join(experimentDir, `published_full_local_py3_v2_noise${noise}`, "data", "adapter-exposure-matrices.json"));
   const samples = input.sampleNames;
   const signatures = input.signatureNames;
   const contexts = input.contexts;
@@ -289,33 +312,46 @@ for (const noise of noises) {
   }
   for (const tool of tools) {
     const toolDisposition = outputDisposition.find((entry) => entry.tool === tool);
-    toolDisposition.synthetic.push({
-      noisePercent: noise,
-      samples: samples.map((sample) => {
-        const materialized = materializeAdapterComparisonExposure(
-          matrices.tools[tool][sample],
-          signatures
-        );
-        const unassignedValues = Object.fromEntries(
-          materialized.unassignedOutputColumns.map((name) => [
-            name,
-            nonNegativeFinite(matrices.tools[tool][sample]?.[name]),
-          ])
-        );
-        return {
+    const exceptions = [];
+    let samplesWithOmittedCatalogColumns = 0;
+    let samplesWithExtraOutputColumns = 0;
+    let samplesWithUnassignedOutput = 0;
+    for (const sample of samples) {
+      const materialized = materializeAdapterComparisonExposure(
+        matrices.tools[tool][sample],
+        signatures
+      );
+      const unassignedValues = Object.fromEntries(
+        materialized.unassignedOutputColumns.map((name) => [
+          name,
+          nonNegativeFinite(matrices.tools[tool][sample]?.[name]),
+        ])
+      );
+      samplesWithOmittedCatalogColumns += materialized.omittedCatalogColumns.length ? 1 : 0;
+      samplesWithExtraOutputColumns += materialized.extraOutputColumns.length ? 1 : 0;
+      samplesWithUnassignedOutput += materialized.unassignedOutputColumns.length ? 1 : 0;
+      if (
+        materialized.omittedCatalogColumns.length ||
+        materialized.extraOutputColumns.length ||
+        materialized.unassignedOutputColumns.length
+      ) {
+        exceptions.push({
           sample,
-          outputColumns: materialized.outputNames,
           omittedCatalogColumns: materialized.omittedCatalogColumns,
           extraOutputColumns: materialized.extraOutputColumns,
-          unassigned: {
-            status: materialized.unassignedOutputColumns.length
-              ? "returned_as_extra_output_columns"
-              : "not_returned_as_a_separate_component",
-            columns: materialized.unassignedOutputColumns,
-            values: unassignedValues,
-          },
-        };
-      }),
+          unassignedOutputColumns: materialized.unassignedOutputColumns,
+          unassignedValues,
+        });
+      }
+    }
+    toolDisposition.synthetic.push({
+      noisePercent: noise,
+      sampleCount: samples.length,
+      catalogColumnCount: signatures.length,
+      samplesWithOmittedCatalogColumns,
+      samplesWithExtraOutputColumns,
+      samplesWithUnassignedOutput,
+      exceptions,
     });
   }
   for (const tool of tools) {
@@ -373,8 +409,8 @@ for (const noise of noises) {
     for (let j = i + 1; j < tools.length; j += 1) {
       const a = tools[i];
       const b = tools[j];
-      const input = await readJson(path.join(dataDir, noise === 0 ? "published-sbs-input-subset1.json" : `published-sbs-input-noise${noise}-subset1.json`));
-      const matrices = await readJson(path.join(experimentDir, `published_subset1_local_py3_noise${noise}`, "data", "adapter-exposure-matrices.json"));
+      const input = await readJson(path.join(dataDir, noise === 0 ? "published-sbs-input.json" : `published-sbs-input-noise${noise}.json`));
+      const matrices = await readJson(path.join(experimentDir, `published_full_local_py3_v2_noise${noise}`, "data", "adapter-exposure-matrices.json"));
       const signatures = input.signatureNames;
       const av = [];
       const bv = [];
@@ -407,7 +443,8 @@ for (const noise of noises) {
   }
 }
 
-const realPairwise = (await readJson(path.join(dataDir, "four-tool-comparison-results.json"))).pairwise.map((row) => ({
+const realComparison = await readJson(path.join(dataDir, "four-tool-comparison-results.json"));
+const realPairwise = realComparison.pairwise.map((row) => ({
   toolA: row.toolA,
   toolB: row.toolB,
   pair: row.pair,
@@ -416,7 +453,7 @@ const realPairwise = (await readJson(path.join(dataDir, "four-tool-comparison-re
   medianPerSampleL1Disagreement: round(row.medianSampleL1),
   meanActiveSignatureJaccard: round(row.meanActiveJaccard),
 }));
-const realSummary = (await readJson(path.join(dataDir, "four-tool-comparison-results.json"))).tools.map((row) => ({
+const realSummary = realComparison.tools.map((row) => ({
   tool: row.tool,
   sampleCount: row.samples,
   catalogSignatureCount: row.catalogSignatures,
@@ -424,11 +461,17 @@ const realSummary = (await readJson(path.join(dataDir, "four-tool-comparison-res
   meanReconstructionCosine: round(row.meanReconstructionCosine),
   minimumReconstructionCosine: round(row.minReconstructionCosine),
 }));
+const realSignatureDiscrepancies = realComparison.largestDiscrepancies.map((row) => ({
+  signature: row.signature,
+  meanExposureAcrossTools: round(row.meanExposure),
+  meanAcrossToolRange: round(row.acrossToolRangeMean),
+  maximumAcrossToolRange: round(row.maxAcrossToolRange),
+}));
 
 const topSyntheticDiscrepancies = [];
 for (const noise of noises) {
-  const input = await readJson(path.join(dataDir, noise === 0 ? "published-sbs-input-subset1.json" : `published-sbs-input-noise${noise}-subset1.json`));
-  const matrices = await readJson(path.join(experimentDir, `published_subset1_local_py3_noise${noise}`, "data", "adapter-exposure-matrices.json"));
+  const input = await readJson(path.join(dataDir, noise === 0 ? "published-sbs-input.json" : `published-sbs-input-noise${noise}.json`));
+  const matrices = await readJson(path.join(experimentDir, `published_full_local_py3_v2_noise${noise}`, "data", "adapter-exposure-matrices.json"));
   for (const signature of input.signatureNames) {
     const ranges = input.sampleNames.map((sample) => {
       const values = tools.map((tool) => fractionOutput(matrices.tools[tool][sample], input.signatureNames)[input.signatureNames.indexOf(signature)]);
@@ -447,6 +490,7 @@ await writeCsv(path.join(outputDir, "synthetic-pairwise-raw-vs-filtered.csv"), s
 await writeCsv(path.join(outputDir, "synthetic-signature-discrepancies-raw.csv"), topSyntheticDiscrepancies);
 await writeCsv(path.join(outputDir, "real-world-pairwise-comparison.csv"), realPairwise);
 await writeCsv(path.join(outputDir, "real-world-tool-summary.csv"), realSummary);
+await writeCsv(path.join(outputDir, "real-world-signature-discrepancies.csv"), realSignatureDiscrepancies);
 
 const source = {
   synthetic: {
@@ -454,7 +498,7 @@ const source = {
     benchmarkPaper: "Díaz-Gay et al. 2023, Bioinformatics, DOI 10.1093/bioinformatics/btad756",
     archive: "Figshare DOI 10.6084/m9.figshare.24457114.v1",
     archiveSha256,
-    subset: "Nine archived spectra: the first sample in each of the nine cancer-type groups; 0%, 5%, and 10% noise.",
+    benchmarkScope: "All 2,700 archived spectra across nine cancer-type groups, evaluated at 0%, 5%, and 10% noise (8,100 sample-condition combinations per tool).",
     caveat: "The published spectra are high-burden controlled mixtures. They are used for accuracy against known truth, not as evidence that real tools should disagree strongly.",
   },
   realWorld: {
@@ -479,12 +523,20 @@ const source = {
 await writeFile(path.join(outputDir, "reviewer4-benchmark-provenance.json"), `${JSON.stringify({ schemaVersion: "msig.manuscript.e7.reviewer4.benchmark.v1", generatedAt: new Date().toISOString(), source, reproducibility: reproducibilityManifest, outputs: { syntheticSummary: "synthetic-summary-raw-vs-filtered.csv", realWorldPairwise: "real-world-pairwise-comparison.csv", comparisonContract: "embedded in source.harmonization.comparisonContract", reproducibilityManifest: "reviewer4-reproducibility-manifest.json" } }, null, 2)}\n`);
 
 const summaryAt = (noise, tool, field) => syntheticSummary.find((row) => row.noisePercent === noise && row.tool === tool)?.[field] || 0;
-let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780"><rect width="1200" height="780" fill="#fff"/><text x="30" y="30" font-family="Arial" font-size="21" font-weight="700" fill="#172b3a">Reviewer 4 benchmark: known-truth accuracy and real-world disagreement</text><text x="30" y="51" font-family="Arial" font-size="12" fill="#526273">Synthetic raw accuracy is separated from 1% thresholded reporting behavior; real PCAWG results show tool-to-tool divergence without truth labels.</text>`;
-svg += barSvg(30, 72, 560, 300, "A. Synthetic raw exposure accuracy", "Mean cosine to published true fractions; no post-fit cutoff", ["0%", "5%", "10%"], tools.map((tool) => ({ label: labels[tool].replace("SigProfilerAssignment", "SPA"), values: noises.map((noise) => summaryAt(noise, tool, "meanRawExposureCosine")) })));
-svg += barSvg(610, 72, 560, 300, "B. Synthetic active-call performance", "Mean F1 after common 1% cutoff; truth activity > 0", ["0%", "5%", "10%"], tools.map((tool) => ({ label: labels[tool].replace("SigProfilerAssignment", "SPA"), values: noises.map((noise) => summaryAt(noise, tool, "meanF1")) })));
-svg += heatmapSvg(30, 410, 560, 300, "C. Real PCAWG exposure correlation", "38 Lung-AdenoCA WGS SBS96 samples; flattened fractions", realPairwise.map((row) => ({ ...row, toolA: tools.find((tool) => labels[tool] === row.toolA), toolB: tools.find((tool) => labels[tool] === row.toolB), exposure: row.flattenedExposurePearson })), "exposure", 0.8, 1);
-svg += heatmapSvg(610, 410, 560, 300, "D. Real PCAWG active-signature concordance", "38 samples; mean Jaccard after common 1% cutoff", realPairwise.map((row) => ({ ...row, toolA: tools.find((tool) => labels[tool] === row.toolA), toolB: tools.find((tool) => labels[tool] === row.toolB), jaccard: row.meanActiveSignatureJaccard })), "jaccard", 0, 1);
-svg += `<text x="30" y="755" font-family="Arial" font-size="10" fill="#526273">The synthetic panel is a controlled accuracy test; the PCAWG panels are a triangulation test and must not be interpreted as biological truth.</text></svg>`;
+let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1100" viewBox="0 0 1200 1100"><rect width="1200" height="1100" fill="#fff"/><text x="30" y="30" font-family="Arial" font-size="21" font-weight="700" fill="#172b3a">Four-tool benchmark: known-truth accuracy and real-world disagreement</text><text x="30" y="51" font-family="Arial" font-size="12" fill="#526273">Synthetic raw accuracy is separated from 1% thresholded reporting behavior; real PCAWG results quantify tool-to-tool divergence without truth labels.</text>`;
+const legendColors = ["#2f6f8f", "#d77936", "#5b8e55", "#9a5b9d"];
+const legendX = [30, 205, 340, 575];
+tools.forEach((tool, index) => {
+  svg += `<rect x="${legendX[index]}" y="65" width="11" height="11" fill="${legendColors[index]}"/><text x="${legendX[index] + 16}" y="75" font-family="Arial" font-size="10" fill="#526273">${labels[tool]}</text>`;
+});
+svg += barSvg(30, 90, 560, 280, "A. Synthetic raw exposure accuracy", "Mean cosine to published true fractions; no post-fit cutoff", ["0%", "5%", "10%"], tools.map((tool) => ({ label: labels[tool], values: noises.map((noise) => summaryAt(noise, tool, "meanRawExposureCosine")) })));
+svg += barSvg(610, 90, 560, 280, "B. Synthetic active-call performance", "Mean F1 after common 1% cutoff; truth activity > 0", ["0%", "5%", "10%"], tools.map((tool) => ({ label: labels[tool], values: noises.map((noise) => summaryAt(noise, tool, "meanF1")) })));
+const pairwiseForFigure = realPairwise.map((row) => ({ ...row, toolA: tools.find((tool) => labels[tool] === row.toolA), toolB: tools.find((tool) => labels[tool] === row.toolB) }));
+svg += heatmapSvg(30, 400, 560, 280, "C. Real PCAWG exposure correlation", "Flattened complete-catalog relative fractions", pairwiseForFigure.map((row) => ({ ...row, value: row.flattenedExposurePearson })), "value", 0.8, 1, 1);
+svg += heatmapSvg(610, 400, 560, 280, "D. Real PCAWG per-sample disagreement", "Mean L1 distance between relative-exposure vectors", pairwiseForFigure.map((row) => ({ ...row, value: row.meanPerSampleL1Disagreement })), "value", 0, 1, 0);
+svg += heatmapSvg(30, 710, 560, 280, "E. Real PCAWG active-signature concordance", "Mean Jaccard after the common 1% cutoff", pairwiseForFigure.map((row) => ({ ...row, value: row.meanActiveSignatureJaccard })), "value", 0, 1, 1);
+svg += signatureRangeSvg(610, 710, 560, 280, realSignatureDiscrepancies.slice(0, 6));
+svg += `<text x="30" y="1020" font-family="Arial" font-size="10" fill="#526273">Heatmap abbreviations: SPA, SigProfilerAssignment. Synthetic panels test accuracy; PCAWG panels test triangulation and do not establish biological truth.</text><text x="30" y="1040" font-family="Arial" font-size="10" fill="#526273">All tools use complete-catalog relative fractions; accuracy is evaluated before filtering, and active calls use a common 1% cutoff followed by renormalization.</text></svg>`;
 await writeFile(path.join(figureDir, "figure-e7-reviewer4-benchmark.svg"), svg);
 
-console.log(JSON.stringify({ status: "completed", syntheticSamplesPerNoise: 9, syntheticSummaryRows: syntheticSummary.length, realWorldSamples: 38, realWorldPairwiseRows: realPairwise.length, topRawSyntheticDiscrepancies: topSyntheticDiscrepancies.slice(0, 10) }, null, 2));
+console.log(JSON.stringify({ status: "completed", syntheticSamplesPerNoise: syntheticReferenceInput.sampleNames.length, syntheticSummaryRows: syntheticSummary.length, realWorldSamples: 38, realWorldPairwiseRows: realPairwise.length, topRawSyntheticDiscrepancies: topSyntheticDiscrepancies.slice(0, 10) }, null, 2));

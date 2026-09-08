@@ -1,0 +1,37 @@
+# Figure 5 Windows and macOS copy/paste edits
+
+## Abstract — replace the current runtime sentence
+
+Across the tested Windows and macOS browser engines, warm-start native refitting took 18.2–73.7 ms for a 120-sample cohort and 1.80–6.81 s for 300 samples fitted against 40 signatures.
+
+## Methods — keep the existing heading and Figure 2 paragraph; replace only the second paragraph
+
+The Figure 5 runtime benchmark evaluated five native JavaScript scenarios using synthetic spectra and catalogs already held in memory. The primary Windows experiment used Chrome, Edge, and Firefox, with 20 cold runs using fresh isolated browser profiles and 20 warm runs reusing the loaded page and module for each browser–scenario combination. A supporting experiment on an Apple-silicon Mac used the same scenarios in Chrome, Firefox, and Playwright WebKit, with three cold and three warm runs per browser–scenario combination. The scenarios were a single-sample fit, a 120-sample cohort refit, a 300-sample by 40-signature refit, 500 bootstrap iterations on one sample, and NMF rank selection followed by rank-4 extraction. The single-sample scenario included fitting, reconstruction evidence, and HTML report serialization; the remaining scenarios used result serialization. Public-resource retrieval, adapter fitting, Pyodide or WebR initialization, wrapped-package import, and plot rendering were not included. Individual observations, browser-specific medians, interquartile ranges, minimum-to-maximum ranges, and observed JavaScript heap were retained. Figure 5 presents the Windows and macOS browser results in separate panels using the same logarithmic time scale and workflow order. Playwright WebKit provides WebKit-family coverage but is not a test of the shipping Safari browser.
+
+## Results — replace the complete “Runtime and desktop browser compatibility” subsection
+
+### Runtime and desktop browser compatibility
+
+Native browser execution supported interactive use across the tested single-sample and cohort-scale workflows on both Windows and macOS (Figure 5). The primary Windows benchmark comprised 20 cold and 20 warm runs for each of five scenarios in Chrome, Edge, and Firefox, and all 600 observations completed. Browser performance depended on the workflow. Edge had the lowest warm-start median for the 120-sample refit (18.2 ms) and the 300-sample, 40-signature refit (1.80 s), compared with 73.7 ms and 6.81 s in Chrome and 26.9 ms and 3.12 s in Firefox. The three browsers were more similar for 500 bootstrap iterations (234–277 ms) and NMF rank selection and extraction (3.12–4.97 s). Single-sample medians were 1.1 ms in Edge, 1.5 ms in Chrome, and 3.3 ms in Firefox.
+
+We repeated the same benchmark on an Apple-silicon Mac using Chrome, Firefox, and Playwright WebKit, with three cold and three warm runs per engine and scenario; all 90 observations completed. Chrome and Playwright WebKit produced similar medians for the 120-sample refit (22.2 and 32.0 ms) and the 300-sample, 40-signature refit (2.15 and 2.12 s), whereas Firefox took 44.6 ms and 5.89 s, respectively. Firefox was also slower for the single-sample and bootstrap workflows, while NMF timing was similar across Chrome, Firefox, and Playwright WebKit (3.14, 3.20, and 3.26 s). Because the macOS experiment used fewer repeats and different hardware, browser versions, and browser availability, it is presented as supporting platform evidence rather than as an equally precise operating-system comparison.
+
+Across browser and workflow combinations, cold-start medians ranged from 1.03 to 12.00 s on Windows and from 0.98 to 7.20 s on macOS. The largest observed JavaScript heap value on Windows was 56.9 MiB; this is a stage-boundary browser measurement rather than operating-system process memory, and Firefox did not expose the required API. These benchmarks used synthetic spectra and catalogs already held in memory. Public-resource retrieval, Pyodide or WebR initialization, wrapped-package import, adapter fitting, and plot rendering were not included. Separate compatibility checks completed successfully for SDK import, public-resource retrieval, native fitting and report generation, local D3 rendering, and Pyodide and WebR capability on the tested macOS engines. Playwright WebKit provides WebKit-family coverage but is not a test of the shipping Safari browser.
+
+## Figure 5 caption — replace the complete caption
+
+**Figure 5. Browser runtimes for core SDK workflows on Windows and macOS.** Warm-start elapsed times are shown separately for (A) Chrome, Edge, and Firefox on Windows and (B) Chrome, Firefox, and Playwright WebKit on macOS. Bars show browser-specific medians, black whiskers show interquartile ranges, pale vertical lines show minimum-to-maximum ranges, and overlaid points show the individual warm-run observations; both panels use the same logarithmic time scale and workflow order. Windows measurements used 20 warm runs per browser and scenario, whereas macOS measurements used three. The single-sample scenario includes native NNLS, reconstruction evidence, and HTML report serialization; cohort refitting, 500-iteration bootstrap, and NMF rank-selection/extraction are separate scenarios. Inputs were synthetic spectra and catalogs already held in memory. Public-resource retrieval, Pyodide/WebR initialization, wrapped-package import, adapter fitting, and plot rendering were not included. Playwright WebKit provides WebKit-family coverage but is not a test of the shipping Safari browser.
+
+## Discussion — replace the paragraph beginning “Third, on runtime”
+
+Third, native browser execution was fast enough for interactive use in the tested Windows and macOS environments, but browser-engine performance was workflow dependent. On Windows, Edge was fastest for the two cohort-refitting scenarios, whereas Firefox had the lowest median for NMF rank selection and extraction. On macOS, Firefox was slower than Chrome and Playwright WebKit for the cohort-refitting and bootstrap scenarios, while NMF timing was similar across the three engines. The common benchmark therefore supports browser-level compatibility without implying that one engine is uniformly fastest. These measurements characterize native JavaScript computation on synthetic inputs already held in memory; they do not include network retrieval, plotting, Pyodide or WebR initialization, wrapped-package imports, or adapter execution. The macOS experiment used three repeats per engine rather than the 20 used on Windows and therefore provides supporting cross-platform evidence rather than an equally precise performance comparison. Client-side scale remains bounded by the user’s device memory and CPU, and more computationally intensive production-scale extraction remains better suited to dedicated local or server environments.
+
+## Discussion limitations — keep the existing platform-testing passage and insert one sentence
+
+Immediately after “These macOS results provide compatibility and limited performance evidence but are not equivalent in precision to the 20-repeat Windows benchmark,” insert:
+
+Because the two experiments also differed in operating system, hardware, browser versions, and available browser engines, their timing differences should not be interpreted as isolated operating-system effects.
+
+## Availability and requirements — replace “Operating system(s)”
+
+Operating system(s): Windows and macOS for the tested configurations; Linux is untested.

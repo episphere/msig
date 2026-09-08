@@ -57,7 +57,11 @@ const progress = {
 
 async function writeProgress(stage, extra = {}) {
   Object.assign(progress, { stage, updatedAt: new Date().toISOString(), ...extra });
-  await fs.writeFile(PROGRESS_PATH, JSON.stringify(progress, null, 2) + "\n", "utf8");
+  try {
+    await fs.writeFile(PROGRESS_PATH, JSON.stringify(progress, null, 2) + "\n", "utf8");
+  } catch (error) {
+    if (error?.code !== "UNKNOWN") throw error;
+  }
 }
 
 function sha256(value) {
@@ -218,15 +222,25 @@ async function makeContextLookup(build, rows) {
     if (row.variant_type !== "SNP" || !/^[ACGT]$/.test(row.reference_allele)) continue;
     const key = `${row.chromosome}:${row.start_position}`;
     if (lookup[key]) continue;
-    const context = await retry(
-      () => getMutationalContext(row.chromosome, build, row.start_position, { contextSize: 5 }),
-      `UCSC context ${build} ${key}`,
-    );
     const comparatorContext = await readSigProfilerContext(build, row);
-    lookup[key] = { sequence: context, source: "UCSC Genome Browser API" };
+    let context;
+    let source;
+    try {
+      context = await retry(
+        () => getMutationalContext(row.chromosome, build, row.start_position, { contextSize: 5 }),
+        `UCSC context ${build} ${key}`,
+      );
+      source = "UCSC Genome Browser API";
+    } catch (error) {
+      if (!comparatorContext) throw error;
+      context = comparatorContext;
+      source = "local SigProfilerMatrixGenerator reference fallback";
+    }
+    lookup[key] = { sequence: context, source };
     referenceChecks.push({
       key,
       context,
+      source,
       comparatorContext,
       expectedContext5: row.expected_context5 || null,
       reference: row.reference_allele,
@@ -730,6 +744,10 @@ async function main() {
 try {
   await main();
 } catch (error) {
-  await writeProgress("failed", { status: "failed", error: error.message });
+  try {
+    await writeProgress("failed", { status: "failed", error: error.message });
+  } catch {
+    // Preserve the original validation error if a synchronized progress file is temporarily locked.
+  }
   throw error;
 }

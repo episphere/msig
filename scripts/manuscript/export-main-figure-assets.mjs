@@ -32,12 +32,25 @@ const FIGURES = [
     outputBase: "figure3-public-cohort-capability",
   },
   {
-    id: "figure4",
-    title: "Figure 4 - Exposure-solve benchmarks",
+    id: "figure5",
+    title: "Figure 5 - Exposure-solve benchmarks",
     sourceHtml: "figures/figure4-runtime-benchmarks.html",
-    outputBase: "figure4-exposure-solve-benchmarks",
+    outputBase: "figure5-exposure-solve-benchmarks",
   },
 ];
+
+const onlyArgument = process.argv.find((argument) => argument.startsWith("--only="));
+const requestedFigureIds = onlyArgument
+  ? new Set(onlyArgument.slice("--only=".length).split(",").map((value) => value.trim()).filter(Boolean))
+  : null;
+const selectedFigures = requestedFigureIds
+  ? FIGURES.filter((figure) => requestedFigureIds.has(figure.id))
+  : FIGURES;
+
+if (requestedFigureIds && selectedFigures.length !== requestedFigureIds.size) {
+  const available = FIGURES.map((figure) => figure.id).join(", ");
+  throw new Error(`Unknown --only figure id. Available ids: ${available}`);
+}
 
 await ensureDir(FIGURE_ROOT);
 const browsers = await findAvailableBrowsers();
@@ -53,7 +66,7 @@ await withStaticServer(MANUSCRIPT_ROOT, async ({ baseUrl }) => {
     viewport: { width: 1500, height: 1100 },
   });
   try {
-    for (const figure of FIGURES) {
+    for (const figure of selectedFigures) {
       const page = await context.newPage();
       const sourceUrl = `${baseUrl}/${figure.sourceHtml}`;
       await page.goto(sourceUrl, { waitUntil: "networkidle", timeout: 60000 });

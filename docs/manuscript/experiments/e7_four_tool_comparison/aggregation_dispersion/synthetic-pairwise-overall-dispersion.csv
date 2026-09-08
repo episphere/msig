@@ -1,0 +1,19 @@
+noisePercent,toolA,toolB,pair,sampleCount,flattenedRawExposurePearson,perSampleRawExposurePearsonMean,perSampleRawExposurePearsonSd,perSampleRawExposurePearsonMedian,perSampleRawExposurePearsonQ1,perSampleRawExposurePearsonQ3,perSampleRawExposurePearsonMin,perSampleRawExposurePearsonMax,activeJaccardMean,activeJaccardSd,activeJaccardMedian,activeJaccardQ1,activeJaccardQ3,activeJaccardMin,activeJaccardMax
+0,deconstructSigs,sigminer,deconstructSigs vs sigminer,2700,0.996508,0.996018,0.014874,0.999972,0.998899,0.999996,0.68572,1,0.855494,0.257387,1,0.8,1,0.111111,1
+0,deconstructSigs,SigProfilerAssignment,deconstructSigs vs SigProfilerAssignment,2700,0.994154,0.99338,0.022419,0.999899,0.99685,0.999996,0.629598,1,0.824672,0.268152,1,0.666667,1,0.1,1
+0,deconstructSigs,MuSiCal,deconstructSigs vs MuSiCal,2700,0.99605,0.995639,0.015352,0.999882,0.99804,0.999996,0.681436,1,0.838778,0.255471,1,0.714286,1,0.1,1
+0,sigminer,SigProfilerAssignment,sigminer vs SigProfilerAssignment,2700,0.997944,0.997789,0.010409,0.999986,0.999928,0.999998,0.794176,1,0.95585,0.114187,1,1,1,0.1,1
+0,sigminer,MuSiCal,sigminer vs MuSiCal,2700,0.999466,0.999625,0.001355,0.999984,0.999925,0.999997,0.977038,1,0.96567,0.091991,1,1,1,0.272727,1
+0,SigProfilerAssignment,MuSiCal,SigProfilerAssignment vs MuSiCal,2700,0.997786,0.997779,0.010315,1,0.99997,1,0.79484,1,0.942334,0.124418,1,1,1,0.166667,1
+5,deconstructSigs,sigminer,deconstructSigs vs sigminer,2700,0.992102,0.991008,0.021524,0.998377,0.993816,0.999521,0.75716,0.999996,0.654869,0.226914,0.666667,0.5,0.833333,0.083333,1
+5,deconstructSigs,SigProfilerAssignment,deconstructSigs vs SigProfilerAssignment,2700,0.982785,0.978992,0.048253,0.996869,0.983166,0.999191,0.380657,1,0.569339,0.254427,0.555556,0.357143,0.75,0.071429,1
+5,deconstructSigs,MuSiCal,deconstructSigs vs MuSiCal,2700,0.987301,0.984145,0.035704,0.997659,0.987721,0.999297,0.623606,1,0.600323,0.252071,0.6,0.4,0.8,0.071429,1
+5,sigminer,SigProfilerAssignment,sigminer vs SigProfilerAssignment,2700,0.988513,0.988321,0.026839,0.996498,0.990675,0.998504,0.57819,0.99997,0.592928,0.210235,0.6,0.428571,0.75,0.111111,1
+5,sigminer,MuSiCal,sigminer vs MuSiCal,2700,0.992936,0.993219,0.015671,0.997145,0.993339,0.998775,0.60575,0.999999,0.635741,0.209257,0.625,0.5,0.8,0.125,1
+5,SigProfilerAssignment,MuSiCal,SigProfilerAssignment vs MuSiCal,2700,0.9953,0.995083,0.018892,1,0.999468,1,0.61583,1,0.913406,0.15483,1,0.8,1,0.1,1
+10,deconstructSigs,sigminer,deconstructSigs vs sigminer,2700,0.984197,0.981787,0.040943,0.995428,0.984472,0.998586,0.437215,0.999981,0.626592,0.176827,0.625,0.5,0.75,0.090909,1
+10,deconstructSigs,SigProfilerAssignment,deconstructSigs vs SigProfilerAssignment,2700,0.967751,0.96067,0.074286,0.991414,0.964288,0.997206,0.394901,1,0.387647,0.176734,0.363636,0.266667,0.5,0.0625,1
+10,deconstructSigs,MuSiCal,deconstructSigs vs MuSiCal,2700,0.97479,0.968564,0.061149,0.993459,0.972892,0.997616,0.414443,1,0.425957,0.181781,0.4,0.285714,0.5,0.066667,1
+10,sigminer,SigProfilerAssignment,sigminer vs SigProfilerAssignment,2700,0.967269,0.966184,0.060721,0.986375,0.966285,0.994265,0.277345,0.999914,0.354805,0.141883,0.333333,0.25,0.428571,0.05,1
+10,sigminer,MuSiCal,sigminer vs MuSiCal,2700,0.974774,0.974423,0.051861,0.989253,0.974334,0.995554,0.277442,0.999999,0.404316,0.159037,0.384615,0.285714,0.5,0.05,1
+10,SigProfilerAssignment,MuSiCal,SigProfilerAssignment vs MuSiCal,2700,0.991319,0.990724,0.030606,1,0.997413,1,0.529677,1,0.865654,0.196034,1,0.75,1,0.083333,1

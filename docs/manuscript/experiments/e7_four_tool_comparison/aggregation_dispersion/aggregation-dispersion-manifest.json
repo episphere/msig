@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "msig.manuscript.e7.aggregation-dispersion.v1",
+  "generatedAt": "2026-09-08T10:24:20.663Z",
+  "cutoff": 0.01,
+  "aggregation": {
+    "syntheticAccuracy": "Metrics were computed independently for each spectrum, then summarized by the unweighted arithmetic mean across 2,700 spectra within each tool and noise level (macro-average). Precision, recall, and F1 were not calculated from pooled calls.",
+    "activeJaccard": "Jaccard similarity was computed independently for each spectrum and tool pair after the common 1% cutoff, then summarized by the unweighted arithmetic mean.",
+    "exposurePearson": "Pearson correlation was computed once per tool pair on the two complete relative-exposure matrices flattened across sample-by-signature cells; it was not an average of per-spectrum correlations.",
+    "dispersion": "SD is the sample standard deviation (denominator n-1). Quartiles use linear interpolation at p=0.25 and p=0.75. Cancer-type rows contain 300 spectra per group."
+  },
+  "validation": {
+    "expectedRows": {
+      "syntheticSampleMetrics": 32400,
+      "syntheticDetectionCountMetrics": 32400,
+      "syntheticPairwiseSampleMetrics": 48600,
+      "spectraPerToolNoiseLevel": 2700,
+      "spectraPerCancerType": 300
+    },
+    "comparedWithExistingAggregateOutputs": true,
+    "aggregateComparisonTolerance": 6e-7,
+    "maximumAbsoluteDifference": 4.825950718490013e-7
+  },
+  "sourceChecksums": {
+    "docs/manuscript/experiments/e7_four_tool_comparison/reviewer4_benchmark/synthetic-sample-metrics-raw-vs-filtered.csv": "dd71e5a358a8e14d576827288d09675c72e23252ed2105e14a5d396482a46188",
+    "docs/manuscript/experiments/e7_four_tool_comparison/published_synthetic_benchmark/published-synthetic-sample-metrics.csv": "47293d9a99353bfe8b22b54d5d8eaa06d43c28b006040f415e9182e3fd613a0a",
+    "docs/manuscript/experiments/e7_four_tool_comparison/published_synthetic_benchmark/published-pairwise-sample-metrics.csv": "790b5d0ad32919abccc90b0199eac61e422fbd3e4544a37ab5fcad332f60f8cc",
+    "docs/manuscript/experiments/e7_four_tool_comparison/reviewer4_benchmark/synthetic-summary-raw-vs-filtered.csv": "9ad1ba0b0a75a8be6d36c41acc0a3449a0e70f8cfb9478d5eaa695f3f2b75428",
+    "docs/manuscript/experiments/e7_four_tool_comparison/reviewer4_benchmark/synthetic-pairwise-raw-vs-filtered.csv": "dc04f93cef9ff9bdb79b239bdbc2bd71d355e44ae231af2ee7886c636c739cfe",
+    "docs/manuscript/experiments/e2_adapter_fidelity/data/adapter-fidelity-input.json": "2b3d4fb3a97fe033a650a9c708156daeca3c82338b63c165f40984f5567e5f1b",
+    "docs/manuscript/experiments/e2_adapter_fidelity/data/adapter-fidelity-exposure-pairs.json": "5b612eda91af2138070fb6fb39b5a921117c1534c1b92f3b790e74ab918b6dc3",
+    "docs/manuscript/experiments/e7_four_tool_comparison/data/four-tool-comparison-results.json": "308ad8c87035557e084c72510e7247794ad5ec02b846aa6c13b675d776026a03"
+  },
+  "outputs": {
+    "syntheticToolOverall": "synthetic-tool-overall-dispersion.csv",
+    "syntheticToolByCancerType": "synthetic-tool-by-cancer-type.csv",
+    "syntheticPairwiseOverall": "synthetic-pairwise-overall-dispersion.csv",
+    "syntheticPairwiseByCancerType": "synthetic-pairwise-by-cancer-type.csv",
+    "realTool": "real-tool-dispersion.csv",
+    "realPairwise": "real-pairwise-dispersion.csv"
+  }
+}

@@ -22,11 +22,11 @@ const archiveSha256 = "c629de203bcf7a517b0308ea695da90572d92e7b8f271dc3f72fe29ee
 const sourceForNoise = (noise) => {
   const suffix = noise === 0 ? "" : `-noise${noise}`;
   return {
-    input: path.join(dataDir, `published-sbs-input${suffix}-subset1.json`),
-    truth: path.join(dataDir, `published-sbs-truth${suffix}-subset1.json`),
+    input: path.join(dataDir, `published-sbs-input${suffix}.json`),
+    truth: path.join(dataDir, `published-sbs-truth${suffix}.json`),
     exposures: path.join(
       experimentDir,
-      `published_subset1_local_py3_noise${noise}`,
+      `published_full_local_py3_v2_noise${noise}`,
       "data",
       "adapter-exposure-matrices.json"
     ),
@@ -183,7 +183,7 @@ function createFigure({ summaryRows, pairwiseRows, burdenRows }) {
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
   svg += `<rect width="${width}" height="${height}" fill="#ffffff"/>`;
   svg += svgText(30, 30, "Four-tool benchmark on published synthetic SBS spectra", { size: 21, weight: 700, fill: "#172b3a" });
-  svg += svgText(30, 51, "9 spectra (one per cancer type) × 3 archived noise levels; fractions harmonized after a 1% post-fit cutoff", { size: 12, fill: "#526273" });
+  svg += svgText(30, 51, "2,700 spectra across nine cancer types at each of 3 archived noise levels; fractions harmonized after a 1% post-fit cutoff", { size: 12, fill: "#526273" });
 
   const panelX = [30, 420, 810, 30];
   const panelY = [72, 72, 72, 410];
@@ -232,11 +232,11 @@ function createFigure({ summaryRows, pairwiseRows, burdenRows }) {
   const lowMidHigh = ["low", "middle", "high"];
   svg += groupedBarPanel({
     x: 30, y: 410, width: 1140, height: 340,
-    title: "D. Reconstruction quality by observed mutation burden", subtitle: "Noise 0%; tertiles defined from the archived observed SBS counts (three samples per tertile)",
+    title: "D. Reconstruction quality by observed mutation burden", subtitle: "Noise 0%; tertiles defined from archived observed SBS counts (900 samples per tertile)",
     groups: lowMidHigh,
     series: tools.map((tool) => ({ label: toolLabels[tool].replace("SigProfilerAssignment", "SPA"), values: lowMidHigh.map((burden) => burdenRows.find((row) => row.noisePercent === 0 && row.tool === tool && row.burdenTertile === burden)?.meanReconstructionCosine || 0) })),
   });
-  svg += svgText(30, 778, "Source: Islam et al. 2022 synthetic signatures; archive and benchmark distributed with Díaz-Gay et al. 2023. This figure reports the executed 9-spectrum stratified subset, not the full 2,700-sample archive.", { size: 10, fill: "#526273" });
+  svg += svgText(30, 778, "Source: Islam et al. 2022 synthetic signatures; archive and benchmark distributed with Díaz-Gay et al. 2023. All 2,700 archived spectra were evaluated at each noise level.", { size: 10, fill: "#526273" });
   svg += "</svg>";
   return svg;
 }

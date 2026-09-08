@@ -1,8 +1,8 @@
 {
   "schemaVersion": "msig.maf_conversion_validation_results.v0.3",
   "status": "completed",
-  "runStartedAt": "2026-08-02T03:31:31.599Z",
-  "completedAt": "2026-08-02T03:35:20.212Z",
+  "runStartedAt": "2026-08-05T03:08:17.595Z",
+  "completedAt": "2026-08-05T03:11:24.250Z",
   "fixturePath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\fixture.json",
   "fixtureSha256": "af1363813a4ba16c43ecd85fdc1c0f4353b7ddba79304489abc8aa8850a68fa4",
   "comparator": {
@@ -44,7 +44,7 @@
         "--volume",
         "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
       ],
-      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
       "genome": "GRCh37",
       "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
       "referenceVerified": true,
@@ -78,7 +78,7 @@
       "durableArtifacts": {
         "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS96\\valid.matrix.json",
         "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS96\\valid.log",
-        "matrixSha256": "958cba831d7b5b2949b3df9f1db3482515cb5f8cdb6647f05d0bdb14d1636bf4"
+        "matrixSha256": "b1b5757e85cd7fe254060228532b86999d4c6835cdbe2809d3025e625c9b877f"
       }
     },
     {
@@ -110,7 +110,7 @@
         "--volume",
         "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
       ],
-      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
       "genome": "GRCh37",
       "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
       "referenceVerified": true,
@@ -144,7 +144,7 @@
       "durableArtifacts": {
         "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS1536\\valid.matrix.json",
         "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS1536\\valid.log",
-        "matrixSha256": "64398c67f39cc626fbddc79d6b9f7dac232e4a8a680794f612ba476204295706"
+        "matrixSha256": "5f4b7a35eda8d9f1357d810ba521e27b231bc1e473d712e3f8162a043a3baaa6"
       }
     },
     {
@@ -176,7 +176,7 @@
         "--volume",
         "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
       ],
-      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
       "genome": "GRCh37",
       "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
       "referenceVerified": true,
@@ -210,7 +210,7 @@
       "durableArtifacts": {
         "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\DBS78\\valid.matrix.json",
         "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\DBS78\\valid.log",
-        "matrixSha256": "2495a2803ba2973d51dc6897917cfac58979f239444cddcf974a5f7b4e1be8c3"
+        "matrixSha256": "d7d03918ac3e2e4321272bf2605a031f84732c94124343aff438b3c5d7e5c324"
       }
     },
     {
@@ -242,7 +242,7 @@
         "--volume",
         "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
       ],
-      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
       "genome": "GRCh37",
       "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
       "referenceVerified": true,
@@ -276,7 +276,7 @@
       "durableArtifacts": {
         "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\ID83\\valid.matrix.json",
         "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\ID83\\valid.log",
-        "matrixSha256": "9925b9f3447dab67083790ff1bf9b4afedbf954c1fa2d62de143202227a10330"
+        "matrixSha256": "c308fe1591a9400414f051a1c17eb923577658d175227a3512ca9d9139c38bcf"
       }
     },
     {
@@ -308,7 +308,7 @@
         "--volume",
         "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
       ],
-      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
       "genome": "GRCh38",
       "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
       "referenceVerified": true,
@@ -342,7 +342,7 @@
       "durableArtifacts": {
         "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS96\\valid.matrix.json",
         "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS96\\valid.log",
-        "matrixSha256": "caa8fd203a4758e625c3056d038e0770581b059782b9db0ab776b7d4691dcec6"
+        "matrixSha256": "a7370c6477688a3b16c5e7a6740fb737b8cac26a7f23571d03785fb5bcb98a29"
       }
     },
     {
@@ -374,7 +374,7 @@
         "--volume",
         "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
       ],
-      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
       "genome": "GRCh38",
       "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
       "referenceVerified": true,
@@ -408,7 +408,7 @@
       "durableArtifacts": {
         "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS1536\\valid.matrix.json",
         "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS1536\\valid.log",
-        "matrixSha256": "ab1306380a8ca6a7c2dad7183ae7182838d67992314d94467558fe536de692f9"
+        "matrixSha256": "7d8138ccd9ce55a6cb7ef981976bebdf2a188e575982454c6b55cfe8ab156be3"
       }
     },
     {
@@ -440,7 +440,7 @@
         "--volume",
         "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
       ],
-      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
       "genome": "GRCh38",
       "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
       "referenceVerified": true,
@@ -474,7 +474,7 @@
       "durableArtifacts": {
         "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\DBS78\\valid.matrix.json",
         "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\DBS78\\valid.log",
-        "matrixSha256": "f2971a9820382912b624ec5ab03b6bf517c44771997489c89efbfbba1759c902"
+        "matrixSha256": "a322640e57cf570f80a11d02e87378f90fb7310af3a4c3a52075e47a394d7bb7"
       }
     },
     {
@@ -506,7 +506,7 @@
         "--volume",
         "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
       ],
-      "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+      "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
       "genome": "GRCh38",
       "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
       "referenceVerified": true,
@@ -540,7 +540,7 @@
       "durableArtifacts": {
         "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\ID83\\valid.matrix.json",
         "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\ID83\\valid.log",
-        "matrixSha256": "9c5dbeaeb5ee6bcd94af2d7f06ce20c05e3501a996bd05864c92524af0f84d3e"
+        "matrixSha256": "5b93e8d0a82b2f67f6548bf57ab9775933d6a9a00dbbf198f8b3de5e99472160"
       }
     }
   ],
@@ -560,6 +560,7 @@
     {
       "key": "1:1000000",
       "context": "CGTGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGTGG",
       "expectedContext5": "CGTGG",
       "reference": "T",
@@ -571,6 +572,7 @@
     {
       "key": "1:1000100",
       "context": "GAAAA",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GAAAA",
       "expectedContext5": "GAAAA",
       "reference": "A",
@@ -582,6 +584,7 @@
     {
       "key": "1:1000200",
       "context": "GCGGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGGG",
       "expectedContext5": "GCGGG",
       "reference": "G",
@@ -593,6 +596,7 @@
     {
       "key": "1:1000300",
       "context": "TGTGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "TGTGG",
       "expectedContext5": "TGTGG",
       "reference": "T",
@@ -604,6 +608,7 @@
     {
       "key": "1:1000400",
       "context": "GGGGC",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGC",
       "expectedContext5": "GGGGC",
       "reference": "G",
@@ -615,6 +620,7 @@
     {
       "key": "1:1000500",
       "context": "GGGGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGG",
       "expectedContext5": "GGGGG",
       "reference": "G",
@@ -626,6 +632,7 @@
     {
       "key": "1:1000000",
       "context": "CGTGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGTGG",
       "expectedContext5": "CGTGG",
       "reference": "T",
@@ -637,6 +644,7 @@
     {
       "key": "1:1000100",
       "context": "GAAAA",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GAAAA",
       "expectedContext5": "GAAAA",
       "reference": "A",
@@ -648,6 +656,7 @@
     {
       "key": "1:1000200",
       "context": "GCGGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGGG",
       "expectedContext5": "GCGGG",
       "reference": "G",
@@ -659,6 +668,7 @@
     {
       "key": "1:1000300",
       "context": "TGTGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "TGTGG",
       "expectedContext5": "TGTGG",
       "reference": "T",
@@ -670,6 +680,7 @@
     {
       "key": "1:1000400",
       "context": "GGGGC",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGC",
       "expectedContext5": "GGGGC",
       "reference": "G",
@@ -681,6 +692,7 @@
     {
       "key": "1:1000500",
       "context": "GGGGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGG",
       "expectedContext5": "GGGGG",
       "reference": "G",
@@ -692,6 +704,7 @@
     {
       "key": "1:1000000",
       "context": "CGTGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGTGG",
       "expectedContext5": "CGTGG",
       "reference": "T",
@@ -703,6 +716,7 @@
     {
       "key": "1:1000100",
       "context": "GAAAA",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GAAAA",
       "expectedContext5": "GAAAA",
       "reference": "A",
@@ -714,6 +728,7 @@
     {
       "key": "1:1000200",
       "context": "GCGGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGGG",
       "expectedContext5": "GCGGG",
       "reference": "G",
@@ -725,6 +740,7 @@
     {
       "key": "1:1000300",
       "context": "TGTGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "TGTGG",
       "expectedContext5": "TGTGG",
       "reference": "T",
@@ -736,6 +752,7 @@
     {
       "key": "1:1000400",
       "context": "GGGGC",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGC",
       "expectedContext5": "GGGGC",
       "reference": "G",
@@ -747,6 +764,7 @@
     {
       "key": "1:1000500",
       "context": "GGGGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGG",
       "expectedContext5": "GGGGG",
       "reference": "G",
@@ -758,6 +776,7 @@
     {
       "key": "1:1000000",
       "context": "CGTGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGTGG",
       "expectedContext5": "CGTGG",
       "reference": "T",
@@ -769,6 +788,7 @@
     {
       "key": "1:1000100",
       "context": "GAAAA",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GAAAA",
       "expectedContext5": "GAAAA",
       "reference": "A",
@@ -780,6 +800,7 @@
     {
       "key": "1:1000200",
       "context": "GCGGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGGG",
       "expectedContext5": "GCGGG",
       "reference": "G",
@@ -791,6 +812,7 @@
     {
       "key": "1:1000300",
       "context": "TGTGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "TGTGG",
       "expectedContext5": "TGTGG",
       "reference": "T",
@@ -802,6 +824,7 @@
     {
       "key": "1:1000400",
       "context": "GGGGC",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGC",
       "expectedContext5": "GGGGC",
       "reference": "G",
@@ -813,6 +836,7 @@
     {
       "key": "1:1000500",
       "context": "GGGGG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GGGGG",
       "expectedContext5": "GGGGG",
       "reference": "G",
@@ -824,6 +848,7 @@
     {
       "key": "1:1000000",
       "context": "CGGGT",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGGGT",
       "expectedContext5": "CGGGT",
       "reference": "G",
@@ -835,6 +860,7 @@
     {
       "key": "1:1000100",
       "context": "GCGCG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGCG",
       "expectedContext5": "GCGCG",
       "reference": "G",
@@ -846,6 +872,7 @@
     {
       "key": "1:1000200",
       "context": "CGCGC",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGCGC",
       "expectedContext5": "CGCGC",
       "reference": "C",
@@ -857,6 +884,7 @@
     {
       "key": "1:1000300",
       "context": "CACCG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CACCG",
       "expectedContext5": "CACCG",
       "reference": "C",
@@ -868,6 +896,7 @@
     {
       "key": "1:1000400",
       "context": "CCCCG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CCCCG",
       "expectedContext5": "CCCCG",
       "reference": "C",
@@ -879,6 +908,7 @@
     {
       "key": "1:1000500",
       "context": "AGGAA",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "AGGAA",
       "expectedContext5": "AGGAA",
       "reference": "G",
@@ -890,6 +920,7 @@
     {
       "key": "1:1000000",
       "context": "CGGGT",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGGGT",
       "expectedContext5": "CGGGT",
       "reference": "G",
@@ -901,6 +932,7 @@
     {
       "key": "1:1000100",
       "context": "GCGCG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGCG",
       "expectedContext5": "GCGCG",
       "reference": "G",
@@ -912,6 +944,7 @@
     {
       "key": "1:1000200",
       "context": "CGCGC",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGCGC",
       "expectedContext5": "CGCGC",
       "reference": "C",
@@ -923,6 +956,7 @@
     {
       "key": "1:1000300",
       "context": "CACCG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CACCG",
       "expectedContext5": "CACCG",
       "reference": "C",
@@ -934,6 +968,7 @@
     {
       "key": "1:1000400",
       "context": "CCCCG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CCCCG",
       "expectedContext5": "CCCCG",
       "reference": "C",
@@ -945,6 +980,7 @@
     {
       "key": "1:1000500",
       "context": "AGGAA",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "AGGAA",
       "expectedContext5": "AGGAA",
       "reference": "G",
@@ -956,6 +992,7 @@
     {
       "key": "1:1000000",
       "context": "CGGGT",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGGGT",
       "expectedContext5": "CGGGT",
       "reference": "G",
@@ -967,6 +1004,7 @@
     {
       "key": "1:1000100",
       "context": "GCGCG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGCG",
       "expectedContext5": "GCGCG",
       "reference": "G",
@@ -978,6 +1016,7 @@
     {
       "key": "1:1000200",
       "context": "CGCGC",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGCGC",
       "expectedContext5": "CGCGC",
       "reference": "C",
@@ -989,6 +1028,7 @@
     {
       "key": "1:1000300",
       "context": "CACCG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CACCG",
       "expectedContext5": "CACCG",
       "reference": "C",
@@ -1000,6 +1040,7 @@
     {
       "key": "1:1000400",
       "context": "CCCCG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CCCCG",
       "expectedContext5": "CCCCG",
       "reference": "C",
@@ -1011,6 +1052,7 @@
     {
       "key": "1:1000500",
       "context": "AGGAA",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "AGGAA",
       "expectedContext5": "AGGAA",
       "reference": "G",
@@ -1022,6 +1064,7 @@
     {
       "key": "1:1000000",
       "context": "CGGGT",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGGGT",
       "expectedContext5": "CGGGT",
       "reference": "G",
@@ -1033,6 +1076,7 @@
     {
       "key": "1:1000100",
       "context": "GCGCG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "GCGCG",
       "expectedContext5": "GCGCG",
       "reference": "G",
@@ -1044,6 +1088,7 @@
     {
       "key": "1:1000200",
       "context": "CGCGC",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CGCGC",
       "expectedContext5": "CGCGC",
       "reference": "C",
@@ -1055,6 +1100,7 @@
     {
       "key": "1:1000300",
       "context": "CACCG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CACCG",
       "expectedContext5": "CACCG",
       "reference": "C",
@@ -1066,6 +1112,7 @@
     {
       "key": "1:1000400",
       "context": "CCCCG",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "CCCCG",
       "expectedContext5": "CCCCG",
       "reference": "C",
@@ -1077,6 +1124,7 @@
     {
       "key": "1:1000500",
       "context": "AGGAA",
+      "source": "UCSC Genome Browser API",
       "comparatorContext": "AGGAA",
       "expectedContext5": "AGGAA",
       "reference": "G",
@@ -1088,8 +1136,8 @@
   ],
   "artifactHashes": {
     "fixture": "af1363813a4ba16c43ecd85fdc1c0f4353b7ddba79304489abc8aa8850a68fa4",
-    "runner": "8a3879ebb9859c0985ec220dfac803d1d23ca445463bb5511f7f67f02eaa04f7",
-    "comparatorWrapper": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+    "runner": "e787b6933e008217c7f9f727c5efec128d0e8d9da6dc82e8dea5f90fd09902d7",
+    "comparatorWrapper": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
     "mutationalSpectrum": "3a3238eb1d8192283b3be4f435f6038b1479e03e9bfa77d9742fe704ed8aeb6c"
   },
   "matrixResults": [
@@ -1502,7 +1550,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS96\\valid.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS96\\valid.log",
-          "matrixSha256": "958cba831d7b5b2949b3df9f1db3482515cb5f8cdb6647f05d0bdb14d1636bf4"
+          "matrixSha256": "b1b5757e85cd7fe254060228532b86999d4c6835cdbe2809d3025e625c9b877f"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
@@ -1531,7 +1579,7 @@
             "--volume",
             "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
           ],
-          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
           "genome": "GRCh37",
           "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
           "referenceVerified": true,
@@ -1571,7 +1619,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS96\\adverse.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS96\\adverse.log",
-          "matrixSha256": "6f1668c7780d558ebf7e9a9c2b90a5ed45336a70dd888533e1306ed423a606b2"
+          "matrixSha256": "38b300b6a28d22057ca8a97b272b123836e27f40a8c94dbe535622631312abdf"
         }
       },
       "adverseRows": [
@@ -1858,6 +1906,7 @@
         {
           "key": "1:1000000",
           "context": "CGTGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGTGG",
           "expectedContext5": "CGTGG",
           "reference": "T",
@@ -1869,6 +1918,7 @@
         {
           "key": "1:1000100",
           "context": "GAAAA",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GAAAA",
           "expectedContext5": "GAAAA",
           "reference": "A",
@@ -1880,6 +1930,7 @@
         {
           "key": "1:1000200",
           "context": "GCGGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGGG",
           "expectedContext5": "GCGGG",
           "reference": "G",
@@ -1891,6 +1942,7 @@
         {
           "key": "1:1000300",
           "context": "TGTGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "TGTGG",
           "expectedContext5": "TGTGG",
           "reference": "T",
@@ -1902,6 +1954,7 @@
         {
           "key": "1:1000400",
           "context": "GGGGC",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGC",
           "expectedContext5": "GGGGC",
           "reference": "G",
@@ -1913,6 +1966,7 @@
         {
           "key": "1:1000500",
           "context": "GGGGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGG",
           "expectedContext5": "GGGGG",
           "reference": "G",
@@ -2209,7 +2263,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS1536\\valid.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS1536\\valid.log",
-          "matrixSha256": "64398c67f39cc626fbddc79d6b9f7dac232e4a8a680794f612ba476204295706"
+          "matrixSha256": "5f4b7a35eda8d9f1357d810ba521e27b231bc1e473d712e3f8162a043a3baaa6"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
@@ -2238,7 +2292,7 @@
             "--volume",
             "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
           ],
-          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
           "genome": "GRCh37",
           "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
           "referenceVerified": true,
@@ -2278,7 +2332,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS1536\\adverse.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\SBS1536\\adverse.log",
-          "matrixSha256": "36120f70f260b4a65fb8a6305c2307c456bcfa632e9ba0d92a66f363de09b089"
+          "matrixSha256": "6a8926edfd59c682183e92c81e15b46a584f62814ed6f7468c516555d7debc26"
         }
       },
       "adverseRows": [
@@ -2565,6 +2619,7 @@
         {
           "key": "1:1000000",
           "context": "CGTGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGTGG",
           "expectedContext5": "CGTGG",
           "reference": "T",
@@ -2576,6 +2631,7 @@
         {
           "key": "1:1000100",
           "context": "GAAAA",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GAAAA",
           "expectedContext5": "GAAAA",
           "reference": "A",
@@ -2587,6 +2643,7 @@
         {
           "key": "1:1000200",
           "context": "GCGGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGGG",
           "expectedContext5": "GCGGG",
           "reference": "G",
@@ -2598,6 +2655,7 @@
         {
           "key": "1:1000300",
           "context": "TGTGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "TGTGG",
           "expectedContext5": "TGTGG",
           "reference": "T",
@@ -2609,6 +2667,7 @@
         {
           "key": "1:1000400",
           "context": "GGGGC",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGC",
           "expectedContext5": "GGGGC",
           "reference": "G",
@@ -2620,6 +2679,7 @@
         {
           "key": "1:1000500",
           "context": "GGGGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGG",
           "expectedContext5": "GGGGG",
           "reference": "G",
@@ -2790,7 +2850,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\DBS78\\valid.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\DBS78\\valid.log",
-          "matrixSha256": "2495a2803ba2973d51dc6897917cfac58979f239444cddcf974a5f7b4e1be8c3"
+          "matrixSha256": "d7d03918ac3e2e4321272bf2605a031f84732c94124343aff438b3c5d7e5c324"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
@@ -2819,7 +2879,7 @@
             "--volume",
             "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
           ],
-          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
           "genome": "GRCh37",
           "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
           "referenceVerified": true,
@@ -2859,7 +2919,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\DBS78\\adverse.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\DBS78\\adverse.log",
-          "matrixSha256": "72d0265309c51516a7f73bc8a160cb96f784bfc487aca57567f1571b4846f003"
+          "matrixSha256": "c00bfbfd6f4d50c302995823294a538f7286b2abdbb7c63055a0eb0774e2457c"
         }
       },
       "adverseRows": [
@@ -3146,6 +3206,7 @@
         {
           "key": "1:1000000",
           "context": "CGTGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGTGG",
           "expectedContext5": "CGTGG",
           "reference": "T",
@@ -3157,6 +3218,7 @@
         {
           "key": "1:1000100",
           "context": "GAAAA",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GAAAA",
           "expectedContext5": "GAAAA",
           "reference": "A",
@@ -3168,6 +3230,7 @@
         {
           "key": "1:1000200",
           "context": "GCGGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGGG",
           "expectedContext5": "GCGGG",
           "reference": "G",
@@ -3179,6 +3242,7 @@
         {
           "key": "1:1000300",
           "context": "TGTGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "TGTGG",
           "expectedContext5": "TGTGG",
           "reference": "T",
@@ -3190,6 +3254,7 @@
         {
           "key": "1:1000400",
           "context": "GGGGC",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGC",
           "expectedContext5": "GGGGC",
           "reference": "G",
@@ -3201,6 +3266,7 @@
         {
           "key": "1:1000500",
           "context": "GGGGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGG",
           "expectedContext5": "GGGGG",
           "reference": "G",
@@ -3329,7 +3395,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\ID83\\valid.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\ID83\\valid.log",
-          "matrixSha256": "9925b9f3447dab67083790ff1bf9b4afedbf954c1fa2d62de143202227a10330"
+          "matrixSha256": "c308fe1591a9400414f051a1c17eb923577658d175227a3512ca9d9139c38bcf"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
@@ -3358,7 +3424,7 @@
             "--volume",
             "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
           ],
-          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
           "genome": "GRCh37",
           "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
           "referenceVerified": true,
@@ -3398,7 +3464,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\ID83\\adverse.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg19\\ID83\\adverse.log",
-          "matrixSha256": "2c1e20a48c237572ca2a82eb27001177ef85a59e4e463c9820265e73479c3d71"
+          "matrixSha256": "d8c35df6f227c7d8a985da9d56283b9e88fd91a74c2444c6619b3b82cdf98449"
         }
       },
       "adverseRows": [
@@ -3705,6 +3771,7 @@
         {
           "key": "1:1000000",
           "context": "CGTGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGTGG",
           "expectedContext5": "CGTGG",
           "reference": "T",
@@ -3716,6 +3783,7 @@
         {
           "key": "1:1000100",
           "context": "GAAAA",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GAAAA",
           "expectedContext5": "GAAAA",
           "reference": "A",
@@ -3727,6 +3795,7 @@
         {
           "key": "1:1000200",
           "context": "GCGGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGGG",
           "expectedContext5": "GCGGG",
           "reference": "G",
@@ -3738,6 +3807,7 @@
         {
           "key": "1:1000300",
           "context": "TGTGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "TGTGG",
           "expectedContext5": "TGTGG",
           "reference": "T",
@@ -3749,6 +3819,7 @@
         {
           "key": "1:1000400",
           "context": "GGGGC",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGC",
           "expectedContext5": "GGGGC",
           "reference": "G",
@@ -3760,6 +3831,7 @@
         {
           "key": "1:1000500",
           "context": "GGGGG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GGGGG",
           "expectedContext5": "GGGGG",
           "reference": "G",
@@ -4056,7 +4128,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS96\\valid.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS96\\valid.log",
-          "matrixSha256": "caa8fd203a4758e625c3056d038e0770581b059782b9db0ab776b7d4691dcec6"
+          "matrixSha256": "a7370c6477688a3b16c5e7a6740fb737b8cac26a7f23571d03785fb5bcb98a29"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
@@ -4085,7 +4157,7 @@
             "--volume",
             "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
           ],
-          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
           "genome": "GRCh38",
           "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
           "referenceVerified": true,
@@ -4125,7 +4197,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS96\\adverse.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS96\\adverse.log",
-          "matrixSha256": "2512adb697cf08ae7d126e565c8f4dbd8000682fbb94bc0edbe0136a65b4c027"
+          "matrixSha256": "d6479677e19c7cb92a87f1af000959d368b03138fd4e92becf95e02e9b62b884"
         }
       },
       "adverseRows": [
@@ -4412,6 +4484,7 @@
         {
           "key": "1:1000000",
           "context": "CGGGT",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGGGT",
           "expectedContext5": "CGGGT",
           "reference": "G",
@@ -4423,6 +4496,7 @@
         {
           "key": "1:1000100",
           "context": "GCGCG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGCG",
           "expectedContext5": "GCGCG",
           "reference": "G",
@@ -4434,6 +4508,7 @@
         {
           "key": "1:1000200",
           "context": "CGCGC",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGCGC",
           "expectedContext5": "CGCGC",
           "reference": "C",
@@ -4445,6 +4520,7 @@
         {
           "key": "1:1000300",
           "context": "CACCG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CACCG",
           "expectedContext5": "CACCG",
           "reference": "C",
@@ -4456,6 +4532,7 @@
         {
           "key": "1:1000400",
           "context": "CCCCG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CCCCG",
           "expectedContext5": "CCCCG",
           "reference": "C",
@@ -4467,6 +4544,7 @@
         {
           "key": "1:1000500",
           "context": "AGGAA",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "AGGAA",
           "expectedContext5": "AGGAA",
           "reference": "G",
@@ -4763,7 +4841,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS1536\\valid.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS1536\\valid.log",
-          "matrixSha256": "ab1306380a8ca6a7c2dad7183ae7182838d67992314d94467558fe536de692f9"
+          "matrixSha256": "7d8138ccd9ce55a6cb7ef981976bebdf2a188e575982454c6b55cfe8ab156be3"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
@@ -4792,7 +4870,7 @@
             "--volume",
             "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
           ],
-          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
           "genome": "GRCh38",
           "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
           "referenceVerified": true,
@@ -4832,7 +4910,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS1536\\adverse.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\SBS1536\\adverse.log",
-          "matrixSha256": "b83825732c55311db42f443cddff8a18e629fd54e99a835a7e41a2585f75d334"
+          "matrixSha256": "fd9d467d3ab2c112d63fbdc8f97bc1d5660b0f79dbd2861889c0ab5b97175ffe"
         }
       },
       "adverseRows": [
@@ -5119,6 +5197,7 @@
         {
           "key": "1:1000000",
           "context": "CGGGT",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGGGT",
           "expectedContext5": "CGGGT",
           "reference": "G",
@@ -5130,6 +5209,7 @@
         {
           "key": "1:1000100",
           "context": "GCGCG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGCG",
           "expectedContext5": "GCGCG",
           "reference": "G",
@@ -5141,6 +5221,7 @@
         {
           "key": "1:1000200",
           "context": "CGCGC",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGCGC",
           "expectedContext5": "CGCGC",
           "reference": "C",
@@ -5152,6 +5233,7 @@
         {
           "key": "1:1000300",
           "context": "CACCG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CACCG",
           "expectedContext5": "CACCG",
           "reference": "C",
@@ -5163,6 +5245,7 @@
         {
           "key": "1:1000400",
           "context": "CCCCG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CCCCG",
           "expectedContext5": "CCCCG",
           "reference": "C",
@@ -5174,6 +5257,7 @@
         {
           "key": "1:1000500",
           "context": "AGGAA",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "AGGAA",
           "expectedContext5": "AGGAA",
           "reference": "G",
@@ -5344,7 +5428,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\DBS78\\valid.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\DBS78\\valid.log",
-          "matrixSha256": "f2971a9820382912b624ec5ab03b6bf517c44771997489c89efbfbba1759c902"
+          "matrixSha256": "a322640e57cf570f80a11d02e87378f90fb7310af3a4c3a52075e47a394d7bb7"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
@@ -5373,7 +5457,7 @@
             "--volume",
             "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
           ],
-          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
           "genome": "GRCh38",
           "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
           "referenceVerified": true,
@@ -5413,7 +5497,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\DBS78\\adverse.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\DBS78\\adverse.log",
-          "matrixSha256": "4b9f9ceb9afc0a7f1c7fa05e99827ab67659c55b0c651ca60b142b0a1bcade81"
+          "matrixSha256": "6f26eeb5161180600cde3198bf0c144900ad78d7ed14cb58ea32246e59b129dc"
         }
       },
       "adverseRows": [
@@ -5700,6 +5784,7 @@
         {
           "key": "1:1000000",
           "context": "CGGGT",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGGGT",
           "expectedContext5": "CGGGT",
           "reference": "G",
@@ -5711,6 +5796,7 @@
         {
           "key": "1:1000100",
           "context": "GCGCG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGCG",
           "expectedContext5": "GCGCG",
           "reference": "G",
@@ -5722,6 +5808,7 @@
         {
           "key": "1:1000200",
           "context": "CGCGC",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGCGC",
           "expectedContext5": "CGCGC",
           "reference": "C",
@@ -5733,6 +5820,7 @@
         {
           "key": "1:1000300",
           "context": "CACCG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CACCG",
           "expectedContext5": "CACCG",
           "reference": "C",
@@ -5744,6 +5832,7 @@
         {
           "key": "1:1000400",
           "context": "CCCCG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CCCCG",
           "expectedContext5": "CCCCG",
           "reference": "C",
@@ -5755,6 +5844,7 @@
         {
           "key": "1:1000500",
           "context": "AGGAA",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "AGGAA",
           "expectedContext5": "AGGAA",
           "reference": "G",
@@ -5883,7 +5973,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\ID83\\valid.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\ID83\\valid.log",
-          "matrixSha256": "9c5dbeaeb5ee6bcd94af2d7f06ce20c05e3501a996bd05864c92524af0f84d3e"
+          "matrixSha256": "5b93e8d0a82b2f67f6548bf57ab9775933d6a9a00dbbf198f8b3de5e99472160"
         },
         "metadata": {
           "comparator": "SigProfilerMatrixGenerator",
@@ -5912,7 +6002,7 @@
             "--volume",
             "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references"
           ],
-          "wrapperSha256": "16ab987ca20a2d42ae9c53e893d31584ac09124b606de0be93fc0a15cc7e1877",
+          "wrapperSha256": "682b8b21b7a9e29ad4a64deda4384e5987378a9bfd6598bf65161fc2b47cb8cb",
           "genome": "GRCh38",
           "referenceVolume": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\.tools\\spm-references",
           "referenceVerified": true,
@@ -5952,7 +6042,7 @@
         "durable": {
           "matrixPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\ID83\\adverse.matrix.json",
           "logPath": "C:\\Users\\Aaron Ge\\Documents\\GitHub\\msig\\docs\\manuscript\\experiments\\e9_maf_conversion_validation\\data\\comparator-artifacts\\hg38\\ID83\\adverse.log",
-          "matrixSha256": "9de7a1abad88d2d1d36fbcf353f60c5555e2e010596675833ed5fd2c8e239f54"
+          "matrixSha256": "1b2d93ac905a57234184a4ca38f95a232ab9b3b0110b587e11dcf11a4c8d5a7a"
         }
       },
       "adverseRows": [
@@ -6259,6 +6349,7 @@
         {
           "key": "1:1000000",
           "context": "CGGGT",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGGGT",
           "expectedContext5": "CGGGT",
           "reference": "G",
@@ -6270,6 +6361,7 @@
         {
           "key": "1:1000100",
           "context": "GCGCG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "GCGCG",
           "expectedContext5": "GCGCG",
           "reference": "G",
@@ -6281,6 +6373,7 @@
         {
           "key": "1:1000200",
           "context": "CGCGC",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CGCGC",
           "expectedContext5": "CGCGC",
           "reference": "C",
@@ -6292,6 +6385,7 @@
         {
           "key": "1:1000300",
           "context": "CACCG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CACCG",
           "expectedContext5": "CACCG",
           "reference": "C",
@@ -6303,6 +6397,7 @@
         {
           "key": "1:1000400",
           "context": "CCCCG",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "CCCCG",
           "expectedContext5": "CCCCG",
           "reference": "C",
@@ -6314,6 +6409,7 @@
         {
           "key": "1:1000500",
           "context": "AGGAA",
+          "source": "UCSC Genome Browser API",
           "comparatorContext": "AGGAA",
           "expectedContext5": "AGGAA",
           "reference": "G",

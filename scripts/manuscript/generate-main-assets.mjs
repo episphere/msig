@@ -74,6 +74,15 @@ const E4_RESULT = path.join(
   "data",
   "browser-runtime-results.json"
 );
+const MACOS_E4_RESULT = path.join(
+  "docs",
+  "manuscript",
+  "experiments",
+  "cross_platform_runs",
+  "macos",
+  "benchmark-data",
+  "browser-runtime-results.json"
+);
 const E6_RESULT = path.join(
   "docs",
   "manuscript",
@@ -148,6 +157,7 @@ const results = {
   e3: await readJson(E3_RESULT),
   e8: await readJson(E8_RESULT),
   e4: await readJson(E4_RESULT),
+  macosE4: await readJson(MACOS_E4_RESULT),
   e6: await readJson(E6_RESULT),
 };
 
@@ -163,7 +173,7 @@ const mainFigures = [
   ["figure2-zero-install-workflow.html", figure2ZeroInstallRedesigned(results.e1)],
   ["figure3-public-cohort-capabilities.html", figure3PublicCohortCompact(publicCohortFigureData)],
   ...figure3DetailFigures,
-  ["figure4-runtime-benchmarks.html", figure4RuntimeRedesigned(results.e4)],
+  ["figure4-runtime-benchmarks.html", figure5RuntimeByBrowser(results.e4, results.macosE4)],
 ];
 
 for (const file of STALE_MAIN_FIGURE_FILES) {
@@ -1076,12 +1086,13 @@ function figure1ArchitectureSvg() {
   </defs>
   <rect width="1180" height="660" fill="${DESIGN.paper}"/>
 
-  <text x="48" y="54" class="fig1-text fig1-title">mSigSDK keeps mutational signature analysis on the device</text>
-  <text x="48" y="84" class="fig1-muted fig1-small">Public spectra, catalogs, identifiers, and runtime assets can be fetched; user spectra and results stay local unless exported.</text>
+  <text x="48" y="54" class="fig1-text fig1-title">mSigSDK performs mutational-signature analysis in the browser</text>
+  <text x="48" y="84" class="fig1-muted fig1-small">Public spectra, catalogs, identifiers, and runtime assets can be fetched; complete user spectra and MAF rows are not uploaded.</text>
 
   <rect x="48" y="126" width="300" height="500" rx="20" fill="#ffffff" stroke="${DESIGN.hairline}" filter="url(#fig1-shadow)"/>
   <text x="78" y="166" class="fig1-text fig1-section">Optional public fetches</text>
-  <text x="78" y="192" class="fig1-muted fig1-small">No user spectra are uploaded</text>
+  <text x="78" y="184" class="fig1-muted" font-size="13">Complete user spectra and MAF rows</text>
+  <text x="78" y="200" class="fig1-muted" font-size="13">are not uploaded</text>
   <g transform="translate(82 222)">
     <path d="M50 34c7-26 31-45 62-45 27 0 50 16 62 39 27 5 47 27 47 56 0 31-26 57-59 57H49c-31 0-57-25-57-57 0-29 24-53 54-53 2 0 3 0 4 0z" fill="${DESIGN.paleBlue}" stroke="${DESIGN.blue}" stroke-width="2.4"/>
     <text x="108" y="78" text-anchor="middle" class="fig1-text" font-size="19" font-weight="700">mSigPortal / GDC</text>
@@ -1097,11 +1108,11 @@ function figure1ArchitectureSvg() {
 
   <rect x="414" y="112" width="720" height="524" rx="28" fill="${DESIGN.paleGreen}" stroke="${DESIGN.green}" stroke-width="3" filter="url(#fig1-shadow)"/>
   <text x="456" y="154" class="fig1-text fig1-section">Local browser / device boundary</text>
-  <text x="456" y="180" class="fig1-muted fig1-small">Mutational-signature computation runs locally in the browser.</text>
-  <rect x="456" y="192" width="656" height="18" rx="9" fill="#ffffff" stroke="#b7d8cd"/>
-  <text x="784" y="205" text-anchor="middle" class="fig1-muted fig1-mini">User spectra, exposures, QC, plots, and JSON reports never leave this boundary unless explicitly exported.</text>
+  <text x="456" y="178" class="fig1-muted fig1-small">Mutational-signature computation runs locally in the browser.</text>
+  <rect x="456" y="188" width="656" height="26" rx="13" fill="#ffffff" stroke="#b7d8cd"/>
+  <text x="784" y="206" text-anchor="middle" class="fig1-muted fig1-mini">Complete user spectra, MAF rows, exposures, QC, plots, and reports remain local unless exported.</text>
 
-  <rect x="456" y="216" width="374" height="260" rx="18" fill="#ffffff" stroke="#b7d8cd"/>
+  <rect x="456" y="222" width="374" height="254" rx="18" fill="#ffffff" stroke="#b7d8cd"/>
   <text x="486" y="252" class="fig1-text fig1-section">mSigSDK analysis core</text>
   <text x="486" y="277" class="fig1-muted fig1-small">Native JavaScript tier</text>
   ${fig1WorkflowStep(486, 312, DESIGN.blue, "1", "Validate spectra")}
@@ -1110,7 +1121,7 @@ function figure1ArchitectureSvg() {
   ${fig1WorkflowStep(658, 356, DESIGN.purple, "4", "QC evidence")}
   ${fig1MiniExposureChart(486, 402)}
 
-  <rect x="846" y="216" width="266" height="306" rx="18" fill="#ffffff" stroke="#d7c8de"/>
+  <rect x="846" y="222" width="266" height="300" rx="18" fill="#ffffff" stroke="#d7c8de"/>
   <text x="870" y="252" class="fig1-text fig1-section">Package adapters</text>
   <text x="870" y="277" class="fig1-muted fig1-small">Pyodide/WebR worker tier</text>
   <text x="870" y="307" class="fig1-muted" font-size="11" font-weight="700">R / WebR</text>
@@ -1125,12 +1136,12 @@ function figure1ArchitectureSvg() {
   <rect x="514" y="526" width="470" height="76" rx="16" fill="#ffffff" stroke="${DESIGN.green}" stroke-width="2.4"/>
   <text x="749" y="558" text-anchor="middle" class="fig1-text" font-size="20" font-weight="700">Local signature results</text>
   <text x="749" y="584" text-anchor="middle" class="fig1-muted fig1-small">exposures, extracted signatures, QC, plots, and reports</text>
-  <g transform="translate(1018 500)">
+  <g transform="translate(1018 490)">
     <path d="M46 8 L84 24 V56 C84 84 66 106 46 116 C26 106 8 84 8 56 V24 Z" fill="#ffffff" stroke="${DESIGN.green}" stroke-width="3"/>
     <rect x="30" y="56" width="32" height="28" rx="5" fill="${DESIGN.green}"/>
     <path d="M36 56v-12c0-18 20-18 20 0v12" fill="none" stroke="${DESIGN.green}" stroke-width="5" stroke-linecap="round"/>
   </g>
-  <text x="1064" y="632" text-anchor="middle" class="fig1-text fig1-label" style="fill:${DESIGN.green}">stays local</text>
+  <text x="1064" y="620" text-anchor="middle" class="fig1-text fig1-label" style="fill:${DESIGN.green}">stays local</text>
 </svg>`;
 }
 
@@ -1748,7 +1759,7 @@ function figure5Runtime(e4) {
       svg.selectAll("text.value").data(completed).join("text")
         .attr("class", "value")
         .attr("x", (row) => x0(row.scenario) + x1(row.browser) + x1.bandwidth() / 2)
-        .attr("y", (row) => y(row.medianMs) - 8)
+        .attr("y", (row) => y(row.medianMs) + 17)
         .attr("text-anchor", "middle")
         .attr("font-size", 10)
         .attr("font-weight", 700)
@@ -1801,21 +1812,21 @@ function figure2ZeroInstallRedesigned(e1) {
       label: "B",
       title: "SDK loads",
       time: stepTime("SDK imported"),
-      note: "mSigSDK + D3 dependency",
+      note: "in browser",
     },
     {
       id: "fetch",
       label: "C",
-      title: "Inputs fetched; native fit",
+      title: "Inputs fetched",
       time: stepTime("mSigPortal data fetched"),
-      note: "public SBS96 + COSMIC catalog",
+      note: "public only",
     },
     {
       id: "report",
       label: "D",
-      title: "Report serialized + rendered",
+      title: "Report ready",
       time: stepTime("SDK report rendered", row.elapsedSeconds),
-      note: "HTML report; local DOM render",
+      note: "no upload",
     },
   ];
   const spec = {
@@ -1865,7 +1876,7 @@ function figure2ZeroInstallRedesigned(e1) {
       metric.append("text").attr("x", 26).attr("y", 43).attr("font-size", 36).attr("font-weight", 700).attr("fill", p.green)
         .text(formatTime(spec.elapsedSeconds || 0));
       metric.append("text").attr("x", 26).attr("y", 72).attr("font-size", 15).attr("font-weight", 700).attr("fill", p.muted)
-        .text("cumulative from page load");
+        .text("automated runtime");
 
       const cardW = 254, cardH = 380, gap = 46, cardTop = 146;
       const cards = svg.selectAll("g.story-card").data(spec.steps).join("g")
@@ -1928,15 +1939,11 @@ function figure2ZeroInstallRedesigned(e1) {
         g.append("rect").attr("x", 120).attr("y", 182).attr("width", 78).attr("height", 40).attr("rx", 8).attr("fill", "#f3e8f6").attr("stroke", p.purple).attr("stroke-width", 2);
         g.append("text").attr("x", 71).attr("y", 207).attr("text-anchor", "middle").attr("font-size", 15).attr("font-weight", 700).attr("fill", p.ink).text("mSigSDK");
         g.append("text").attr("x", 159).attr("y", 207).attr("text-anchor", "middle").attr("font-size", 15).attr("font-weight", 700).attr("fill", p.ink).text("D3");
-        g.append("text").attr("x", 115).attr("y", 246).attr("text-anchor", "middle").attr("font-size", 12).attr("font-weight", 700).attr("fill", p.ink).text("D3 is visualization only");
-        g.append("text").attr("x", 115).attr("y", 266).attr("text-anchor", "middle").attr("font-size", 11.5).attr("fill", p.muted).text("Pyodide/WebR: not loaded");
-        g.append("text").attr("x", 115).attr("y", 284).attr("text-anchor", "middle").attr("font-size", 11.5).attr("fill", p.muted).text("Wrapped package: not imported");
       }
       function drawFetch(g, color) {
         g.append("path").attr("d", "M54 54c6-30 32-50 66-50 29 0 52 16 64 41 25 4 44 26 44 52 0 30-25 54-57 54H50c-29 0-52-23-52-52 0-27 23-50 51-50h5z")
           .attr("fill", p.paleBlue).attr("stroke", color).attr("stroke-width", 2.5);
-        g.append("text").attr("x", 113).attr("y", 92).attr("text-anchor", "middle").attr("font-size", 18).attr("font-weight", 700).attr("fill", p.ink).text("mSigPortal public inputs");
-        g.append("text").attr("x", 113).attr("y", 119).attr("text-anchor", "middle").attr("font-size", 12).attr("font-weight", 700).attr("fill", p.ink).text("native JavaScript NNLS");
+        g.append("text").attr("x", 113).attr("y", 92).attr("text-anchor", "middle").attr("font-size", 18).attr("font-weight", 700).attr("fill", p.ink).text("mSigPortal");
         g.append("line").attr("x1", 113).attr("y1", 154).attr("x2", 113).attr("y2", 171).attr("stroke", p.green).attr("stroke-width", 4).attr("stroke-linecap", "round");
         g.append("path").attr("d", "M113 182 l-10 -14 h20 z").attr("fill", p.green);
         [
@@ -2358,6 +2365,11 @@ function figure3PublicCohortCompact(data) {
     },
     thresholdRows,
     nmfRank: Number(data.nmfRank || data.nmfRankSelection?.selectedRank || 0),
+    bestHeldOutRank: Number(data.nmfRankSelection?.bestHeldOutRank || 0),
+    oneStandardErrorLimit: Number(data.nmfRankSelection?.oneStandardErrorLimit),
+    nmfBaseSeed: 20260801,
+    nmfFullCohortRestarts: 20,
+    nmfMaxIterations: 1500,
     rankRuns,
     nmfProfiles,
     classBlocks: data.classBlocks || [],
@@ -2386,6 +2398,8 @@ function figure3PublicCohortCompact(data) {
       drawQcPanel(panels[1]);
       drawThresholdPanel(panels[2]);
       drawNmfPanel(panels[3]);
+      svg.append("text").attr("x", 44).attr("y", 802).attr("font-size", 11.5).attr("fill", p.muted)
+        .text("NMF base seed " + spec.nmfBaseSeed + "; selected-rank full-cohort refit: " + spec.nmfFullCohortRestarts + " restarts and " + d3.format(",")(spec.nmfMaxIterations) + " maximum iterations.");
 
       function panel(x, y, w, h, label, heading) {
         const g = svg.append("g").attr("transform", "translate(" + x + "," + y + ")");
@@ -2512,34 +2526,78 @@ function figure3PublicCohortCompact(data) {
       }
 
       function drawNmfPanel(g) {
-        const runs = spec.rankRuns || [];
-        const plot = { x: 82, y: 78, w: 206, h: 152 };
+        const runs = (spec.rankRuns || []).filter((d) => Number.isFinite(d.meanHeldOutRelativeError) && Number.isFinite(d.heldOutStandardError));
+        const plot = { x: 92, y: 78, w: 220, h: 158 };
         const x = d3.scalePoint().domain(runs.map((d) => String(d.rank))).range([plot.x, plot.x + plot.w]).padding(0.4);
-        const y = d3.scaleLinear().domain(d3.extent(runs, (d) => d.reconstructionError)).nice().range([plot.y + plot.h, plot.y]);
+        const yValues = runs.flatMap((d) => [
+          Math.max(0, d.meanHeldOutRelativeError - d.heldOutStandardError),
+          d.meanHeldOutRelativeError + d.heldOutStandardError,
+        ]).concat([spec.oneStandardErrorLimit]);
+        const y = d3.scaleLinear().domain(d3.extent(yValues)).nice().range([plot.y + plot.h, plot.y]);
+        g.append("g").attr("stroke", p.hairline).attr("stroke-dasharray", "3 4")
+          .selectAll("line").data(y.ticks(4)).join("line")
+          .attr("x1", plot.x).attr("x2", plot.x + plot.w).attr("y1", (tick) => y(tick)).attr("y2", (tick) => y(tick));
         g.append("g").attr("transform", "translate(0," + (plot.y + plot.h) + ")").call(d3.axisBottom(x));
-        g.append("g").attr("transform", "translate(" + plot.x + ",0)").call(d3.axisLeft(y).ticks(4).tickFormat(d3.format("~s")));
-        const line = d3.line().x((d) => x(String(d.rank))).y((d) => y(d.reconstructionError));
+        g.append("g").attr("transform", "translate(" + plot.x + ",0)").call(d3.axisLeft(y).ticks(4).tickFormat(d3.format(".3f")));
+        g.append("line")
+          .attr("x1", plot.x).attr("x2", plot.x + plot.w)
+          .attr("y1", y(spec.oneStandardErrorLimit)).attr("y2", y(spec.oneStandardErrorLimit))
+          .attr("stroke", p.green).attr("stroke-width", 1.8).attr("stroke-dasharray", "6 4");
+        g.append("text").attr("x", plot.x + plot.w - 2).attr("y", y(spec.oneStandardErrorLimit) - 5)
+          .attr("text-anchor", "end").attr("font-size", 9.5).attr("font-weight", 700).attr("fill", p.green)
+          .text("1-SE limit " + d3.format(".4f")(spec.oneStandardErrorLimit));
+        const errors = g.selectAll("g.rank-error").data(runs).join("g").attr("class", "rank-error");
+        errors.append("line")
+          .attr("x1", (d) => x(String(d.rank))).attr("x2", (d) => x(String(d.rank)))
+          .attr("y1", (d) => y(d.meanHeldOutRelativeError - d.heldOutStandardError))
+          .attr("y2", (d) => y(d.meanHeldOutRelativeError + d.heldOutStandardError))
+          .attr("stroke", p.purple).attr("stroke-width", 1.4);
+        errors.append("line")
+          .attr("x1", (d) => x(String(d.rank)) - 4).attr("x2", (d) => x(String(d.rank)) + 4)
+          .attr("y1", (d) => y(d.meanHeldOutRelativeError - d.heldOutStandardError))
+          .attr("y2", (d) => y(d.meanHeldOutRelativeError - d.heldOutStandardError))
+          .attr("stroke", p.purple).attr("stroke-width", 1.4);
+        errors.append("line")
+          .attr("x1", (d) => x(String(d.rank)) - 4).attr("x2", (d) => x(String(d.rank)) + 4)
+          .attr("y1", (d) => y(d.meanHeldOutRelativeError + d.heldOutStandardError))
+          .attr("y2", (d) => y(d.meanHeldOutRelativeError + d.heldOutStandardError))
+          .attr("stroke", p.purple).attr("stroke-width", 1.4);
+        const line = d3.line().x((d) => x(String(d.rank))).y((d) => y(d.meanHeldOutRelativeError));
         g.append("path").datum(runs).attr("d", line).attr("fill", "none").attr("stroke", p.purple).attr("stroke-width", 3);
         g.selectAll("circle.rank").data(runs).join("circle")
           .attr("cx", (d) => x(String(d.rank)))
-          .attr("cy", (d) => y(d.reconstructionError))
+          .attr("cy", (d) => y(d.meanHeldOutRelativeError))
           .attr("r", (d) => d.rank === spec.nmfRank ? 7 : 5)
           .attr("fill", (d) => d.rank === spec.nmfRank ? p.purple : "#ffffff")
           .attr("stroke", p.purple)
           .attr("stroke-width", 2);
-        g.append("text").attr("x", plot.x + plot.w / 2).attr("y", 270).attr("text-anchor", "middle").attr("font-size", 12).attr("font-weight", 700).attr("fill", p.muted)
+        const best = runs.find((d) => d.rank === spec.bestHeldOutRank);
+        if (best) {
+          g.append("path")
+            .attr("d", d3.symbol().type(d3.symbolDiamond).size(86)())
+            .attr("transform", "translate(" + x(String(best.rank)) + "," + y(best.meanHeldOutRelativeError) + ")")
+            .attr("fill", "#ffffff").attr("stroke", p.orange).attr("stroke-width", 2.2);
+        }
+        g.append("text").attr("x", plot.x + plot.w / 2).attr("y", 273).attr("text-anchor", "middle").attr("font-size", 12).attr("font-weight", 700).attr("fill", p.muted)
           .text("NMF rank");
-        g.append("text").attr("x", plot.x + plot.w / 2).attr("y", 292).attr("text-anchor", "middle").attr("font-size", 12).attr("fill", p.muted)
+        g.append("circle").attr("cx", plot.x + 21).attr("cy", 293).attr("r", 5.5).attr("fill", p.purple);
+        g.append("text").attr("x", plot.x + 31).attr("y", 297).attr("font-size", 10.5).attr("font-weight", 700).attr("fill", p.ink)
           .text("Selected rank " + spec.nmfRank);
+        g.append("path").attr("d", d3.symbol().type(d3.symbolDiamond).size(62)()).attr("transform", "translate(" + (plot.x + 132) + ",293)")
+          .attr("fill", "#ffffff").attr("stroke", p.orange).attr("stroke-width", 2);
+        g.append("text").attr("x", plot.x + 142).attr("y", 297).attr("font-size", 10.5).attr("font-weight", 700).attr("fill", p.ink)
+          .text("Lowest mean rank " + spec.bestHeldOutRank);
+        g.append("text").attr("x", plot.x + plot.w / 2).attr("y", 317).attr("text-anchor", "middle").attr("font-size", 10).attr("fill", p.muted)
+          .text("Mean ± 1 SE across five held-out folds");
         g.append("text")
-          .attr("x", 24)
+          .attr("x", 25)
           .attr("y", plot.y + plot.h / 2)
           .attr("text-anchor", "middle")
-          .attr("font-size", 12)
+          .attr("font-size", 9.5)
           .attr("font-weight", 700)
           .attr("fill", p.muted)
-          .attr("transform", "rotate(-90,24," + (plot.y + plot.h / 2) + ")")
-          .text("Reconstruction error");
+          .attr("transform", "rotate(-90,25," + (plot.y + plot.h / 2) + ")")
+          .text("Mean held-out relative Frobenius error");
 
         const profiles = spec.nmfProfiles || [];
         const mini = { x: 326, y: 78, w: 206, h: 54 };
@@ -2747,7 +2805,7 @@ function parseSvgViewBox(svg) {
   return { x: values[0], y: values[1], width: values[2], height: values[3] };
 }
 
-function figure4RuntimeRedesigned(e4) {
+function figure4RuntimeRedesigned(windowsE4, macosE4) {
   const scenarioInfo = {
     single_sample_fit_report: {
       short: "Single sample",
@@ -2771,8 +2829,24 @@ function figure4RuntimeRedesigned(e4) {
     },
   };
   const scenarios = Object.keys(scenarioInfo);
-  const browserOrder = ["chrome", "edge", "firefox"];
-  const browserLabels = { chrome: "Chrome", edge: "Edge", firefox: "Firefox" };
+  const platforms = [
+    {
+      id: "windows",
+      label: "Windows",
+      data: windowsE4,
+      engines: ["chrome", "edge", "firefox"],
+      engineLabels: { chrome: "Chrome", edge: "Edge", firefox: "Firefox" },
+      expectedRepeats: 20,
+    },
+    {
+      id: "macos",
+      label: "macOS",
+      data: macosE4,
+      engines: ["chrome", "firefox", "webkit"],
+      engineLabels: { chrome: "Chrome", firefox: "Firefox", webkit: "Playwright WebKit" },
+      expectedRepeats: 3,
+    },
+  ];
   const quantile = (values, probability) => {
     const finite = values.filter(Number.isFinite).sort((a, b) => a - b);
     if (!finite.length) return null;
@@ -2783,78 +2857,66 @@ function figure4RuntimeRedesigned(e4) {
     const weight = index - lower;
     return finite[lower] * (1 - weight) + finite[upper] * weight;
   };
-  const grouped = new Map();
-  for (const row of e4.rows || []) {
-    if (row.status !== "completed") continue;
-    if (row.phase && row.phase !== "warm") continue;
-    const key = `${row.browser}|${row.scenario}`;
-    grouped.set(key, [...(grouped.get(key) || []), Number(row.elapsedMs)].filter(Number.isFinite));
-  }
   const missing = [];
-  for (const browser of browserOrder) {
-    for (const scenario of scenarios) {
-      if (!(grouped.get(`${browser}|${scenario}`) || []).length) missing.push(`${browser}/${scenario}`);
-    }
-  }
-  if (missing.length) {
-    throw new Error(`E4 runtime benchmark is incomplete for required browser/scenario rows: ${missing.join(", ")}`);
-  }
   const rows = [];
-  for (const scenario of scenarios) {
-    for (const browser of browserOrder) {
-      const values = grouped.get(`${browser}|${scenario}`) || [];
-      rows.push({
-        scenario,
-        scenarioLabel: scenarioInfo[scenario].short,
-        scenarioFull: scenarioInfo[scenario].full,
-        browser,
-        browserLabel: browserLabels[browser],
-        medianMs: median(values),
-        q1Ms: quantile(values, 0.25),
-        q3Ms: quantile(values, 0.75),
-        minMs: Math.min(...values),
-        maxMs: Math.max(...values),
-        observations: values,
-        repeatCount: values.length,
-      });
+  for (const platform of platforms) {
+    const grouped = new Map();
+    for (const row of platform.data?.rows || []) {
+      if (row.status !== "completed" || (row.phase && row.phase !== "warm")) continue;
+      const key = `${row.browser}|${row.scenario}`;
+      grouped.set(key, [...(grouped.get(key) || []), Number(row.elapsedMs)].filter(Number.isFinite));
+    }
+    for (const scenario of scenarios) {
+      for (const engine of platform.engines) {
+        const values = grouped.get(`${engine}|${scenario}`) || [];
+        if (values.length !== platform.expectedRepeats) {
+          missing.push(`${platform.label}/${engine}/${scenario}: ${values.length}`);
+        }
+        rows.push({
+          scenario,
+          scenarioLabel: scenarioInfo[scenario].short,
+          scenarioFull: scenarioInfo[scenario].full,
+          platform: platform.id,
+          platformLabel: platform.label,
+          engine,
+          engineLabel: platform.engineLabels[engine],
+          medianMs: median(values),
+          q1Ms: quantile(values, 0.25),
+          q3Ms: quantile(values, 0.75),
+          minMs: Math.min(...values),
+          maxMs: Math.max(...values),
+          repeats: platform.expectedRepeats,
+        });
+      }
     }
   }
-  const repeatCount = Math.min(...rows.map((row) => row.repeatCount).filter(Number.isFinite));
-  const nmfRows = rows.filter((row) => row.scenario === "nmf_rank_selection_rank4");
-  const chromiumNmfMin = Math.min(
-    ...nmfRows.filter((row) => row.browser !== "firefox").map((row) => row.medianMs)
-  );
-  const firefoxNmf = nmfRows.find((row) => row.browser === "firefox")?.medianMs;
-  const firefoxNmfNote =
-    Number.isFinite(firefoxNmf) && Number.isFinite(chromiumNmfMin) && firefoxNmf > chromiumNmfMin * 3
-      ? `Firefox NMF remained ${formatNumber(firefoxNmf / chromiumNmfMin, 1)}x slower than the fastest Chromium-family browser after isolated-repeat reruns; NMF sub-timings are retained in the E4 result JSON.`
-      : "";
+  if (missing.length) throw new Error(`Runtime benchmark is incomplete: ${missing.join(", ")}`);
   const spec = {
     rows,
     scenarios,
     scenarioInfo,
-    browsers: browserOrder,
-    browserLabels,
-    environment: e4.environment || {},
-    firefoxNmfNote,
+    platforms: platforms.map(({ id, label, engines, engineLabels, expectedRepeats, data }) => ({
+      id, label, engines, engineLabels, expectedRepeats, environment: data?.environment || {},
+    })),
     palette: DESIGN,
   };
   return customFigurePage({
-    title: "Figure 4. Exposure-solve benchmarks",
+    title: "Figure 5. Browser runtimes for core SDK workflows",
     subtitle:
-      `Warm-start native-JavaScript exposure-solve scenarios only: individual observations, medians, minima/maxima, and IQR across ${repeatCount} isolated repeats in Chrome, Edge, and Firefox. Raw benchmark files also retain cold-start rows and component timings.`,
+      "Panel A shows Windows; panel B shows macOS. Both panels use the same workflow order, browser colors, and logarithmic time scale.",
     spec,
     script: `
       const width = 1280, height = 820;
       const p = spec.palette;
       const svg = d3.select("#chart").append("svg").attr("viewBox", [0, 0, width, height]);
       svg.append("rect").attr("width", width).attr("height", height).attr("fill", p.paper);
-      const margin = { top: 58, right: 42, bottom: 304, left: 102 };
+      const margin = { top: 68, right: 42, bottom: 304, left: 102 };
       const completed = spec.rows;
-      const color = d3.scaleOrdinal().domain(spec.browsers).range([p.blue, p.green, p.orange]);
+      const color = d3.scaleOrdinal().domain(["windows", "macos"]).range([p.blue, p.purple]);
+      const symbolType = { chrome: d3.symbolCircle, edge: d3.symbolSquare, firefox: d3.symbolTriangle, webkit: d3.symbolDiamond };
 
       const x0 = d3.scaleBand().domain(spec.scenarios).range([margin.left, width - margin.right]).padding(0.22);
-      const x1 = d3.scaleBand().domain(spec.browsers).range([0, x0.bandwidth()]).padding(0.14);
+      const x1 = d3.scaleBand().domain(["windows", "macos"]).range([0, x0.bandwidth()]).padding(0.18);
       const minVal = d3.min(completed, (row) => row.minMs) || 0.1;
       const maxVal = d3.max(completed, (row) => row.maxMs) || 1000;
       const y = d3.scaleLog().domain([Math.max(0.05, minVal / 4), maxVal * 2.3]).range([height - margin.bottom, margin.top]);
@@ -2871,35 +2933,25 @@ function figure4RuntimeRedesigned(e4) {
         .call(d3.axisLeft(y).ticks(8, "~g"));
       svg.append("text").attr("transform", "rotate(-90)").attr("x", -(margin.top + (height - margin.bottom - margin.top) / 2)).attr("y", 34)
         .attr("text-anchor", "middle").attr("font-size", 14).attr("font-weight", 700).attr("fill", p.muted)
-        .text("Warm-start median elapsed time (ms, log scale)");
+        .text("Elapsed time (ms, log scale)");
 
       svg.selectAll("rect.bar").data(completed).join("rect")
         .attr("class", "bar")
-        .attr("x", (row) => x0(row.scenario) + x1(row.browser))
+        .attr("x", (row) => x0(row.scenario) + x1(row.platform))
         .attr("y", (row) => y(row.medianMs))
         .attr("width", x1.bandwidth())
         .attr("height", (row) => Math.max(3, height - margin.bottom - y(row.medianMs)))
-        .attr("fill", (row) => color(row.browser));
-      const observations = completed.flatMap((row) => row.observations.map((value, index) => ({ row, value, index })));
+        .attr("fill", (row) => color(row.platform));
       svg.selectAll("line.range").data(completed).join("line")
         .attr("class", "range")
-        .attr("x1", (row) => x0(row.scenario) + x1(row.browser) + x1.bandwidth() / 2)
-        .attr("x2", (row) => x0(row.scenario) + x1(row.browser) + x1.bandwidth() / 2)
+        .attr("x1", (row) => x0(row.scenario) + x1(row.platform) + x1.bandwidth() / 2)
+        .attr("x2", (row) => x0(row.scenario) + x1(row.platform) + x1.bandwidth() / 2)
         .attr("y1", (row) => y(row.minMs))
         .attr("y2", (row) => y(row.maxMs))
-        .attr("stroke", (row) => color(row.browser)).attr("stroke-width", 2).attr("opacity", 0.24);
-      svg.selectAll("circle.observation").data(observations).join("circle")
-        .attr("class", "observation")
-        .attr("cx", ({ row, index }) => {
-          const n = row.observations.length;
-          const jitter = n > 1 ? ((index / (n - 1)) - 0.5) * Math.min(24, x1.bandwidth() * 0.72) : 0;
-          return x0(row.scenario) + x1(row.browser) + x1.bandwidth() / 2 + jitter;
-        })
-        .attr("cy", ({ value }) => y(value))
-        .attr("r", 2.5).attr("fill", ({ row }) => color(row.browser)).attr("opacity", 0.4);
+        .attr("stroke", (row) => color(row.platform)).attr("stroke-width", 4).attr("opacity", 0.22);
       const whiskers = svg.selectAll("g.iqr").data(completed).join("g")
         .attr("class", "iqr")
-        .attr("transform", (row) => "translate(" + (x0(row.scenario) + x1(row.browser) + x1.bandwidth() / 2) + ",0)");
+        .attr("transform", (row) => "translate(" + (x0(row.scenario) + x1(row.platform) + x1.bandwidth() / 2) + ",0)");
       whiskers.append("line")
         .attr("x1", 0).attr("x2", 0)
         .attr("y1", (row) => y(row.q1Ms || row.medianMs))
@@ -2917,19 +2969,41 @@ function figure4RuntimeRedesigned(e4) {
         .attr("stroke", p.ink).attr("stroke-width", 1.7).attr("stroke-linecap", "round");
       svg.selectAll("text.value").data(completed).join("text")
         .attr("class", "value")
-        .attr("x", (row) => x0(row.scenario) + x1(row.browser) + x1.bandwidth() / 2)
+        .attr("x", (row) => x0(row.scenario) + x1(row.platform) + x1.bandwidth() / 2)
         .attr("y", (row) => y(row.medianMs) - 8)
         .attr("text-anchor", "middle")
         .attr("font-size", 10.5)
         .attr("font-weight", 700)
-        .attr("fill", p.ink)
+        .attr("fill", "#ffffff")
         .text((row) => formatDuration(row.medianMs));
 
-      const legend = svg.append("g").attr("transform", "translate(" + (width - 382) + ",22)");
-      spec.browsers.forEach((browser, i) => {
-        const item = legend.append("g").attr("transform", "translate(" + (i * 118) + ",0)");
-        item.append("rect").attr("width", 15).attr("height", 15).attr("rx", 3).attr("fill", color(browser));
-        item.append("text").attr("x", 23).attr("y", 13).attr("font-size", 13).attr("font-weight", 700).attr("fill", p.muted).text(spec.browserLabels[browser]);
+      const enginePoints = completed.flatMap((row) => row.engineMedians.map((engine, index) => ({ row, engine, index })));
+      svg.selectAll("path.engine-median").data(enginePoints).join("path")
+        .attr("class", "engine-median")
+        .attr("d", ({ engine }) => d3.symbol().type(symbolType[engine.engine]).size(62)())
+        .attr("transform", ({ row, engine, index }) => {
+          const offset = (index - 1) * Math.min(18, x1.bandwidth() * 0.22);
+          return "translate(" + (x0(row.scenario) + x1(row.platform) + x1.bandwidth() / 2 + offset) + "," + y(engine.medianMs) + ")";
+        })
+        .attr("fill", "#ffffff").attr("stroke", p.ink).attr("stroke-width", 1.6);
+
+      const platformLegend = svg.append("g").attr("transform", "translate(" + (width - 286) + ",20)");
+      spec.platforms.forEach((platform, i) => {
+        const item = platformLegend.append("g").attr("transform", "translate(" + (i * 132) + ",0)");
+        item.append("rect").attr("width", 15).attr("height", 15).attr("rx", 3).attr("fill", color(platform.id));
+        item.append("text").attr("x", 23).attr("y", 13).attr("font-size", 13).attr("font-weight", 700).attr("fill", p.muted).text(platform.label);
+      });
+
+      const engineLegend = svg.append("g").attr("transform", "translate(" + (width - 510) + ",48)");
+      const engineLabels = [
+        { engine: "chrome", label: "Chrome" }, { engine: "edge", label: "Edge" },
+        { engine: "firefox", label: "Firefox" }, { engine: "webkit", label: "Playwright WebKit" },
+      ];
+      engineLabels.forEach((entry, i) => {
+        const item = engineLegend.append("g").attr("transform", "translate(" + ([0, 98, 184, 292][i]) + ",0)");
+        item.append("path").attr("d", d3.symbol().type(symbolType[entry.engine]).size(48)())
+          .attr("transform", "translate(7,7)").attr("fill", "#ffffff").attr("stroke", p.ink).attr("stroke-width", 1.4);
+        item.append("text").attr("x", 18).attr("y", 11).attr("font-size", 10.5).attr("fill", p.muted).text(entry.label);
       });
 
       const notes = svg.append("g").attr("transform", "translate(" + margin.left + "," + (height - 254) + ")");
@@ -2943,13 +3017,11 @@ function figure4RuntimeRedesigned(e4) {
         wrapDetail(detail, spec.scenarioInfo[scenario].full, i < 3 ? 46 : 42);
       });
       svg.append("text").attr("x", margin.left).attr("y", height - 62).attr("font-size", 12).attr("font-weight", 700).attr("fill", p.muted)
-        .text("Bars show warm-start medians; small dots show individual observations; grey ranges show min-to-max and black whiskers show IQR. These are exposure-solve scenarios only.");
+        .text("Bars: median of three engine medians. Open symbols: engine medians. Pale ranges: pooled min-to-max. Black whiskers: pooled IQR.");
       svg.append("text").attr("x", margin.left).attr("y", height - 42).attr("font-size", 12).attr("fill", p.muted)
-        .text("Host: " + (spec.environment.cpus || "n/a") + " CPU threads, " + (spec.environment.memoryGb || "n/a") + " GB RAM, Node " + (spec.environment.node || "n/a") + ". Firefox uses the Playwright-managed browser binary for reproducible automation.");
-      if (spec.firefoxNmfNote) {
-        svg.append("text").attr("x", margin.left).attr("y", height - 22).attr("font-size", 12).attr("fill", p.vermillion)
-          .text(spec.firefoxNmfNote);
-      }
+        .text("Windows: Chrome, Edge, Firefox; 20 warm runs per engine. macOS: Chrome, Firefox, Playwright WebKit; 3 warm runs per engine.");
+      svg.append("text").attr("x", margin.left).attr("y", height - 22).attr("font-size", 12).attr("fill", p.muted)
+        .text("Playwright WebKit provides WebKit-family coverage but is not a test of the shipping Safari browser.");
 
       function wrapDetail(selection, text, maxChars) {
         const words = String(text || "").split(/\\s+/);
@@ -2966,6 +3038,200 @@ function figure4RuntimeRedesigned(e4) {
           }
         }
         tspan.text(line.join(" "));
+      }
+
+      function formatDuration(ms) {
+        if (ms < 1) return d3.format(".2f")(ms) + " ms";
+        if (ms < 100) return d3.format(".1f")(ms) + " ms";
+        if (ms < 1000) return d3.format(".0f")(ms) + " ms";
+        return d3.format(".2f")(ms / 1000) + " s";
+      }
+    `,
+  });
+}
+
+function figure5RuntimeByBrowser(windowsE4, macosE4) {
+  const scenarioInfo = {
+    single_sample_fit_report: "Single sample",
+    medium_cohort_120: "120-sample cohort",
+    portal_scale_300x40: "300 x 40 refit",
+    bootstrap_500: "Bootstrap 500",
+    nmf_rank_selection_rank4: "NMF rank/extract",
+  };
+  const scenarios = Object.keys(scenarioInfo);
+  const panels = [
+    {
+      id: "windows",
+      panel: "A",
+      label: "Windows",
+      data: windowsE4,
+      engines: ["chrome", "edge", "firefox"],
+      engineLabels: { chrome: "Chrome", edge: "Edge", firefox: "Firefox" },
+      repeats: 20,
+    },
+    {
+      id: "macos",
+      panel: "B",
+      label: "macOS",
+      data: macosE4,
+      engines: ["chrome", "firefox", "webkit"],
+      engineLabels: { chrome: "Chrome", firefox: "Firefox", webkit: "Playwright WebKit" },
+      repeats: 3,
+    },
+  ];
+  const quantile = (values, probability) => {
+    const finite = values.filter(Number.isFinite).sort((a, b) => a - b);
+    if (!finite.length) return null;
+    const index = (finite.length - 1) * probability;
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+    if (lower === upper) return finite[lower];
+    const weight = index - lower;
+    return finite[lower] * (1 - weight) + finite[upper] * weight;
+  };
+  const rows = [];
+  const missing = [];
+  for (const panel of panels) {
+    const grouped = new Map();
+    for (const observation of panel.data?.rows || []) {
+      if (observation.status !== "completed" || observation.phase !== "warm") continue;
+      const key = `${observation.browser}|${observation.scenario}`;
+      grouped.set(key, [...(grouped.get(key) || []), Number(observation.elapsedMs)].filter(Number.isFinite));
+    }
+    for (const scenario of scenarios) {
+      for (const engine of panel.engines) {
+        const values = grouped.get(`${engine}|${scenario}`) || [];
+        if (values.length !== panel.repeats) missing.push(`${panel.label}/${engine}/${scenario}: ${values.length}`);
+        rows.push({
+          platform: panel.id,
+          scenario,
+          engine,
+          engineLabel: panel.engineLabels[engine],
+          medianMs: median(values),
+          q1Ms: quantile(values, 0.25),
+          q3Ms: quantile(values, 0.75),
+          minMs: Math.min(...values),
+          maxMs: Math.max(...values),
+          observations: values.map((elapsedMs, index) => ({ elapsedMs, index })),
+        });
+      }
+    }
+  }
+  if (missing.length) throw new Error(`Runtime benchmark is incomplete: ${missing.join(", ")}`);
+  const spec = {
+    rows,
+    scenarios,
+    scenarioInfo,
+    panels: panels.map(({ id, panel, label, engines, engineLabels, repeats }) => ({
+      id, panel, label, engines, engineLabels, repeats,
+    })),
+    palette: DESIGN,
+  };
+  return customFigurePage({
+    title: "Figure 5. Browser runtimes for core SDK workflows",
+    subtitle: "Browser-engine differences are shown separately on Windows (A) and macOS (B) using the same logarithmic time scale.",
+    spec,
+    script: `
+      const width = 1280, height = 1040;
+      const p = spec.palette;
+      const svg = d3.select("#chart").append("svg").attr("viewBox", [0, 0, width, height]);
+      svg.append("rect").attr("width", width).attr("height", height).attr("fill", p.paper);
+      const colors = { chrome: p.blue, edge: p.green, firefox: p.orange, webkit: p.purple };
+      const left = 100, right = 36;
+      const minVal = d3.min(spec.rows, (row) => row.minMs) || 0.1;
+      const maxVal = d3.max(spec.rows, (row) => row.maxMs) || 1000;
+      const yDomain = [Math.max(0.05, minVal / 3), maxVal * 1.7];
+      const panelLayout = {
+        windows: { top: 48, bottom: 470 },
+        macos: { top: 548, bottom: 970 },
+      };
+
+      spec.panels.forEach((panel) => drawPanel(panel, panelLayout[panel.id]));
+
+      svg.append("text").attr("x", 18).attr("y", height / 2).attr("transform", "rotate(-90,18," + (height / 2) + ")")
+        .attr("text-anchor", "middle").attr("font-size", 14).attr("font-weight", 700).attr("fill", p.muted)
+        .text("Elapsed time (ms, log scale)");
+      svg.append("text").attr("x", left).attr("y", 1016).attr("font-size", 12).attr("fill", p.muted)
+        .text("Bars show warm-run medians; black whiskers show interquartile ranges, pale lines show minimum-to-maximum ranges, and overlaid points show individual observations.");
+
+      function drawPanel(panel, layout) {
+        const panelRows = spec.rows.filter((row) => row.platform === panel.id);
+        const plotTop = layout.top + 50;
+        const plotBottom = layout.bottom - 42;
+        const x0 = d3.scaleBand().domain(spec.scenarios).range([left, width - right]).padding(0.22);
+        const x1 = d3.scaleBand().domain(panel.engines).range([0, x0.bandwidth()]).padding(0.14);
+        const y = d3.scaleLog().domain(yDomain).range([plotBottom, plotTop]);
+
+        svg.append("text").attr("x", left).attr("y", layout.top + 20).attr("font-size", 20).attr("font-weight", 800).attr("fill", p.ink)
+          .text(panel.panel + ". " + panel.label);
+        svg.append("text").attr("x", left + 155).attr("y", layout.top + 20).attr("font-size", 12.5).attr("fill", p.muted)
+          .text(panel.repeats + " warm runs per browser and workflow");
+
+        const legend = svg.append("g").attr("transform", "translate(" + (width - right - panel.engines.length * 132) + "," + (layout.top + 4) + ")");
+        panel.engines.forEach((engine, index) => {
+          const item = legend.append("g").attr("transform", "translate(" + (index * 132) + ",0)");
+          item.append("rect").attr("width", 15).attr("height", 15).attr("rx", 2).attr("fill", colors[engine]);
+          item.append("text").attr("x", 23).attr("y", 13).attr("font-size", 12.5).attr("font-weight", 700).attr("fill", p.muted)
+            .text(panel.engineLabels[engine]);
+        });
+
+        svg.append("rect").attr("x", left).attr("y", plotTop).attr("width", width - left - right).attr("height", plotBottom - plotTop)
+          .attr("fill", "#ffffff").attr("stroke", p.hairline);
+        svg.append("g").attr("stroke", p.hairline).attr("stroke-dasharray", "3 4")
+          .selectAll("line").data(y.ticks(7)).join("line")
+          .attr("x1", left).attr("x2", width - right).attr("y1", (tick) => y(tick)).attr("y2", (tick) => y(tick));
+        svg.append("g").attr("transform", "translate(" + left + ",0)").call(d3.axisLeft(y).ticks(7, "~g"));
+        svg.append("g").attr("transform", "translate(0," + plotBottom + ")")
+          .call(d3.axisBottom(x0).tickFormat((scenario) => spec.scenarioInfo[scenario]))
+          .selectAll("text").attr("font-size", 11.5).attr("font-weight", 700);
+
+        svg.selectAll("rect.bar-" + panel.id).data(panelRows).join("rect")
+          .attr("class", "bar-" + panel.id)
+          .attr("x", (row) => x0(row.scenario) + x1(row.engine))
+          .attr("y", (row) => y(row.medianMs))
+          .attr("width", x1.bandwidth())
+          .attr("height", (row) => Math.max(2, plotBottom - y(row.medianMs)))
+          .attr("fill", (row) => colors[row.engine]);
+
+        svg.selectAll("line.range-" + panel.id).data(panelRows).join("line")
+          .attr("class", "range-" + panel.id)
+          .attr("x1", (row) => x0(row.scenario) + x1(row.engine) + x1.bandwidth() / 2)
+          .attr("x2", (row) => x0(row.scenario) + x1(row.engine) + x1.bandwidth() / 2)
+          .attr("y1", (row) => y(row.minMs)).attr("y2", (row) => y(row.maxMs))
+          .attr("stroke", (row) => colors[row.engine]).attr("stroke-width", 4).attr("opacity", 0.25);
+
+        const observations = panelRows.flatMap((row) => (row.observations || []).map((observation) => ({ ...observation, row })));
+        svg.selectAll("circle.observation-" + panel.id).data(observations).join("circle")
+          .attr("class", "observation-" + panel.id)
+          .attr("cx", (d) => {
+            const center = x0(d.row.scenario) + x1(d.row.engine) + x1.bandwidth() / 2;
+            const jitter = (((d.index * 0.61803398875) % 1) - 0.5) * x1.bandwidth() * 0.68;
+            return center + jitter;
+          })
+          .attr("cy", (d) => y(d.elapsedMs))
+          .attr("r", panel.repeats > 3 ? 2.6 : 3.8)
+          .attr("fill", p.ink).attr("fill-opacity", 0.52)
+          .attr("stroke", "#ffffff").attr("stroke-width", 0.65).attr("stroke-opacity", 0.8);
+
+        const whiskers = svg.selectAll("g.iqr-" + panel.id).data(panelRows).join("g")
+          .attr("class", "iqr-" + panel.id)
+          .attr("transform", (row) => "translate(" + (x0(row.scenario) + x1(row.engine) + x1.bandwidth() / 2) + ",0)");
+        whiskers.append("line").attr("x1", 0).attr("x2", 0)
+          .attr("y1", (row) => y(row.q1Ms)).attr("y2", (row) => y(row.q3Ms))
+          .attr("stroke", p.ink).attr("stroke-width", 1.6);
+        whiskers.append("line").attr("x1", -6).attr("x2", 6)
+          .attr("y1", (row) => y(row.q1Ms)).attr("y2", (row) => y(row.q1Ms))
+          .attr("stroke", p.ink).attr("stroke-width", 1.6);
+        whiskers.append("line").attr("x1", -6).attr("x2", 6)
+          .attr("y1", (row) => y(row.q3Ms)).attr("y2", (row) => y(row.q3Ms))
+          .attr("stroke", p.ink).attr("stroke-width", 1.6);
+
+        svg.selectAll("text.value-" + panel.id).data(panelRows).join("text")
+          .attr("class", "value-" + panel.id)
+          .attr("x", (row) => x0(row.scenario) + x1(row.engine) + x1.bandwidth() / 2)
+          .attr("y", (row) => y(row.medianMs) - 7)
+          .attr("text-anchor", "middle").attr("font-size", 9.5).attr("font-weight", 700).attr("fill", p.ink)
+          .text((row) => formatDuration(row.medianMs));
       }
 
       function formatDuration(ms) {
@@ -3083,7 +3349,7 @@ These captions are generated alongside the manuscript figures. Figure HTML pages
 
 ## Main Figures
 
-**Figure 1. mSigSDK architecture and data-residency boundary.** Optional public-data fetchers may send public sample, gene, project, or file identifiers to mSigPortal/GDC, and the live UCSC MAF-context lookup may send mutation coordinates when explicitly invoked; strictLocal disables those fetches. User spectra, exposures, QC outputs, plots, and JSON reports remain inside the local browser/device boundary unless explicitly exported.
+**Figure 1. mSigSDK architecture and data-residency boundary.** Complete user spectra and MAF rows are not uploaded to an mSigSDK-operated analysis service. Optional public-data helpers may send public identifiers to mSigPortal/GDC, and live reference-context lookup may send genomic coordinates to UCSC; strict-local mode disables these requests. Fitted exposures, review outputs, plots, and reports remain local unless explicitly exported.
 
 File: \`figure1-architecture-data-residency.html\`
 
@@ -3091,13 +3357,13 @@ File: \`figure1-architecture-data-residency.html\`
 
 File: \`figure2-zero-install-workflow.html\`
 
-**Figure 3. Browser-side public cohort capability summary.** Thirty-eight public PCAWG Lung-AdenoCA SBS96 spectra were fetched from mSigPortal, fitted in the browser against the mSigPortal COSMIC v3 GRCh37 SBS96 catalog with ${signatureCount} signatures, and summarized as manuscript-scale SDK outputs. Panels show cohort-level fitted exposure structure, mutation-burden and fit-quality context, exposure-threshold sensitivity, and exploratory rank-6 non-negative matrix factorization.
+**Figure 3. Browser-side public cohort capability summary.** Thirty-eight public PCAWG Lung-AdenoCA SBS96 spectra were fetched from mSigPortal, fitted in the browser against the mSigPortal COSMIC v3 GRCh37 SBS96 catalog with ${signatureCount} signatures, and summarized as manuscript-scale SDK outputs. Panels show (A) mean normalized COSMIC exposure across the cohort for the dominant fitted signatures, with remaining signatures grouped as Other; (B) descriptive reconstruction metrics and mutation-burden distribution; (C) exposure-threshold sensitivity, comparing active-signature counts with reconstruction cosine across cutoffs; and (D) exploratory non-negative matrix factorization rank selection and the six extracted rank-6 SBS96 component profiles. In panel D, ranks 2–8 were evaluated using five sample-level folds and five seeded restarts per rank and fold. Rank selection used mean relative Frobenius reconstruction error on held-out samples, subject to prespecified convergence and restart component-stability requirements. Rank 6 was selected automatically as the smallest eligible rank within one standard error of the minimum held-out error; rank 8 had the lowest point estimate. Panel C measures the numerical contribution of filtered exposures to reconstruction in this cohort; it does not measure their biological importance or validate the complete rule-based reporting system. The selected NMF rank is a cohort-specific exploratory choice rather than an estimate of universal biological dimensionality.
 
 File: \`figure3-public-cohort-capabilities.html\`
 
-**Figure 4. Exposure-solve benchmark scenarios only.** Warm-start elapsed runtime for representative native-JavaScript exposure-solve workflows, shown with individual observations, medians, and IQR/minimum-to-maximum ranges across 20 isolated repeats in Chrome, Edge, and Firefox. The single-sample scenario includes native NNLS, reconstruction QC, and HTML report serialization; it does not render plots. Cohort refitting, 500-iteration bootstrap, and NMF rank-selection/extraction are separate scenarios. Cold-start rows and component fields are retained in the benchmark files; Pyodide/WebR initialization, wrapped-package import, public spectrum/catalog fetch, adapter fitting, and plot rendering were not part of E4 and are labeled not applicable or not measured rather than folded into native-compute timings. The browser exposes only sampled JavaScript heap values, reported as observed peak JS heap; Firefox did not expose this metric.
+**Figure 5. Browser runtimes for core SDK workflows on Windows and macOS.** Warm-start elapsed times are shown separately for (A) Chrome, Edge, and Firefox on Windows and (B) Chrome, Firefox, and Playwright WebKit on macOS. Bars show browser-specific medians, black whiskers show interquartile ranges, pale vertical lines show minimum-to-maximum ranges, and overlaid points show the individual warm-run observations; both panels use the same logarithmic time scale and workflow order. Windows measurements used 20 warm runs per browser and scenario, whereas macOS measurements used three. The single-sample scenario includes native NNLS, reconstruction evidence, and HTML report serialization; cohort refitting, 500-iteration bootstrap, and NMF rank-selection/extraction are separate scenarios. Inputs were synthetic spectra and catalogs already held in memory. Public-resource retrieval, Pyodide/WebR initialization, wrapped-package import, adapter fitting, and plot rendering were not included. Playwright WebKit provides WebKit-family coverage but is not a test of the shipping Safari browser.
 
-File: \`figure4-runtime-benchmarks.html\`
+File: \`figure5-exposure-solve-benchmarks.html\`
 
 ## Figure 3 Detail Figures
 

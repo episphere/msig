@@ -455,7 +455,7 @@ function mimeType(filePath) {
 }
 
 export function tempDir(prefix) {
-  return path.join(REPO_ROOT, ".tmp", `${prefix}-${Date.now()}`);
+  return path.join(REPO_ROOT, ".tmp", `${prefix}-${Date.now()}-${process.pid}`);
 }
 
 export function pathToLocalUrl(filePath) {

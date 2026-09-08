@@ -1,0 +1,5 @@
+tool,sampleCount,activeSignatureCountMean,activeSignatureCountSd,activeSignatureCountMedian,activeSignatureCountQ1,activeSignatureCountQ3,activeSignatureCountMin,activeSignatureCountMax,reconstructionCosineMean,reconstructionCosineSd,reconstructionCosineMedian,reconstructionCosineQ1,reconstructionCosineQ3,reconstructionCosineMin,reconstructionCosineMax
+deconstructSigs,38,15.868421,3.572954,15.5,14,18.75,9,24,0.994113,0.00382,0.994808,0.993662,0.996345,0.981059,0.998788
+sigminer,38,17.394737,3.665319,16.5,14.25,20.75,12,25,0.9945,0.003505,0.994959,0.994012,0.996593,0.983142,0.998895
+SigProfilerAssignment,38,4.131579,1.398282,4,3,5,2,7,0.981536,0.0122,0.984985,0.979662,0.988642,0.943031,0.996637
+MuSiCal,38,11.210526,2.548533,11,10,13,5,18,0.99309,0.003849,0.993711,0.991277,0.995656,0.982309,0.999134

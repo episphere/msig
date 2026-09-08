@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "msig.manuscript.e7.full-progress.v1",
+  "updatedAt": "2026-08-03T01:39:51.804Z",
+  "status": "running",
+  "noise": 0,
+  "sampleCount": 2700,
+  "chunkSize": 300,
+  "chunkCount": 9,
+  "activeChunk": 2,
+  "activeChunkSamples": 300,
+  "concurrency": 9
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "msig.manuscript.e2.progress.v1",
+  "experimentId": "e7_published_full_noise10_chunk-009",
+  "updatedAt": "2026-08-03T01:05:59.394Z",
+  "stage": "result-written",
+  "details": {
+    "resultPath": "docs/manuscript/experiments/e7_four_tool_comparison/published_full_local_py3_noise10/chunks/chunk-009/data/adapter-fidelity-results.json",
+    "status": "completed",
+    "rows": 4
+  }
+}

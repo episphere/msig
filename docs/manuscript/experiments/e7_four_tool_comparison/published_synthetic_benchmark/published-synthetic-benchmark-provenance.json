@@ -1,6 +1,6 @@
 {
   "schemaVersion": "msig.manuscript.e7.published-synthetic-benchmark.v1",
-  "generatedAt": "2026-08-02T02:38:35.891Z",
+  "generatedAt": "2026-08-03T04:58:40.517Z",
   "source": {
     "generatorPaper": "Islam et al. 2022, Cell Genomics, DOI 10.1016/j.xgen.2022.100179",
     "generatorPaperUrl": "https://pubmed.ncbi.nlm.nih.gov/36388765/",
@@ -13,7 +13,7 @@
     "dataset": "Published SBS synthetic benchmark: 2,700 spectra, 300 per each of nine cancer types, generated from 21 COSMIC reference signatures; archived COSMIC v3.3 GRCh37 SBS catalog shape contains 78 signature columns."
   },
   "subset": {
-    "sampleCount": 9,
+    "sampleCount": 2700,
     "cancerTypeCount": 9,
     "samplesPerCancerType": 1,
     "method": "First sample ID in each cancer-type group after grouping the archived sample names by the prefix before ::.",

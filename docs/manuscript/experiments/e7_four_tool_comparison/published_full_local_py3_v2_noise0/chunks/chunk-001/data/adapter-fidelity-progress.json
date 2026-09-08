@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "msig.manuscript.e2.progress.v1",
+  "experimentId": "e7_published_full_local_py3_v2_noise0_chunk-001",
+  "updatedAt": "2026-08-03T01:43:56.888Z",
+  "stage": "local-comparator-started",
+  "details": {
+    "tool": "deconstructsigs",
+    "localComparator": "local Rscript (Rscript)"
+  }
+}
